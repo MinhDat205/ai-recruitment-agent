@@ -3,6 +3,7 @@ package com.recruitment.ai.client;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,8 +21,9 @@ import org.springframework.context.annotation.Configuration;
 public class AnthropicChatModelConfig {
 
     @Bean
-    public AnthropicChatModel anthropicChatModel(ToolCallingManager toolCallingManager) {
-        String apiKey = System.getenv("ANTHROPIC_API_KEY");
+    public AnthropicChatModel anthropicChatModel(
+            ToolCallingManager toolCallingManager,
+            @Value("${ANTHROPIC_API_KEY:}") String apiKey) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("Thieu bien moi truong ANTHROPIC_API_KEY");
         }
