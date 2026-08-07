@@ -1,94 +1,94 @@
-# Roadmap triển khai — chia theo mã FR
+# Roadmap — tiến độ triển khai
 
-Nguyên tắc: **1 phase = 1 nhánh git = 1 phiên Claude Code**. Xong phase nào chạy được phase đó rồi mới sang phase kế.
-Không nhảy sang phần AI khi phần CRUD nền chưa chạy — AI phụ thuộc dữ liệu đã parse.
+Bảng theo dõi tiến độ. **Chi tiết từng nhánh xem `docs/PHASES.md`** (phạm vi, tiêu chí nghiệm thu,
+lỗi AI hay mắc). **Quy trình làm việc xem `docs/WORKFLOW.md`.**
+
+Nguyên tắc: **1 mã FR = 1 nhánh = 1 phiên Claude Code.** Xong nhánh nào chạy được nhánh đó rồi
+mới sang nhánh kế. Không nhảy sang phần AI khi phần CRUD nền chưa chạy — AI không có dữ liệu vào
+và không có chỗ ghi kết quả ra.
 
 ---
 
-## Phase 0 — Móng (chưa có gì thông minh)
+## Phase 0 — Khởi tạo ✅ HOÀN THÀNH
 
-- [ ] Khởi tạo repo, cấu trúc thư mục, lint/format, biến môi trường mẫu (`.env.example`)
-- [ ] Docker compose: database + (tuỳ chọn) vector store
-- [ ] Schema DB bản đầu: `users`, `companies`, `jobs`, `rubric_criteria`, `applications`, `resumes`, `scores`, `notifications`
-- [ ] Seed dữ liệu giả: 1 HR, 3 ứng viên, 2 job
+- [x] Repo, cấu trúc thư mục, `.gitattributes`, `.gitignore`, `.env.example`
+- [x] Docker Compose: PostgreSQL 17 + pgvector, MailHog, MinIO
+- [x] Schema đầy đủ 18 bảng qua Flyway (`V1__init_schema.sql`)
+- [x] Backend Spring Boot 4.1 + Spring AI 2.0 + Java 25 — khởi động được
+- [x] Frontend Vite + React 19 + Tailwind + design token
+- [x] CI GitHub Actions, đã push lên GitHub
+- [x] Tài liệu: SRS, TECH_STACK, UI_GUIDE, DOCKER, ONBOARDING, PHASES, WORKFLOW
 
-**Tiêu chí xong:** `docker compose up` + `npm run dev` lên được, mở trang trắng không lỗi.
+**Đã đạt:** `docker compose up -d` + backend + frontend chạy được, database có 18 bảng.
 
-## Phase 1 — FR-C01, FR-C02: Tài khoản & duyệt công khai
+---
 
-- [ ] Đăng ký / đăng nhập tách 2 role, hash mật khẩu (bcrypt/Argon2), phiên JWT hoặc session
-- [ ] RBAC ở tầng API (middleware/guard), không chỉ ẩn UI
-- [ ] Trang công khai: danh sách job, chi tiết job, hồ sơ doanh nghiệp — xem không cần login
-- [ ] Chặn hành động (ứng tuyển, tạo tin) khi chưa login
+## Phase A — Nền tảng tài khoản
 
-**Tiêu chí xong:** ứng viên gọi API của HR → 403.
+- [ ] **A1** `feat/fr-c01-auth` — FR-C01 · Đăng ký/đăng nhập 2 role, BCrypt, JWT, RBAC
+- [ ] **A2** `feat/fr-c02-public-browse` — FR-C02 · Trang công khai: danh sách job, chi tiết, hồ sơ doanh nghiệp
 
-## Phase 2 — FR-H01, FR-H02, FR-H03: Doanh nghiệp, tin tuyển dụng, rubric
+**Xong khi:** ứng viên gọi API của HR → **403** (kiểm bằng curl, không qua UI).
 
-- [ ] CRUD hồ sơ doanh nghiệp
-- [ ] CRUD job posting (tạo / sửa / tạm dừng / xoá)
-- [ ] Mỗi job bắt buộc gắn 1 bộ rubric
-- [ ] Rubric: thêm tiêu chí + trọng số, **validate tổng = 100%**
-- [ ] Thang điểm 1–5 mặc định dùng chung; HR tuỳ chọn ghi đè mô tả riêng
-- [ ] Mẫu giấy mời phỏng vấn gắn theo job (để trống ô ngày giờ)
+## Phase B — HR dựng chiến dịch
 
-**Tiêu chí xong:** không thể lưu rubric có tổng trọng số ≠ 100%.
+- [ ] **B1** `feat/fr-h01-company` — FR-H01 · Hồ sơ doanh nghiệp
+- [ ] **B2** `feat/fr-h02-jobs` — FR-H02 · CRUD tin tuyển dụng + mẫu giấy mời phỏng vấn
+- [ ] **B3** `feat/fr-h03-rubric` — FR-H03 · Tiêu chí + trọng số, thang điểm mặc định/tuỳ chọn
 
-## Phase 3 — FR-U01, FR-U02, FR-U03: Ứng viên nộp đơn
+**Xong khi:** không lưu được rubric có tổng trọng số ≠ 100%, chặn ở cả UI lẫn API.
 
-- [ ] Hồ sơ cá nhân, upload nhiều phiên bản CV (PDF/DOCX), lưu file
-- [ ] Tìm kiếm job theo từ khoá / địa điểm / danh mục
-- [ ] Ứng tuyển: **unique constraint** (ứng viên, job, chu kỳ) — chỉ 1 CV/vị trí
-- [ ] Checkbox consent bắt buộc, lưu lại thời điểm đồng ý
-- [ ] Trang theo dõi trạng thái + lịch sử ứng tuyển
+## Phase C — Ứng viên nộp đơn
 
-**Tiêu chí xong:** nộp trùng job → bị chặn ở tầng DB, không chỉ ở UI.
+- [ ] **C1** `feat/fr-u01-resume` — FR-U01 · Hồ sơ cá nhân, upload nhiều phiên bản CV
+- [ ] **C2** `feat/fr-u02-apply` — FR-U02 · Ứng tuyển + consent bắt buộc + chống nộp trùng
+- [ ] **C3** `feat/fr-u03-tracking` — FR-U03 · Theo dõi 5 trạng thái + lịch sử
+- [ ] **C4** `feat/fr-u06-withdraw` — FR-U06 · Rút đơn (soft state)
 
-## Phase 4 — FR-C04: AI Resume Parsing
+**Xong khi:** nộp trùng job trong cùng chu kỳ bị chặn ở **tầng DB**, không chỉ ở UI.
 
-- [ ] Trích text từ PDF/DOCX
-- [ ] Prompt parsing → JSON có schema: contact, education, experience, skills, certifications, projects
-- [ ] Validate schema, retry 1 lần, lưu bản raw + bản đã parse
-- [ ] Chạy nền (queue/job) — không chặn request upload
-- [ ] Test với 5 CV thật đủ dạng (1 cột, 2 cột, tiếng Việt, tiếng Anh, scan)
+## Phase D — AI đọc và chấm
 
-**Tiêu chí xong:** upload CV → vài giây sau có JSON đúng trong DB.
+- [ ] **D1** `feat/fr-c04-parsing` — FR-C04 · Trích xuất CV → JSON, chạy nền, validate schema
+- [ ] **D2** `feat/fr-h04-scoring` — FR-H04 · Chấm **từng tiêu chí riêng** + evidence
+- [ ] **D3** `feat/fr-h05-aggregate` — FR-H05 · Tổng hợp có trọng số + xếp hạng (Java thuần)
+- [ ] **D4** `feat/fr-h06-explain` — FR-H06 · Báo cáo giải thích, mọi luận điểm có evidence
 
-## Phase 5 — FR-H04, FR-H05: Chấm điểm & xếp hạng
+**Xong khi:** unit test `ScoreAggregator` pass; đổi trọng số → thứ hạng đổi đúng công thức;
+không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `passed`.
 
-- [ ] Prompt scoring: input = CV JSON + 1 tiêu chí → output = điểm + evidence trích dẫn
-- [ ] Chấm **từng tiêu chí riêng**, không gộp 1 lần gọi trả cả bảng điểm
-- [ ] Backend tính tổng có trọng số + sắp xếp — code thuần, viết unit test
-- [ ] Lưu lịch sử đánh giá (phiên bản prompt, model, thời điểm) phục vụ audit
+## Phase E — Quyết định & thông báo
 
-**Tiêu chí xong:** unit test tổng điểm pass; đổi trọng số → thứ hạng đổi theo đúng công thức.
+- [ ] **E1** `feat/fr-h07-pipeline` — FR-H07 · Pipeline, mời phỏng vấn, xác nhận kết quả
+- [ ] **E2** `feat/fr-c03-notification` — FR-C03 · Thông báo web + email
 
-## Phase 6 — FR-H06, FR-H07, FR-C03: Giải thích, pipeline, thông báo
+**Xong khi:** không tồn tại bất kỳ đường code nào tự động chuyển trạng thái đậu/rớt.
 
-- [ ] Báo cáo giải thích bằng ngôn ngữ tự nhiên, mọi luận điểm có evidence
-- [ ] Màn hình pipeline: danh sách đã xếp hạng → mở hồ sơ → Mời phỏng vấn / Từ chối
-- [ ] Render giấy mời từ mẫu + tên ứng viên, HR điền ngày giờ, sửa được trước khi gửi
-- [ ] Xác nhận kết quả cuối: Trúng tuyển / Bị từ chối
-- [ ] Notification: web + email theo sự kiện đổi trạng thái
+## Phase F — Gợi ý & thống kê
 
-**Tiêu chí xong:** không tồn tại bất kỳ đường code nào tự động chuyển trạng thái đậu/rớt.
+- [ ] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
+- [ ] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
+- [ ] **F3** `feat/fr-h08-dashboard` — FR-H08 · Dashboard, lọc theo điểm, tra cứu lịch sử đánh giá
 
-## Phase 7 — FR-U04, FR-U05, FR-U06: Tính năng cho ứng viên
+**Xong khi:** đơn đã rút vẫn được đếm đúng trong thống kê.
 
-- [ ] Embedding cho CV và JD, cosine similarity, gợi ý job trên bảng tin
-- [ ] Gợi ý cải thiện CV: từ khoá thiếu, đoạn cần sửa, lộ trình học
-- [ ] Rút đơn → chuyển `WITHDRAWN`, giữ nguyên điểm & lịch sử
+---
 
-**Tiêu chí xong:** rút đơn xong, thống kê ở FR-H08 vẫn đếm đúng.
+## Hoàn thiện trước bảo vệ
 
-## Phase 8 — FR-H08: Dashboard & audit
+- [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), chi phí token, presigned URL cho file CV
+- [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
+- [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
-- [ ] Thống kê: tổng hồ sơ, tỷ lệ chuyển đổi giữa các vòng, hiệu suất từng chiến dịch
-- [ ] Lọc/sắp xếp theo khoảng tổng điểm hoặc theo điểm 1 tiêu chí cụ thể
-- [ ] Trang tra cứu toàn bộ lịch sử đánh giá AI của 1 ứng viên
+---
 
-## Phase 9 — Hoàn thiện
+## Ba nhánh cần review kỹ nhất
 
-- [ ] Rate limit, xử lý lỗi LLM (timeout, quota), chi phí token
-- [ ] Bảo mật file CV (signed URL, không public bucket)
-- [ ] README + hướng dẫn cài đặt + demo script cho buổi bảo vệ
+Đây là chỗ AI sẽ tự "tối ưu" theo hướng vi phạm nguyên tắc SRS. Đọc mục "AI hay làm sai"
+trong `docs/PHASES.md` **trước** khi bắt đầu ba nhánh này:
+
+| Nhánh | AI sẽ muốn làm | Vì sao sai |
+|---|---|---|
+| **D2** FR-H04 | Gộp tất cả tiêu chí vào một lần gọi LLM cho tiết kiệm token | Vi phạm nguyên tắc "chấm từng tiêu chí riêng lẻ", chất lượng chấm giảm rõ rệt |
+| **D3** FR-H05 | Thêm ngưỡng phân loại, tô màu đỏ–vàng–xanh cho điểm | SRS cấm phân loại và gán nhãn — màu theo ngưỡng là phán quyết trá hình |
+| **E1** FR-H07 | Thêm "tự động từ chối ứng viên dưới ngưỡng điểm" | Cấm tuyệt đối: quyết định luôn thuộc về HR (human-in-the-loop) |
