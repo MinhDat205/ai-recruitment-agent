@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -13,10 +13,15 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-export function LoginForm() {
+interface LoginFormProps {
+  showRegisteredNotice?: boolean
+}
+
+export function LoginForm({ showRegisteredNotice = false }: LoginFormProps) {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showNotice, setShowNotice] = useState(showRegisteredNotice)
 
   const {
     register,
@@ -38,8 +43,21 @@ export function LoginForm() {
     }
   })
 
+  // Hide the "just registered" notice the instant the user attempts to log in,
+  // before validation runs, so it never overlaps a 401 error message below.
+  function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
+    setShowNotice(false)
+    onSubmit(event)
+  }
+
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+    <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
+      {showNotice && (
+        <p className="rounded-[--radius-badge] bg-brand-light px-3 py-2 text-sm text-brand">
+          Đăng ký thành công, vui lòng đăng nhập.
+        </p>
+      )}
+
       <div className="flex flex-col gap-1">
         <label htmlFor="login-email" className="text-sm font-medium text-ink">
           Email

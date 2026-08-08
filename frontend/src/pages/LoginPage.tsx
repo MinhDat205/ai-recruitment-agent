@@ -11,14 +11,8 @@ export function LoginPage() {
         <h1 className="text-2xl font-semibold text-ink">Đăng nhập</h1>
         <p className="mt-1 text-sm text-ink-muted">Chào mừng bạn quay lại AI Recruitment Agent.</p>
 
-        {justRegistered && (
-          <p className="mt-4 rounded-[--radius-badge] bg-brand-light px-3 py-2 text-sm text-brand">
-            Đăng ký thành công, vui lòng đăng nhập.
-          </p>
-        )}
-
         <div className="mt-6">
-          <LoginForm />
+          <LoginForm showRegisteredNotice={justRegistered} />
         </div>
 
         <p className="mt-6 text-center text-sm text-ink-muted">
