@@ -22,12 +22,12 @@ Nền tảng tuyển dụng có AI hỗ trợ, 2 loại tài khoản: **HR** và
 
 Monorepo: `backend/` (Spring Boot) + `frontend/` (React) + 1 PostgreSQL. Không microservice.
 
-- Backend: Java 21, Spring Boot 3.5.16, Spring Security 6 + JWT, Spring Data JPA
+- Backend: Java 25, Spring Boot 4.1, Spring Security + JWT, Spring Data JPA (Hibernate 7.4.1)
 - Migration: Flyway (`backend/src/main/resources/db/migration`) — Flyway là nguồn sự thật của schema, `ddl-auto: validate`
-- AI: Spring AI 1.1.8 — `ChatClient` (Anthropic), `EmbeddingModel` (OpenAI), `PgVectorStore`
+- AI: Spring AI 2.0 — `ChatClient` (Anthropic), `EmbeddingModel` (OpenAI), `PgVectorStore`
 - Đọc CV: Apache PDFBox (PDF) + Apache POI (DOCX)
 - Database: PostgreSQL 17 + pgvector, index HNSW cosine, `vector(1536)`
-- Frontend: Vite + React 19 + TypeScript, TanStack Query, React Hook Form + Zod, Tailwind + shadcn/ui
+- Frontend: Vite + React 19 + TypeScript, TanStack Query, React Hook Form + Zod, Tailwind (shadcn/ui: chưa cài, dự kiến cài ở `chore/shadcn-setup`)
 - Job nền: bảng trạng thái + `@Scheduled` poller + `@Async`. Không Redis, không MQ.
 - Test: JUnit 5 + Testcontainers (Postgres thật, không H2)
 
@@ -67,3 +67,11 @@ docker compose down -v               # reset sạch DB khi migration hỏng
 - Không đổi `ddl-auto` sang `update`. Mọi thay đổi schema đi qua một file Flyway mới.
 - Không xoá cột `weight_snapshot` / `rubric_snapshot` dù trông có vẻ trùng dữ liệu — chúng giữ lịch sử audit.
 - Không commit `.env`, không commit thư mục `uploads/`.
+
+## 8. Bẫy môi trường đã gặp
+
+- Windows + PowerShell: không dùng cú pháp bash (`&&`, `/dev/null`, đường dẫn kiểu `/e/...`). Mọi lệnh shell viết theo cú pháp PowerShell.
+- Spring Boot 4.1: `@AutoConfigureMockMvc` chuyển sang package `org.springframework.boot.webmvc.test.autoconfigure`.
+- Spring Boot 4.1: `TestRestTemplate` không còn nằm sẵn trong `spring-boot-test`.
+- Hibernate 7.4.1: cột DB tự sinh giá trị (trigger / `DEFAULT now()`) phải đánh dấu bằng `@Generated(event = EventType...)`, không để Hibernate tự ghi đè.
+- PowerShell không tự nạp file `.env`. Test dùng `application-test.yml` (không cần secret thật); chạy `spring-boot:run` thủ công cần `setx JWT_SECRET ...` trước.

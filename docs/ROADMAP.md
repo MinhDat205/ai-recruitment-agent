@@ -25,8 +25,9 @@ và không có chỗ ghi kết quả ra.
 
 ## Phase A — Nền tảng tài khoản
 
-- [ ] **A1** `feat/fr-c01-auth` — FR-C01 · Đăng ký/đăng nhập 2 role, BCrypt, JWT, RBAC
+- [x] **A1** `feat/fr-c01-auth` — FR-C01 · Đăng ký/đăng nhập 2 role, BCrypt, JWT, RBAC
 - [ ] **A2** `feat/fr-c02-public-browse` — FR-C02 · Trang công khai: danh sách job, chi tiết, hồ sơ doanh nghiệp
+- [ ] `chore/shadcn-setup` — cài shadcn/ui trước khi vào Phase B
 
 **Xong khi:** ứng viên gọi API của HR → **403** (kiểm bằng curl, không qua UI).
 
