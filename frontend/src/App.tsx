@@ -4,6 +4,9 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { HrHomePage } from './pages/HrHomePage'
 import { LoginPage } from './pages/LoginPage'
+import { PublicCompanyProfilePage } from './pages/PublicCompanyProfilePage'
+import { PublicJobDetailPage } from './pages/PublicJobDetailPage'
+import { PublicJobListPage } from './pages/PublicJobListPage'
 import { RegisterPage } from './pages/RegisterPage'
 
 function App() {
@@ -11,6 +14,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<PublicJobListPage />} />
+          <Route path="/jobs/:id" element={<PublicJobDetailPage />} />
+          <Route path="/companies/:id" element={<PublicCompanyProfilePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route
@@ -29,7 +35,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
