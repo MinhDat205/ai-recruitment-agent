@@ -120,23 +120,29 @@ class AuthIntegrationTest {
     }
 
     @Test
-    void hrPing_rolePlusAnonymousMatrix_isCorrect() throws Exception {
+    void hrToken_hrPing_returns200() throws Exception {
         String hrEmail = uniqueEmail("hr-ping");
         registerHr(hrEmail, "password123");
         String hrToken = extractJsonField(login(hrEmail, "password123"), "accessToken");
 
+        mockMvc
+                .perform(get("/api/hr/ping").header("Authorization", "Bearer " + hrToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void candidateToken_hrPing_returns403() throws Exception {
         String candidateEmail = uniqueEmail("candidate-ping");
         registerCandidate(candidateEmail, "password123");
         String candidateToken = extractJsonField(login(candidateEmail, "password123"), "accessToken");
 
         mockMvc
-                .perform(get("/api/hr/ping").header("Authorization", "Bearer " + hrToken))
-                .andExpect(status().isOk());
-
-        mockMvc
                 .perform(get("/api/hr/ping").header("Authorization", "Bearer " + candidateToken))
                 .andExpect(status().isForbidden());
+    }
 
+    @Test
+    void noToken_hrPing_returns401() throws Exception {
         mockMvc.perform(get("/api/hr/ping")).andExpect(status().isUnauthorized());
     }
 
