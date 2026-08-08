@@ -81,7 +81,7 @@ export function RegisterForm() {
             role="tab"
             aria-selected={accountType === tab.value}
             onClick={() => handleTabChange(tab.value)}
-            className={`h-9 flex-1 rounded-[--radius-badge] text-sm font-medium transition-colors ${
+            className={`h-9 flex-1 rounded-(--radius-badge) text-sm font-medium transition-colors ${
               accountType === tab.value ? 'bg-brand text-white' : 'text-ink-muted'
             }`}
           >
