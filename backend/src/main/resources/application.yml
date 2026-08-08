@@ -1,34 +1,45 @@
 spring:
   application:
     name: ai-recruitment-agent
-  # Loai bo auto-configuration Anthropic cua Spring AI 2.0.0: no co bug binding
-  # 'spring.ai.anthropic.chat.thinking' vao ThinkingConfigParam (class cua Anthropic SDK goc,
-  # khong phai POJO chuan) -> InvalidConfigurationPropertyNameException khi khoi dong.
-  # AnthropicChatModel duoc khai bao thu cong o AnthropicChatModelConfig (goi y bang code).
+
+  # spring-ai 2.0.0 bug: auto-config Anthropic bind loi vao ThinkingConfigParam khi khoi dong.
+  # AnthropicChatModel duoc khai bao thu cong o AnthropicChatModelConfig.
   autoconfigure:
     exclude:
       - org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration
+
   datasource:
     url: jdbc:postgresql://localhost:5432/recruitment
     username: recruitment
     password: recruitment
+
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate      # KHÔNG đổi sang update — Flyway là nguồn sự thật của schema
     open-in-view: false
+    properties:
+      hibernate.format_sql: true
+
   flyway:
     enabled: true
     locations: classpath:db/migration
+
   mail:
     host: localhost
     port: 1025
+
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
   ai:
-    # spring.ai.anthropic.* khong con tac dung vi autoconfiguration da bi loai o tren.
-    # ANTHROPIC_API_KEY duoc doc truc tiep tu bien moi truong trong AnthropicChatModelConfig.
+    anthropic:
+      # ANTHROPIC_API_KEY duoc doc truc tiep trong AnthropicChatModelConfig, khong qua day.
+      chat:
+        options:
+          model: claude-sonnet-4-6
+          temperature: 0.2
     openai:
       api-key: ${OPENAI_API_KEY}
       embedding:
@@ -48,6 +59,11 @@ app:
   storage:
     type: local
     local-path: ./uploads
+
+logging:
+  level:
+    org.springframework.ai: INFO
+    org.hibernate.SQL: DEBUG
 
 management:
   endpoints:
