@@ -27,7 +27,11 @@ Monorepo: `backend/` (Spring Boot) + `frontend/` (React) + 1 PostgreSQL. Không 
 - AI: Spring AI 2.0 — `ChatClient` (Anthropic), `EmbeddingModel` (OpenAI), `PgVectorStore`
 - Đọc CV: Apache PDFBox (PDF) + Apache POI (DOCX)
 - Database: PostgreSQL 17 + pgvector, index HNSW cosine, `vector(1536)`
-- Frontend: Vite + React 19 + TypeScript, TanStack Query, React Hook Form + Zod, Tailwind (shadcn/ui: chưa cài, dự kiến cài ở `chore/shadcn-setup`)
+- Frontend: Vite + React 19 + TypeScript, TanStack Query, React Hook Form + Zod, Tailwind + shadcn/ui
+  - Đã cài ở nhánh `chore/shadcn-setup`. Cấu hình: `components.json`, style Radix UI + preset Nova, alias `@/` trỏ vào `src/`.
+  - Đã có 8 component trong `src/components/ui/`: button, input, label, card, table, dialog, select, tabs. Chỉ cài đúng những cái cần, không cài cả bộ.
+  - Thêm component mới bằng `npx shadcn@latest add <ten>`. Phải chạy trong terminal riêng của người dùng vì shell của Claude Code không có TTY.
+  - Các component trong `src/components/ui/` là code sinh tự động, không sửa tay. Rule eslint `react-refresh/only-export-components` đã được tắt riêng cho thư mục này trong `eslint.config.js`.
 - Job nền: bảng trạng thái + `@Scheduled` poller + `@Async`. Không Redis, không MQ.
 - Test: JUnit 5 + Testcontainers (Postgres thật, không H2)
 
@@ -75,3 +79,5 @@ docker compose down -v               # reset sạch DB khi migration hỏng
 - Spring Boot 4.1: `TestRestTemplate` không còn nằm sẵn trong `spring-boot-test`.
 - Hibernate 7.4.1: cột DB tự sinh giá trị (trigger / `DEFAULT now()`) phải đánh dấu bằng `@Generated(event = EventType...)`, không để Hibernate tự ghi đè.
 - PowerShell không tự nạp file `.env`. Test dùng `application-test.yml` (không cần secret thật); chạy `spring-boot:run` thủ công cần `setx JWT_SECRET ...` trước.
+- Preset Nova của shadcn sinh khối `@theme inline` nằm SAU khối `@theme` gốc trong `src/index.css`, nên mọi biến trùng tên đều bị đè. Đã dính 2 lần: `--font-sans` (bị ép sang Geist) và `--color-accent` (bị ép sang xám, làm nút `bg-accent` trong `ApplyButton.tsx` mất màu xanh lá `#1AC639`). Cách xử lý đã chọn: giữ nguyên khối `@theme inline`, sửa giá trị biến tương ứng trong `:root` về màu thương hiệu. Khi thêm biến màu mới, phải kiểm tên có trùng biến của shadcn không (`background`, `foreground`, `primary`, `secondary`, `accent`, `muted`, `destructive`, `border`, `input`, `ring`, `card`, `popover`, `sidebar`, `chart-1..5`, `radius`).
+- Shell của Claude Code reset về thư mục gốc repo sau mỗi lệnh, nên mọi lệnh cho frontend phải viết dạng: `cd frontend; npm run <script>`
