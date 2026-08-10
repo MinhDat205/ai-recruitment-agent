@@ -53,7 +53,7 @@ export function LoginForm({ showRegisteredNotice = false }: LoginFormProps) {
   return (
     <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
       {showNotice && (
-        <p className="rounded-[--radius-badge] bg-brand-light px-3 py-2 text-sm text-brand">
+        <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
           Đăng ký thành công, vui lòng đăng nhập.
         </p>
       )}

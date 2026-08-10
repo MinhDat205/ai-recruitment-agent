@@ -35,6 +35,8 @@ public class SecurityConfig {
                                 auth.requestMatchers(
                                                 "/api/auth/register/**", "/api/auth/login", "/api/auth/refresh")
                                         .permitAll()
+                                        .requestMatchers("/api/public/**")
+                                        .permitAll()
                                         // Quy uoc path-prefix cho RBAC: chan o tang authorization truoc khi
                                         // DispatcherServlet tim handler, nen candidate goi /api/hr/** van nhan
                                         // dung 403 du co hay khong co controller thuc map path do.
