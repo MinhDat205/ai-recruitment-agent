@@ -1,10 +1,38 @@
+import { Navigate, BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './features/auth/AuthContext'
+import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { CandidateHomePage } from './pages/CandidateHomePage'
+import { HrHomePage } from './pages/HrHomePage'
+import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
+
 function App() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-medium text-brand">AI Recruitment Agent</h1>
-      <p className="text-ink-muted">Khoi tao thanh cong.</p>
-      <button className="mt-4 h-10 rounded-md bg-accent px-5 text-white">Ung tuyen</button>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/candidate"
+            element={
+              <ProtectedRoute allowedRoles={['CANDIDATE']}>
+                <CandidateHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr"
+            element={
+              <ProtectedRoute allowedRoles={['HR']}>
+                <HrHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 
