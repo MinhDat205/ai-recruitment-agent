@@ -49,7 +49,7 @@ public class CompanyOwnerService {
         Company company =
                 companyRepository
                         .findByOwnerId(ownerId)
-                        .orElseThrow(() -> new CompanyNotFoundException("HR chua tao ho so cong ty"));
+                        .orElseThrow(() -> new CompanyNotFoundException("HR chưa tạo hồ sơ công ty"));
         return toResponse(company);
     }
 
@@ -64,21 +64,21 @@ public class CompanyOwnerService {
     public CompanyResponse uploadLogo(UUID companyId, UUID ownerId, MultipartFile file) {
         Company company = loadOwned(companyId, ownerId);
         if (file.isEmpty()) {
-            throw new InvalidLogoFileException("File logo dang trong");
+            throw new InvalidLogoFileException("File logo đang trống");
         }
         if (file.getSize() > MAX_LOGO_SIZE_BYTES) {
-            throw new InvalidLogoFileException("File logo vuot qua 2MB");
+            throw new InvalidLogoFileException("File logo vượt quá 2MB");
         }
         byte[] content;
         try {
             content = file.getBytes();
         } catch (IOException e) {
-            throw new InvalidLogoFileException("Khong doc duoc file logo");
+            throw new InvalidLogoFileException("Không đọc được file logo");
         }
         String ext =
                 detectImageExtension(content)
                         .orElseThrow(
-                                () -> new InvalidLogoFileException("File khong phai anh PNG/JPEG/WEBP hop le"));
+                                () -> new InvalidLogoFileException("File không phải ảnh PNG/JPEG/WEBP hợp lệ"));
 
         // Xoa file cu truoc khi ghi file moi (vd HR doi dinh dang png -> jpg) de khong con file mo coi.
         if (company.getLogoUrl() != null) {

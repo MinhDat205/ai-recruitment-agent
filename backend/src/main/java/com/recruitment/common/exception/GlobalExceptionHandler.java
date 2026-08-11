@@ -77,7 +77,7 @@ public class GlobalExceptionHandler {
         String message = ex.getMostSpecificCause().getMessage();
         if (message != null && message.contains("uq_company_per_owner")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ErrorResponse("COMPANY_ALREADY_EXISTS", "HR nay da co cong ty"));
+                    .body(new ErrorResponse("COMPANY_ALREADY_EXISTS", "HR này đã có công ty"));
         }
         throw ex;
     }

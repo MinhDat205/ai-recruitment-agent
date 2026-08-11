@@ -17,6 +17,12 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // Logo cong ty (va file upload khac sau nay) duoc backend serve qua /uploads/** -
+      // khong proxy thi <img src="/uploads/..."> se goi vao chinh Vite (5173) va 404.
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })
