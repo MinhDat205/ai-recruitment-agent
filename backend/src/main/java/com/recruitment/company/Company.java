@@ -58,4 +58,24 @@ public class Company {
     @Generated(event = {EventType.INSERT, EventType.UPDATE})
     @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;
+
+    // Ten khong bat dau bang "get" co chu dich: tranh Hibernate hieu nham la property can map
+    // va tranh Jackson tu serialize ngoai y muon. Dung updatedAt lam moc cache-bust - don gian,
+    // du de trinh duyet khong hien nham logo cu tu cache sau khi HR doi logo; danh doi la sua
+    // field khac (vd ten cong ty) cung lam URL doi, gay tai lai anh khong can thiet nhung khong
+    // sai du lieu.
+    public String logoUrlWithCacheBust() {
+        if (logoUrl == null) {
+            return null;
+        }
+        // updatedAt la @Generated (DB tra ve sau flush) - co the chua duoc nap neu entity nay
+        // chi ton tai trong first-level cache va chua thuc su flush (vd fixture test dung
+        // save() ben trong mot @Transactional bao ngoai, chua chac da flush truoc luc doc lai).
+        // Trong request HTTP that, transaction service da commit truoc khi build response nen
+        // updatedAt luon co gia tri - day chi la phong ve, khong phai bo qua loi thuc.
+        if (updatedAt == null) {
+            return logoUrl;
+        }
+        return logoUrl + "?v=" + updatedAt.toEpochMilli();
+    }
 }

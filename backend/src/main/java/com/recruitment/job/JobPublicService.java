@@ -71,7 +71,7 @@ public class JobPublicService {
     }
 
     private CompanyRef toRef(Company c) {
-        return c == null ? null : new CompanyRef(c.getId(), c.getName(), c.getLogoUrl());
+        return c == null ? null : new CompanyRef(c.getId(), c.getName(), c.logoUrlWithCacheBust());
     }
 
     private JobSummaryResponse toSummary(Job j, Company c) {

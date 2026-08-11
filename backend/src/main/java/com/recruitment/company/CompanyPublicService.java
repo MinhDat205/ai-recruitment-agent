@@ -23,7 +23,7 @@ public class CompanyPublicService {
         return new CompanyPublicResponse(
                 c.getId(),
                 c.getName(),
-                c.getLogoUrl(),
+                c.logoUrlWithCacheBust(),
                 c.getDescription(),
                 c.getCompanySize(),
                 c.getIndustry(),

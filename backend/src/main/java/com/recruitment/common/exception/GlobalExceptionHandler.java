@@ -3,6 +3,7 @@ package com.recruitment.common.exception;
 import io.jsonwebtoken.JwtException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -54,5 +55,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleCompanyNotFound(CompanyNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("COMPANY_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CompanyAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleCompanyAlreadyExists(CompanyAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("COMPANY_ALREADY_EXISTS", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidLogoFileException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidLogoFile(InvalidLogoFileException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_LOGO_FILE", ex.getMessage()));
+    }
+
+    // Chi bat vi pham cu the cua uq_company_per_owner (race condition - service da check ton tai
+    // truoc, day la chot chan cuoi cung o DB). Vi pham nao khac phai roi ve 500 mac dinh, khong
+    // duoc nuot va tra nham 409.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String message = ex.getMostSpecificCause().getMessage();
+        if (message != null && message.contains("uq_company_per_owner")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("COMPANY_ALREADY_EXISTS", "HR nay da co cong ty"));
+        }
+        throw ex;
     }
 }
