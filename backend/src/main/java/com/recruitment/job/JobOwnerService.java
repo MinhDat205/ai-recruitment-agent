@@ -3,6 +3,8 @@ package com.recruitment.job;
 import com.recruitment.common.dto.PageResponse;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
+import com.recruitment.common.exception.RubricIncompleteException;
+import com.recruitment.common.exception.RubricNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.interviewtemplate.InterviewTemplate;
@@ -12,7 +14,9 @@ import com.recruitment.job.dto.JobCreateRequest;
 import com.recruitment.job.dto.JobOwnerResponse;
 import com.recruitment.job.dto.JobRequest;
 import com.recruitment.rubric.Rubric;
+import com.recruitment.rubric.RubricCriterionRepository;
 import com.recruitment.rubric.RubricRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -31,16 +35,19 @@ public class JobOwnerService {
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
     private final RubricRepository rubricRepository;
+    private final RubricCriterionRepository rubricCriterionRepository;
     private final InterviewTemplateRepository interviewTemplateRepository;
 
     public JobOwnerService(
             JobRepository jobRepository,
             CompanyRepository companyRepository,
             RubricRepository rubricRepository,
+            RubricCriterionRepository rubricCriterionRepository,
             InterviewTemplateRepository interviewTemplateRepository) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.rubricRepository = rubricRepository;
+        this.rubricCriterionRepository = rubricCriterionRepository;
         this.interviewTemplateRepository = interviewTemplateRepository;
     }
 
@@ -108,6 +115,13 @@ public class JobOwnerService {
         Job job = loadOwned(jobId, ownerId);
         JobStatus oldStatus = job.getStatus();
 
+        // Chi kiem tra khi MO MOI (DRAFT) hoac MO LAI sau khi da CLOSED - hai truong hop nay rubric
+        // co the da bi sua sau lan cuoi kiem tra. KHONG kiem PAUSED -> OPEN: day chi la tam dung
+        // trong cung dot tuyen dung, rubric co the da bi khoa (is_locked, sau lan cham dau tien)
+        // nen HR khong con cach nao sua lai cho du 100% - chan ca truong hop nay se ket cung HR.
+        if ((oldStatus == JobStatus.DRAFT || oldStatus == JobStatus.CLOSED) && newStatus == JobStatus.OPEN) {
+            requireRubricComplete(job.getId());
+        }
         if (oldStatus == JobStatus.CLOSED && newStatus == JobStatus.OPEN) {
             job.setRecruitmentCycle(job.getRecruitmentCycle() + 1);
         }
@@ -142,6 +156,16 @@ public class JobOwnerService {
             throw new AccessDeniedException("Khong co quyen truy cap tin tuyen dung nay");
         }
         return job;
+    }
+
+    // Chi kiem tra khi mo tin (DRAFT -> OPEN): rubric chua du 100% trong so thi khong duoc mo,
+    // vi AI se cham diem theo rubric nay ngay khi co ung vien nop don (D2 phu thuoc B3).
+    private void requireRubricComplete(UUID jobId) {
+        Rubric rubric = rubricRepository.findByJobId(jobId).orElseThrow(() -> new RubricNotFoundException(jobId));
+        BigDecimal total = rubricCriterionRepository.sumWeightByRubricId(rubric.getId());
+        if (total.compareTo(new BigDecimal("100")) != 0) {
+            throw new RubricIncompleteException(total);
+        }
     }
 
     private UUID findRubricId(UUID jobId) {

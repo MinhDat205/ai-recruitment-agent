@@ -159,6 +159,45 @@ class JobOwnerIntegrationTest {
                 .andReturn();
     }
 
+    // B3: DRAFT -> OPEN bi chan neu rubric chua du 100% trong so. Cac test cua B2 mo job de
+    // kiem tra recruitment_cycle/publishedAt can rubric du 100% truoc, khong lien quan gi den
+    // logic dang kiem tra nhung van phai thoa dieu kien nay moi mo duoc job.
+    private void fillRubricToFullWeight(String token, String jobId) throws Exception {
+        String body = """
+                {"name":"Kinh nghiem","weight":100}
+                """;
+        mockMvc
+                .perform(
+                        post("/api/hr/jobs/" + jobId + "/rubric/criteria")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andExpect(status().isCreated());
+    }
+
+    private String addCriterion(String token, String jobId, String name, int weight) throws Exception {
+        String body = """
+                {"name":"%s","weight":%d}
+                """.formatted(name, weight);
+        MvcResult result = mockMvc
+                .perform(
+                        post("/api/hr/jobs/" + jobId + "/rubric/criteria")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return extractJsonField(result.getResponse().getContentAsString(), "id");
+    }
+
+    private void deleteCriterion(String token, String jobId, String criterionId) throws Exception {
+        mockMvc
+                .perform(
+                        delete("/api/hr/jobs/" + jobId + "/rubric/criteria/" + criterionId)
+                                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+    }
+
     @Test
     void createJob_alwaysCreatesRubricAndInterviewTemplateInSameTransaction() throws Exception {
         String token = registerAndLoginHr("hr-rubric");
@@ -244,6 +283,7 @@ class JobOwnerIntegrationTest {
         String token = registerAndLoginHr("hr-reopen");
         createCompany(token, "Cong ty Reopen");
         String jobId = createJob(token, "Job Mo Lai");
+        fillRubricToFullWeight(token, jobId);
 
         MvcResult openedFirstTime = changeStatus(token, jobId, "OPEN");
         assertThat(openedFirstTime.getResponse().getStatus()).isEqualTo(200);
@@ -264,6 +304,7 @@ class JobOwnerIntegrationTest {
         String token = registerAndLoginHr("hr-pause");
         createCompany(token, "Cong ty Pause");
         String jobId = createJob(token, "Job Tam Dung");
+        fillRubricToFullWeight(token, jobId);
 
         MvcResult opened = changeStatus(token, jobId, "OPEN");
         assertThat(extractJsonNumber(opened.getResponse().getContentAsString(), "recruitmentCycle")).isEqualTo(1);
@@ -273,6 +314,49 @@ class JobOwnerIntegrationTest {
 
         MvcResult resumed = changeStatus(token, jobId, "OPEN");
         assertThat(extractJsonNumber(resumed.getResponse().getContentAsString(), "recruitmentCycle")).isEqualTo(1);
+    }
+
+    // Ve phu dinh quan trong nhat cua gate rubric o B3: PAUSED -> OPEN KHONG duoc kiem tong
+    // trong so, du khac DRAFT/CLOSED -> OPEN. Ly do: HR tam dung mot tin dang chay, rubric co
+    // the da bi khoa (is_locked, sau lan cham dau tien) nen khong con cach nao sua lai cho du
+    // 100% - neu chan ca truong hop nay thi tin do vinh vien khong mo lai duoc.
+    @Test
+    void pauseThenReopen_withRubricBelowFullWeight_stillSucceeds() throws Exception {
+        String token = registerAndLoginHr("hr-pause-under");
+        createCompany(token, "Cong ty Pause Duoi Nguong");
+        String jobId = createJob(token, "Job Tam Dung Roi Mo Lai");
+        String criterionAId = addCriterion(token, jobId, "Tieu chi A", 60);
+        addCriterion(token, jobId, "Tieu chi B", 40);
+
+        assertThat(changeStatus(token, jobId, "OPEN").getResponse().getStatus()).isEqualTo(200);
+        assertThat(changeStatus(token, jobId, "PAUSED").getResponse().getStatus()).isEqualTo(200);
+
+        // Rubric chua bi khoa (chua co luot cham trong nhanh nay) nen van sua duoc: xoa Tieu chi
+        // A, tong con lai 40% - mo phong tinh huong rubric "ket" duoi 100% khi dang PAUSED.
+        deleteCriterion(token, jobId, criterionAId);
+
+        MvcResult resumed = changeStatus(token, jobId, "OPEN");
+        assertThat(resumed.getResponse().getStatus()).isEqualTo(200);
+    }
+
+    // Doi xung voi test tren: CLOSED -> OPEN (mo lai that su, tang recruitment_cycle) PHAI kiem
+    // tong trong so, khac PAUSED -> OPEN.
+    @Test
+    void reopenClosedJob_withRubricBelowFullWeight_isBlocked() throws Exception {
+        String token = registerAndLoginHr("hr-reopen-under");
+        createCompany(token, "Cong ty Reopen Duoi Nguong");
+        String jobId = createJob(token, "Job Dong Roi Mo Lai");
+        String criterionAId = addCriterion(token, jobId, "Tieu chi A", 60);
+        addCriterion(token, jobId, "Tieu chi B", 40);
+
+        assertThat(changeStatus(token, jobId, "OPEN").getResponse().getStatus()).isEqualTo(200);
+        assertThat(changeStatus(token, jobId, "CLOSED").getResponse().getStatus()).isEqualTo(200);
+
+        deleteCriterion(token, jobId, criterionAId);
+
+        MvcResult reopened = changeStatus(token, jobId, "OPEN");
+        assertThat(reopened.getResponse().getStatus()).isEqualTo(409);
+        assertThat(reopened.getResponse().getContentAsString()).contains("RUBRIC_INCOMPLETE");
     }
 
     @Test

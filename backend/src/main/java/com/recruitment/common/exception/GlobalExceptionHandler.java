@@ -75,6 +75,35 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_LOGO_FILE", ex.getMessage()));
     }
 
+    @ExceptionHandler(RubricNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRubricNotFound(RubricNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("RUBRIC_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RubricCriterionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRubricCriterionNotFound(RubricCriterionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("RUBRIC_CRITERION_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RubricLockedException.class)
+    public ResponseEntity<ErrorResponse> handleRubricLocked(RubricLockedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("RUBRIC_LOCKED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RubricWeightExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRubricWeightExceeded(RubricWeightExceededException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("RUBRIC_WEIGHT_EXCEEDED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RubricIncompleteException.class)
+    public ResponseEntity<ErrorResponse> handleRubricIncomplete(RubricIncompleteException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RUBRIC_INCOMPLETE", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua uq_company_per_owner (race condition - service da check ton tai
     // truoc, day la chot chan cuoi cung o DB). Vi pham nao khac phai roi ve 500 mac dinh, khong
     // duoc nuot va tra nham 409.
