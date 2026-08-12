@@ -5,6 +5,10 @@ import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
+import com.recruitment.interviewtemplate.InterviewTemplate;
+import com.recruitment.interviewtemplate.InterviewTemplateRepository;
+import com.recruitment.interviewtemplate.dto.InterviewTemplateRequest;
+import com.recruitment.job.dto.JobCreateRequest;
 import com.recruitment.job.dto.JobOwnerResponse;
 import com.recruitment.job.dto.JobRequest;
 import com.recruitment.rubric.Rubric;
@@ -27,18 +31,24 @@ public class JobOwnerService {
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
     private final RubricRepository rubricRepository;
+    private final InterviewTemplateRepository interviewTemplateRepository;
 
     public JobOwnerService(
-            JobRepository jobRepository, CompanyRepository companyRepository, RubricRepository rubricRepository) {
+            JobRepository jobRepository,
+            CompanyRepository companyRepository,
+            RubricRepository rubricRepository,
+            InterviewTemplateRepository interviewTemplateRepository) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.rubricRepository = rubricRepository;
+        this.interviewTemplateRepository = interviewTemplateRepository;
     }
 
-    // Job va Rubric phai duoc tao cung mot transaction: khong duoc ton tai duong code nao
-    // tao ra Job ma khong co Rubric di kem (kiem chung o test).
+    // Job, Rubric va InterviewTemplate phai duoc tao cung mot transaction: khong duoc ton tai
+    // duong code nao tao ra Job ma thieu Rubric hoac thieu Mau giay moi phong van di kem
+    // (kiem chung o test). FR-H02: "khi dang tin, HR dong thoi tao Mau Giay moi Phong van".
     @Transactional
-    public JobOwnerResponse create(UUID ownerId, JobRequest request) {
+    public JobOwnerResponse create(UUID ownerId, JobCreateRequest request) {
         Company company = requireOwnCompany(ownerId);
 
         Job job = new Job();
@@ -46,7 +56,7 @@ public class JobOwnerService {
         job.setCreatedBy(ownerId);
         job.setStatus(JobStatus.DRAFT);
         job.setRecruitmentCycle(1);
-        applyRequest(job, request);
+        applyRequest(job, request.job());
         job = jobRepository.save(job);
 
         Rubric rubric = new Rubric();
@@ -54,7 +64,15 @@ public class JobOwnerService {
         rubric.setLocked(false);
         rubric = rubricRepository.save(rubric);
 
-        return toResponse(job, rubric.getId());
+        InterviewTemplate template = new InterviewTemplate();
+        template.setJobId(job.getId());
+        // company_name la anh chup ten cong ty tai thoi diem tao, khong doi theo ho so cong ty
+        // ve sau - giong tinh than rubric_snapshot/weight_snapshot da dung trong scoring_runs.
+        template.setCompanyName(company.getName());
+        applyInterviewTemplateRequest(template, request.interviewTemplate());
+        template = interviewTemplateRepository.save(template);
+
+        return toResponse(job, rubric.getId(), template.getId());
     }
 
     public PageResponse<JobOwnerResponse> listMine(UUID ownerId, JobStatus status, Integer page, Integer size) {
@@ -66,12 +84,13 @@ public class JobOwnerService {
                 : jobRepository.findByCompanyIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDesc(
                         company.getId(), status, pageable);
 
-        return PageResponse.from(jobPage, job -> toResponse(job, findRubricId(job.getId())));
+        return PageResponse.from(
+                jobPage, job -> toResponse(job, findRubricId(job.getId()), findInterviewTemplateId(job.getId())));
     }
 
     public JobOwnerResponse getMine(UUID ownerId, UUID jobId) {
         Job job = loadOwned(jobId, ownerId);
-        return toResponse(job, findRubricId(job.getId()));
+        return toResponse(job, findRubricId(job.getId()), findInterviewTemplateId(job.getId()));
     }
 
     @Transactional
@@ -79,7 +98,7 @@ public class JobOwnerService {
         Job job = loadOwned(jobId, ownerId);
         applyRequest(job, request);
         job = jobRepository.save(job);
-        return toResponse(job, findRubricId(job.getId()));
+        return toResponse(job, findRubricId(job.getId()), findInterviewTemplateId(job.getId()));
     }
 
     // Tang recruitment_cycle CHI KHI mo lai tuyen dung mot job da CLOSED (khong phai moi lan
@@ -97,7 +116,7 @@ public class JobOwnerService {
         }
         job.setStatus(newStatus);
         job = jobRepository.save(job);
-        return toResponse(job, findRubricId(job.getId()));
+        return toResponse(job, findRubricId(job.getId()), findInterviewTemplateId(job.getId()));
     }
 
     // Xoa mem: chi set deleted_at, KHONG DELETE FROM jobs - hang phai con nguyen sau khi xoa.
@@ -129,6 +148,18 @@ public class JobOwnerService {
         return rubricRepository.findByJobId(jobId).map(Rubric::getId).orElse(null);
     }
 
+    private UUID findInterviewTemplateId(UUID jobId) {
+        return interviewTemplateRepository.findByJobId(jobId).map(InterviewTemplate::getId).orElse(null);
+    }
+
+    private void applyInterviewTemplateRequest(InterviewTemplate template, InterviewTemplateRequest request) {
+        template.setSubject(request.subject());
+        template.setBody(request.body());
+        template.setSenderName(request.senderName());
+        template.setSenderTitle(request.senderTitle());
+        template.setAddress(request.address());
+    }
+
     private void applyRequest(Job job, JobRequest request) {
         job.setTitle(request.title());
         job.setDescription(request.description());
@@ -156,7 +187,7 @@ public class JobOwnerService {
         return Math.min(size, MAX_SIZE);
     }
 
-    private JobOwnerResponse toResponse(Job j, UUID rubricId) {
+    private JobOwnerResponse toResponse(Job j, UUID rubricId, UUID interviewTemplateId) {
         return new JobOwnerResponse(
                 j.getId(),
                 j.getCompanyId(),
@@ -177,6 +208,7 @@ public class JobOwnerService {
                 j.getDeletedAt(),
                 j.getCreatedAt(),
                 j.getUpdatedAt(),
-                rubricId);
+                rubricId,
+                interviewTemplateId);
     }
 }

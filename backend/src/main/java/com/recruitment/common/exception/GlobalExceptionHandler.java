@@ -57,6 +57,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("COMPANY_NOT_FOUND", ex.getMessage()));
     }
 
+    @ExceptionHandler(InterviewTemplateNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleInterviewTemplateNotFound(InterviewTemplateNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("INTERVIEW_TEMPLATE_NOT_FOUND", ex.getMessage()));
+    }
+
     @ExceptionHandler(CompanyAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleCompanyAlreadyExists(CompanyAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

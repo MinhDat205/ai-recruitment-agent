@@ -1,6 +1,7 @@
 package com.recruitment.job;
 
 import com.recruitment.common.dto.PageResponse;
+import com.recruitment.job.dto.JobCreateRequest;
 import com.recruitment.job.dto.JobOwnerResponse;
 import com.recruitment.job.dto.JobRequest;
 import com.recruitment.job.dto.JobStatusUpdateRequest;
@@ -33,7 +34,8 @@ public class JobOwnerController {
     }
 
     @PostMapping
-    public ResponseEntity<JobOwnerResponse> create(Authentication authentication, @Valid @RequestBody JobRequest request) {
+    public ResponseEntity<JobOwnerResponse> create(
+            Authentication authentication, @Valid @RequestBody JobCreateRequest request) {
         UUID ownerId = UUID.fromString(authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(jobOwnerService.create(ownerId, request));
     }

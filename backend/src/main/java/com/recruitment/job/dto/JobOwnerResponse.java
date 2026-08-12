@@ -26,5 +26,6 @@ public record JobOwnerResponse(
         Instant deletedAt,
         Instant createdAt,
         Instant updatedAt,
-        UUID rubricId) {
+        UUID rubricId,
+        UUID interviewTemplateId) {
 }

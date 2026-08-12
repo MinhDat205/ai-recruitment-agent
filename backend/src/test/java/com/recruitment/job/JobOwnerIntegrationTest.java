@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.recruitment.TestcontainersConfiguration;
+import com.recruitment.interviewtemplate.InterviewTemplateRepository;
 import com.recruitment.rubric.RubricRepository;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -41,6 +42,9 @@ class JobOwnerIntegrationTest {
 
     @Autowired
     private RubricRepository rubricRepository;
+
+    @Autowired
+    private InterviewTemplateRepository interviewTemplateRepository;
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
@@ -97,12 +101,36 @@ class JobOwnerIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
+    // Tao Job va tao Mau giay moi phong van la mot request duy nhat (JobCreateRequest) - khong co
+    // duong nao goi API tao Job ma thieu du lieu template hop le.
     private MvcResult createJobRaw(String token, String title) throws Exception {
         String body =
                 """
-                {"title":"%s","description":"Mo ta cong viec"}
+                {
+                  "job": {"title":"%s","description":"Mo ta cong viec"},
+                  "interviewTemplate": {
+                    "subject":"Thu moi phong van vi tri %s",
+                    "body":"Kinh chao ung vien, chung toi moi ban tham gia phong van.",
+                    "senderName":"Phong Nhan Su"
+                  }
+                }
                 """
-                        .formatted(title);
+                        .formatted(title, title);
+        return mockMvc
+                .perform(
+                        post("/api/hr/jobs")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andReturn();
+    }
+
+    // Thieu han khoi "interviewTemplate" trong request - phai bi chan boi Bean Validation
+    // (@NotNull tren JobCreateRequest.interviewTemplate) truoc khi cham toi tang service.
+    private MvcResult createJobRawMissingTemplate(String token, String title) throws Exception {
+        String body = """
+                {"job": {"title":"%s","description":"Mo ta cong viec"}}
+                """.formatted(title);
         return mockMvc
                 .perform(
                         post("/api/hr/jobs")
@@ -132,13 +160,54 @@ class JobOwnerIntegrationTest {
     }
 
     @Test
-    void createJob_alwaysCreatesRubricInSameTransaction() throws Exception {
+    void createJob_alwaysCreatesRubricAndInterviewTemplateInSameTransaction() throws Exception {
         String token = registerAndLoginHr("hr-rubric");
         createCompany(token, "Cong ty Rubric");
 
         String jobId = createJob(token, "Backend Engineer");
 
         assertThat(rubricRepository.findByJobId(UUID.fromString(jobId))).isPresent();
+        assertThat(interviewTemplateRepository.findByJobId(UUID.fromString(jobId))).isPresent();
+    }
+
+    // Chung minh khong the tao Job thieu template: thieu han khoi "interviewTemplate" trong
+    // request bi chan o Bean Validation (400) TRUOC khi vao service - Job khong duoc tao ra.
+    @Test
+    void createJob_withoutInterviewTemplate_returnsBadRequestAndCreatesNothing() throws Exception {
+        String token = registerAndLoginHr("hr-no-template");
+        createCompany(token, "Cong ty Khong Template");
+        long jobCountBefore = jobRepository.count();
+
+        MvcResult result = createJobRawMissingTemplate(token, "Job Thieu Template");
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+        assertThat(jobRepository.count()).isEqualTo(jobCountBefore);
+    }
+
+    // Chung minh THUC NGHIEM (khong chi suy luan tu cau hinh Jackson mac dinh) rang hinh dang
+    // request PHANG cua luot 1 (truoc khi co JobCreateRequest) khong con tao duoc Job nua.
+    // Jackson mac dinh cua Spring Boot khong bat fail-on-unknown-properties, nen "title"/
+    // "description" o cap ngoai bi bo qua lang le thay vi bao loi ro rang - neu khong co test
+    // nay, kha nang "endpoint van am tham nhan JobRequest phang" se khong bi phat hien.
+    @Test
+    void createJob_withOldFlatBodyShape_returnsBadRequestAndCreatesNothing() throws Exception {
+        String token = registerAndLoginHr("hr-old-shape");
+        createCompany(token, "Cong ty Old Shape");
+        long jobCountBefore = jobRepository.count();
+
+        String oldFlatBody = """
+                {"title":"Job Kieu Cu","description":"Mo ta cong viec"}
+                """;
+        MvcResult result = mockMvc
+                .perform(
+                        post("/api/hr/jobs")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(oldFlatBody))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+        assertThat(jobRepository.count()).isEqualTo(jobCountBefore);
     }
 
     @Test
