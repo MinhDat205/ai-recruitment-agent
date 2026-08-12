@@ -41,4 +41,9 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             value = "SELECT * FROM jobs j WHERE j.id = :id AND j.status = 'OPEN' AND j.deleted_at IS NULL",
             nativeQuery = true)
     Optional<Job> findOpenJobById(@Param("id") UUID id);
+
+    Page<Job> findByCompanyIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID companyId, Pageable pageable);
+
+    Page<Job> findByCompanyIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDesc(
+            UUID companyId, JobStatus status, Pageable pageable);
 }

@@ -1,0 +1,182 @@
+package com.recruitment.job;
+
+import com.recruitment.common.dto.PageResponse;
+import com.recruitment.common.exception.CompanyNotFoundException;
+import com.recruitment.common.exception.JobNotFoundException;
+import com.recruitment.company.Company;
+import com.recruitment.company.CompanyRepository;
+import com.recruitment.job.dto.JobOwnerResponse;
+import com.recruitment.job.dto.JobRequest;
+import com.recruitment.rubric.Rubric;
+import com.recruitment.rubric.RubricRepository;
+import java.time.Instant;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class JobOwnerService {
+
+    private static final int DEFAULT_SIZE = 10;
+    private static final int MAX_SIZE = 50;
+
+    private final JobRepository jobRepository;
+    private final CompanyRepository companyRepository;
+    private final RubricRepository rubricRepository;
+
+    public JobOwnerService(
+            JobRepository jobRepository, CompanyRepository companyRepository, RubricRepository rubricRepository) {
+        this.jobRepository = jobRepository;
+        this.companyRepository = companyRepository;
+        this.rubricRepository = rubricRepository;
+    }
+
+    // Job va Rubric phai duoc tao cung mot transaction: khong duoc ton tai duong code nao
+    // tao ra Job ma khong co Rubric di kem (kiem chung o test).
+    @Transactional
+    public JobOwnerResponse create(UUID ownerId, JobRequest request) {
+        Company company = requireOwnCompany(ownerId);
+
+        Job job = new Job();
+        job.setCompanyId(company.getId());
+        job.setCreatedBy(ownerId);
+        job.setStatus(JobStatus.DRAFT);
+        job.setRecruitmentCycle(1);
+        applyRequest(job, request);
+        job = jobRepository.save(job);
+
+        Rubric rubric = new Rubric();
+        rubric.setJobId(job.getId());
+        rubric.setLocked(false);
+        rubric = rubricRepository.save(rubric);
+
+        return toResponse(job, rubric.getId());
+    }
+
+    public PageResponse<JobOwnerResponse> listMine(UUID ownerId, JobStatus status, Integer page, Integer size) {
+        Company company = requireOwnCompany(ownerId);
+        Pageable pageable = PageRequest.of(safePage(page), safeSize(size));
+
+        Page<Job> jobPage = status == null
+                ? jobRepository.findByCompanyIdAndDeletedAtIsNullOrderByCreatedAtDesc(company.getId(), pageable)
+                : jobRepository.findByCompanyIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDesc(
+                        company.getId(), status, pageable);
+
+        return PageResponse.from(jobPage, job -> toResponse(job, findRubricId(job.getId())));
+    }
+
+    public JobOwnerResponse getMine(UUID ownerId, UUID jobId) {
+        Job job = loadOwned(jobId, ownerId);
+        return toResponse(job, findRubricId(job.getId()));
+    }
+
+    @Transactional
+    public JobOwnerResponse update(UUID ownerId, UUID jobId, JobRequest request) {
+        Job job = loadOwned(jobId, ownerId);
+        applyRequest(job, request);
+        job = jobRepository.save(job);
+        return toResponse(job, findRubricId(job.getId()));
+    }
+
+    // Tang recruitment_cycle CHI KHI mo lai tuyen dung mot job da CLOSED (khong phai moi lan
+    // doi status bat ky) - C2 dung cot nay de cho phep ung vien cu nop lai o chu ky moi.
+    @Transactional
+    public JobOwnerResponse changeStatus(UUID ownerId, UUID jobId, JobStatus newStatus) {
+        Job job = loadOwned(jobId, ownerId);
+        JobStatus oldStatus = job.getStatus();
+
+        if (oldStatus == JobStatus.CLOSED && newStatus == JobStatus.OPEN) {
+            job.setRecruitmentCycle(job.getRecruitmentCycle() + 1);
+        }
+        if (newStatus == JobStatus.OPEN && job.getPublishedAt() == null) {
+            job.setPublishedAt(Instant.now());
+        }
+        job.setStatus(newStatus);
+        job = jobRepository.save(job);
+        return toResponse(job, findRubricId(job.getId()));
+    }
+
+    // Xoa mem: chi set deleted_at, KHONG DELETE FROM jobs - hang phai con nguyen sau khi xoa.
+    @Transactional
+    public void delete(UUID ownerId, UUID jobId) {
+        Job job = loadOwned(jobId, ownerId);
+        job.setDeletedAt(Instant.now());
+        jobRepository.save(job);
+    }
+
+    private Company requireOwnCompany(UUID ownerId) {
+        return companyRepository
+                .findByOwnerId(ownerId)
+                .orElseThrow(() -> new CompanyNotFoundException("HR chưa tạo hồ sơ công ty"));
+    }
+
+    private Job loadOwned(UUID jobId, UUID ownerId) {
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
+        Company company = requireOwnCompany(ownerId);
+        if (!job.getCompanyId().equals(company.getId())) {
+            // AccessDeniedException chuan cua Spring Security -> JsonAccessDeniedHandler tra 403 JSON,
+            // giong pattern cua CompanyOwnerService.
+            throw new AccessDeniedException("Khong co quyen truy cap tin tuyen dung nay");
+        }
+        return job;
+    }
+
+    private UUID findRubricId(UUID jobId) {
+        return rubricRepository.findByJobId(jobId).map(Rubric::getId).orElse(null);
+    }
+
+    private void applyRequest(Job job, JobRequest request) {
+        job.setTitle(request.title());
+        job.setDescription(request.description());
+        job.setRequirements(request.requirements());
+        job.setCategory(request.category());
+        job.setLocation(request.location());
+        job.setEmploymentType(request.employmentType());
+        job.setWorkMode(request.workMode());
+        job.setSalaryMin(request.salaryMin());
+        job.setSalaryMax(request.salaryMax());
+        // salaryCurrency co DEFAULT 'VND' o DB, nhung Hibernate insert gia tri tuong minh (ke ca null)
+        // se ghi de default do - phai tu ap dung fallback o tang service.
+        job.setSalaryCurrency(request.salaryCurrency() == null ? "VND" : request.salaryCurrency());
+        job.setDeadline(request.deadline());
+    }
+
+    private int safePage(Integer page) {
+        return (page == null || page < 0) ? 0 : page;
+    }
+
+    private int safeSize(Integer size) {
+        if (size == null || size < 1) {
+            return DEFAULT_SIZE;
+        }
+        return Math.min(size, MAX_SIZE);
+    }
+
+    private JobOwnerResponse toResponse(Job j, UUID rubricId) {
+        return new JobOwnerResponse(
+                j.getId(),
+                j.getCompanyId(),
+                j.getTitle(),
+                j.getDescription(),
+                j.getRequirements(),
+                j.getCategory(),
+                j.getLocation(),
+                j.getEmploymentType(),
+                j.getWorkMode(),
+                j.getSalaryMin(),
+                j.getSalaryMax(),
+                j.getSalaryCurrency(),
+                j.getStatus(),
+                j.getRecruitmentCycle(),
+                j.getDeadline(),
+                j.getPublishedAt(),
+                j.getDeletedAt(),
+                j.getCreatedAt(),
+                j.getUpdatedAt(),
+                rubricId);
+    }
+}
