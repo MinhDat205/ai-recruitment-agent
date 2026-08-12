@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { HrLayout } from '../components/layout/HrLayout'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
+import { RubricTab } from '../features/rubric/RubricTab'
 import { EMPLOYMENT_TYPE_LABELS, EMPLOYMENT_TYPE_OPTIONS, WORK_MODE_LABELS, WORK_MODE_OPTIONS } from '../features/jobs/jobLabels'
 import {
   useHrJobQuery,
@@ -388,22 +389,37 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
   )
 }
 
+const VALID_TABS = ['job', 'template', 'rubric'] as const
+
 export function HrJobEditPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   if (!id) {
     return null
   }
 
+  const tabParam = searchParams.get('tab')
+  const initialTab = (VALID_TABS as readonly string[]).includes(tabParam ?? '') ? (tabParam as string) : 'job'
+  const justCreated = searchParams.get('created') === '1'
+
   return (
     <HrLayout title="Sửa tin tuyển dụng">
       <Card className="mx-auto max-w-2xl">
-        <Tabs defaultValue="job">
+        <Tabs defaultValue={initialTab}>
           <CardHeader>
             <CardTitle>Sửa tin tuyển dụng</CardTitle>
+            {justCreated && (
+              <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
+                Tin đã được tạo ở trạng thái Nháp. Thêm tiêu chí đánh giá đủ 100% trọng số để có thể mở tin tuyển
+                dụng.
+              </p>
+            )}
             <TabsList className="mt-2 w-fit">
               <TabsTrigger value="job">Thông tin tin tuyển dụng</TabsTrigger>
               <TabsTrigger value="template">Mẫu giấy mời phỏng vấn</TabsTrigger>
+              <TabsTrigger value="rubric">Rubric chấm điểm</TabsTrigger>
             </TabsList>
           </CardHeader>
 
@@ -412,6 +428,22 @@ export function HrJobEditPage() {
           </TabsContent>
           <TabsContent value="template">
             <InterviewTemplateTab jobId={id} />
+          </TabsContent>
+          <TabsContent value="rubric">
+            <RubricTab jobId={id} />
+            {justCreated && (
+              // Chi hien khi vao tu luong vua tao tin (created=1) - day la loi nhac "lam gi tiep"
+              // mot lan, gan voi banner phia tren. Khi HR quay lai tab nay o phien lam viec binh
+              // thuong (khong co created=1), dieu huong sidebar da du, khong can lap lai 2 nut nay.
+              <CardFooter className="flex items-center justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => navigate('/hr/jobs')}>
+                  Thiết lập sau
+                </Button>
+                <Button type="button" onClick={() => navigate('/hr/jobs')}>
+                  Xong
+                </Button>
+              </CardFooter>
+            )}
           </TabsContent>
         </Tabs>
       </Card>

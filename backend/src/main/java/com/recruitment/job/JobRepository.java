@@ -17,6 +17,7 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                     """
                     SELECT * FROM jobs j
                     WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
+                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
                       AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
                       AND (CAST(:locationPattern AS text) IS NULL OR j.location ILIKE CAST(:locationPattern AS text))
                       AND (CAST(:categoryPattern AS text) IS NULL OR j.category ILIKE CAST(:categoryPattern AS text))
@@ -26,6 +27,7 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                     """
                     SELECT count(*) FROM jobs j
                     WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
+                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
                       AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
                       AND (CAST(:locationPattern AS text) IS NULL OR j.location ILIKE CAST(:locationPattern AS text))
                       AND (CAST(:categoryPattern AS text) IS NULL OR j.category ILIKE CAST(:categoryPattern AS text))
@@ -38,7 +40,12 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             Pageable pageable);
 
     @Query(
-            value = "SELECT * FROM jobs j WHERE j.id = :id AND j.status = 'OPEN' AND j.deleted_at IS NULL",
+            value =
+                    """
+                    SELECT * FROM jobs j
+                    WHERE j.id = :id AND j.status = 'OPEN' AND j.deleted_at IS NULL
+                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
+                    """,
             nativeQuery = true)
     Optional<Job> findOpenJobById(@Param("id") UUID id);
 

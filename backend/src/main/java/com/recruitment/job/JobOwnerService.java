@@ -2,6 +2,7 @@ package com.recruitment.job;
 
 import com.recruitment.common.dto.PageResponse;
 import com.recruitment.common.exception.CompanyNotFoundException;
+import com.recruitment.common.exception.InvalidJobDeadlineException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.RubricIncompleteException;
 import com.recruitment.common.exception.RubricNotFoundException;
@@ -18,6 +19,7 @@ import com.recruitment.rubric.RubricCriterionRepository;
 import com.recruitment.rubric.RubricRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -185,6 +187,9 @@ public class JobOwnerService {
     }
 
     private void applyRequest(Job job, JobRequest request) {
+        if (request.deadline() != null && request.deadline().isBefore(LocalDate.now())) {
+            throw new InvalidJobDeadlineException();
+        }
         job.setTitle(request.title());
         job.setDescription(request.description());
         job.setRequirements(request.requirements());

@@ -15,6 +15,16 @@ import { EMPLOYMENT_TYPE_LABELS, EMPLOYMENT_TYPE_OPTIONS, WORK_MODE_LABELS, WORK
 import { useCreateHrJobMutation } from '../features/jobs/ownerQueries'
 import type { JobCreateOwnerRequest } from '../features/jobs/ownerTypes'
 
+function todayIso(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const TODAY_ISO = todayIso()
+
 const createJobSchema = z
   .object({
     title: z.string().trim().min(1, 'Vui lòng nhập tiêu đề').max(200, 'Tối đa 200 ký tự'),
@@ -41,6 +51,10 @@ const createJobSchema = z
   .refine((data) => !data.salaryCurrency || data.salaryCurrency.trim().length === 3, {
     message: 'Mã tiền tệ gồm 3 ký tự, ví dụ VND',
     path: ['salaryCurrency'],
+  })
+  .refine((data) => !data.deadline || data.deadline >= TODAY_ISO, {
+    message: 'Hạn nộp không được ở trong quá khứ',
+    path: ['deadline'],
   })
 
 type CreateJobFormValues = z.infer<typeof createJobSchema>
@@ -127,17 +141,30 @@ export function HrJobCreatePage() {
     register,
     control,
     trigger,
+    setValue,
+    getValues,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, touchedFields },
   } = useForm<CreateJobFormValues>({
     resolver: zodResolver(createJobSchema),
     defaultValues: EMPTY_VALUES,
+    mode: 'onTouched',
   })
 
+  function touchFields(fields: (keyof CreateJobFormValues)[]) {
+    // trigger()/submit that bai chi BAO loi cho dung field duoc yeu cau (RHF scope theo ten
+    // truong), nhung UI van dua vao touchedFields de quyet dinh hien do - "touch" thu cong o
+    // day de loi cua field vua kiem tra hien ra ngay, khong doi field bi blur.
+    fields.forEach((name) => setValue(name, getValues(name), { shouldTouch: true, shouldValidate: false }))
+  }
+
   async function handleNext() {
-    const valid = await trigger(STEPS[step].fields)
+    const fields = STEPS[step].fields
+    const valid = await trigger(fields)
     if (valid) {
       setStep((s) => Math.min(s + 1, STEPS.length - 1))
+    } else {
+      touchFields(fields)
     }
   }
 
@@ -145,14 +172,22 @@ export function HrJobCreatePage() {
     setStep((s) => Math.max(s - 1, 0))
   }
 
-  const onSubmit = handleSubmit(async (values) => {
-    try {
-      const created = await createMutation.mutateAsync(toPayload(values))
-      navigate(`/hr/jobs/${created.id}/edit`)
-    } catch {
-      // createMutation.isError da phan anh loi nay ra UI ben duoi, khong can lam gi them.
-    }
-  })
+  const onSubmit = handleSubmit(
+    async (values) => {
+      try {
+        const created = await createMutation.mutateAsync(toPayload(values))
+        navigate(`/hr/jobs/${created.id}/edit?tab=rubric&created=1`)
+      } catch {
+        // createMutation.isError da phan anh loi nay ra UI ben duoi, khong can lam gi them.
+      }
+    },
+    () => {
+      // Submit that bai vi thieu du lieu o buoc cuoi (buoc 1, 2 da duoc gac khi "Tiep theo").
+      // Touch toan bo field de loi hien ra dung cho lan co gang submit dau tien, khong dua vao
+      // isSubmitted (co global, khong phan biet duoc HR da di qua buoc nao).
+      touchFields(Object.keys(EMPTY_VALUES) as (keyof CreateJobFormValues)[])
+    },
+  )
 
   const isLastStep = step === STEPS.length - 1
 
@@ -187,13 +222,17 @@ export function HrJobCreatePage() {
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="job-title">Tiêu đề tin tuyển dụng</Label>
                   <Input id="job-title" {...register('title')} />
-                  {errors.title && <p className="text-sm text-danger">{errors.title.message}</p>}
+                  {errors.title && (touchedFields.title) && (
+                    <p className="text-sm text-danger">{errors.title.message}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="job-description">Mô tả công việc</Label>
                   <Textarea id="job-description" rows={5} {...register('description')} />
-                  {errors.description && <p className="text-sm text-danger">{errors.description.message}</p>}
+                  {errors.description && (touchedFields.description) && (
+                    <p className="text-sm text-danger">{errors.description.message}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -269,19 +308,26 @@ export function HrJobCreatePage() {
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="job-salary-max">Lương tối đa</Label>
                     <Input id="job-salary-max" type="number" min={0} {...register('salaryMax')} />
-                    {errors.salaryMax && <p className="text-sm text-danger">{errors.salaryMax.message}</p>}
+                    {errors.salaryMax && (touchedFields.salaryMax) && (
+                      <p className="text-sm text-danger">{errors.salaryMax.message}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="job-salary-currency">Đơn vị tiền tệ</Label>
                   <Input id="job-salary-currency" placeholder="VND" {...register('salaryCurrency')} />
-                  {errors.salaryCurrency && <p className="text-sm text-danger">{errors.salaryCurrency.message}</p>}
+                  {errors.salaryCurrency && (touchedFields.salaryCurrency) && (
+                    <p className="text-sm text-danger">{errors.salaryCurrency.message}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="job-deadline">Hạn ứng tuyển</Label>
-                  <Input id="job-deadline" type="date" {...register('deadline')} />
+                  <Input id="job-deadline" type="date" min={TODAY_ISO} {...register('deadline')} />
+                  {errors.deadline && (touchedFields.deadline) && (
+                    <p className="text-sm text-danger">{errors.deadline.message}</p>
+                  )}
                 </div>
               </>
             )}
@@ -296,20 +342,26 @@ export function HrJobCreatePage() {
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="tpl-subject">Tiêu đề thư mời</Label>
                   <Input id="tpl-subject" {...register('subject')} />
-                  {errors.subject && <p className="text-sm text-danger">{errors.subject.message}</p>}
+                  {errors.subject && (touchedFields.subject) && (
+                    <p className="text-sm text-danger">{errors.subject.message}</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="tpl-body">Nội dung thư mời</Label>
                   <Textarea id="tpl-body" rows={6} {...register('body')} />
-                  {errors.body && <p className="text-sm text-danger">{errors.body.message}</p>}
+                  {errors.body && (touchedFields.body) && (
+                    <p className="text-sm text-danger">{errors.body.message}</p>
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="tpl-sender-name">Người gửi</Label>
                     <Input id="tpl-sender-name" {...register('senderName')} />
-                    {errors.senderName && <p className="text-sm text-danger">{errors.senderName.message}</p>}
+                    {errors.senderName && (touchedFields.senderName) && (
+                      <p className="text-sm text-danger">{errors.senderName.message}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="tpl-sender-title">Chức danh người gửi</Label>
@@ -336,7 +388,13 @@ export function HrJobCreatePage() {
               Quay lại
             </Button>
             {isLastStep ? (
-              <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
+              // type="button" + goi onSubmit() thu cong - KHONG dung type="submit". Nut nay o
+              // cung mot vi tri JSX voi nut "Tiep theo" (chi khac o step cuoi), va handleNext la
+              // async: neu nut nay tung la type="submit", React co the doi thuoc tinh type ngay
+              // GIUA luc trinh duyet dang xu ly click (mousedown/mouseup) cua lan bam "Tiep theo"
+              // truoc do, khien form submit "chui" ngay khi vua sang buoc cuoi - day chinh la
+              // nguyen nhan 3 dong do hien san o buoc 3 du chua go gi.
+              <Button type="button" disabled={isSubmitting || createMutation.isPending} onClick={() => onSubmit()}>
                 {createMutation.isPending ? 'Đang tạo...' : 'Tạo tin tuyển dụng'}
               </Button>
             ) : (

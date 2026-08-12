@@ -104,6 +104,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RUBRIC_INCOMPLETE", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidJobDeadlineException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobDeadline(InvalidJobDeadlineException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_DEADLINE", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua uq_company_per_owner (race condition - service da check ton tai
     // truoc, day la chot chan cuoi cung o DB). Vi pham nao khac phai roi ve 500 mac dinh, khong
     // duoc nuot va tra nham 409.

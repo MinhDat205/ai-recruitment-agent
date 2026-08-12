@@ -85,6 +85,7 @@ public class JobPublicService {
                 j.getSalaryMin(),
                 j.getSalaryMax(),
                 j.getSalaryCurrency(),
+                j.getDeadline(),
                 j.getPublishedAt(),
                 toRef(c));
     }

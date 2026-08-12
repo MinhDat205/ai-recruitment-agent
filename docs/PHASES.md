@@ -112,7 +112,7 @@ Không có phase này thì không kiểm thử được bất kỳ chức năng 
 chưa thấy nó dùng ở đâu — nhưng C2 phụ thuộc trực tiếp vào nó.
 
 ## B3 · `feat/fr-h03-rubric` — Cấu hình Rubric (FR-H03)
-
+- B3 phải chặn DRAFT → OPEN khi rubric chưa đủ 100% trọng số, và E1 đối chiếu template.company_name với tên công ty hiện tại trước khi gửi giấy mời.
 **Backend**
 - CRUD `RubricCriterion`: tên, mô tả, trọng số, `max_score` (mặc định 5), thứ tự hiển thị
 - **Validate tổng trọng số = 100%** ở tầng service, kèm thông báo lỗi rõ ràng

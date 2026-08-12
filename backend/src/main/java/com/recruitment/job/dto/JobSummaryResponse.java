@@ -2,6 +2,7 @@ package com.recruitment.job.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record JobSummaryResponse(
@@ -14,6 +15,7 @@ public record JobSummaryResponse(
         BigDecimal salaryMin,
         BigDecimal salaryMax,
         String salaryCurrency,
+        LocalDate deadline,
         Instant publishedAt,
         CompanyRef company) {
 }

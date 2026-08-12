@@ -10,6 +10,7 @@ import { EMPLOYMENT_TYPE_LABELS, JOB_STATUS_LABELS, JOB_STATUS_OPTIONS } from '.
 import { useHrJobsQuery } from '../features/jobs/ownerQueries'
 import type { JobStatus } from '../features/jobs/ownerTypes'
 import { Pagination } from '../features/jobs/Pagination'
+import { formatDeadline } from '@/lib/date'
 
 const PAGE_SIZE = 10
 const ALL_STATUS = 'ALL'
@@ -89,6 +90,7 @@ export function HrJobListPage() {
                   <TableHead>Địa điểm</TableHead>
                   <TableHead>Loại hình</TableHead>
                   <TableHead>Mức lương</TableHead>
+                  <TableHead>Hạn nộp</TableHead>
                   <TableHead>Chu kỳ</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
@@ -111,6 +113,7 @@ export function HrJobListPage() {
                     <TableCell className="text-ink-muted">
                       {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)}
                     </TableCell>
+                    <TableCell className="text-ink-muted">{formatDeadline(job.deadline)}</TableCell>
                     <TableCell className="text-ink-muted">{job.recruitmentCycle}</TableCell>
                     <TableCell>
                       <JobRowActions job={job} />

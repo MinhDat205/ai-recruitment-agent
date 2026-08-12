@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { formatDeadline } from '@/lib/date'
 import type { JobSummary } from './types'
 
 function formatSalary(job: JobSummary): string | null {
@@ -33,6 +34,7 @@ export function JobCard({ job }: { job: JobSummary }) {
         {job.company && <p className="text-sm text-ink-muted">{job.company.name}</p>}
 
         {salary && <p className="text-sm font-medium text-accent-dark">{salary}</p>}
+        <p className="text-xs text-ink-muted">Hạn nộp: {formatDeadline(job.deadline)}</p>
 
         <div className="mt-1 flex flex-wrap gap-2">
           {job.location && (
