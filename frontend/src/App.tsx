@@ -4,6 +4,9 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
 import { HrHomePage } from './pages/HrHomePage'
+import { HrJobCreatePage } from './pages/HrJobCreatePage'
+import { HrJobEditPage } from './pages/HrJobEditPage'
+import { HrJobListPage } from './pages/HrJobListPage'
 import { LoginPage } from './pages/LoginPage'
 import { PublicCompanyProfilePage } from './pages/PublicCompanyProfilePage'
 import { PublicJobDetailPage } from './pages/PublicJobDetailPage'
@@ -41,6 +44,30 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['HR']}>
                 <CompanyProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/jobs"
+            element={
+              <ProtectedRoute allowedRoles={['HR']}>
+                <HrJobListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/jobs/new"
+            element={
+              <ProtectedRoute allowedRoles={['HR']}>
+                <HrJobCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/jobs/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['HR']}>
+                <HrJobEditPage />
               </ProtectedRoute>
             }
           />

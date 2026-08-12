@@ -7,11 +7,11 @@ interface NavItem {
   to?: string
 }
 
-// Dung 5 muc theo docs/UI_GUIDE.md muc 3. Chi "Ho so cong ty" co route that o B1 - 4 muc con
-// lai la placeholder khong the bam, cho tan cac nhanh tuong ung (B2, B3...) lam.
+// Dung 5 muc theo docs/UI_GUIDE.md muc 3. "Ho so cong ty" co route tu B1, "Tin tuyen dung" co
+// route tu B2 - 3 muc con lai la placeholder khong the bam, cho tan cac nhanh tuong ung lam.
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard' },
-  { label: 'Tin tuyển dụng' },
+  { label: 'Tin tuyển dụng', to: '/hr/jobs' },
   { label: 'Ứng viên' },
   { label: 'Rubric' },
   { label: 'Hồ sơ công ty', to: '/hr/company' },
@@ -43,7 +43,9 @@ export function HrLayout({ title, children }: { title: string; children: ReactNo
                 </span>
               )
             }
-            const active = location.pathname === item.to
+            // "/hr/jobs" phai active ca o cac trang con (/hr/jobs/new, /hr/jobs/:id/edit).
+            const active =
+              location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
             return (
               <Link
                 key={item.label}
