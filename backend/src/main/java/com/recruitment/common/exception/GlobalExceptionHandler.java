@@ -133,15 +133,22 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RESUME_NOT_FOUND", ex.getMessage()));
     }
 
-    // Chi bat vi pham cu the cua uq_company_per_owner (race condition - service da check ton tai
-    // truoc, day la chot chan cuoi cung o DB). Vi pham nao khac phai roi ve 500 mac dinh, khong
-    // duoc nuot va tra nham 409.
+    // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
+    // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         String message = ex.getMostSpecificCause().getMessage();
+        // uq_company_per_owner (race condition - service da check ton tai truoc, day la chot
+        // chan cuoi cung o DB).
         if (message != null && message.contains("uq_company_per_owner")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new ErrorResponse("COMPANY_ALREADY_EXISTS", "HR này đã có công ty"));
+        }
+        // uq_application_per_cycle (FR-U02) - chot chan DUY NHAT chong nop trung, khong co
+        // SELECT-truoc-INSERT o tang service vi co race condition.
+        if (message != null && message.contains("uq_application_per_cycle")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("APPLICATION_DUPLICATE", "Bạn đã ứng tuyển vị trí này rồi"));
         }
         throw ex;
     }

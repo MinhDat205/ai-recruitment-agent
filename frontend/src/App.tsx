@@ -8,6 +8,7 @@ import { HrHomePage } from './pages/HrHomePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
 import { HrJobEditPage } from './pages/HrJobEditPage'
 import { HrJobListPage } from './pages/HrJobListPage'
+import { JobApplyPage } from './pages/JobApplyPage'
 import { LoginPage } from './pages/LoginPage'
 import { PublicCompanyProfilePage } from './pages/PublicCompanyProfilePage'
 import { PublicJobDetailPage } from './pages/PublicJobDetailPage'
@@ -37,6 +38,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['CANDIDATE']}>
                 <CandidateProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id/apply"
+            element={
+              <ProtectedRoute allowedRoles={['CANDIDATE']}>
+                <JobApplyPage />
               </ProtectedRoute>
             }
           />
