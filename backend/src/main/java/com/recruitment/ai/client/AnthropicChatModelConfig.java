@@ -3,7 +3,6 @@ package com.recruitment.ai.client;
 import com.anthropic.models.messages.Model;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +17,6 @@ public class AnthropicChatModelConfig {
 
     @Bean
     public AnthropicChatModel anthropicChatModel(
-            ToolCallingManager toolCallingManager,
             @Value("${ANTHROPIC_API_KEY:}") String apiKey,
             @Value("${spring.ai.anthropic.chat.options.model:claude-sonnet-4-6}") String model,
             @Value("${spring.ai.anthropic.chat.options.temperature:0.2}") Double temperature) {
@@ -34,7 +32,6 @@ public class AnthropicChatModelConfig {
 
         return AnthropicChatModel.builder()
                 .options(options)
-                .toolCallingManager(toolCallingManager)
                 .build();
     }
 }

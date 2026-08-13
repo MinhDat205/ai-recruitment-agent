@@ -2,5 +2,7 @@ app:
   jwt:
     secret: test-only-secret-khong-dung-that-toi-thieu-32-ky-tu
     refresh-expiration-ms: 604800000
+  storage:
+    local-path: ${java.io.tmpdir}/ai-recruitment-agent-test-uploads
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key

@@ -87,6 +87,10 @@ class JobPublicIntegrationTest {
         return companyRepository.save(company);
     }
 
+    // Fixture nay co y bo qua JobOwnerService (goi thang JobRepository) nen tao ra Job KHONG
+    // kem Rubric/InterviewTemplate - trang thai nay khong the sinh ra tu production (xem
+    // JobOwnerService.create). Chi phuc vu test doc cong khai (A2). Nhanh nao can Job day du
+    // (co rubric/template) thi tao qua API /api/hr/jobs, dung copy ham nay.
     private Job createJob(
             UUID companyId,
             UUID createdBy,

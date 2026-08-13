@@ -33,9 +33,9 @@ và không có chỗ ghi kết quả ra.
 
 ## Phase B — HR dựng chiến dịch
 
-- [ ] **B1** `feat/fr-h01-company` — FR-H01 · Hồ sơ doanh nghiệp
-- [ ] **B2** `feat/fr-h02-jobs` — FR-H02 · CRUD tin tuyển dụng + mẫu giấy mời phỏng vấn
-- [ ] **B3** `feat/fr-h03-rubric` — FR-H03 · Tiêu chí + trọng số, thang điểm mặc định/tuỳ chọn
+- [X] **B1** `feat/fr-h01-company` — FR-H01 · Hồ sơ doanh nghiệp
+- [X] **B2** `feat/fr-h02-jobs` — FR-H02 · CRUD tin tuyển dụng + mẫu giấy mời phỏng vấn
+- [X] **B3** `feat/fr-h03-rubric` — FR-H03 · Tiêu chí + trọng số, thang điểm mặc định/tuỳ chọn
 
 **Xong khi:** không lưu được rubric có tổng trọng số ≠ 100%, chặn ở cả UI lẫn API.
 

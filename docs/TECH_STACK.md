@@ -9,13 +9,13 @@ Không tách microservice. Không thêm service Python.
 
 | Thành phần | Chọn | Ghi chú |
 |---|---|---|
-| JDK | Java 21 LTS | Spring Boot 3.5 chạy tốt trên 17/21; 21 là mặc định an toàn |
-| Framework | Spring Boot 3.5.16 | Xem mục "Vấn đề phiên bản" bên dưới |
+| JDK | Java 25 LTS | Spring Boot 4.1 hỗ trợ 17 đến 26 |
+| Framework | Spring Boot 4.1.x | Bản stable hiện tại; 3.5 đã EOL từ 30/06/2026 |
 | Build | Maven (dùng `mvnw` wrapper) | Commit wrapper để máy khác chạy được ngay |
-| Security | Spring Security 6 + JWT (jjwt) | BCrypt cho mật khẩu, `@PreAuthorize` cho RBAC |
+| Security | Spring Security 7 + JWT (jjwt) | BCrypt cho mật khẩu, `@PreAuthorize` cho RBAC |
 | Data | Spring Data JPA + Hibernate | `ddl-auto: validate`, KHÔNG dùng `update` |
 | Migration | **Flyway** | Schema là file SQL có version — Claude Code sửa được, và là bằng chứng audit |
-| AI | Spring AI 1.1.8 | `ChatClient`, `EmbeddingModel`, `PgVectorStore` |
+| AI | Spring AI 2.0.0 | `ChatClient`, `EmbeddingModel`, `PgVectorStore` |
 | Đọc file CV | Apache PDFBox (PDF) + Apache POI (DOCX) | Hoặc Apache Tika cho cả hai |
 | Validate output LLM | Spring AI `BeanOutputConverter` + Bean Validation | Ép LLM trả JSON đúng schema |
 | Job nền | Bảng trạng thái + `@Scheduled` poller + `@Async` | Không cần Redis/RabbitMQ |
@@ -49,28 +49,20 @@ sẽ thành lớp thứ hai thừa thãi, và AI rất hay viết logic nghiệp
 
 ---
 
-## Vấn đề phiên bản — đọc kỹ trước khi chọn
+## Ghi chú phiên bản
 
-Tính đến 08/2026, Spring Boot và Spring AI đang lệch pha nhau:
+Chốt: **Spring Boot 4.1.x + Spring AI 2.0.0 + Java 25.** Cả ba đều là bản chính thức, còn được hỗ trợ.
 
-- **Spring Boot 4.1** là bản stable mới nhất, nhưng **Spring AI 2.0 vẫn đang ở milestone (M7)** và đã có
-  breaking change giữa các milestone (MCP đổi transport, ToolCallAdvisor đổi cách hoạt động).
-- **Spring AI 1.1.x** là bản stable, nhưng bám theo **Spring Boot 3.5**, mà 3.5 đã hết hỗ trợ
-  mã nguồn mở từ 30/06/2026.
+Bối cảnh (để hiểu tại sao tài liệu cũ trên mạng hay mâu thuẫn nhau):
+- Spring Boot 3.5 hết hỗ trợ OSS ngày 30/06/2026 → `start.spring.io` không còn cho sinh project với 3.5.
+- Spring AI 1.1.x bám theo Boot 3.5 và **không chạy được** trên Boot 4 — đừng nhặt ví dụ 1.x về dùng.
+- Spring AI 2.0.0 GA ngày 12/06/2026, dựng trên Boot 4.0/4.1 + Spring Framework 7.
 
-**Khuyến nghị cho dự án này: Spring Boot 3.5.16 + Spring AI 1.1.8.**
-Lý do: bạn đang vibe code. API ổn định + nhiều ví dụ trên mạng quan trọng hơn nhiều so với việc chạy
-bản mới nhất. Dùng milestone nghĩa là mỗi lần bump version bạn phải sửa code AI đã sinh ra, và
-Claude cũng ít dữ liệu về API milestone hơn.
-
-Ghi chú EOL vào README như một "known limitation" — với đồ án thì đây không phải rủi ro thật.
-Nếu sau này muốn lên production: chờ Spring AI 2.0 GA rồi nâng cả cặp lên Boot 4.x một lần.
-
-**Phương án thay thế nếu bạn bắt buộc phải dùng Boot 4.1:** bỏ Spring AI, gọi thẳng Anthropic Java SDK
-và viết truy vấn pgvector bằng native query. Mất khoảng 200 dòng code tự viết, đổi lại không phụ thuộc
-milestone.
-
----
+Hệ quả cần nhớ khi vibe code:
+- **Jackson 3, không phải Jackson 2.** Ví dụ cũ dùng `com.fasterxml.jackson.*` sẽ sai package.
+- **JSpecify null-safety** được bật toàn bộ codebase Spring AI — kiểu nullable bị siết ở compile time.
+- **MCP dùng Streamable HTTP**, SSE transport đã bị thay thế.
+- Mọi tutorial Spring AI viết trước tháng 6/2026 gần như chắc chắn là API 1.x. Kiểm tra version trước khi copy.
 
 ## Ranh giới trách nhiệm (khớp SRS)
 

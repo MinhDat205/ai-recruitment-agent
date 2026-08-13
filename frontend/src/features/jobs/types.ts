@@ -14,6 +14,7 @@ export interface JobSummary {
   salaryMin: number | null
   salaryMax: number | null
   salaryCurrency: string | null
+  deadline: string | null
   publishedAt: string | null
   company: CompanyRef | null
 }

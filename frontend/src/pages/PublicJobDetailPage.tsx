@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { PublicLayout } from '../components/layout/PublicLayout'
 import { ApplyButton } from '../features/jobs/ApplyButton'
 import { useJobDetailQuery } from '../features/jobs/queries'
+import { formatDeadline } from '../lib/date'
 
 function formatSalary(job: {
   salaryMin: number | null
@@ -71,11 +72,9 @@ export function PublicJobDetailPage() {
                 {job.workMode}
               </span>
             )}
-            {job.deadline && (
-              <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
-                Hạn nộp: {job.deadline}
-              </span>
-            )}
+            <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
+              Hạn nộp: {formatDeadline(job.deadline)}
+            </span>
           </div>
 
           {salary && <p className="mt-3 text-lg font-medium text-accent-dark">{salary}</p>}

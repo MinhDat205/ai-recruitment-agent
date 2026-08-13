@@ -2,10 +2,13 @@ package com.recruitment.company;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
 
     List<Company> findByIdIn(Collection<UUID> ids);
+
+    Optional<Company> findByOwnerId(UUID ownerId);
 }
