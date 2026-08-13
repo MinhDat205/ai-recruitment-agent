@@ -20,6 +20,19 @@
   --color-surface:      #FFFFFF;
   --color-canvas:       #F0F0F0;
 
+  /* Badge trang thai don ung tuyen (FR-U03) - trung tinh ve mat phan quyet, KHONG dung
+     --color-success/-danger/-warning cho y nghia tot-xau. Xem bang mau UI_GUIDE.md muc badge. */
+  --color-status-pending:        #F3F4F6;
+  --color-status-pending-text:   #4B5563;
+  --color-status-invited:        #E6F2FA;
+  --color-status-invited-text:   #0078C9;
+  --color-status-hired:          #E8F8EC;
+  --color-status-hired-text:     #008C45;
+  --color-status-rejected:       #FDECEF;
+  --color-status-rejected-text:  #E11B3E;
+  --color-status-withdrawn:      #F3F4F6;
+  --color-status-withdrawn-text: #9CA3AF;
+
   --radius-card:        8px;
   --radius-badge:       4px;
 

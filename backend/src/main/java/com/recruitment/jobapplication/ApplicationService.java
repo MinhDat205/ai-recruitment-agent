@@ -1,30 +1,37 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
+import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
+import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.UUID;
 
 @Service
 public class ApplicationService {
 
     private final JobApplicationRepository applicationRepository;
+    private final ApplicationStatusHistoryRepository statusHistoryRepository;
     private final JobRepository jobRepository;
     private final ResumeRepository resumeRepository;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
+            ApplicationStatusHistoryRepository statusHistoryRepository,
             JobRepository jobRepository,
             ResumeRepository resumeRepository) {
         this.applicationRepository = applicationRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
         this.resumeRepository = resumeRepository;
     }
@@ -56,7 +63,46 @@ public class ApplicationService {
         // saveAndFlush: bat INSERT no ngay tai day thay vi hoan toi luc commit, de
         // DataIntegrityViolationException cua uq_application_per_cycle noi len trong pham vi
         // request va GlobalExceptionHandler bat duoc, tra 409 xac dinh.
-        return toResponse(applicationRepository.saveAndFlush(application));
+        JobApplication saved = applicationRepository.saveAndFlush(application);
+
+        // Dong lich su dau tien cua don: NULL -> PENDING, changed_by = chinh candidate (tu tao
+        // don). Cung transaction voi viec tao don.
+        recordStatusChange(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationSummaryResponse> getMyApplications(UUID candidateId) {
+        return applicationRepository.findSummariesByCandidateId(candidateId).stream()
+                .map(ApplicationService::toSummaryResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationHistoryEntryResponse> getMyApplicationHistory(UUID candidateId, UUID applicationId) {
+        // Don khong ton tai HOAC khong thuoc ve candidateId dang dang nhap deu tra ve cung mot
+        // 404 - khong duoc phan biet, tranh lo su ton tai cua don nguoi khac.
+        JobApplication application = applicationRepository
+                .findByIdAndCandidateId(applicationId, candidateId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        return statusHistoryRepository.findByApplicationIdOrderByChangedAtAsc(application.getId()).stream()
+                .map(ApplicationService::toHistoryResponse)
+                .toList();
+    }
+
+    // Mot cho duy nhat ghi lich su chuyen trang thai - E1 (FR-H07, HR doi trang thai) va C4
+    // (FR-U06, rut don) se goi lai method nay, khong ghi rai rac moi noi mot doan insert.
+    private void recordStatusChange(
+            UUID applicationId, ApplicationStatus fromStatus, ApplicationStatus toStatus, UUID changedBy, String note) {
+        ApplicationStatusHistory history = new ApplicationStatusHistory();
+        history.setApplicationId(applicationId);
+        history.setFromStatus(fromStatus);
+        history.setToStatus(toStatus);
+        history.setChangedBy(changedBy);
+        history.setNote(note);
+        statusHistoryRepository.save(history);
     }
 
     private static ApplicationResponse toResponse(JobApplication a) {
@@ -70,5 +116,20 @@ public class ApplicationService {
                 a.getCoverLetter(),
                 a.getAppliedAt(),
                 a.getUpdatedAt());
+    }
+
+    private static ApplicationSummaryResponse toSummaryResponse(ApplicationSummaryView v) {
+        return new ApplicationSummaryResponse(
+                v.getId(),
+                v.getJobId(),
+                v.getJobTitle(),
+                v.getCompanyName(),
+                ApplicationStatus.valueOf(v.getStatus()),
+                v.getAppliedAt(),
+                v.getUpdatedAt());
+    }
+
+    private static ApplicationHistoryEntryResponse toHistoryResponse(ApplicationStatusHistory h) {
+        return new ApplicationHistoryEntryResponse(h.getId(), h.getFromStatus(), h.getToStatus(), h.getNote(), h.getChangedAt());
     }
 }

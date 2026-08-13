@@ -14,6 +14,12 @@ export function CandidateHomePage() {
         >
           Hồ sơ & CV của tôi
         </Link>
+        <Link
+          to="/candidate/applications"
+          className="flex h-10 items-center rounded-md border border-brand px-5 text-sm font-medium text-brand"
+        >
+          Đơn ứng tuyển của tôi
+        </Link>
         <button
           type="button"
           onClick={logout}

@@ -19,3 +19,21 @@ export interface Application {
   appliedAt: string
   updatedAt: string
 }
+
+export interface ApplicationSummary {
+  id: string
+  jobId: string
+  jobTitle: string
+  companyName: string
+  status: ApplicationStatus
+  appliedAt: string
+  updatedAt: string
+}
+
+export interface ApplicationHistoryEntry {
+  id: string
+  fromStatus: ApplicationStatus | null
+  toStatus: ApplicationStatus
+  note: string | null
+  changedAt: string
+}
