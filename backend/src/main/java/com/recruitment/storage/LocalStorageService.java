@@ -3,10 +3,14 @@ package com.recruitment.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 
 // app.storage.local-path co the la duong dan tuong doi trong application.yml (vd "./uploads") -
@@ -55,6 +59,20 @@ public class LocalStorageService implements StorageService {
             Files.deleteIfExists(target);
         } catch (IOException e) {
             throw new UncheckedIOException("Khong the xoa file: " + publicUrl, e);
+        }
+    }
+
+    @Override
+    public Optional<Resource> load(String key) {
+        Path target = basePath.resolve(key).normalize();
+        // Chan path traversal, giong guard trong delete(): chi doc file thuc su nam duoi basePath.
+        if (!target.startsWith(basePath) || !Files.exists(target)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(new UrlResource(target.toUri()));
+        } catch (MalformedURLException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }

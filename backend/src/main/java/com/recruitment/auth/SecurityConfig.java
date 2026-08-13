@@ -38,8 +38,11 @@ public class SecurityConfig {
                                         .requestMatchers("/api/public/**")
                                         .permitAll()
                                         // Logo cong ty la thong tin cong khai (FR-C02 dung de hien thi card
-                                        // viec lam / trang chi tiet cong ty), khong yeu cau dang nhap.
-                                        .requestMatchers("/uploads/**")
+                                        // viec lam / trang chi tiet cong ty), khong yeu cau dang nhap. File
+                                        // rieng tu (vd resume) KHONG nam trong /uploads/logos/** nen roi vao
+                                        // anyRequest().authenticated() ben duoi - chi tai duoc qua endpoint
+                                        // co kiem quyen so huu (xem ResumeCandidateController).
+                                        .requestMatchers("/uploads/logos/**")
                                         .permitAll()
                                         // Quy uoc path-prefix cho RBAC: chan o tang authorization truoc khi
                                         // DispatcherServlet tim handler, nen candidate goi /api/hr/** van nhan

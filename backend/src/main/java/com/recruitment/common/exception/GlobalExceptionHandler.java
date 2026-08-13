@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 // AccessDeniedException va "chua xac thuc" cho path duoc bao ve boi SecurityFilterChain
 // (vi du /api/hr/**) da duoc xu ly o tang filter chain bang JsonAuthenticationEntryPoint/
@@ -75,6 +76,16 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_LOGO_FILE", ex.getMessage()));
     }
 
+    // Tomcat/Spring chan file vuot app.servlet.multipart.max-file-size (application.yml) TRUOC KHI
+    // request toi duoc controller - InvalidResumeFileException/InvalidLogoFileException trong
+    // service khong bao gio duoc nem trong truong hop nay. Khong co handler rieng thi loi nay roi
+    // ve 500 mac dinh thay vi 400. Dung chung cho ca upload logo (FR-H01) lan upload resume (FR-U01).
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_RESUME_FILE", "File vượt quá dung lượng cho phép"));
+    }
+
     @ExceptionHandler(RubricNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRubricNotFound(RubricNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -108,6 +119,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidJobDeadline(InvalidJobDeadlineException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("INVALID_JOB_DEADLINE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidResumeFileException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResumeFile(InvalidResumeFileException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_RESUME_FILE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ResumeNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResumeNotFound(ResumeNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("RESUME_NOT_FOUND", ex.getMessage()));
     }
 
     // Chi bat vi pham cu the cua uq_company_per_owner (race condition - service da check ton tai

@@ -2,6 +2,7 @@ import { Navigate, BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { CandidateHomePage } from './pages/CandidateHomePage'
+import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
 import { HrHomePage } from './pages/HrHomePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
@@ -28,6 +29,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['CANDIDATE']}>
                 <CandidateHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidate/profile"
+            element={
+              <ProtectedRoute allowedRoles={['CANDIDATE']}>
+                <CandidateProfilePage />
               </ProtectedRoute>
             }
           />
