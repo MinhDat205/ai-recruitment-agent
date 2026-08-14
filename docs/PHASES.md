@@ -164,7 +164,7 @@ Tin vào đuôi file để xác định định dạng.
 
 **Backend**
 - Tìm kiếm job (dùng lại API công khai của A2, thêm bộ lọc)
-- `POST /api/applications`: tạo `JobApplication` với `recruitment_cycle` lấy từ Job hiện tại
+- `POST /api/candidates/applications`: tạo `JobApplication` với `recruitment_cycle` lấy từ Job hiện tại
 - **`ai_consent` bắt buộc `true`, lưu `ai_consent_at`** — DB có `chk_consent_true` chặn sẵn
 - Bắt `DataIntegrityViolationException` từ `uq_application_per_cycle` → trả lỗi 409 dễ hiểu
 
@@ -323,7 +323,7 @@ Kết luận nên tuyển hay không — nằm ngoài phạm vi FR-H06.
 ## E1 · `feat/fr-h07-pipeline` — Pipeline & Quyết định tuyển dụng (FR-H07)
 
 **Backend**
-- `PATCH /api/applications/{id}/status` với máy trạng thái tường minh:
+- `PATCH /api/hr/applications/{id}/status` với máy trạng thái tường minh:
   `PENDING → INTERVIEW_INVITED | REJECTED` · `INTERVIEW_INVITED → HIRED | REJECTED` ·
   `* → WITHDRAWN` (chỉ ứng viên thực hiện, trước khi có kết quả cuối)
 - Chuyển trạng thái sai luồng → 400
