@@ -187,8 +187,8 @@ Tin vào đuôi file để xác định định dạng.
 ## C3 · `feat/fr-u03-tracking` — Theo dõi trạng thái (FR-U03)
 
 **Backend**
-- `GET /api/applications/my` — danh sách đơn của chính mình
-- `GET /api/applications/{id}/history` — lịch sử chuyển trạng thái
+- `GET /api/candidates/applications` — danh sách đơn của chính mình
+- `GET /api/candidates/applications/{id}/history` — lịch sử chuyển trạng thái
 - Service ghi `application_status_history` **mỗi lần** đổi trạng thái (tập trung một chỗ, không rải rác)
 
 **Frontend** Trang "Đơn ứng tuyển của tôi", badge 5 trạng thái theo bảng màu trong `UI_GUIDE.md`,
@@ -204,7 +204,7 @@ timeline lịch sử.
 
 ## C4 · `feat/fr-u06-withdraw` — Rút đơn (FR-U06)
 
-**Backend** `PATCH /api/applications/{id}/withdraw` → chuyển sang `WITHDRAWN`.
+**Backend** `PATCH /api/candidates/applications/{id}/withdraw` → chuyển sang `WITHDRAWN`.
 Chỉ cho rút khi trạng thái hiện tại là `PENDING` hoặc `INTERVIEW_INVITED`.
 
 **Frontend** Nút "Rút đơn" + hộp thoại xác nhận nêu rõ hành động không hoàn tác.

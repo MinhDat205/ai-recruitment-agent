@@ -41,10 +41,11 @@ và không có chỗ ghi kết quả ra.
 
 ## Phase C — Ứng viên nộp đơn
 
-- [ ] **C1** `feat/fr-u01-resume` — FR-U01 · Hồ sơ cá nhân, upload nhiều phiên bản CV
-- [ ] **C2** `feat/fr-u02-apply` — FR-U02 · Ứng tuyển + consent bắt buộc + chống nộp trùng
-- [ ] **C3** `feat/fr-u03-tracking` — FR-U03 · Theo dõi 5 trạng thái + lịch sử
-- [ ] **C4** `feat/fr-u06-withdraw` — FR-U06 · Rút đơn (soft state)
+- [x] **C1** `feat/fr-u01-resume` — FR-U01 · Hồ sơ cá nhân, upload nhiều phiên bản CV
+- [x] **C2** `feat/fr-u02-apply` — FR-U02 · Ứng tuyển + consent bắt buộc + chống nộp trùng
+- [x] `fix/public-header-auth` — sửa header công khai phản ánh trạng thái đăng nhập (không gắn mã FR)
+- [x] **C3** `feat/fr-u03-tracking` — FR-U03 · Theo dõi 5 trạng thái + lịch sử
+- [x] **C4** `feat/fr-u06-withdraw` — FR-U06 · Rút đơn (soft state)
 
 **Xong khi:** nộp trùng job trong cùng chu kỳ bị chặn ở **tầng DB**, không chỉ ở UI.
 

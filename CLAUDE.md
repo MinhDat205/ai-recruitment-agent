@@ -63,6 +63,8 @@ docker compose down -v               # reset sạch DB khi migration hỏng
 - Trước khi sửa file có sẵn, đọc file đó trước — không đoán.
 - Nếu yêu cầu của tôi mâu thuẫn với `docs/SRS.md`, hãy nói ra thay vì tự chọn.
 - Sau khi code xong, tự chạy lint/test và tự sửa lỗi trước khi báo hoàn thành.
+- Khi viết walkthrough, mục "Đã test / Chưa test" phải **hỏi tôi** kết quả kiểm thử tay đã làm —
+  không được mặc định ghi "chưa kiểm thử" và không được tự bịa lý do vì sao chưa test.
 
 ## 7. Ranh giới không được vượt
 
@@ -71,6 +73,10 @@ docker compose down -v               # reset sạch DB khi migration hỏng
 - Không đổi `ddl-auto` sang `update`. Mọi thay đổi schema đi qua một file Flyway mới.
 - Không xoá cột `weight_snapshot` / `rubric_snapshot` dù trông có vẻ trùng dữ liệu — chúng giữ lịch sử audit.
 - Không commit `.env`, không commit thư mục `uploads/`.
+- Mọi API thuộc khu vực ứng viên PHẢI dùng tiền tố `/api/candidates/`, vì `SecurityConfig` chỉ
+  gán `hasRole('CANDIDATE')` cho tiền tố này; đường dẫn khác chỉ rơi vào
+  `anyRequest().authenticated()` nên tài khoản HR cũng gọi được. Quy tắc này thắng đường dẫn ghi
+  trong `docs/PHASES.md` nếu hai bên lệch nhau.
 
 ## 8. Bẫy môi trường đã gặp
 
