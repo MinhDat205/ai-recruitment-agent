@@ -36,6 +36,7 @@ và không có chỗ ghi kết quả ra.
 - [X] **B1** `feat/fr-h01-company` — FR-H01 · Hồ sơ doanh nghiệp
 - [X] **B2** `feat/fr-h02-jobs` — FR-H02 · CRUD tin tuyển dụng + mẫu giấy mời phỏng vấn
 - [X] **B3** `feat/fr-h03-rubric` — FR-H03 · Tiêu chí + trọng số, thang điểm mặc định/tuỳ chọn
+- [x] `fix/rubric-guard` — siết guard rubric đủ 100% cho mọi đường vào OPEN + map trùng tên tiêu chí sang 409 (sửa nợ kỹ thuật B2/B3, không gắn mã FR)
 
 **Xong khi:** không lưu được rubric có tổng trọng số ≠ 100%, chặn ở cả UI lẫn API.
 
@@ -53,6 +54,10 @@ và không có chỗ ghi kết quả ra.
 
 - [ ] **D1** `feat/fr-c04-parsing` — FR-C04 · Trích xuất CV → JSON, chạy nền, validate schema
 - [ ] **D2** `feat/fr-h04-scoring` — FR-H04 · Chấm **từng tiêu chí riêng** + evidence
+  - Bắt buộc: khi tạo lượt chấm đầu tiên (`scoring_runs`) phải set `rubrics.is_locked = true`.
+    Hiện chưa có đường nào trong ứng dụng đặt cờ này; guard mở lại tin ở
+    `JobOwnerService.changeStatus` (nhánh `fix/rubric-guard`) dựa vào cờ đó để bỏ qua kiểm đủ
+    100% — nếu D2 không cài, HR có job đã chấm sẽ kẹt không mở lại được chu kỳ tuyển dụng mới.
 - [ ] **D3** `feat/fr-h05-aggregate` — FR-H05 · Tổng hợp có trọng số + xếp hạng (Java thuần)
 - [ ] **D4** `feat/fr-h06-explain` — FR-H06 · Báo cáo giải thích, mọi luận điểm có evidence
 
