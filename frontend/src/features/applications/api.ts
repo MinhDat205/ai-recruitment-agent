@@ -15,3 +15,8 @@ export async function getApplicationHistoryRequest(id: string): Promise<Applicat
   const response = await http.get<ApplicationHistoryEntry[]>(`/candidates/applications/${id}/history`)
   return response.data
 }
+
+export async function withdrawApplicationRequest(id: string): Promise<Application> {
+  const response = await http.patch<Application>(`/candidates/applications/${id}/withdraw`)
+  return response.data
+}

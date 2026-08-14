@@ -3,10 +3,12 @@ package com.recruitment.jobapplication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.recruitment.common.exception.ApplicationNotFoundException;
+import com.recruitment.common.exception.ApplicationNotWithdrawableException;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
@@ -82,6 +84,69 @@ class ApplicationServiceTest {
         when(applicationRepository.findByIdAndCandidateId(applicationId, candidateId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getMyApplicationHistory(candidateId, applicationId))
+                .isInstanceOf(ApplicationNotFoundException.class);
+    }
+
+    @Test
+    void withdraw_fromPending_recordsHistoryAndChangesStatus() {
+        ApplicationService service =
+                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+
+        UUID candidateId = UUID.randomUUID();
+        UUID applicationId = UUID.randomUUID();
+
+        JobApplication application = new JobApplication();
+        application.setId(applicationId);
+        application.setStatus(ApplicationStatus.PENDING);
+
+        when(applicationRepository.findByIdAndCandidateId(applicationId, candidateId)).thenReturn(Optional.of(application));
+        when(applicationRepository.save(application)).thenReturn(application);
+
+        var response = service.withdraw(candidateId, applicationId);
+
+        assertThat(response.status()).isEqualTo(ApplicationStatus.WITHDRAWN);
+
+        ArgumentCaptor<ApplicationStatusHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationStatusHistory.class);
+        verify(statusHistoryRepository).save(historyCaptor.capture());
+        ApplicationStatusHistory history = historyCaptor.getValue();
+        assertThat(history.getApplicationId()).isEqualTo(applicationId);
+        assertThat(history.getFromStatus()).isEqualTo(ApplicationStatus.PENDING);
+        assertThat(history.getToStatus()).isEqualTo(ApplicationStatus.WITHDRAWN);
+        assertThat(history.getChangedBy()).isEqualTo(candidateId);
+        assertThat(history.getNote()).isNull();
+    }
+
+    @Test
+    void withdraw_alreadyHired_throwsApplicationNotWithdrawableException() {
+        ApplicationService service =
+                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+
+        UUID candidateId = UUID.randomUUID();
+        UUID applicationId = UUID.randomUUID();
+
+        JobApplication application = new JobApplication();
+        application.setId(applicationId);
+        application.setStatus(ApplicationStatus.HIRED);
+
+        when(applicationRepository.findByIdAndCandidateId(applicationId, candidateId)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> service.withdraw(candidateId, applicationId))
+                .isInstanceOf(ApplicationNotWithdrawableException.class);
+
+        verify(applicationRepository, never()).save(any());
+    }
+
+    @Test
+    void withdraw_applicationOfAnotherCandidate_throwsApplicationNotFoundException() {
+        ApplicationService service =
+                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+
+        UUID candidateId = UUID.randomUUID();
+        UUID applicationId = UUID.randomUUID();
+
+        when(applicationRepository.findByIdAndCandidateId(applicationId, candidateId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.withdraw(candidateId, applicationId))
                 .isInstanceOf(ApplicationNotFoundException.class);
     }
 }

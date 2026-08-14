@@ -1,5 +1,12 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { createApplicationRequest, getApplicationHistoryRequest, getMyApplicationsRequest } from './api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  createApplicationRequest,
+  getApplicationHistoryRequest,
+  getMyApplicationsRequest,
+  withdrawApplicationRequest,
+} from './api'
+
+const MY_APPLICATIONS_QUERY_KEY = ['my-applications']
 
 export function useCreateApplicationMutation() {
   return useMutation({
@@ -9,7 +16,7 @@ export function useCreateApplicationMutation() {
 
 export function useMyApplicationsQuery() {
   return useQuery({
-    queryKey: ['my-applications'],
+    queryKey: MY_APPLICATIONS_QUERY_KEY,
     queryFn: getMyApplicationsRequest,
   })
 }
@@ -19,5 +26,15 @@ export function useApplicationHistoryQuery(id: string | undefined) {
     queryKey: ['application-history', id],
     queryFn: () => getApplicationHistoryRequest(id as string),
     enabled: Boolean(id),
+  })
+}
+
+export function useWithdrawApplicationMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: withdrawApplicationRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MY_APPLICATIONS_QUERY_KEY })
+    },
   })
 }

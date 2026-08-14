@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,5 +48,11 @@ public class ApplicationCandidateController {
             Authentication authentication, @PathVariable UUID id) {
         UUID candidateId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(applicationService.getMyApplicationHistory(candidateId, id));
+    }
+
+    @PatchMapping("/{id}/withdraw")
+    public ResponseEntity<ApplicationResponse> withdraw(Authentication authentication, @PathVariable UUID id) {
+        UUID candidateId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(applicationService.withdraw(candidateId, id));
     }
 }

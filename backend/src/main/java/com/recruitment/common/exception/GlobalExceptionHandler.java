@@ -139,6 +139,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("APPLICATION_NOT_FOUND", ex.getMessage()));
     }
 
+    @ExceptionHandler(ApplicationNotWithdrawableException.class)
+    public ResponseEntity<ErrorResponse> handleApplicationNotWithdrawable(ApplicationNotWithdrawableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("APPLICATION_NOT_WITHDRAWABLE", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -154,7 +160,9 @@ public class GlobalExceptionHandler {
         // SELECT-truoc-INSERT o tang service vi co race condition.
         if (message != null && message.contains("uq_application_per_cycle")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ErrorResponse("APPLICATION_DUPLICATE", "Bạn đã ứng tuyển vị trí này rồi"));
+                    .body(new ErrorResponse(
+                            "APPLICATION_DUPLICATE",
+                            "Bạn đã ứng tuyển vị trí này trong đợt tuyển hiện tại (đơn đã rút vẫn được tính)"));
         }
         throw ex;
     }

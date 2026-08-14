@@ -1,6 +1,7 @@
 package com.recruitment.jobapplication;
 
 import com.recruitment.common.exception.ApplicationNotFoundException;
+import com.recruitment.common.exception.ApplicationNotWithdrawableException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.job.Job;
@@ -68,6 +69,27 @@ public class ApplicationService {
         // Dong lich su dau tien cua don: NULL -> PENDING, changed_by = chinh candidate (tu tao
         // don). Cung transaction voi viec tao don.
         recordStatusChange(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public ApplicationResponse withdraw(UUID candidateId, UUID applicationId) {
+        // findByIdAndCandidateId: don khong ton tai HOAC khong thuoc ve candidate dang dang
+        // nhap deu tra ve 404 giong nhau, cung pattern voi getMyApplicationHistory.
+        JobApplication application = applicationRepository
+                .findByIdAndCandidateId(applicationId, candidateId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        ApplicationStatus fromStatus = application.getStatus();
+        if (fromStatus != ApplicationStatus.PENDING && fromStatus != ApplicationStatus.INTERVIEW_INVITED) {
+            throw new ApplicationNotWithdrawableException();
+        }
+
+        application.setStatus(ApplicationStatus.WITHDRAWN);
+        JobApplication saved = applicationRepository.save(application);
+
+        recordStatusChange(saved.getId(), fromStatus, ApplicationStatus.WITHDRAWN, candidateId, null);
 
         return toResponse(saved);
     }
