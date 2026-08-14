@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.interviewtemplate.InterviewTemplateRepository;
+import com.recruitment.rubric.Rubric;
 import com.recruitment.rubric.RubricRepository;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -316,12 +317,11 @@ class JobOwnerIntegrationTest {
         assertThat(extractJsonNumber(resumed.getResponse().getContentAsString(), "recruitmentCycle")).isEqualTo(1);
     }
 
-    // Ve phu dinh quan trong nhat cua gate rubric o B3: PAUSED -> OPEN KHONG duoc kiem tong
-    // trong so, du khac DRAFT/CLOSED -> OPEN. Ly do: HR tam dung mot tin dang chay, rubric co
-    // the da bi khoa (is_locked, sau lan cham dau tien) nen khong con cach nao sua lai cho du
-    // 100% - neu chan ca truong hop nay thi tin do vinh vien khong mo lai duoc.
+    // Sua loi: PAUSED -> OPEN gio cung phai kiem tong trong so neu rubric CHUA khoa, giong
+    // DRAFT/CLOSED -> OPEN. Truoc day bo qua ca truong hop nay vi tuong rubric co the da khoa,
+    // nhung job chua tung OPEN (hoac chua co luot cham) thi rubric khong the bi khoa duoc.
     @Test
-    void pauseThenReopen_withRubricBelowFullWeight_stillSucceeds() throws Exception {
+    void pauseThenReopen_withRubricBelowFullWeight_isBlocked() throws Exception {
         String token = registerAndLoginHr("hr-pause-under");
         createCompany(token, "Cong ty Pause Duoi Nguong");
         String jobId = createJob(token, "Job Tam Dung Roi Mo Lai");
@@ -331,9 +331,35 @@ class JobOwnerIntegrationTest {
         assertThat(changeStatus(token, jobId, "OPEN").getResponse().getStatus()).isEqualTo(200);
         assertThat(changeStatus(token, jobId, "PAUSED").getResponse().getStatus()).isEqualTo(200);
 
-        // Rubric chua bi khoa (chua co luot cham trong nhanh nay) nen van sua duoc: xoa Tieu chi
-        // A, tong con lai 40% - mo phong tinh huong rubric "ket" duoi 100% khi dang PAUSED.
         deleteCriterion(token, jobId, criterionAId);
+
+        MvcResult resumed = changeStatus(token, jobId, "OPEN");
+        assertThat(resumed.getResponse().getStatus()).isEqualTo(409);
+        assertThat(resumed.getResponse().getContentAsString()).contains("RUBRIC_INCOMPLETE");
+    }
+
+    // Doi xung: rubric DA khoa (is_locked=true, mo phong da co luot cham dau tien) thi PAUSED ->
+    // OPEN van duoc qua du duoi 100%, vi HR khong con cach nao sua lai rubric nua. Phai dua rubric
+    // ve du 100% truoc khi OPEN lan dau (guard moi kiem ca lan dau tien), roi moi xoa bot tieu chi
+    // va khoa rubric sau do - de co lap dung bien can kiem la is_locked, khong phai tinh co rubric
+    // chua tung du 100%.
+    @Test
+    void pauseThenReopen_withLockedRubricBelowFullWeight_stillSucceeds() throws Exception {
+        String token = registerAndLoginHr("hr-pause-locked");
+        createCompany(token, "Cong ty Pause Da Khoa");
+        String jobId = createJob(token, "Job Tam Dung Rubric Da Khoa");
+        addCriterion(token, jobId, "Tieu chi A", 60);
+        String criterionBId = addCriterion(token, jobId, "Tieu chi B", 40);
+
+        assertThat(changeStatus(token, jobId, "OPEN").getResponse().getStatus()).isEqualTo(200);
+        assertThat(changeStatus(token, jobId, "PAUSED").getResponse().getStatus()).isEqualTo(200);
+
+        // Rubric con lai 60% - neu chua khoa se bi chan (giong test tren). Khoa rubric de mo phong
+        // tinh huong da co luot cham dau tien, chi con bien is_locked khac biet.
+        deleteCriterion(token, jobId, criterionBId);
+        Rubric rubric = rubricRepository.findByJobId(UUID.fromString(jobId)).orElseThrow();
+        rubric.setLocked(true);
+        rubricRepository.save(rubric);
 
         MvcResult resumed = changeStatus(token, jobId, "OPEN");
         assertThat(resumed.getResponse().getStatus()).isEqualTo(200);

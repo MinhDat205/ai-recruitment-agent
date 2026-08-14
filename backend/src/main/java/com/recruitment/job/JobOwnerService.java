@@ -117,12 +117,16 @@ public class JobOwnerService {
         Job job = loadOwned(jobId, ownerId);
         JobStatus oldStatus = job.getStatus();
 
-        // Chi kiem tra khi MO MOI (DRAFT) hoac MO LAI sau khi da CLOSED - hai truong hop nay rubric
-        // co the da bi sua sau lan cuoi kiem tra. KHONG kiem PAUSED -> OPEN: day chi la tam dung
-        // trong cung dot tuyen dung, rubric co the da bi khoa (is_locked, sau lan cham dau tien)
-        // nen HR khong con cach nao sua lai cho du 100% - chan ca truong hop nay se ket cung HR.
-        if ((oldStatus == JobStatus.DRAFT || oldStatus == JobStatus.CLOSED) && newStatus == JobStatus.OPEN) {
-            requireRubricComplete(job.getId());
+        // Kiem tra rubric du 100% khi MO OPEN, tru khi rubric DA KHOA (is_locked, sau lan cham dau
+        // tien) - luc do HR khong con cach nao sua lai cho du 100% nen chan se ket cung HR. Job
+        // chua tung OPEN thi chua co luot cham nen rubric khong the bi khoa - ap dung cho ca ba
+        // duong DRAFT/PAUSED/CLOSED -> OPEN thay vi chi hai duong nhu truoc.
+        if (newStatus == JobStatus.OPEN) {
+            Rubric rubric =
+                    rubricRepository.findByJobId(jobId).orElseThrow(() -> new RubricNotFoundException(jobId));
+            if (!rubric.isLocked()) {
+                requireRubricComplete(rubric);
+            }
         }
         if (oldStatus == JobStatus.CLOSED && newStatus == JobStatus.OPEN) {
             job.setRecruitmentCycle(job.getRecruitmentCycle() + 1);
@@ -160,10 +164,7 @@ public class JobOwnerService {
         return job;
     }
 
-    // Chi kiem tra khi mo tin (DRAFT -> OPEN): rubric chua du 100% trong so thi khong duoc mo,
-    // vi AI se cham diem theo rubric nay ngay khi co ung vien nop don (D2 phu thuoc B3).
-    private void requireRubricComplete(UUID jobId) {
-        Rubric rubric = rubricRepository.findByJobId(jobId).orElseThrow(() -> new RubricNotFoundException(jobId));
+    private void requireRubricComplete(Rubric rubric) {
         BigDecimal total = rubricCriterionRepository.sumWeightByRubricId(rubric.getId());
         if (total.compareTo(new BigDecimal("100")) != 0) {
             throw new RubricIncompleteException(total);

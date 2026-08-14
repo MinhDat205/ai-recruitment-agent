@@ -57,7 +57,10 @@ public class RubricOwnerService {
         RubricCriterion criterion = new RubricCriterion();
         criterion.setRubricId(rubric.getId());
         applyRequest(criterion, request);
-        criterion = criterionRepository.save(criterion);
+        // saveAndFlush: bat INSERT no ngay tai day thay vi hoan toi luc commit, de
+        // DataIntegrityViolationException cua uq_criterion_name_per_rubric noi len trong pham vi
+        // request va GlobalExceptionHandler bat duoc, tra 409 xac dinh.
+        criterion = criterionRepository.saveAndFlush(criterion);
         return toResponse(criterion);
     }
 
@@ -75,7 +78,9 @@ public class RubricOwnerService {
         requireNotExceeding(newTotal);
 
         applyRequest(criterion, request);
-        criterion = criterionRepository.save(criterion);
+        // saveAndFlush: cung ly do voi addCriterion - doi ten trung ten tieu chi khac cung rubric
+        // cung vi pham uq_criterion_name_per_rubric.
+        criterion = criterionRepository.saveAndFlush(criterion);
         return toResponse(criterion);
     }
 

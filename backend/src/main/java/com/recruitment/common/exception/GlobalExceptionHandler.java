@@ -164,6 +164,13 @@ public class GlobalExceptionHandler {
                             "APPLICATION_DUPLICATE",
                             "Bạn đã ứng tuyển vị trí này trong đợt tuyển hiện tại (đơn đã rút vẫn được tính)"));
         }
+        // uq_criterion_name_per_rubric - chot chan cuoi cung o DB, service khong SELECT-truoc-INSERT
+        // de tranh race condition khi hai request them tieu chi trung ten cung luc.
+        if (message != null && message.contains("uq_criterion_name_per_rubric")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse(
+                            "RUBRIC_CRITERION_DUPLICATE_NAME", "Tên tiêu chí này đã tồn tại trong rubric"));
+        }
         throw ex;
     }
 }

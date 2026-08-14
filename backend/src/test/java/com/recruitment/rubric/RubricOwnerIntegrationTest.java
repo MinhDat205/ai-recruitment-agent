@@ -277,6 +277,52 @@ class RubricOwnerIntegrationTest {
     }
 
     @Test
+    void addCriterion_withDuplicateNameInSameRubric_returnsConflict() throws Exception {
+        String token = registerAndLoginHr("hr-dup-name");
+        createCompany(token, "Cong ty Trung Ten");
+        String jobId = createJob(token, "Frontend Engineer");
+
+        addCriterion(token, jobId, """
+                {"name":"Kinh nghiem","weight":40}
+                """);
+
+        MvcResult result = addCriterion(token, jobId, """
+                {"name":"Kinh nghiem","weight":30}
+                """);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(409);
+        assertThat(result.getResponse().getContentAsString()).contains("RUBRIC_CRITERION_DUPLICATE_NAME");
+    }
+
+    @Test
+    void updateCriterion_renamingToExistingSiblingName_returnsConflict() throws Exception {
+        String token = registerAndLoginHr("hr-dup-rename");
+        createCompany(token, "Cong ty Doi Ten Trung");
+        String jobId = createJob(token, "Mobile Engineer");
+
+        addCriterion(token, jobId, """
+                {"name":"Tieu chi 1","weight":30}
+                """);
+        MvcResult created = addCriterion(token, jobId, """
+                {"name":"Tieu chi 2","weight":20}
+                """);
+        String criterionId = extractJsonField(created.getResponse().getContentAsString(), "id");
+
+        MvcResult result = mockMvc
+                .perform(
+                        put("/api/hr/jobs/" + jobId + "/rubric/criteria/" + criterionId)
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"name":"Tieu chi 1","weight":20}
+                                        """))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(409);
+        assertThat(result.getResponse().getContentAsString()).contains("RUBRIC_CRITERION_DUPLICATE_NAME");
+    }
+
+    @Test
     void hrA_addCriterionToHrBJob_returnsForbidden() throws Exception {
         String tokenA = registerAndLoginHr("hr-rubric-a");
         createCompany(tokenA, "Cong ty Rubric A");
