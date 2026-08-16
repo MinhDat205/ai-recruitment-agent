@@ -4,9 +4,18 @@ spring:
 
   # spring-ai 2.0.0 bug: auto-config Anthropic bind loi vao ThinkingConfigParam khi khoi dong.
   # AnthropicChatModel duoc khai bao thu cong o AnthropicChatModelConfig.
+  #
+  # OpenAiChatAutoConfiguration bi loai vi ly do khac: starter-model-openai chi dung cho embedding
+  # (spring.ai.openai.embedding ben duoi), khong bao gio dung OpenAI lam ChatModel trong du an nay
+  # (moi tac vu chat/reasoning deu la Anthropic). Neu khong loai, starter nay tu dong khai them 1
+  # bean ChatModel (openAiChatModel) song song voi anthropicChatModel - luc do bat ky cho nao
+  # autowire ChatModel/ChatClient.Builder theo kieu (vd ResumeParsingChatClientConfig o D1) se vo
+  # NoUniqueBeanDefinitionException vi co 2 ung vien ma khong ben nao @Primary. Phat hien loi nay
+  # bang cach chay that ca bo test, khong phai doan truoc.
   autoconfigure:
     exclude:
       - org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
 
   datasource:
     url: jdbc:postgresql://localhost:5432/recruitment

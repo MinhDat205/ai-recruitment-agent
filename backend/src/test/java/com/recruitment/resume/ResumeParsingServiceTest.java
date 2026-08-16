@@ -5,10 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-// Test thuan Java cho ham cat rawText - khong can Spring context.
+// Test thuan Java cho ham cat rawText - khong can Spring context. truncateForPrompt() khong dung
+// toi chatClient/promptResource/fallbackModel nen truyen null la du, khong can dung Spring de tao
+// cac dependency that (xem ResumeParsingServiceIntegrationTest cho cac test can Spring context).
 class ResumeParsingServiceTest {
 
-    private final ResumeParsingService service = new ResumeParsingService();
+    private final ResumeParsingService service = new ResumeParsingService(null, null, null);
 
     @Test
     void truncateForPrompt_shortText_staysUnchanged() {
