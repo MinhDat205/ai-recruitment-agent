@@ -1,11 +1,12 @@
 import { isAxiosError } from 'axios'
-import { Download, FileText } from 'lucide-react'
+import { Download, FileSearch, FileText, RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { downloadResumeRequest } from './api'
-import { useResumesQuery, useSetPrimaryResumeMutation } from './queries'
-import { PARSE_STATUS_LABELS, PARSE_STATUS_STYLES } from './resumeLabels'
+import { ParseStatusBadge } from './ParseStatusBadge'
+import { isResumeStalled, useResumesQuery, useSetPrimaryResumeMutation } from './queries'
+import { ResumeParsedDataDialog } from './ResumeParsedDataDialog'
 import type { Resume } from './types'
 
 function formatFileSize(bytes: number | null): string {
@@ -42,10 +43,11 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 }
 
 export function ResumeList() {
-  const { data: resumes, isLoading } = useResumesQuery()
+  const { data: resumes, isLoading, refetch, isFetching } = useResumesQuery()
   const setPrimaryMutation = useSetPrimaryResumeMutation()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [viewingResume, setViewingResume] = useState<{ id: string; fileName: string } | null>(null)
 
   async function handleDownload(resume: Resume) {
     setError(null)
@@ -102,11 +104,26 @@ export function ResumeList() {
                 </div>
               </TableCell>
               <TableCell>
-                <span
-                  className={`inline-flex items-center rounded-(--radius-badge) px-2 py-1 text-xs font-medium ${PARSE_STATUS_STYLES[resume.parseStatus]}`}
-                >
-                  {PARSE_STATUS_LABELS[resume.parseStatus]}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <ParseStatusBadge status={resume.parseStatus} />
+                  {resume.parseStatus === 'FAILED' && resume.parseError && (
+                    <p className="text-xs text-ink-muted">{resume.parseError}</p>
+                  )}
+                  {isResumeStalled(resume) && (
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-ink-muted">Quá trình xử lý lâu hơn dự kiến</p>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline disabled:opacity-50"
+                        disabled={isFetching}
+                        onClick={() => refetch()}
+                      >
+                        <RotateCw className="h-3 w-3" aria-hidden="true" />
+                        Kiểm tra lại
+                      </button>
+                    </div>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-ink-muted">{formatUploadedAt(resume.uploadedAt)}</TableCell>
               <TableCell className="text-ink-muted">{formatFileSize(resume.fileSize)}</TableCell>
@@ -121,6 +138,17 @@ export function ResumeList() {
                       onClick={() => setPrimaryMutation.mutate(resume.id)}
                     >
                       Đặt làm CV chính
+                    </Button>
+                  )}
+                  {resume.parseStatus === 'DONE' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewingResume({ id: resume.id, fileName: resume.fileName })}
+                    >
+                      <FileSearch className="h-4 w-4" aria-hidden="true" />
+                      Xem dữ liệu đã trích xuất
                     </Button>
                   )}
                   <Button
@@ -140,6 +168,18 @@ export function ResumeList() {
         </TableBody>
       </Table>
       {error && <p className="text-sm text-danger">{error}</p>}
+      {viewingResume && (
+        <ResumeParsedDataDialog
+          resumeId={viewingResume.id}
+          fileName={viewingResume.fileName}
+          open={viewingResume !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingResume(null)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
