@@ -2,6 +2,8 @@ package com.recruitment.resume;
 
 import com.recruitment.common.exception.InvalidResumeFileException;
 import com.recruitment.common.exception.ResumeNotFoundException;
+import com.recruitment.common.exception.ResumeParsedDataNotFoundException;
+import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import com.recruitment.resume.dto.ResumeResponse;
 import com.recruitment.storage.StorageService;
 import java.io.ByteArrayInputStream;
@@ -24,10 +26,15 @@ public class ResumeService {
     private static final byte[] DOCX_SIGNATURE = {0x50, 0x4B, 0x03, 0x04};
 
     private final ResumeRepository resumeRepository;
+    private final ResumeParsedDataRepository resumeParsedDataRepository;
     private final StorageService storageService;
 
-    public ResumeService(ResumeRepository resumeRepository, StorageService storageService) {
+    public ResumeService(
+            ResumeRepository resumeRepository,
+            ResumeParsedDataRepository resumeParsedDataRepository,
+            StorageService storageService) {
         this.resumeRepository = resumeRepository;
+        this.resumeParsedDataRepository = resumeParsedDataRepository;
         this.storageService = storageService;
     }
 
@@ -111,6 +118,20 @@ public class ResumeService {
                         : MediaType.parseMediaType(
                                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         return new ResumeDownload(resource, resume.getFileName(), contentType);
+    }
+
+    // Kiem quyen so huu dung pattern downloadMine: 404 neu khong phai chu, khong phai 403 - tranh
+    // lo resume cua nguoi khac co ton tai hay khong. Con PENDING/PROCESSING/FAILED (chua co hang
+    // resume_parsed_data) cung tra 404 rieng (RESUME_PARSED_DATA_NOT_FOUND) - KHONG tra 200 voi
+    // body rong, de frontend khong phai tu doan "rong vi chua xong" hay "rong vi loi".
+    public ResumeParsedDataResponse getParsedData(UUID candidateId, UUID resumeId) {
+        resumeRepository
+                .findByIdAndCandidateId(resumeId, candidateId)
+                .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        ResumeParsedData data = resumeParsedDataRepository
+                .findByResumeId(resumeId)
+                .orElseThrow(() -> new ResumeParsedDataNotFoundException(resumeId));
+        return new ResumeParsedDataResponse(data.getResumeId(), data.getData(), data.getParsedAt());
     }
 
     private static Optional<ResumeFileType> detectFileType(byte[] content) {

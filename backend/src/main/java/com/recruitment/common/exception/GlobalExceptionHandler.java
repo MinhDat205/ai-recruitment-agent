@@ -133,6 +133,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RESUME_NOT_FOUND", ex.getMessage()));
     }
 
+    @ExceptionHandler(ResumeParsedDataNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResumeParsedDataNotFound(ResumeParsedDataNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("RESUME_PARSED_DATA_NOT_FOUND", ex.getMessage()));
+    }
+
     @ExceptionHandler(ApplicationNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleApplicationNotFound(ApplicationNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
