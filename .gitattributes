@@ -1,3 +1,7 @@
 * text=auto eol=lf
 *.cmd text eol=crlf
 *.bat text eol=crlf
+
+# Fixture nhi phan cho test - khong duoc chuyen doi EOL
+*.pdf binary -text
+*.docx binary -text
