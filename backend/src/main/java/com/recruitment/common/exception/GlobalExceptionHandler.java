@@ -151,6 +151,18 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("APPLICATION_NOT_WITHDRAWABLE", ex.getMessage()));
     }
 
+    @ExceptionHandler(ResumeNotParsedException.class)
+    public ResponseEntity<ErrorResponse> handleResumeNotParsed(ResumeNotParsedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RESUME_NOT_PARSED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ScoringRunInProgressException.class)
+    public ResponseEntity<ErrorResponse> handleScoringRunInProgress(ScoringRunInProgressException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("SCORING_RUN_IN_PROGRESS", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -176,6 +188,14 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new ErrorResponse(
                             "RUBRIC_CRITERION_DUPLICATE_NAME", "Tên tiêu chí này đã tồn tại trong rubric"));
+        }
+        // uq_scoring_run_in_progress (V4, D2) - chot chan cuoi cho race HR bam dup nut "Cham diem
+        // ho so" hoac mo hai tab (xem V4__scoring_run_in_progress_unique.sql). Dung LAI chinh xac
+        // message cua ScoringRunInProgressException (khong viet lai chuoi) de FE nhan duoc cung
+        // mot ma loi/cau chu bat ke duong nao (kiem truoc o service, hay chot chan o DB) da bat.
+        if (message != null && message.contains("uq_scoring_run_in_progress")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("SCORING_RUN_IN_PROGRESS", new ScoringRunInProgressException().getMessage()));
         }
         throw ex;
     }

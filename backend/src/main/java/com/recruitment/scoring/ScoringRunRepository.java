@@ -1,5 +1,6 @@
 package com.recruitment.scoring;
 
+import java.util.Collection;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -7,6 +8,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
+
+    // Dieu kien tien quyet #4 (Dot 2 ke hoach D2): dang co lot cham "thuc su dang chay" cho don
+    // nay - PENDING (chua claim) hoac RUNNING ma finished_at con NULL (dang xu ly, chua cham xong
+    // toan bo tieu chi). Mot lot RUNNING da co finished_at (cho D3 tong hop, xem Q1) KHONG tinh la
+    // dang chay - HR duoc phep tao lot cham moi cho cung don (cau tra loi (i) cua Q1).
+    boolean existsByApplicationIdAndStatusInAndFinishedAtIsNull(
+            UUID applicationId, Collection<ScoringRunStatus> statuses);
 
     // Claim bang UPDATE co dieu kien, kiem tra rowcount ben ngoai (xem CLAUDE.md muc 3c) - KHONG
     // dung SELECT FOR UPDATE SKIP LOCKED vi no giu transaction mo trong luc cho LLM.

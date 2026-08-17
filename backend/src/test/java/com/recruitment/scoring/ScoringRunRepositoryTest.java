@@ -1,6 +1,7 @@
 package com.recruitment.scoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.company.Company;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -302,5 +304,52 @@ class ScoringRunRepositoryTest {
         boolean safe = scoringRunRepository.isSafeToUnlock(jobId);
 
         assertThat(safe).isFalse();
+    }
+
+    // Hai test duoi day chung minh CHOT CHAN LA DB (uq_scoring_run_in_progress, V4), khong phai
+    // code Java - goi thang repository, bo qua ScoringRunService.requireNoRunInProgress hoan toan.
+
+    @Test
+    void saveAndFlush_secondActiveRunForSameApplication_violatesUniqueConstraint() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+
+        ScoringRun first = new ScoringRun();
+        first.setApplicationId(applicationId);
+        first.setStatus(ScoringRunStatus.PENDING);
+        scoringRunRepository.saveAndFlush(first);
+
+        // Co y khac status (RUNNING thay vi PENDING) - index chi phan biet theo application_id
+        // trong pham vi predicate, khong phan biet PENDING/RUNNING voi nhau.
+        ScoringRun second = new ScoringRun();
+        second.setApplicationId(applicationId);
+        second.setStatus(ScoringRunStatus.RUNNING);
+        second.setStartedAt(Instant.now());
+
+        assertThrows(DataIntegrityViolationException.class, () -> scoringRunRepository.saveAndFlush(second));
+    }
+
+    @Test
+    void saveAndFlush_newRunAfterPreviousOneFinished_isNotBlockedByUniqueConstraint() {
+        // Dung sau khi them uq_scoring_run_in_progress (V4): mot luot da co finished_at != NULL bi
+        // loai khoi predicate cua index, nen KHONG chan luot moi cho cung don - giu dung cau tra
+        // loi (i) cua Q1 (HR duoc cham lai don da cham xong) sau khi da them chot chan DB.
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+
+        ScoringRun finished = new ScoringRun();
+        finished.setApplicationId(applicationId);
+        finished.setStatus(ScoringRunStatus.RUNNING);
+        finished.setStartedAt(Instant.now());
+        finished.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(finished);
+
+        ScoringRun newRun = new ScoringRun();
+        newRun.setApplicationId(applicationId);
+        newRun.setStatus(ScoringRunStatus.PENDING);
+
+        scoringRunRepository.saveAndFlush(newRun);
+
+        assertThat(scoringRunRepository.findById(newRun.getId())).isPresent();
     }
 }
