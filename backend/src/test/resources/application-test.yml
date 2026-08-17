@@ -8,5 +8,7 @@ app:
     enabled: false
   scoring:
     enabled: false
+  aggregation:
+    enabled: false
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key

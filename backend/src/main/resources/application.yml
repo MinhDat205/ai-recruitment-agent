@@ -75,6 +75,9 @@ app:
   scoring:
     poll-interval-ms: 5000
     batch-size: 10
+  aggregation:
+    poll-interval-ms: 5000
+    batch-size: 10
 
 logging:
   level:
