@@ -14,6 +14,15 @@ import com.recruitment.resume.ResumeParsedData;
 import com.recruitment.resume.ResumeParsedDataRepository;
 import com.recruitment.resume.ResumeParsedPayload;
 import com.recruitment.resume.ResumeRepository;
+import com.recruitment.scoring.CriterionScore;
+import com.recruitment.scoring.CriterionScoreRepository;
+import com.recruitment.scoring.EvidenceEntry;
+import com.recruitment.scoring.RubricSnapshot;
+import com.recruitment.scoring.ScoringRun;
+import com.recruitment.scoring.ScoringRunRepository;
+import com.recruitment.scoring.ScoringRunStatus;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -48,6 +57,12 @@ class ApplicationOwnerControllerIntegrationTest {
 
     @Autowired
     private ResumeParsedDataRepository resumeParsedDataRepository;
+
+    @Autowired
+    private ScoringRunRepository scoringRunRepository;
+
+    @Autowired
+    private CriterionScoreRepository criterionScoreRepository;
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
@@ -204,6 +219,38 @@ class ApplicationOwnerControllerIntegrationTest {
         resumeParsedDataRepository.save(data);
     }
 
+    // Ghi thang xuong DB mot lot cham DONE voi DUNG MOT tieu chi, dung cho test shape/sort o Dot 4
+    // - KHONG chay lai pipeline D2/D3 that (khong LLM trong test). totalScore duoc GHI THANG (khong
+    // tinh qua ScoreAggregator) vi cac test dung ham nay chi kiem hinh dang JSON/thu tu sap xep,
+    // khong kiem lai phep cong (da co ScoreAggregatorTest/AggregationOrchestratorTest rieng cho
+    // dieu do) - weight/score cua tieu chi duy nhat chi can hop le, khong can khop voi totalScore
+    // truyen vao.
+    private void createDoneScoringRunDirectly(UUID applicationId, String criterionName, BigDecimal totalScore) {
+        RubricSnapshot snapshot = new RubricSnapshot(
+                "Rubric Test",
+                List.of(new RubricSnapshot.CriterionSnapshot(
+                        UUID.randomUUID(), criterionName, null, new BigDecimal("100.00"), 5, null)));
+
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.DONE);
+        run.setStartedAt(Instant.now());
+        run.setFinishedAt(Instant.now());
+        run.setRubricSnapshot(snapshot);
+        run.setTotalScore(totalScore);
+        scoringRunRepository.saveAndFlush(run);
+
+        CriterionScore criterionScore = new CriterionScore();
+        criterionScore.setScoringRunId(run.getId());
+        criterionScore.setCriterionNameSnapshot(criterionName);
+        criterionScore.setWeightSnapshot(new BigDecimal("100.00"));
+        criterionScore.setMaxScoreSnapshot(5);
+        criterionScore.setScore(new BigDecimal("4.00"));
+        criterionScore.setReasoning("Ly do gia lap trong test");
+        criterionScore.setEvidence(List.of(new EvidenceEntry("doan trich gia lap", "experience")));
+        criterionScoreRepository.saveAndFlush(criterionScore);
+    }
+
     private MvcResult createScoringRun(String token, String applicationId) throws Exception {
         return mockMvc
                 .perform(post("/api/hr/applications/" + applicationId + "/scoring-runs")
@@ -217,10 +264,22 @@ class ApplicationOwnerControllerIntegrationTest {
                 .andReturn();
     }
 
+    private MvcResult listApplicationsSorted(String token, String jobId, String sort) throws Exception {
+        return mockMvc
+                .perform(get("/api/hr/jobs/" + jobId + "/applications")
+                        .param("sort", sort)
+                        .header("Authorization", "Bearer " + token))
+                .andReturn();
+    }
+
     // ---- Case duong ----
 
+    // Doi ten tu ...WithoutTotalScoreOrRank (D2): D4 (Dot 4, FR-H05) THEM totalScore/rank/
+    // criterionScores vao chinh response nay - don CHUA cham phai co ca ba field, gia tri null/[],
+    // khong con "khong co field" nhu truoc.
     @Test
-    void listApplications_ownerHr_returnsCandidateNameAndParseStatusWithoutTotalScoreOrRank() throws Exception {
+    void listApplications_ownerHr_unscoredApplication_returnsNullTotalScoreAndRankWithEmptyCriterionScores()
+            throws Exception {
         String hrToken = registerAndLoginHr("hr-basic");
         createCompany(hrToken, uniqueName("Cong ty Basic"));
         String jobId = createJob(hrToken, uniqueName("Job Basic"));
@@ -241,7 +300,79 @@ class ApplicationOwnerControllerIntegrationTest {
         assertThat(body).contains("\"candidateName\":\"Nguyen Van Ung Vien\"");
         assertThat(body).contains("\"resumeParseStatus\":\"DONE\"");
         assertThat(body).contains("\"latestScoringRunId\":null");
-        assertThat(body).doesNotContain("totalScore").doesNotContain("\"rank\"");
+        assertThat(body).contains("\"totalScore\":null");
+        assertThat(body).contains("\"rank\":null");
+        assertThat(body).contains("\"criterionScores\":[]");
+    }
+
+    // Shape cua response (Diem 2, Dot 4): du don da co diem that (khong chi don rong), JSON tra ve
+    // KHONG duoc chua evidence (viec cua D4) hay bat ky field ten phan quyet nao (CLAUDE.md muc 7).
+    // Ghi thang xuong DB qua repository - khong chay lai toan bo pipeline D2 that (khong LLM trong
+    // test), mau ScoringRunStateServiceTest/AggregationOrchestratorTest.
+    @Test
+    void listApplications_scoredApplication_responseHasNoEvidenceOrVerdictLikeFields() throws Exception {
+        String hrToken = registerAndLoginHr("hr-shape");
+        createCompany(hrToken, uniqueName("Cong ty Shape"));
+        String jobId = createJob(hrToken, uniqueName("Job Shape"));
+        addCriterion(hrToken, jobId, """
+                {"name":"Kinh nghiem Java","weight":100}
+                """);
+        openJob(hrToken, jobId);
+
+        String candidateToken = registerAndLoginCandidate("cand-shape", "Le Van Co Diem");
+        String resumeId = uploadResume(candidateToken);
+        markResumeParsedDone(UUID.fromString(resumeId));
+        String applicationId = apply(candidateToken, jobId, resumeId);
+
+        createDoneScoringRunDirectly(UUID.fromString(applicationId), "Kinh nghiem Java", new BigDecimal("80.000"));
+
+        MvcResult result = listApplications(hrToken, jobId);
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("\"totalScore\":80.000");
+        assertThat(body).contains("\"rank\":1");
+        assertThat(body).contains("\"criterionNameSnapshot\":\"Kinh nghiem Java\"");
+        assertThat(body).contains("\"reasoning\":");
+        assertThat(body).doesNotContain("evidence");
+        assertThat(body)
+                .doesNotContainIgnoringCase("verdict")
+                .doesNotContainIgnoringCase("\"label\"")
+                .doesNotContainIgnoringCase("isQualified")
+                .doesNotContainIgnoringCase("\"passed\"")
+                .doesNotContainIgnoringCase("recommendation");
+    }
+
+    // sort=applied_at,desc (Diem cau hinh Dot 4) - kiem tham so duoc nhan dung (200, van tra day du
+    // totalScore/rank cho ca hai don), KHONG kiem THU TU tuong doi giua hai don: test nay chay
+    // trong @Transactional cua CA lop (moi @Test mot transaction) - now() cua Postgres la
+    // TRANSACTION-SCOPED (giong CURRENT_TIMESTAMP), nen hai don tao trong CUNG mot test nhan CUNG
+    // mot applied_at, khien ORDER BY applied_at DESC khong co gi phan biet (hoa, thu tu tie-break
+    // khong xac dinh o tang HTTP nay). Thu tu ON DINH khi hoa appliedAt (khoa phu trong logic xep
+    // hang) da duoc kiem DAY DU va DANG TIN CAY o ApplicationOwnerServiceTest (KHONG boc trong mot
+    // transaction dung chung, moi lan ghi la mot transaction rieng nen appliedAt phan biet duoc
+    // that) - khong lap lai kiem tra thu tu o day.
+    @Test
+    void listApplications_explicitAppliedAtSort_acceptsParamAndStillReturnsScores() throws Exception {
+        String hrToken = registerAndLoginHr("hr-sort");
+        createCompany(hrToken, uniqueName("Cong ty Sort"));
+        String jobId = createJob(hrToken, uniqueName("Job Sort"));
+        addCriterion(hrToken, jobId, """
+                {"name":"Kinh nghiem Java","weight":100}
+                """);
+        openJob(hrToken, jobId);
+
+        String candidateToken = registerAndLoginCandidate("cand-sort", "Ung Vien Sort");
+        String resumeId = uploadResume(candidateToken);
+        markResumeParsedDone(UUID.fromString(resumeId));
+        String applicationId = apply(candidateToken, jobId, resumeId);
+        createDoneScoringRunDirectly(UUID.fromString(applicationId), "Kinh nghiem Java", new BigDecimal("55.000"));
+
+        MvcResult result = listApplicationsSorted(hrToken, jobId, "applied_at,desc");
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("\"totalScore\":55.000");
+        assertThat(body).contains("\"rank\":1");
     }
 
     @Test

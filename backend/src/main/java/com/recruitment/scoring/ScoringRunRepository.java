@@ -104,4 +104,24 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
                     """,
             nativeQuery = true)
     boolean isSafeToUnlock(@Param("jobId") UUID jobId);
+
+    // D4 (FR-H05, mo rong GET /api/hr/jobs/{jobId}/applications) - nguon diem cho xep hang la lot
+    // DONE MOI NHAT cua moi don (Q5, ke hoach D3), KHONG PHAI lot moi nhat bat ke trang thai (do la
+    // findLatestByApplicationIdIn o tren, chi phuc vu hien thi TIEN DO). Mot don co the co nhieu
+    // lot (HR duoc cham lai) - DISTINCT ON dam bao chi lay dung MOT dong (lot DONE gan created_at
+    // nhat) cho moi application_id, khop dung idx_scoring_app(application_id, created_at DESC) da
+    // co san. Don khong co lot DONE nao (chua cham, chi co lot FAILED, hoac dang cham do) khong
+    // xuat hien trong ket qua - tang goi (ApplicationOwnerService) coi la totalScore=null.
+    @Query(
+            value =
+                    """
+                    SELECT DISTINCT ON (application_id)
+                        application_id AS applicationId, id AS id, total_score AS totalScore
+                    FROM scoring_runs
+                    WHERE application_id IN (:applicationIds) AND status = 'DONE'
+                    ORDER BY application_id, created_at DESC
+                    """,
+            nativeQuery = true)
+    List<LatestDoneScoringRunView> findLatestDoneByApplicationIdIn(
+            @Param("applicationIds") Collection<UUID> applicationIds);
 }

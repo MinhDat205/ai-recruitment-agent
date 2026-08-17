@@ -23,4 +23,11 @@ public interface CriterionScoreRepository extends JpaRepository<CriterionScore, 
     // List<CriterionScoreInput> cho ScoreAggregator - CUNG mot danh sach nay phuc vu ca hai buoc,
     // khong query hai lan.
     List<CriterionScore> findByScoringRunId(UUID scoringRunId);
+
+    // D4 (FR-H05, mo rong GET .../applications) - toan bo diem tung tieu chi cua NHIEU lot DONE
+    // cung mot luc (moi don gop dung MOT lot DONE, xem
+    // ScoringRunRepository.findLatestDoneByApplicationIdIn), tranh N+1. Nhom theo scoringRunId o
+    // tang Java (Collectors.groupingBy trong ApplicationOwnerService), khong query rieng cho tung
+    // don trong vong lap.
+    List<CriterionScore> findByScoringRunIdIn(Collection<UUID> scoringRunIds);
 }
