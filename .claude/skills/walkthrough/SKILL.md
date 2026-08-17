@@ -54,6 +54,17 @@ Những chỗ làm tạm, giả định đã đặt, thứ cần sửa ở nhán
 - Giải thích cho người chưa biết codebase — không giả định người đọc đã hiểu Spring Security hay JPA.
 - Trung thực về hạn chế. Tài liệu này để người dùng phát hiện vấn đề, không phải để trình bày thành tích.
 - Độ dài hợp lý: 150–300 dòng. Dài hơn nghĩa là đang copy code vào.
+- **Test kiểm hệ quả liên nhánh phải được trỏ đích danh.** Nếu nhánh này có một test nằm trong file
+  của nhánh này nhưng thực chất bảo vệ một ràng buộc/hành vi thuộc về nhánh khác (ví dụ nhánh sau
+  dựa vào một cờ hoặc điều kiện mà nhánh trước đã cài), nêu rõ **tên test + tên file** trong mục
+  "Quyết định thiết kế", kèm câu giải thích vì sao không được xoá khi refactor — nếu không, một
+  lượt dọn dẹp test "trông như trùng lặp" hoặc "không liên quan tới nhánh này" ở tương lai có thể
+  xoá mất lớp bảo vệ duy nhất cho hành vi đó mà không ai nhận ra. Ví dụ thật ở D2
+  (`feat/fr-h04-scoring`): test
+  `jobOwnerService_changeStatusToOpen_rubricLockedButWeightComplete_reopensSuccessfully` trong
+  `ScoringRunStateServiceTest.java` gọi thẳng `JobOwnerService.changeStatus` (không mock) để bảo vệ
+  hành vi đã cài từ `fix/rubric-guard` (Phase B) — rubric đã khoá thì bỏ qua kiểm tổng trọng số
+  100% khi mở lại job — hành vi mà D2 phụ thuộc vào nhưng không sở hữu.
 
 ## Sau khi viết xong
 

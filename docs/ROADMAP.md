@@ -53,7 +53,7 @@ và không có chỗ ghi kết quả ra.
 ## Phase D — AI đọc và chấm
 
 - [X] **D1** `feat/fr-c04-parsing` — FR-C04 · Trích xuất CV → JSON, chạy nền, validate schema
-- [ ] **D2** `feat/fr-h04-scoring` — FR-H04 · Chấm **từng tiêu chí riêng** + evidence
+- [X] **D2** `feat/fr-h04-scoring` — FR-H04 · Chấm **từng tiêu chí riêng** + evidence
   - Bắt buộc: khi tạo lượt chấm đầu tiên (`scoring_runs`) phải set `rubrics.is_locked = true`.
     Hiện chưa có đường nào trong ứng dụng đặt cờ này; guard mở lại tin ở
     `JobOwnerService.changeStatus` (nhánh `fix/rubric-guard`) dựa vào cờ đó để bỏ qua kiểm đủ
@@ -83,7 +83,14 @@ không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `pas
 
 ## Hoàn thiện trước bảo vệ
 
-- [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), chi phí token, presigned URL cho file CV
+- [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), presigned URL cho file CV
+  - Cố ý không xây tầng tổng hợp/cảnh báo chi phí token — ngoài phạm vi đồ án, không phải bỏ sót.
+    Cột `scoring_runs.token_usage`/`resume_parsed_data.token_usage` vẫn được ghi đầy đủ như hiện
+    tại, chỉ không có gì đọc/tổng hợp từ đó.
+  - ResumeParsingErrorCode.LLM_TIMEOUT hiện không có
+   đường code nào tạo ra được — comment trong ResumeParsingService đã ghi nhận là chưa xác
+   định được loại exception timeout thật từ SDK Anthropic (test chỉ mock ở tầng ChatModel).
+   Cần kiểm bằng SDK thật rồi hoặc map đúng, hoặc xoá mã lỗi này.
   - Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời (vd
     thiếu `ANTHROPIC_API_KEY` lúc chạy) — hiện ứng viên phải upload lại từ đầu.
   - Không có stale-claim reaper: một lượt chạy nền chết vì JVM restart giữa chừng (D1
@@ -92,6 +99,11 @@ không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `pas
     chấm mới cho đơn đó.
   - `ChatModel.getDefaultOptions()` đã deprecated ở Spring AI 2.0, đang dùng trong mock test của
     cả D1 và D2 — cần thay khi nâng phiên bản.
+  - `ResumeParsingErrorCode` (D1) chưa implement `common/FormattedErrorCode` — `CriterionScoringErrorCode`
+    và `ScoringRunErrorCode` (D2) đã implement. Không cấp bách: `ResumeParsingStateService.markFailed`
+    đã nhận đúng kiểu enum `ResumeParsingErrorCode` (không nhận `String` tự do), nên không có lỗ hổng
+    thực tế — chỉ lệch chuẩn interface chung. Hoãn vì sửa nó phải đụng code D1 đã merge và chạy lại
+    toàn bộ test của nhánh khác, ngoài phạm vi D2.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
