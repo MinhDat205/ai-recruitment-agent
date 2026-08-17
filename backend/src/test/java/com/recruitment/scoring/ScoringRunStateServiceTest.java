@@ -353,4 +353,84 @@ class ScoringRunStateServiceTest {
         assertThat(savedScore).isEqualByComparingTo("5.00");
         assertThat(savedScore.scale()).isEqualTo(2);
     }
+
+    // Hai test duoi day bao ve sua guard finished_at trong markFailed (ke hoach D3, sua mot method
+    // D2 da merge - CLAUDE.md yeu cau phai co test bao ve khi sua file cua nhanh da merge).
+
+    // Mo phong call site D2 (ScoringRunOrchestrator.doProcess): tieu chi loi GIUA CHUNG khi luot
+    // con dang cham (finished_at CON NULL). Guard "chi set khi dang null" phai cho ra hanh vi Y
+    // HET truoc khi sua: van la lan dau tien finished_at duoc set.
+    @Test
+    void markFailed_finishedAtNullBeforeCall_setsFinishedAtNow() {
+        UUID jobId = createJobWithLockedRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createRun(applicationId, ScoringRunStatus.RUNNING);
+        Instant before = Instant.now();
+
+        stateService.markFailed(runId, ScoringRunErrorCode.UNEXPECTED_ERROR);
+
+        entityManager.clear();
+        ScoringRun run = scoringRunRepository.findById(runId).orElseThrow();
+        assertThat(run.getStatus()).isEqualTo(ScoringRunStatus.FAILED);
+        assertThat(run.getFinishedAt()).isNotNull().isAfterOrEqualTo(before);
+    }
+
+    // Mo phong call site MOI cua D3 (AggregationOrchestrator, Dot 3): luot DA CO finished_at do D2
+    // set tu truoc (moc "D2 cham xong toan bo tieu chi", CLAUDE.md muc 2b) khi D3 phat hien loi
+    // toan ven (CRITERIA_MISMATCH) TRUOC khi cong. Guard PHAI GIU NGUYEN moc cu - khong ghi de bang
+    // thoi diem D3 phat hien loi, neu khong se mat dau vet that su "khi nao D2 cham xong" (sai
+    // lech audit, phat hien luc lap ke hoach D3).
+    @Test
+    void markFailed_finishedAtAlreadySetBeforeCall_keepsOriginalTimestamp() {
+        UUID jobId = createJobWithLockedRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createRun(applicationId, ScoringRunStatus.RUNNING);
+        stateService.markFinished(runId);
+        entityManager.clear();
+        Instant originalFinishedAt =
+                scoringRunRepository.findById(runId).orElseThrow().getFinishedAt();
+        assertThat(originalFinishedAt).isNotNull();
+
+        stateService.markFailed(runId, ScoreAggregationErrorCode.CRITERIA_MISMATCH);
+
+        entityManager.clear();
+        ScoringRun run = scoringRunRepository.findById(runId).orElseThrow();
+        assertThat(run.getStatus()).isEqualTo(ScoringRunStatus.FAILED);
+        assertThat(run.getFinishedAt()).isEqualTo(originalFinishedAt);
+        assertThat(run.getErrorMessage()).isEqualTo(ScoreAggregationErrorCode.CRITERIA_MISMATCH.formatted());
+    }
+
+    // Ghi ket qua tong hop (Dot 2, ke hoach D3): total_score va status=DONE phai cung xuat hien -
+    // khong co trang thai trung gian nao ma mot cai da ghi con cai kia chua.
+    @Test
+    void finishAggregation_eligibleRun_setsStatusDoneAndTotalScoreTogether() {
+        UUID jobId = createJobWithLockedRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createRun(applicationId, ScoringRunStatus.RUNNING);
+        stateService.markFinished(runId);
+
+        boolean written = stateService.finishAggregation(runId, new BigDecimal("68.667"));
+
+        assertThat(written).isTrue();
+        entityManager.clear();
+        ScoringRun run = scoringRunRepository.findById(runId).orElseThrow();
+        assertThat(run.getStatus()).isEqualTo(ScoringRunStatus.DONE);
+        assertThat(run.getTotalScore()).isEqualByComparingTo("68.667");
+    }
+
+    // Luot chua co finished_at (D2 con dang cham do) - D3 KHONG duoc phep ghi de, phai tra false.
+    @Test
+    void finishAggregation_runNotYetFinishedByD2_returnsFalseAndDoesNotWrite() {
+        UUID jobId = createJobWithLockedRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createRun(applicationId, ScoringRunStatus.RUNNING);
+
+        boolean written = stateService.finishAggregation(runId, new BigDecimal("68.667"));
+
+        assertThat(written).isFalse();
+        entityManager.clear();
+        ScoringRun run = scoringRunRepository.findById(runId).orElseThrow();
+        assertThat(run.getStatus()).isEqualTo(ScoringRunStatus.RUNNING);
+        assertThat(run.getTotalScore()).isNull();
+    }
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -20,11 +21,12 @@ import org.hibernate.type.SqlTypes;
 // application_id la UUID thuong, khong dung @ManyToOne - tranh lazy-loading ngoai transaction,
 // giong ly do trong JobApplication.java/ResumeParsedData.java.
 //
-// KHONG map cot total_score: day la viec cua D3 (FR-H05), khong phai D2 (FR-H04). Giong het ly do
-// ResumeParsedData khong map cot embedding (viec cua F1) - ddl-auto: validate khong doi hoi entity
-// map het moi cot cua bang, chi can cot da map khop dung kieu. Khong map o day la rao chan cau
-// truc: khong co field nao de code D2 lo tay ghi total_score, thay vi chi dua vao ky luat "dung
-// ghi". D3 se tu them field nay vao entity khi can.
+// total_score: D2 (FR-H04) CO Y KHONG map cot nay - do la rao chan cau truc de khong co field nao
+// de code D2 lo tay ghi total_score, thay vi chi dua vao ky luat "dung ghi" (xem lich su git file
+// nay). D3 (FR-H05) la nhanh duoc phep them, da them o duoi. Cot do BACKEND tinh bang
+// ScoreAggregator (Java thuan, KHONG LLM - xem CLAUDE.md muc 7), ghi DUY NHAT qua
+// ScoringRunStateService.finishAggregation() trong CUNG mot UPDATE co dieu kien voi status=DONE -
+// khong noi nao khac trong code duoc set truc tiep field nay.
 @Entity
 @Table(name = "scoring_runs")
 @Getter
@@ -49,6 +51,10 @@ public class ScoringRun {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "rubric_snapshot")
     private RubricSnapshot rubricSnapshot;
+
+    // NUMERIC(6,3), NULL cho toi khi D3 tong hop xong - xem comment tren dau file.
+    @Column(name = "total_score")
+    private BigDecimal totalScore;
 
     private String model;
 

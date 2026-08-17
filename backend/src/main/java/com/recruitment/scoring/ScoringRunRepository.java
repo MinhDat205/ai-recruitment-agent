@@ -1,5 +1,6 @@
 package com.recruitment.scoring;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +53,30 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
                     + "WHERE id = :id AND status = 'PENDING'",
             nativeQuery = true)
     int claimForProcessing(@Param("id") UUID id);
+
+    // D3 (FR-H05, Dot 3 se dung): nhat cac luot da CHAM XONG toan bo tieu chi (D2 xong, xem
+    // CLAUDE.md muc 2b) nhung CHUA duoc tong hop - dung dung dieu kien da chot trong ke hoach D3:
+    // status='RUNNING' VA finished_at khac NULL VA total_score con NULL. Luot FAILED khong bao gio
+    // duoc dong toi du co bao nhieu dong criterion_scores (khong nam trong dieu kien nay - status
+    // khac RUNNING).
+    List<ScoringRun> findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull(ScoringRunStatus status, Pageable pageable);
+
+    // Ghi ket qua tong hop cua D3 (FR-H05): MOT UPDATE co dieu kien vua la buoc GHI vua la CHOT
+    // CHAN duy nhat chong hai nhip poll chong nhau (Q3, ke hoach D3) - KHONG co buoc claim rieng
+    // truoc do nhu claimForProcessing o tren. Ly do khac D2: claim cua D2 bao ve mot loi goi LLM
+    // co the mat toi vai chuc giay TRUOC khi ghi (tranh goi LLM hai lan cho cung mot tieu chi); D3
+    // khong goi gi cham ca - toan bo phep tinh la Java thuan, xac dinh (cung input tu
+    // criterion_scores/rubric_snapshot da commit luon ra CUNG mot total_score, khong tac dung
+    // phu). Neu hai nhip poll thuc su chong nhau (ly thuyet, vd @Scheduled doi sang thuc thi song
+    // song trong tuong lai, hoac nhieu instance ung dung), dieu kien "total_score IS NULL" trong
+    // WHERE dam bao chi UPDATE DAU TIEN thuc su ghi (rowcount=1) - UPDATE con lai la no-op an toan
+    // (rowcount=0, khong ghi de, khong loi, vi ca hai deu se tinh ra CUNG mot gia tri neu co chay).
+    @Modifying(clearAutomatically = true)
+    @Query(
+            value = "UPDATE scoring_runs SET status = 'DONE', total_score = :totalScore "
+                    + "WHERE id = :id AND status = 'RUNNING' AND finished_at IS NOT NULL AND total_score IS NULL",
+            nativeQuery = true)
+    int finishAggregation(@Param("id") UUID id, @Param("totalScore") BigDecimal totalScore);
 
     // Dieu kien mo khoa an toan da chot o Q6 (ke hoach D2): rubric cua job nay chua tung co
     // criterion_scores nao (thuoc bat ky luot cham nao) VA khong con luot cham nao khac cua job

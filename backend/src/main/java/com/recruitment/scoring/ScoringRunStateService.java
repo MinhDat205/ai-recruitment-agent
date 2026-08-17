@@ -143,7 +143,20 @@ public class ScoringRunStateService {
     public void markFailed(UUID scoringRunId, FormattedErrorCode errorCode) {
         ScoringRun run = scoringRunRepository.findById(scoringRunId).orElseThrow();
         run.setStatus(ScoringRunStatus.FAILED);
-        run.setFinishedAt(Instant.now());
+        // CHI set finished_at khi dang NULL - KHONG ghi de mot moc da co san (sua o Dot 2, ke
+        // hoach D3, sau khi phat hien qua cau hoi Q2+Q3 gop). Call site D2
+        // (ScoringRunOrchestrator.doProcess, tieu chi loi giua chung) luon goi ham nay khi
+        // finished_at CON NULL (luot chua tung cham xong) nen hanh vi KHONG DOI: van la lan dau
+        // tien finished_at duoc set, giong het truoc khi sua (xem
+        // ScoringRunStateServiceTest#markFailed_finishedAtNullBeforeCall_setsFinishedAtNow). Call
+        // site MOI cua D3 (AggregationOrchestrator, Dot 3) goi ham nay khi luot DA CO finished_at
+        // do D2 set tu truoc (moc "D2 cham xong toan bo tieu chi", xem CLAUDE.md muc 2b) - neu
+        // khong co guard nay, D3 se ghi de moc do bang thoi diem D3 phat hien loi toan ven, lam
+        // mat dau vet that su "khi nao D2 cham xong", sai lech audit (xem
+        // ScoringRunStateServiceTest#markFailed_finishedAtAlreadySetBeforeCall_keepsOriginalTimestamp).
+        if (run.getFinishedAt() == null) {
+            run.setFinishedAt(Instant.now());
+        }
         run.setErrorMessage(errorCode.formatted());
         scoringRunRepository.save(run);
 
@@ -165,5 +178,16 @@ public class ScoringRunStateService {
         ScoringRun run = scoringRunRepository.findById(scoringRunId).orElseThrow();
         run.setFinishedAt(Instant.now());
         scoringRunRepository.save(run);
+    }
+
+    // Ghi ket qua tong hop cua D3 (FR-H05, Dot 2 cua ke hoach D3): mot UPDATE co dieu kien VUA la
+    // buoc ghi VUA la chot chan duy nhat, KHONG co claim rieng truoc do - xem ly do day du tai
+    // ScoringRunRepository.finishAggregation (Q3 cua dot nay trong ke hoach D3). Tra ve false neu
+    // khong con thoa dieu kien WHERE nua (da duoc mot lan goi khac ghi truoc do) - day la NO-OP AN
+    // TOAN, khong phai loi: ca hai lan goi deu tinh total_score tu CUNG du lieu criterion_scores/
+    // rubric_snapshot da commit (ham thuan, khong tac dung phu) nen luon ra cung gia tri.
+    @Transactional
+    public boolean finishAggregation(UUID scoringRunId, BigDecimal totalScore) {
+        return scoringRunRepository.finishAggregation(scoringRunId, totalScore) == 1;
     }
 }

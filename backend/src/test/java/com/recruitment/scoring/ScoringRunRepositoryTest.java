@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -351,5 +352,119 @@ class ScoringRunRepositoryTest {
         scoringRunRepository.saveAndFlush(newRun);
 
         assertThat(scoringRunRepository.findById(newRun.getId())).isPresent();
+    }
+
+    // Cac test duoi day thuoc Dot 2 cua ke hoach D3 (FR-H05): map total_score, query nhat luot,
+    // finishAggregation.
+
+    @Test
+    void saveAndReload_totalScoreRoundTripsAtScaleThree() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.DONE);
+        run.setStartedAt(Instant.now());
+        run.setFinishedAt(Instant.now());
+        run.setTotalScore(new BigDecimal("66.667"));
+        scoringRunRepository.saveAndFlush(run);
+        entityManager.clear();
+
+        ScoringRun reloaded = scoringRunRepository.findById(run.getId()).orElseThrow();
+        assertThat(reloaded.getTotalScore()).isEqualByComparingTo("66.667");
+        assertThat(reloaded.getTotalScore().scale()).isEqualTo(3);
+    }
+
+    // Nam tinh huong cua query nhat luot can tong hop (Q1, ke hoach D3): dung MOT dieu kien
+    // status='RUNNING' AND finished_at IS NOT NULL AND total_score IS NULL - chi dung mot lot duy
+    // nhat thoa CA BA dieu kien duoc tra ve.
+    @Test
+    void findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull_returnsOnlyEligibleRun() {
+        UUID jobId = createJobWithRubric();
+
+        ScoringRun eligible = new ScoringRun();
+        eligible.setApplicationId(createApplicationFor(jobId));
+        eligible.setStatus(ScoringRunStatus.RUNNING);
+        eligible.setStartedAt(Instant.now());
+        eligible.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(eligible);
+
+        // FAILED, du finished_at khac NULL - khong bao gio duoc D3 dong toi.
+        ScoringRun failed = new ScoringRun();
+        failed.setApplicationId(createApplicationFor(jobId));
+        failed.setStatus(ScoringRunStatus.FAILED);
+        failed.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(failed);
+
+        // PENDING - chua claim, khong lien quan D3.
+        ScoringRun pending = new ScoringRun();
+        pending.setApplicationId(createApplicationFor(jobId));
+        pending.setStatus(ScoringRunStatus.PENDING);
+        scoringRunRepository.saveAndFlush(pending);
+
+        // RUNNING nhung finished_at CON NULL - D2 dang cham do, chua toi luot D3.
+        ScoringRun stillScoring = new ScoringRun();
+        stillScoring.setApplicationId(createApplicationFor(jobId));
+        stillScoring.setStatus(ScoringRunStatus.RUNNING);
+        stillScoring.setStartedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(stillScoring);
+
+        // RUNNING + finished_at khac NULL nhung DA co total_score - da duoc D3 xu ly truoc do roi
+        // (truong hop ly thuyet vi finishAggregation doi status sang DONE cung luc, nhung van kiem
+        // dung dieu kien SQL doc lap voi hanh vi cua finishAggregation).
+        ScoringRun alreadyAggregated = new ScoringRun();
+        alreadyAggregated.setApplicationId(createApplicationFor(jobId));
+        alreadyAggregated.setStatus(ScoringRunStatus.RUNNING);
+        alreadyAggregated.setStartedAt(Instant.now());
+        alreadyAggregated.setFinishedAt(Instant.now());
+        alreadyAggregated.setTotalScore(new BigDecimal("50.000"));
+        scoringRunRepository.saveAndFlush(alreadyAggregated);
+
+        List<ScoringRun> pickedUp = scoringRunRepository.findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull(
+                ScoringRunStatus.RUNNING, PageRequest.of(0, 10));
+
+        assertThat(pickedUp).extracting(ScoringRun::getId).containsExactly(eligible.getId());
+    }
+
+    @Test
+    @Transactional
+    void finishAggregation_eligibleRun_setsStatusDoneAndTotalScore_secondCallReturnsZero() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.RUNNING);
+        run.setStartedAt(Instant.now());
+        run.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(run);
+
+        int firstCall = scoringRunRepository.finishAggregation(run.getId(), new BigDecimal("66.667"));
+        assertThat(firstCall).isEqualTo(1);
+
+        entityManager.clear();
+        ScoringRun afterFirstCall = scoringRunRepository.findById(run.getId()).orElseThrow();
+        assertThat(afterFirstCall.getStatus()).isEqualTo(ScoringRunStatus.DONE);
+        assertThat(afterFirstCall.getTotalScore()).isEqualByComparingTo("66.667");
+
+        // Nhip poll thu hai (ly thuyet, xem ly do tai ScoringRunRepository.finishAggregation) -
+        // WHERE total_score IS NULL khong con dung nua, UPDATE khong anh huong dong nao.
+        int secondCall = scoringRunRepository.finishAggregation(run.getId(), new BigDecimal("66.667"));
+        assertThat(secondCall).isEqualTo(0);
+    }
+
+    @Test
+    @Transactional
+    void finishAggregation_runFinishedAtStillNull_returnsZero() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        ScoringRun stillScoring = new ScoringRun();
+        stillScoring.setApplicationId(applicationId);
+        stillScoring.setStatus(ScoringRunStatus.RUNNING);
+        stillScoring.setStartedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(stillScoring);
+
+        int result = scoringRunRepository.finishAggregation(stillScoring.getId(), new BigDecimal("66.667"));
+
+        assertThat(result).isEqualTo(0);
     }
 }

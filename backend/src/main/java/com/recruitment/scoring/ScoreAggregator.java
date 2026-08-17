@@ -52,8 +52,7 @@ public final class ScoreAggregator {
         // nhanh re rieng cho truong hop "danh sach rong", no tu quy ve dung nhanh loi ben duoi (xem
         // ScoreAggregatorTest, case danh sach rong).
         if (weightSum.compareTo(BigDecimal.ZERO) == 0) {
-            throw new ScoreAggregationException(
-                    "Tổng trọng số (weight_snapshot) của lượt chấm này bằng 0, không thể chuẩn hoá về thang 100.");
+            throw new ScoreAggregationException(ScoreAggregationErrorCode.INVALID_WEIGHT_SUM);
         }
 
         BigDecimal totalScore = weightedSum
