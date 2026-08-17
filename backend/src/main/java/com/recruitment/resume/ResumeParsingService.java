@@ -1,5 +1,6 @@
 package com.recruitment.resume;
 
+import com.anthropic.errors.AnthropicServiceException;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,15 +33,15 @@ public class ResumeParsingService {
 
     private final ChatClient chatClient;
     private final Resource promptResource;
-    private final String fallbackModel;
+    private final String configuredModel;
 
     public ResumeParsingService(
             ChatClient resumeParsingChatClient,
             @Value("classpath:ai/prompt/" + PROMPT_VERSION + ".st") Resource promptResource,
-            @Value("${spring.ai.anthropic.chat.options.model:claude-sonnet-4-6}") String fallbackModel) {
+            @Value("${spring.ai.anthropic.chat.options.model:claude-sonnet-4-6}") String configuredModel) {
         this.chatClient = resumeParsingChatClient;
         this.promptResource = promptResource;
-        this.fallbackModel = fallbackModel;
+        this.configuredModel = configuredModel;
     }
 
     // Goi LLM de trich xuat du lieu co cau truc tu rawText, retry DUNG 1 lan khi loi la JSON
@@ -68,6 +69,12 @@ public class ResumeParsingService {
             result = retryAfterInvalidJson(resumeId, promptText, converter);
         } catch (RuntimeException firstAttemptError) {
             log.debug("Loi khi goi LLM (lan 1): resumeId={}", resumeId, firstAttemptError);
+            log.warn(
+                    "Goi LLM that bai cho resumeId={}, model={}, status={}, loai={}",
+                    resumeId,
+                    configuredModel,
+                    extractStatusCode(firstAttemptError),
+                    firstAttemptError.getClass().getSimpleName());
             throw new ResumeParsingFailedException(ResumeParsingErrorCode.LLM_ERROR, firstAttemptError);
         }
 
@@ -83,8 +90,30 @@ public class ResumeParsingService {
             throw new ResumeParsingFailedException(ResumeParsingErrorCode.LLM_INVALID_JSON, secondAttemptError);
         } catch (RuntimeException secondAttemptError) {
             log.debug("Loi khi goi LLM (lan 2): resumeId={}", resumeId, secondAttemptError);
+            log.warn(
+                    "Goi LLM that bai cho resumeId={}, model={}, status={}, loai={}",
+                    resumeId,
+                    configuredModel,
+                    extractStatusCode(secondAttemptError),
+                    secondAttemptError.getClass().getSimpleName());
             throw new ResumeParsingFailedException(ResumeParsingErrorCode.LLM_ERROR, secondAttemptError);
         }
+    }
+
+    // AnthropicServiceException (NotFoundException, RateLimitException, ...) mang HTTP status
+    // that qua statusCode() va di THANG toi day khong bi boc lai - xac nhan qua javap:
+    // khong Exception table nao bao quanh loi goi mang trong AnthropicChatModel.lambda$internalCall$14,
+    // DefaultCallResponseSpec, DefaultChatClientUtils (spring-ai 2.0.0). Loi mang thuan (khong
+    // nhan duoc response - vd AnthropicIoException, timeout socket) KHONG phai AnthropicServiceException
+    // nen khong co statusCode() - `instanceof` la pattern match an toan (khac ep kieu (X) e), tra
+    // false va roi xuong return null, KHONG bao gio nem NPE/ClassCastException tai day - xem test
+    // extractStatusCode_notAnthropicServiceException_returnsNullWithoutThrowing.
+    // Goi tu package-private (khong private) de test truc tiep, giong quy uoc cua truncateForPrompt.
+    static Integer extractStatusCode(RuntimeException error) {
+        if (error instanceof AnthropicServiceException serviceException) {
+            return serviceException.statusCode();
+        }
+        return null;
     }
 
     private ResponseEntity<ChatResponse, ResumeParsedPayload> callLlm(
@@ -98,14 +127,17 @@ public class ResumeParsingService {
     }
 
     // Cot resume_parsed_data.model la NOT NULL nhung SDK khong dam bao luon dien
-    // ChatResponseMetadata.model - fallback ve model da cau hinh (cung property key
-    // AnthropicChatModelConfig dang doc) de khong lam vo insert DB chi vi thieu 1 field metadata
-    // phu, quan trong hon nhieu la ket qua parse chinh no.
+    // ChatResponseMetadata.model - dung configuredModel (model doc tu
+    // spring.ai.anthropic.chat.options.model, cung property key AnthropicChatModelConfig dang
+    // doc, cung gia tri dung de ghi log chan doan o cac nhanh loi ben tren) thay the de khong lam
+    // vo insert DB chi vi thieu 1 field metadata phu, quan trong hon nhieu la ket qua parse chinh
+    // no. Day la usage DUNG nghia "fallback" (thay the khi metadata thieu) - khac voi nhanh loi
+    // LLM, noi configuredModel la model DA GOI, khong phai model du phong.
     private ResumeParsingResult toResult(ResponseEntity<ChatResponse, ResumeParsedPayload> result) {
         ChatResponse chatResponse = result.response();
         String model = chatResponse.getMetadata().getModel();
         if (model == null || model.isBlank()) {
-            model = fallbackModel;
+            model = configuredModel;
         }
         Usage usage = chatResponse.getMetadata().getUsage();
         Integer tokenUsage = usage == null ? null : usage.getTotalTokens();

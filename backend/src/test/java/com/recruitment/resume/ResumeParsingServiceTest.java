@@ -2,6 +2,11 @@ package com.recruitment.resume;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.anthropic.core.JsonValue;
+import com.anthropic.core.http.Headers;
+import com.anthropic.errors.NotFoundException;
+import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -60,5 +65,30 @@ class ResumeParsingServiceTest {
         assertThat(result).isNotEqualTo(text);
         assertThat(result.length()).isLessThanOrEqualTo(ResumeParsingService.MAX_PROMPT_CHARS);
         assertThat(result).contains("[...phan giua CV da duoc luoc bot do do dai...]");
+    }
+
+    // instanceof la pattern match an toan (khac ep kieu (AnthropicServiceException) e) - voi
+    // RuntimeException/IOException-boc-lai KHONG phai AnthropicServiceException, no phai tra false
+    // va roi xuong return null, KHONG duoc nem NPE hay ClassCastException. Day chinh la nhanh loi
+    // mang thuan (connection refused, DNS fail, timeout socket) se di qua trong that te.
+    @Test
+    void extractStatusCode_notAnthropicServiceException_returnsNullWithoutThrowing() {
+        RuntimeException networkError = new RuntimeException(new IOException("Connection refused"));
+
+        Integer status = ResumeParsingService.extractStatusCode(networkError);
+
+        assertThat(status).isNull();
+    }
+
+    @Test
+    void extractStatusCode_anthropicServiceException_returnsRealHttpStatus() {
+        NotFoundException notFound = NotFoundException.builder()
+                .headers(Headers.builder().build())
+                .body(JsonValue.from(Map.of()))
+                .build();
+
+        Integer status = ResumeParsingService.extractStatusCode(notFound);
+
+        assertThat(status).isEqualTo(404);
     }
 }
