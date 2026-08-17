@@ -2,6 +2,7 @@ package com.recruitment.scoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -9,6 +10,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.recruitment.TestcontainersConfiguration;
+import com.recruitment.ai.criterion.CriterionScorePayload;
+import com.recruitment.ai.criterion.CriterionScoringResult;
 import com.recruitment.resume.ParseStatus;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeParsedData;
@@ -17,6 +20,8 @@ import com.recruitment.resume.ResumeParsedPayload;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.rubric.Rubric;
 import com.recruitment.rubric.RubricRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -60,6 +65,12 @@ class ScoringRunHrControllerIntegrationTest {
 
     @Autowired
     private ScoringRunRepository scoringRunRepository;
+
+    @Autowired
+    private ScoringRunStateService stateService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
@@ -220,6 +231,13 @@ class ScoringRunHrControllerIntegrationTest {
     private MvcResult createScoringRun(String token, String applicationId) throws Exception {
         return mockMvc
                 .perform(post("/api/hr/applications/" + applicationId + "/scoring-runs")
+                        .header("Authorization", "Bearer " + token))
+                .andReturn();
+    }
+
+    private MvcResult listScoringRuns(String token, String applicationId) throws Exception {
+        return mockMvc
+                .perform(get("/api/hr/applications/" + applicationId + "/scoring-runs")
                         .header("Authorization", "Bearer " + token))
                 .andReturn();
     }
@@ -499,5 +517,133 @@ class ScoringRunHrControllerIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(409);
         assertThat(result.getResponse().getContentAsString()).contains("SCORING_RUN_IN_PROGRESS");
+    }
+
+    // ---- GET .../scoring-runs (Dot 5) ----
+
+    @Test
+    void listScoringRuns_noRunsYet_returnsEmptyList() throws Exception {
+        ReadyApplication ctx = setupReadyApplication("list-empty");
+
+        MvcResult result = listScoringRuns(ctx.hrToken(), ctx.applicationId());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(result.getResponse().getContentAsString().trim()).isEqualTo("[]");
+    }
+
+    // Shape phai KHONG co totalScore/rank (D3 moi them) va phai co criteriaScored/criteriaTotal
+    // dung: 0/N truoc khi cham gi, roi 1/N sau khi cham xong DUNG mot tieu chi - dem qua
+    // recordCriterionScore() that (khong goi LLM that, Dot 5 khong dung orchestrator - chi can
+    // criterion_scores that trong DB de kiem dem dung, giong tinh than ScoringRunStateServiceTest).
+    @Test
+    void listScoringRuns_returnsCriteriaProgressWithoutTotalScoreOrRank() throws Exception {
+        String hrToken = registerAndLoginHr("hr-progress");
+        createCompany(hrToken, uniqueName("Cong ty Progress"));
+        String jobId = createJob(hrToken, uniqueName("Job Progress"));
+        addCriterion(hrToken, jobId, """
+                {"name":"Tieu chi A","weight":50}
+                """);
+        addCriterion(hrToken, jobId, """
+                {"name":"Tieu chi B","weight":50}
+                """);
+        openJob(hrToken, jobId);
+
+        String candidateToken = registerAndLoginCandidate("cand-progress");
+        String resumeId = uploadResume(candidateToken);
+        markResumeParsedDone(UUID.fromString(resumeId));
+        String applicationId = apply(candidateToken, jobId, resumeId);
+
+        MvcResult createResult = createScoringRun(hrToken, applicationId);
+        assertThat(createResult.getResponse().getStatus()).isEqualTo(201);
+        String runId = extractJsonField(createResult.getResponse().getContentAsString(), "id");
+
+        MvcResult beforeScoring = listScoringRuns(hrToken, applicationId);
+        assertThat(beforeScoring.getResponse().getStatus()).isEqualTo(200);
+        String beforeBody = beforeScoring.getResponse().getContentAsString();
+        assertThat(beforeBody).contains("\"criteriaScored\":0").contains("\"criteriaTotal\":2");
+        assertThat(beforeBody).doesNotContain("totalScore").doesNotContain("\"rank\"");
+
+        ScoringRun run = scoringRunRepository.findById(UUID.fromString(runId)).orElseThrow();
+        RubricSnapshot.CriterionSnapshot firstCriterion = run.getRubricSnapshot().criteria().get(0);
+        stateService.recordCriterionScore(
+                run.getId(),
+                firstCriterion,
+                new CriterionScoringResult(
+                        new CriterionScorePayload(
+                                4.0,
+                                "Ly do gia lap trong test",
+                                List.of(new CriterionScorePayload.EvidenceQuote("kinh nghiem", "experience"))),
+                        "claude-sonnet-4-6",
+                        100,
+                        "criterion-score-v1"));
+
+        MvcResult afterPartialScoring = listScoringRuns(hrToken, applicationId);
+        String afterBody = afterPartialScoring.getResponse().getContentAsString();
+        assertThat(afterBody).contains("\"criteriaScored\":1").contains("\"criteriaTotal\":2");
+    }
+
+    @Test
+    void listScoringRuns_multipleRuns_returnsNewestFirst() throws Exception {
+        ReadyApplication ctx = setupReadyApplication("list-order");
+
+        MvcResult first = createScoringRun(ctx.hrToken(), ctx.applicationId());
+        String firstRunId = extractJsonField(first.getResponse().getContentAsString(), "id");
+        // Danh dau lot dau "da cham xong" (finished_at khac null) de khong bi dieu kien tien quyet
+        // #5 chan viec tao lot thu hai cho cung don (cau tra loi (i) cua Q1).
+        ScoringRun firstRun = scoringRunRepository.findById(UUID.fromString(firstRunId)).orElseThrow();
+        firstRun.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(firstRun);
+
+        // Lui created_at cua lot dau ve qua khu bang UPDATE native (cot @Generated,
+        // insertable/updatable=false nen khong sua duoc qua entity setter + save). Can thiet vi
+        // now() cua Postgres ON DINH trong SUOT MOT transaction (khong tien theo dong ho thuc, khac
+        // clock_timestamp()) - ca hai lot cham tao trong CUNG mot @Transactional test se nhan DUNG
+        // MOT gia tri created_at neu khong can thiep, khien thu tu DESC khong con y nghia phan biet.
+        // Trong production day khong phai van de: hai request that luon nam trong hai transaction
+        // rieng, cach nhau it nhat vai mili giay.
+        entityManager
+                .createNativeQuery("UPDATE scoring_runs SET created_at = created_at - INTERVAL '1 minute' WHERE id = ?1")
+                .setParameter(1, UUID.fromString(firstRunId))
+                .executeUpdate();
+        entityManager.clear();
+
+        MvcResult second = createScoringRun(ctx.hrToken(), ctx.applicationId());
+        String secondRunId = extractJsonField(second.getResponse().getContentAsString(), "id");
+
+        MvcResult list = listScoringRuns(ctx.hrToken(), ctx.applicationId());
+        String body = list.getResponse().getContentAsString();
+        assertThat(body.indexOf(secondRunId)).isLessThan(body.indexOf(firstRunId));
+    }
+
+    @Test
+    void listScoringRuns_calledByCandidate_returns403() throws Exception {
+        ReadyApplication ctx = setupReadyApplication("list-candidate-call");
+        String candidateToken = registerAndLoginCandidate("cand-list-caller");
+
+        MvcResult result = listScoringRuns(candidateToken, ctx.applicationId());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void listScoringRuns_byHrOfAnotherCompany_returns403() throws Exception {
+        ReadyApplication ctx = setupReadyApplication("list-wrong-hr");
+        String otherHrToken = registerAndLoginHr("hr-list-other-company");
+        createCompany(otherHrToken, uniqueName("Cong ty Khac List"));
+
+        MvcResult result = listScoringRuns(otherHrToken, ctx.applicationId());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void listScoringRuns_applicationNotFound_returns404() throws Exception {
+        String hrToken = registerAndLoginHr("hr-list-notfound");
+        createCompany(hrToken, uniqueName("Cong ty List Khong Ton Tai Don"));
+
+        MvcResult result = listScoringRuns(hrToken, UUID.randomUUID().toString());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(404);
+        assertThat(result.getResponse().getContentAsString()).contains("APPLICATION_NOT_FOUND");
     }
 }

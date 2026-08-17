@@ -25,7 +25,9 @@ import com.recruitment.rubric.RubricRepository;
 import com.recruitment.scoring.dto.ScoringRunResponse;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +48,7 @@ public class ScoringRunService {
     private final RubricRepository rubricRepository;
     private final RubricCriterionRepository rubricCriterionRepository;
     private final ScoringRunRepository scoringRunRepository;
+    private final CriterionScoreRepository criterionScoreRepository;
     private final ScoringRunStateService stateService;
 
     public ScoringRunService(
@@ -57,6 +60,7 @@ public class ScoringRunService {
             RubricRepository rubricRepository,
             RubricCriterionRepository rubricCriterionRepository,
             ScoringRunRepository scoringRunRepository,
+            CriterionScoreRepository criterionScoreRepository,
             ScoringRunStateService stateService) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
@@ -66,6 +70,7 @@ public class ScoringRunService {
         this.rubricRepository = rubricRepository;
         this.rubricCriterionRepository = rubricCriterionRepository;
         this.scoringRunRepository = scoringRunRepository;
+        this.criterionScoreRepository = criterionScoreRepository;
         this.stateService = stateService;
     }
 
@@ -83,7 +88,32 @@ public class ScoringRunService {
         RubricSnapshot snapshot = RubricSnapshotMapper.toSnapshot(rubric, criteria);
 
         ScoringRun run = stateService.create(applicationId, snapshot, rubric.getId());
-        return toResponse(run);
+        // Luot vua tao chac chan chua co dong criterion_scores nao (0) - khong can query dem, khac
+        // voi listScoringRuns() ben duoi phai dem that vi doc lai cac luot da co san, co the dang
+        // do do hoac da cham xong mot phan.
+        return toResponse(run, 0L);
+    }
+
+    // GET /api/hr/applications/{id}/scoring-runs (Dot 5) - lich su cac luot cham cua MOT don, moi
+    // nhat truoc. Ownership kiem giong het POST (loadOwnedApplication).
+    public List<ScoringRunResponse> listScoringRuns(UUID ownerId, UUID applicationId) {
+        loadOwnedApplication(applicationId, ownerId);
+        List<ScoringRun> runs = scoringRunRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
+        if (runs.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, Long> criteriaScoredByRunId = countScoredCriteriaByRun(runs.stream().map(ScoringRun::getId).toList());
+        return runs.stream()
+                .map(run -> toResponse(run, criteriaScoredByRunId.getOrDefault(run.getId(), 0L)))
+                .toList();
+    }
+
+    // MOT query GROUP BY cho ca danh sach, KHONG dem tung luot rieng trong vong lap (N+1) - xem
+    // ghi chu tai CriterionScoreRepository.countByScoringRunIdIn.
+    private Map<UUID, Long> countScoredCriteriaByRun(List<UUID> scoringRunIds) {
+        return criterionScoreRepository.countByScoringRunIdIn(scoringRunIds).stream()
+                .collect(Collectors.toMap(ScoringRunCriteriaCountView::getScoringRunId, ScoringRunCriteriaCountView::getCount));
     }
 
     // Mau ownership giong het RubricOwnerService.loadOwnedRubric: 404 khi don khong ton tai, 403
@@ -147,7 +177,7 @@ public class ScoringRunService {
         }
     }
 
-    private ScoringRunResponse toResponse(ScoringRun run) {
+    private ScoringRunResponse toResponse(ScoringRun run, long criteriaScored) {
         return new ScoringRunResponse(
                 run.getId(),
                 run.getApplicationId(),
@@ -155,6 +185,8 @@ public class ScoringRunService {
                 run.getCreatedAt(),
                 run.getStartedAt(),
                 run.getFinishedAt(),
-                run.getErrorMessage());
+                run.getErrorMessage(),
+                (int) criteriaScored,
+                run.getRubricSnapshot().criteria().size());
     }
 }

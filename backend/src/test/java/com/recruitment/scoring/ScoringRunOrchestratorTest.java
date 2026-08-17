@@ -236,7 +236,6 @@ class ScoringRunOrchestratorTest {
         return scoringRunRepository.saveAndFlush(run).getId();
     }
 
-    @SuppressWarnings("unchecked")
     private Object readTotalScore(UUID scoringRunId) {
         return entityManager
                 .createNativeQuery("SELECT total_score FROM scoring_runs WHERE id = ?1")

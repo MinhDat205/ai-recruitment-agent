@@ -1,10 +1,12 @@
 package com.recruitment.scoring;
 
 import com.recruitment.scoring.dto.ScoringRunResponse;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,5 +35,12 @@ public class ScoringRunHrController {
         UUID ownerId = UUID.fromString(authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(scoringRunService.createScoringRun(ownerId, applicationId));
+    }
+
+    // Lich su cac luot cham cua MOT don, moi nhat truoc - dung de FE poll tien do (Dot 5).
+    @GetMapping
+    public List<ScoringRunResponse> list(Authentication authentication, @PathVariable UUID applicationId) {
+        UUID ownerId = UUID.fromString(authentication.getName());
+        return scoringRunService.listScoringRuns(ownerId, applicationId);
     }
 }

@@ -13,6 +13,10 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     // giong het pattern ResumeRepository.findByIdAndCandidateId dung trong ApplicationService.apply.
     Optional<JobApplication> findByIdAndCandidateId(UUID id, UUID candidateId);
 
+    // GET /api/hr/jobs/{jobId}/applications (Dot 5, ApplicationOwnerService) - danh sach don cua
+    // MOT job, moi nop gan day nhat truoc.
+    List<JobApplication> findByJobIdOrderByAppliedAtDesc(UUID jobId);
+
     // Entity khong co @ManyToOne (xem ghi chu o JobApplication/Job) nen phai join tuong minh bang
     // native SQL, giong phong cach JobRepository.searchPublicJobs/findOpenJobById. Alias phai khop
     // dung ten getter cua ApplicationSummaryView.

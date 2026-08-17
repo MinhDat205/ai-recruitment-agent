@@ -84,6 +84,14 @@ không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `pas
 ## Hoàn thiện trước bảo vệ
 
 - [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), chi phí token, presigned URL cho file CV
+  - Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời (vd
+    thiếu `ANTHROPIC_API_KEY` lúc chạy) — hiện ứng viên phải upload lại từ đầu.
+  - Không có stale-claim reaper: một lượt chạy nền chết vì JVM restart giữa chừng (D1
+    `resumes.parse_status = PROCESSING`, D2 `scoring_runs` ở `RUNNING`/`finished_at NULL`) sẽ kẹt
+    vĩnh viễn; riêng D2 còn bị `uq_scoring_run_in_progress` (V4) chặn cứng, không tạo được lượt
+    chấm mới cho đơn đó.
+  - `ChatModel.getDefaultOptions()` đã deprecated ở Spring AI 2.0, đang dùng trong mock test của
+    cả D1 và D2 — cần thay khi nâng phiên bản.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 

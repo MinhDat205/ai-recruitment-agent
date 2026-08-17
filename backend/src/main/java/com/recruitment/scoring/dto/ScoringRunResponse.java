@@ -16,9 +16,16 @@ import java.util.UUID;
 // phan biet.
 //
 // errorMessage: CHI duoc chua "MA: mo ta tieng Viet co dinh" theo dung mau
-// ResumeParsingErrorCode.formatted() (xem ScoringRunErrorCode se lam o Dot 4) - KHONG BAO GIO duoc
-// chua stack trace hay output tho cua LLM, dung nguyen tac da ap dung cho resumes.parse_error.
-// Dot 4 (noi thuc su ghi cot scoring_runs.error_message) phai tuan dung dieu nay.
+// ResumeParsingErrorCode.formatted() (xem ScoringRunErrorCode, Dot 4) - KHONG BAO GIO duoc chua
+// stack trace hay output tho cua LLM, dung nguyen tac da ap dung cho resumes.parse_error.
+//
+// criteriaScored/criteriaTotal (Dot 5): CHI phuc vu hien thi tien do ("da cham N/M tieu chi") -
+// KHONG suy ra diem so, KHONG tinh ti le phan tram diem tu hai so nay. criteriaTotal dem tu
+// rubric_snapshot cua CHINH luot do (khong query rubric_criteria song - mot luot da tao xong thi
+// so tieu chi cua no la co dinh, bat ke rubric goc co doi sau nay hay khong). criteriaScored dem
+// dong criterion_scores theo scoring_run_id - int nguyen thuy (khong wrapper): luon dem duoc, "0"
+// va "chua biet" khong co gi khac nhau o day (khac voi cac field diem so trong CriterionScorePayload,
+// noi "0" va "khong tim thay" LA hai y nghia khac nhau can phan biet bang wrapper).
 public record ScoringRunResponse(
         UUID id,
         UUID applicationId,
@@ -26,5 +33,7 @@ public record ScoringRunResponse(
         Instant createdAt,
         Instant startedAt,
         Instant finishedAt,
-        String errorMessage) {
+        String errorMessage,
+        int criteriaScored,
+        int criteriaTotal) {
 }
