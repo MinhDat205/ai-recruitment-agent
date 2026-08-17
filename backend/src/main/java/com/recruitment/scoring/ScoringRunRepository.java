@@ -1,13 +1,19 @@
 package com.recruitment.scoring;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
+
+    // Dung boi ScoringRunScheduler (Dot 4) de quet cac luot cham cho xu ly - mau
+    // ResumeRepository.findByParseStatus.
+    List<ScoringRun> findByStatus(ScoringRunStatus status, Pageable pageable);
 
     // Dieu kien tien quyet #4 (Dot 2 ke hoach D2): dang co lot cham "thuc su dang chay" cho don
     // nay - PENDING (chua claim) hoac RUNNING ma finished_at con NULL (dang xu ly, chua cham xong

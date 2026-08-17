@@ -6,5 +6,7 @@ app:
     local-path: ${java.io.tmpdir}/ai-recruitment-agent-test-uploads
   resume-parsing:
     enabled: false
+  scoring:
+    enabled: false
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key

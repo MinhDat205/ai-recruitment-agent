@@ -1,10 +1,14 @@
 package com.recruitment.ai.criterion;
 
+import com.recruitment.common.FormattedErrorCode;
+
 // Ma loi chuan hoa cho ket qua cham mot tieu chi - mau y het ResumeParsingErrorCode. Dot 4 (package
-// scoring) doc errorCode() tu CriterionScoringFailedException va anh xa sang thong diep tieng Viet
-// co dinh ghi vao scoring_runs.error_message qua formatted(), khong bao gio ghi stack trace hay
-// output tho cua LLM vao DB (chi log.debug).
-public enum CriterionScoringErrorCode {
+// scoring) doc errorCode() tu CriterionScoringFailedException va truyen THANG enum nay (khong phai
+// String) vao ScoringRunStateService.markFailed(FormattedErrorCode) - implement FormattedErrorCode
+// (com.recruitment.common) de trinh bien dich chan viec ai do lo truyen mot chuoi tu do (stack
+// trace, output tho cua LLM) vao cot scoring_runs.error_message. Xem FormattedErrorCode.java ly do
+// interface nay dat o common/ chu khong phai scoring/.
+public enum CriterionScoringErrorCode implements FormattedErrorCode {
     LLM_INVALID_JSON("AI trả về dữ liệu không đúng định dạng sau khi đã thử lại"),
     LLM_ERROR("Có lỗi xảy ra khi gọi AI để chấm điểm tiêu chí"),
     SCORE_OUT_OF_RANGE("AI trả về điểm số nằm ngoài thang điểm cho phép của tiêu chí"),
@@ -18,6 +22,7 @@ public enum CriterionScoringErrorCode {
         this.description = description;
     }
 
+    @Override
     public String formatted() {
         return name() + ": " + description;
     }

@@ -72,6 +72,9 @@ app:
   resume-parsing:
     poll-interval-ms: 5000
     batch-size: 10
+  scoring:
+    poll-interval-ms: 5000
+    batch-size: 10
 
 logging:
   level:
