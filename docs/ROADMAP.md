@@ -52,7 +52,7 @@ và không có chỗ ghi kết quả ra.
 
 ## Phase D — AI đọc và chấm
 
-- [ ] **D1** `feat/fr-c04-parsing` — FR-C04 · Trích xuất CV → JSON, chạy nền, validate schema
+- [X] **D1** `feat/fr-c04-parsing` — FR-C04 · Trích xuất CV → JSON, chạy nền, validate schema
 - [ ] **D2** `feat/fr-h04-scoring` — FR-H04 · Chấm **từng tiêu chí riêng** + evidence
   - Bắt buộc: khi tạo lượt chấm đầu tiên (`scoring_runs`) phải set `rubrics.is_locked = true`.
     Hiện chưa có đường nào trong ứng dụng đặt cờ này; guard mở lại tin ở
