@@ -16,7 +16,11 @@ import com.recruitment.resume.ResumeRepository;
 import com.recruitment.scoring.CriterionScore;
 import com.recruitment.scoring.CriterionScoreRepository;
 import com.recruitment.scoring.EvidenceEntry;
+import com.recruitment.scoring.ExplanationPoint;
 import com.recruitment.scoring.RubricSnapshot;
+import com.recruitment.scoring.ScoreExplanation;
+import com.recruitment.scoring.ScoreExplanationAttemptRepository;
+import com.recruitment.scoring.ScoreExplanationRepository;
 import com.recruitment.scoring.ScoringRun;
 import com.recruitment.scoring.ScoringRunRepository;
 import com.recruitment.scoring.ScoringRunStatus;
@@ -32,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 // Goi thang applicationOwnerService.listApplications() (khong qua MockMvc/JSON) de assert truc
 // tiep tren record da go kieu (BigDecimal, Integer rank...) - de va chinh xac hon parse chuoi JSON
@@ -66,6 +71,12 @@ class ApplicationOwnerServiceTest {
 
     @Autowired
     private CriterionScoreRepository criterionScoreRepository;
+
+    @Autowired
+    private ScoreExplanationRepository scoreExplanationRepository;
+
+    @Autowired
+    private ScoreExplanationAttemptRepository scoreExplanationAttemptRepository;
 
     private UUID hrOwnerId;
 
@@ -162,6 +173,11 @@ class ApplicationOwnerServiceTest {
     }
 
     private void insertCriterionScore(UUID runId, String name, BigDecimal weight, int maxScore, BigDecimal score) {
+        insertCriterionScore(runId, name, weight, maxScore, score, List.of(new EvidenceEntry("doan trich gia lap", "experience")));
+    }
+
+    private void insertCriterionScore(
+            UUID runId, String name, BigDecimal weight, int maxScore, BigDecimal score, List<EvidenceEntry> evidence) {
         CriterionScore criterionScore = new CriterionScore();
         criterionScore.setScoringRunId(runId);
         criterionScore.setCriterionNameSnapshot(name);
@@ -169,8 +185,31 @@ class ApplicationOwnerServiceTest {
         criterionScore.setMaxScoreSnapshot(maxScore);
         criterionScore.setScore(score);
         criterionScore.setReasoning("Ly do gia lap trong test");
-        criterionScore.setEvidence(List.of(new EvidenceEntry("doan trich gia lap", "experience")));
+        criterionScore.setEvidence(evidence);
         criterionScoreRepository.saveAndFlush(criterionScore);
+    }
+
+    // Ghi thang bao cao giai thich (FR-H06) xuong DB - khong chay lai pipeline D4/Dot 3 that (khong
+    // LLM trong test), mau tinh than createDoneRunWithTotalScore o tren.
+    private void createExplanation(UUID runId, String summary) {
+        ScoreExplanation explanation = new ScoreExplanation();
+        explanation.setScoringRunId(runId);
+        explanation.setSummary(summary);
+        explanation.setStrengths(List.of(new ExplanationPoint("Kinh nghiem Java", "Diem manh gia lap")));
+        explanation.setWeaknesses(List.of());
+        explanation.setMetCriteria(List.of("Kinh nghiem Java"));
+        explanation.setMissingCriteria(List.of());
+        explanation.setModel("claude-sonnet-4-6");
+        explanation.setPromptVersion("score-explanation-v1");
+        scoreExplanationRepository.saveAndFlush(explanation);
+    }
+
+    // Goi upsert nguyen tu THAT (khong ghi entity truc tiep) dung so lan can, de attempt_count phan
+    // anh dung ngu nghia "da thu N lan" - mau cach ScoreExplanationOrchestrator (Dot 3) tu ghi.
+    private void recordFailedAttempts(UUID runId, int times) {
+        for (int i = 0; i < times; i++) {
+            scoreExplanationAttemptRepository.recordFailedAttempt(runId, "LLM_ERROR: loi gia lap trong test");
+        }
     }
 
     private void createPendingRun(UUID applicationId) {
@@ -355,5 +394,174 @@ class ApplicationOwnerServiceTest {
         assertThat(result).extracting(ApplicationHrListItemResponse::id).containsExactly(laterHighScore, earlierLowScore);
         assertThat(result.get(0).rank()).isEqualTo(1);
         assertThat(result.get(1).rank()).isEqualTo(2);
+    }
+
+    // Diem 3 (Dot 4, FR-H06): evidence cua MOI tieu chi phai dan dung tieu chi do, khong lan sang
+    // tieu chi khac - va tieu chi diem 0 phai co evidence RONG (mang rong, khong phai null), dung
+    // luat D2 "evidence rong <=> score = 0".
+    @Test
+    void listApplications_multipleCriteria_evidenceNotMixedBetweenCriteriaAndEmptyForZeroScore() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        RubricSnapshot snapshot = new RubricSnapshot(
+                "Rubric Test",
+                List.of(
+                        criterionSnapshot("Kinh nghiem Docker", new BigDecimal("40.00"), 5),
+                        criterionSnapshot("Kinh nghiem Java", new BigDecimal("60.00"), 5)));
+        UUID runId = createDoneRun(applicationId, snapshot, new BigDecimal("70.000"));
+        insertCriterionScore(
+                runId,
+                "Kinh nghiem Java",
+                new BigDecimal("60.00"),
+                5,
+                new BigDecimal("4.00"),
+                List.of(new EvidenceEntry("3 nam kinh nghiem Java", "experience")));
+        insertCriterionScore(runId, "Kinh nghiem Docker", new BigDecimal("40.00"), 5, new BigDecimal("0.00"), List.of());
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        List<ApplicationHrListItemResponse.CriterionScoreItem> items = result.get(0).criterionScores();
+        ApplicationHrListItemResponse.CriterionScoreItem docker = items.stream()
+                .filter(i -> i.criterionNameSnapshot().equals("Kinh nghiem Docker"))
+                .findFirst()
+                .orElseThrow();
+        ApplicationHrListItemResponse.CriterionScoreItem java = items.stream()
+                .filter(i -> i.criterionNameSnapshot().equals("Kinh nghiem Java"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(docker.evidence()).isEmpty();
+        assertThat(java.evidence()).extracting(EvidenceEntry::quote).containsExactly("3 nam kinh nghiem Java");
+    }
+
+    // Test quan trong nhat cua dot (theo yeu cau): don co HAI lot DONE, ca totalScore LAN explanation
+    // phai cung lay tu lot MOI HON - khong duoc ghep totalScore cua lot nay voi explanation cua lot
+    // khac (Diem 2, Dot 4).
+    @Test
+    void listApplications_applicationHasTwoDoneRunsWithExplanations_explanationComesFromNewerDoneRun() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID olderRunId = createDoneRunWithTotalScore(applicationId, new BigDecimal("40.000"));
+        createExplanation(olderRunId, "Bao cao cua lot cu");
+        UUID newerRunId = createDoneRunWithTotalScore(applicationId, new BigDecimal("95.000"));
+        createExplanation(newerRunId, "Bao cao cua lot moi");
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).totalScore()).isEqualByComparingTo("95.000");
+        assertThat(result.get(0).explanation()).isNotNull();
+        assertThat(result.get(0).explanation().summary()).isEqualTo("Bao cao cua lot moi");
+        assertThat(result.get(0).explanationStatus()).isNull();
+    }
+
+    // Shape: don co bao cao -> explanation du 5 phan, explanationStatus null (da xong, khong can tin
+    // hieu trang thai nua - xem comment enum trong DTO).
+    @Test
+    void listApplications_doneRunWithExplanation_explanationHasAllFiveParts() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("85.000"));
+        createExplanation(runId, "Tom tat gia lap");
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        ApplicationHrListItemResponse.Explanation explanation = result.get(0).explanation();
+        assertThat(explanation).isNotNull();
+        assertThat(explanation.summary()).isEqualTo("Tom tat gia lap");
+        assertThat(explanation.strengths()).extracting(ExplanationPoint::criterionName).containsExactly("Kinh nghiem Java");
+        assertThat(explanation.weaknesses()).isEmpty();
+        assertThat(explanation.metCriteria()).containsExactly("Kinh nghiem Java");
+        assertThat(explanation.missingCriteria()).isEmpty();
+        assertThat(result.get(0).explanationStatus()).isNull();
+    }
+
+    // Shape: don chua co lot DONE nao thi ca explanation lan explanationStatus deu null - giong quy
+    // uoc totalScore/rank (khong co gi de "cho" khi chua co gi de giai thich).
+    @Test
+    void listApplications_unscoredApplication_explanationAndStatusAreNull() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        createPendingRun(applicationId);
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        assertThat(result.get(0).explanation()).isNull();
+        assertThat(result.get(0).explanationStatus()).isNull();
+    }
+
+    // Diem 4/tin hieu trang thai (Dot 4): lot DONE chua co explanation VA chua tung thu lan nao ->
+    // PENDING (con co the duoc thu lai o vong poll tiep theo).
+    @Test
+    void listApplications_doneRunNoExplanationNoAttempts_explanationStatusPending() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        createDoneRunWithTotalScore(applicationId, new BigDecimal("50.000"));
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        assertThat(result.get(0).explanation()).isNull();
+        assertThat(result.get(0).explanationStatus()).isEqualTo(ApplicationHrListItemResponse.ExplanationStatus.PENDING);
+    }
+
+    // @Transactional o MUC METHOD (khong phai lop) - cung ly do voi ScoreExplanationAttemptRepositoryTest:
+    // recordFailedAttempt la @Modifying, can mot transaction dang mo de thuc thi, va o day goi truc
+    // tiep khong qua mot state service @Transactional nao (khac production, ScoreExplanationStateService
+    // lam viec do). Khong dat o muc LOP vi cac test khac trong file nay dua vao now() PHAN BIET duoc
+    // giua nhieu ban ghi trong CUNG mot test method (CLAUDE.md muc 3c) - ba test bien nay chi tao MOT
+    // don/mot lot nen an toan.
+    //
+    // Bien duoi nguong (app.explanation.max-attempts=3, application.yml): da thu 2 lan (< 3) ->
+    // van con co the duoc thu lai -> PENDING.
+    @Test
+    @Transactional
+    void listApplications_attemptCountOneBelowMax_explanationStatusPending() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("50.000"));
+        recordFailedAttempts(runId, 2);
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        assertThat(result.get(0).explanationStatus()).isEqualTo(ApplicationHrListItemResponse.ExplanationStatus.PENDING);
+    }
+
+    // Dung nguong: da thu DUNG 3 lan (== maxAttempts) -> ScoreExplanationScheduler (Dot 3) se khong
+    // con nhat lot nay nua -> FAILED.
+    @Test
+    @Transactional
+    void listApplications_attemptCountAtMax_explanationStatusFailed() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("50.000"));
+        recordFailedAttempts(runId, 3);
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        assertThat(result.get(0).explanationStatus()).isEqualTo(ApplicationHrListItemResponse.ExplanationStatus.FAILED);
+    }
+
+    // Vuot nguong: da thu 4 lan (> maxAttempts, ve ly thuyet khong xay ra qua scheduler binh thuong
+    // vi da bi loai tu vong truoc do, nhung du lieu ton tai duoc thi van phai xu ly dung) -> van FAILED
+    // (dieu kien la >=, khong phai ==).
+    @Test
+    @Transactional
+    void listApplications_attemptCountOneAboveMax_explanationStatusFailed() {
+        UUID jobId = createJob();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("50.000"));
+        recordFailedAttempts(runId, 4);
+
+        List<ApplicationHrListItemResponse> result =
+                applicationOwnerService.listApplications(hrOwnerId, jobId, ApplicationSortOption.TOTAL_SCORE_DESC);
+
+        assertThat(result.get(0).explanationStatus()).isEqualTo(ApplicationHrListItemResponse.ExplanationStatus.FAILED);
     }
 }

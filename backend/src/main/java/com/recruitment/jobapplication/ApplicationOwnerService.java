@@ -15,6 +15,10 @@ import com.recruitment.scoring.CriterionScoreRepository;
 import com.recruitment.scoring.LatestDoneScoringRunView;
 import com.recruitment.scoring.LatestScoringRunView;
 import com.recruitment.scoring.RubricSnapshot;
+import com.recruitment.scoring.ScoreExplanation;
+import com.recruitment.scoring.ScoreExplanationAttempt;
+import com.recruitment.scoring.ScoreExplanationAttemptRepository;
+import com.recruitment.scoring.ScoreExplanationRepository;
 import com.recruitment.scoring.ScoringRun;
 import com.recruitment.scoring.ScoringRunRepository;
 import com.recruitment.scoring.ScoringRunStatus;
@@ -29,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +51,9 @@ public class ApplicationOwnerService {
     private final UserRepository userRepository;
     private final ScoringRunRepository scoringRunRepository;
     private final CriterionScoreRepository criterionScoreRepository;
+    private final ScoreExplanationRepository scoreExplanationRepository;
+    private final ScoreExplanationAttemptRepository scoreExplanationAttemptRepository;
+    private final int explanationMaxAttempts;
 
     public ApplicationOwnerService(
             JobRepository jobRepository,
@@ -54,7 +62,10 @@ public class ApplicationOwnerService {
             ResumeRepository resumeRepository,
             UserRepository userRepository,
             ScoringRunRepository scoringRunRepository,
-            CriterionScoreRepository criterionScoreRepository) {
+            CriterionScoreRepository criterionScoreRepository,
+            ScoreExplanationRepository scoreExplanationRepository,
+            ScoreExplanationAttemptRepository scoreExplanationAttemptRepository,
+            @Value("${app.explanation.max-attempts:3}") int explanationMaxAttempts) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.jobApplicationRepository = jobApplicationRepository;
@@ -62,6 +73,9 @@ public class ApplicationOwnerService {
         this.userRepository = userRepository;
         this.scoringRunRepository = scoringRunRepository;
         this.criterionScoreRepository = criterionScoreRepository;
+        this.scoreExplanationRepository = scoreExplanationRepository;
+        this.scoreExplanationAttemptRepository = scoreExplanationAttemptRepository;
+        this.explanationMaxAttempts = explanationMaxAttempts;
     }
 
     public List<ApplicationHrListItemResponse> listApplications(UUID ownerId, UUID jobId, ApplicationSortOption sort) {
@@ -73,11 +87,13 @@ public class ApplicationOwnerService {
         List<UUID> applicationIds = applications.stream().map(JobApplication::getId).toList();
 
         // Nam lan tra cuu HANG LOAT (khong phai tung don mot trong vong lap) - tranh N+1. Dung
-        // dung 8 query bat ke danh sach dai bao nhieu (2 cho ownership da chay o loadOwnedJob, 6 o
+        // dung 10 query bat ke danh sach dai bao nhieu (2 cho ownership da chay o loadOwnedJob, 8 o
         // day): findByJobId, findAllById (resume), findAllById (user), findLatestByApplicationIdIn
         // (tien do), findLatestDoneByApplicationIdIn (nguon diem xep hang, Q5), findAllById (full
         // ScoringRun cua CAC lot DONE do - chi de doc rubric_snapshot lam thu tu tieu chi, Diem 3),
-        // findByScoringRunIdIn (diem tung tieu chi cua CAC lot DONE do).
+        // findByScoringRunIdIn (diem tung tieu chi cua CAC lot DONE do), findByScoringRunIdIn (bao
+        // cao giai thich cua CAC lot DONE do, D4/FR-H06), findByScoringRunIdIn (so lan da thu sinh
+        // bao cao cua CAC lot DONE do, D4/FR-H06).
         Map<UUID, ParseStatus> parseStatusByResumeId = resumeRepository
                 .findAllById(applications.stream().map(JobApplication::getResumeId).toList())
                 .stream()
@@ -119,6 +135,23 @@ public class ApplicationOwnerService {
                 : criterionScoreRepository.findByScoringRunIdIn(doneRunIds).stream()
                         .collect(Collectors.groupingBy(CriterionScore::getScoringRunId));
 
+        // Bao cao giai thich (FR-H06, D4) cua CAC lot DONE do - DUNG lot dang cho totalScore/rank o
+        // tren (Q5 tai su dung nguyen cho D4, khong phai mot nguon rieng), tranh tinh trang totalScore
+        // lay tu lot nay nhung explanation lay tu lot khac.
+        Map<UUID, ScoreExplanation> explanationByRunId = doneRunIds.isEmpty()
+                ? Map.of()
+                : scoreExplanationRepository.findByScoringRunIdIn(doneRunIds).stream()
+                        .collect(Collectors.toMap(ScoreExplanation::getScoringRunId, e -> e));
+
+        // So lan da thu (that bai) sinh bao cao cua CAC lot DONE do - chi dung khi lot do CHUA co
+        // explanation (xem toRankableRow), de phan biet "chua toi luot" voi "da thu het so lan cho
+        // phep". Lot da co explanation khong can tra cuu gia tri nay.
+        Map<UUID, Integer> explanationAttemptCountByRunId = doneRunIds.isEmpty()
+                ? Map.of()
+                : scoreExplanationAttemptRepository.findByScoringRunIdIn(doneRunIds).stream()
+                        .collect(Collectors.toMap(
+                                ScoreExplanationAttempt::getScoringRunId, ScoreExplanationAttempt::getAttemptCount));
+
         List<RankableRow> rows = applications.stream()
                 .map(app -> toRankableRow(
                         app,
@@ -127,7 +160,9 @@ public class ApplicationOwnerService {
                         latestRunByApplicationId,
                         latestDoneRunByApplicationId,
                         doneRunById,
-                        criterionScoresByRunId))
+                        criterionScoresByRunId,
+                        explanationByRunId,
+                        explanationAttemptCountByRunId))
                 .toList();
 
         Map<UUID, Integer> rankByApplicationId = assignRanks(rows);
@@ -145,7 +180,9 @@ public class ApplicationOwnerService {
             Map<UUID, LatestScoringRunView> latestRunByApplicationId,
             Map<UUID, LatestDoneScoringRunView> latestDoneRunByApplicationId,
             Map<UUID, ScoringRun> doneRunById,
-            Map<UUID, List<CriterionScore>> criterionScoresByRunId) {
+            Map<UUID, List<CriterionScore>> criterionScoresByRunId,
+            Map<UUID, ScoreExplanation> explanationByRunId,
+            Map<UUID, Integer> explanationAttemptCountByRunId) {
         LatestScoringRunView latestRun = latestRunByApplicationId.get(application.getId());
         LatestDoneScoringRunView latestDoneRun = latestDoneRunByApplicationId.get(application.getId());
 
@@ -156,6 +193,22 @@ public class ApplicationOwnerService {
                         doneRunById.get(latestDoneRun.getId()),
                         criterionScoresByRunId.getOrDefault(latestDoneRun.getId(), List.of()));
 
+        ScoreExplanation explanationEntity =
+                latestDoneRun == null ? null : explanationByRunId.get(latestDoneRun.getId());
+        ApplicationHrListItemResponse.Explanation explanation =
+                explanationEntity == null ? null : toExplanation(explanationEntity);
+        // explanationStatus CHI khac null khi da co lot DONE nhung lot do CHUA co explanation -
+        // explanation != null tu no da la tin hieu "xong", khong can them status (xem comment enum o
+        // DTO). Don chua co lot DONE nao (latestDoneRun == null, giong quy uoc totalScore/rank) cung
+        // giu status null - khong co gi de "cho" ca.
+        ApplicationHrListItemResponse.ExplanationStatus explanationStatus = null;
+        if (latestDoneRun != null && explanationEntity == null) {
+            int attemptCount = explanationAttemptCountByRunId.getOrDefault(latestDoneRun.getId(), 0);
+            explanationStatus = attemptCount >= explanationMaxAttempts
+                    ? ApplicationHrListItemResponse.ExplanationStatus.FAILED
+                    : ApplicationHrListItemResponse.ExplanationStatus.PENDING;
+        }
+
         return new RankableRow(
                 application.getId(),
                 candidateNameById.get(application.getCandidateId()),
@@ -165,7 +218,18 @@ public class ApplicationOwnerService {
                 latestRun == null ? null : ScoringRunStatus.valueOf(latestRun.getStatus()),
                 latestRun == null ? null : latestRun.getFinishedAt(),
                 totalScore,
-                criterionScores);
+                criterionScores,
+                explanationStatus,
+                explanation);
+    }
+
+    private ApplicationHrListItemResponse.Explanation toExplanation(ScoreExplanation explanation) {
+        return new ApplicationHrListItemResponse.Explanation(
+                explanation.getSummary(),
+                explanation.getStrengths(),
+                explanation.getWeaknesses(),
+                explanation.getMetCriteria(),
+                explanation.getMissingCriteria());
     }
 
     // Thu tu tieu chi = DUNG thu tu da chup trong CHINH rubric_snapshot cua lot DONE nay (Diem 3,
@@ -187,7 +251,12 @@ public class ApplicationOwnerService {
                 .map(scoreByName::get)
                 .filter(Objects::nonNull)
                 .map(s -> new ApplicationHrListItemResponse.CriterionScoreItem(
-                        s.getCriterionNameSnapshot(), s.getScore(), s.getMaxScoreSnapshot(), s.getWeightSnapshot(), s.getReasoning()))
+                        s.getCriterionNameSnapshot(),
+                        s.getScore(),
+                        s.getMaxScoreSnapshot(),
+                        s.getWeightSnapshot(),
+                        s.getReasoning(),
+                        s.getEvidence()))
                 .toList();
     }
 
@@ -255,7 +324,9 @@ public class ApplicationOwnerService {
             ScoringRunStatus latestScoringRunStatus,
             Instant latestScoringRunFinishedAt,
             BigDecimal totalScore,
-            List<ApplicationHrListItemResponse.CriterionScoreItem> criterionScores) {
+            List<ApplicationHrListItemResponse.CriterionScoreItem> criterionScores,
+            ApplicationHrListItemResponse.ExplanationStatus explanationStatus,
+            ApplicationHrListItemResponse.Explanation explanation) {
 
         ApplicationHrListItemResponse toResponse(Integer rank) {
             return new ApplicationHrListItemResponse(
@@ -268,7 +339,9 @@ public class ApplicationOwnerService {
                     latestScoringRunFinishedAt,
                     totalScore,
                     rank,
-                    criterionScores);
+                    criterionScores,
+                    explanationStatus,
+                    explanation);
         }
     }
 }

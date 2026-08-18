@@ -17,7 +17,10 @@ import com.recruitment.resume.ResumeRepository;
 import com.recruitment.scoring.CriterionScore;
 import com.recruitment.scoring.CriterionScoreRepository;
 import com.recruitment.scoring.EvidenceEntry;
+import com.recruitment.scoring.ExplanationPoint;
 import com.recruitment.scoring.RubricSnapshot;
+import com.recruitment.scoring.ScoreExplanation;
+import com.recruitment.scoring.ScoreExplanationRepository;
 import com.recruitment.scoring.ScoringRun;
 import com.recruitment.scoring.ScoringRunRepository;
 import com.recruitment.scoring.ScoringRunStatus;
@@ -63,6 +66,9 @@ class ApplicationOwnerControllerIntegrationTest {
 
     @Autowired
     private CriterionScoreRepository criterionScoreRepository;
+
+    @Autowired
+    private ScoreExplanationRepository scoreExplanationRepository;
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
@@ -225,7 +231,7 @@ class ApplicationOwnerControllerIntegrationTest {
     // khong kiem lai phep cong (da co ScoreAggregatorTest/AggregationOrchestratorTest rieng cho
     // dieu do) - weight/score cua tieu chi duy nhat chi can hop le, khong can khop voi totalScore
     // truyen vao.
-    private void createDoneScoringRunDirectly(UUID applicationId, String criterionName, BigDecimal totalScore) {
+    private UUID createDoneScoringRunDirectly(UUID applicationId, String criterionName, BigDecimal totalScore) {
         RubricSnapshot snapshot = new RubricSnapshot(
                 "Rubric Test",
                 List.of(new RubricSnapshot.CriterionSnapshot(
@@ -249,6 +255,23 @@ class ApplicationOwnerControllerIntegrationTest {
         criterionScore.setReasoning("Ly do gia lap trong test");
         criterionScore.setEvidence(List.of(new EvidenceEntry("doan trich gia lap", "experience")));
         criterionScoreRepository.saveAndFlush(criterionScore);
+
+        return run.getId();
+    }
+
+    // Ghi thang bao cao giai thich (FR-H06, Dot 4) xuong DB - khong chay lai pipeline that (khong
+    // LLM trong test), cung tinh than voi createDoneScoringRunDirectly.
+    private void createExplanationDirectly(UUID runId, String criterionName) {
+        ScoreExplanation explanation = new ScoreExplanation();
+        explanation.setScoringRunId(runId);
+        explanation.setSummary("Tom tat gia lap trong test");
+        explanation.setStrengths(List.of(new ExplanationPoint(criterionName, "Diem manh gia lap")));
+        explanation.setWeaknesses(List.of());
+        explanation.setMetCriteria(List.of(criterionName));
+        explanation.setMissingCriteria(List.of());
+        explanation.setModel("claude-sonnet-4-6");
+        explanation.setPromptVersion("score-explanation-v1");
+        scoreExplanationRepository.saveAndFlush(explanation);
     }
 
     private MvcResult createScoringRun(String token, String applicationId) throws Exception {
@@ -303,14 +326,18 @@ class ApplicationOwnerControllerIntegrationTest {
         assertThat(body).contains("\"totalScore\":null");
         assertThat(body).contains("\"rank\":null");
         assertThat(body).contains("\"criterionScores\":[]");
+        assertThat(body).contains("\"explanationStatus\":null");
+        assertThat(body).contains("\"explanation\":null");
     }
 
-    // Shape cua response (Diem 2, Dot 4): du don da co diem that (khong chi don rong), JSON tra ve
-    // KHONG duoc chua evidence (viec cua D4) hay bat ky field ten phan quyet nao (CLAUDE.md muc 7).
-    // Ghi thang xuong DB qua repository - khong chay lai toan bo pipeline D2 that (khong LLM trong
-    // test), mau ScoringRunStateServiceTest/AggregationOrchestratorTest.
+    // Shape cua response (Diem 2/4, Dot 4): don da co diem that (khong chi don rong) - JSON PHAI
+    // chua evidence tung tieu chi (day la muc tieu chinh cua D4), chua co bao cao (explanation=null,
+    // explanationStatus=PENDING vi chua tung thu lan nao), va KHONG duoc chua bat ky field ten phan
+    // quyet nao (CLAUDE.md muc 7). Ghi thang xuong DB qua repository - khong chay lai toan bo
+    // pipeline D2/D3/D4 that (khong LLM trong test), mau ScoringRunStateServiceTest/
+    // AggregationOrchestratorTest.
     @Test
-    void listApplications_scoredApplication_responseHasNoEvidenceOrVerdictLikeFields() throws Exception {
+    void listApplications_scoredApplication_responseHasEvidenceButNoVerdictLikeFields() throws Exception {
         String hrToken = registerAndLoginHr("hr-shape");
         createCompany(hrToken, uniqueName("Cong ty Shape"));
         String jobId = createJob(hrToken, uniqueName("Job Shape"));
@@ -333,7 +360,47 @@ class ApplicationOwnerControllerIntegrationTest {
         assertThat(body).contains("\"rank\":1");
         assertThat(body).contains("\"criterionNameSnapshot\":\"Kinh nghiem Java\"");
         assertThat(body).contains("\"reasoning\":");
-        assertThat(body).doesNotContain("evidence");
+        assertThat(body).contains("\"evidence\":[{\"quote\":\"doan trich gia lap\",\"section\":\"experience\"}]");
+        assertThat(body).contains("\"explanation\":null");
+        assertThat(body).contains("\"explanationStatus\":\"PENDING\"");
+        assertThat(body)
+                .doesNotContainIgnoringCase("verdict")
+                .doesNotContainIgnoringCase("\"label\"")
+                .doesNotContainIgnoringCase("isQualified")
+                .doesNotContainIgnoringCase("\"passed\"")
+                .doesNotContainIgnoringCase("recommendation");
+    }
+
+    // Shape cua bao cao giai thich (FR-H06, Dot 4) qua tang HTTP that - JSON phai chua du 5 phan
+    // (summary/strengths/weaknesses/metCriteria/missingCriteria), explanationStatus null khi da co
+    // bao cao, va van khong duoc chua field ten phan quyet nao.
+    @Test
+    void listApplications_scoredApplicationWithExplanation_responseIncludesExplanationFields() throws Exception {
+        String hrToken = registerAndLoginHr("hr-explain");
+        createCompany(hrToken, uniqueName("Cong ty Explain"));
+        String jobId = createJob(hrToken, uniqueName("Job Explain"));
+        addCriterion(hrToken, jobId, """
+                {"name":"Kinh nghiem Java","weight":100}
+                """);
+        openJob(hrToken, jobId);
+
+        String candidateToken = registerAndLoginCandidate("cand-explain", "Pham Van Co Bao Cao");
+        String resumeId = uploadResume(candidateToken);
+        markResumeParsedDone(UUID.fromString(resumeId));
+        String applicationId = apply(candidateToken, jobId, resumeId);
+
+        UUID runId = createDoneScoringRunDirectly(UUID.fromString(applicationId), "Kinh nghiem Java", new BigDecimal("80.000"));
+        createExplanationDirectly(runId, "Kinh nghiem Java");
+
+        MvcResult result = listApplications(hrToken, jobId);
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("\"summary\":\"Tom tat gia lap trong test\"");
+        assertThat(body).contains("\"strengths\":[{\"criterionName\":\"Kinh nghiem Java\",\"point\":\"Diem manh gia lap\"}]");
+        assertThat(body).contains("\"weaknesses\":[]");
+        assertThat(body).contains("\"metCriteria\":[\"Kinh nghiem Java\"]");
+        assertThat(body).contains("\"missingCriteria\":[]");
+        assertThat(body).contains("\"explanationStatus\":null");
         assertThat(body)
                 .doesNotContainIgnoringCase("verdict")
                 .doesNotContainIgnoringCase("\"label\"")

@@ -1,5 +1,7 @@
 package com.recruitment.scoring;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +12,12 @@ import org.springframework.data.repository.query.Param;
 public interface ScoreExplanationAttemptRepository extends JpaRepository<ScoreExplanationAttempt, UUID> {
 
     Optional<ScoreExplanationAttempt> findByScoringRunId(UUID scoringRunId);
+
+    // D4 (mo rong GET /api/hr/jobs/{jobId}/applications, Dot 4) - so lan da thu cua NHIEU lot DONE
+    // cung mot luc, tranh N+1 - cung mau ScoreExplanationRepository.findByScoringRunIdIn. Chi CAC
+    // lot DONE chua co score_explanations moi can tra cuu gia tri nay (xem
+    // ApplicationOwnerService.toRankableRow) - lot da co bao cao thi khong con quan tam so lan thu.
+    List<ScoreExplanationAttempt> findByScoringRunIdIn(Collection<UUID> scoringRunIds);
 
     // Nguong dung cho scheduler (Dot 3, Q5 ke hoach D4 dot duyet lai) - mot lot da dat toi
     // maxAttempts khong con duoc ScoreExplanationScheduler nhat lai (dieu kien loai tru se dat trong
