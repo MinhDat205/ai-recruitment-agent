@@ -59,10 +59,16 @@ và không có chỗ ghi kết quả ra.
     `JobOwnerService.changeStatus` (nhánh `fix/rubric-guard`) dựa vào cờ đó để bỏ qua kiểm đủ
     100% — nếu D2 không cài, HR có job đã chấm sẽ kẹt không mở lại được chu kỳ tuyển dụng mới.
 - [X] **D3** `feat/fr-h05-aggregate` — FR-H05 · Tổng hợp có trọng số + xếp hạng (Java thuần)
-- [ ] **D4** `feat/fr-h06-explain` — FR-H06 · Báo cáo giải thích, mọi luận điểm có evidence
+- [X] **D4** `feat/fr-h06-explain` — FR-H06 · Báo cáo giải thích, mọi luận điểm có evidence
+  - Đã thêm nút "Xem CV gốc" cho HR (`/api/hr/applications/{id}/resume/download`) — không có mã FR
+    nào giao việc này rõ ràng (đã đọc lại SRS/PHASES xác nhận khoảng trống), xếp vào D4 thay vì E1
+    vì lý do: không có CV gốc thì không đối chiếu được evidence trong báo cáo AI với văn bản thật,
+    đúng nguyên tắc Explainable AI của FR-H06. Chi tiết lập luận ở walkthrough `fr-h06-explain.md`
+    mục 4h.
 
-**Xong khi:** unit test `ScoreAggregator` pass; đổi trọng số → thứ hạng đổi đúng công thức;
-không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `passed`.
+**Xong khi:** unit test `ScoreAggregator` pass; đổi trọng số → thứ hạng đổi đúng công thức; mở bất
+kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại cột/field nào tên `verdict`, `label`,
+`isQualified`, `passed`.
 
 ## Phase E — Quyết định & thông báo
 
@@ -84,6 +90,12 @@ không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `pas
 ## Hoàn thiện trước bảo vệ
 
 - [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), presigned URL cho file CV
+  - Presigned URL: từ D4 áp dụng cho **cả hai** đường tải file CV (ứng viên qua
+    `ResumeCandidateController`, HR qua `ResumeHrController` mới) — cả hai đều stream file qua app
+    server, không phải chỉ một. Chưa gây vấn đề ở quy mô hiện tại (`app.storage.type=local`, không
+    S3/MinIO thật dù có chạy container MinIO trong `docker-compose`).
+  - D4: `app.explanation.max-attempts=3` không có nút "thử lại ngay" riêng cho việc sinh báo cáo
+    giải thích khi đã `FAILED` — HR phải tạo một lượt chấm điểm mới cho đơn đó để có cơ hội thử lại.
   - Cố ý không xây tầng tổng hợp/cảnh báo chi phí token — ngoài phạm vi đồ án, không phải bỏ sót.
     Cột `scoring_runs.token_usage`/`resume_parsed_data.token_usage` vẫn được ghi đầy đủ như hiện
     tại, chỉ không có gì đọc/tổng hợp từ đó.
