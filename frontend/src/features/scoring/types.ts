@@ -16,24 +16,58 @@ export interface ScoringRun {
   criteriaTotal: number
 }
 
-// Khop ApplicationHrListItemResponse.CriterionScoreItem (backend, D4/FR-H05) - CO Y KHONG co
-// evidence (viec cua D4/FR-H06, chua lam) va KHONG co field ten verdict/label/isQualified/passed/
-// recommendation nao (CLAUDE.md muc 7). reasoning la van ban AI da sinh tu D2 (KHONG phai sinh moi
-// o day) - hien thi nguyen van, khong loc/sua boi code (Q6, ke hoach D3).
+// Khop ApplicationHrListItemResponse.CriterionScoreItem (backend, D4/FR-H05+FR-H06). reasoning la
+// van ban AI da sinh tu D2 (KHONG phai sinh moi o day) - hien thi nguyen van, khong loc/sua boi code
+// (Q6, ke hoach D3). evidence la trich xuat NGUYEN VAN tu CV da luu o D2 (KHONG phai AI sinh moi o
+// day, xem CLAUDE.md nguyen tac evidence) - mang RONG hop le khi score = 0 (Q2, ke hoach D2), khong
+// phai thieu du lieu. KHONG co field ten verdict/label/isQualified/passed/recommendation nao
+// (CLAUDE.md muc 7).
 export interface CriterionScoreItem {
   criterionNameSnapshot: string
   score: number
   maxScoreSnapshot: number
   weightSnapshot: number
   reasoning: string
+  evidence: EvidenceEntry[]
 }
+
+// Khop scoring.EvidenceEntry (backend) - [{ "quote": "...", "section": "..." }]. section la mot
+// trong 6 khoi cua schema CV D1 (contact/education/experience/skills/certifications/projects) -
+// anh xa sang nhan tieng Viet o ExplanationReport/CriterionScoreBreakdown, khong hien chuoi tho.
+export interface EvidenceEntry {
+  quote: string
+  section: string
+}
+
+// Khop scoring.ExplanationPoint (backend, FR-H06) - moi phan tu gan voi DUNG mot criterionName
+// thuoc tap tieu chi da cham (Q3, ke hoach D4), khong phai nhan xet chung chung.
+export interface ExplanationPoint {
+  criterionName: string
+  point: string
+}
+
+// Khop ApplicationHrListItemResponse.Explanation (backend, FR-H06, D4). summary/strengths/
+// weaknesses la LLM sinh (KHONG chua trich dan nguyen van CV - do la viec cua criterionScores.
+// evidence rieng); metCriteria/missingCriteria la Java thuan tinh tu score > 0 (KHONG phai LLM
+// sinh). KHONG co field verdict/label/isQualified/passed/recommendation nao (CLAUDE.md muc 7).
+export interface Explanation {
+  summary: string
+  strengths: ExplanationPoint[]
+  weaknesses: ExplanationPoint[]
+  metCriteria: string[]
+  missingCriteria: string[]
+}
+
+// Khop ApplicationHrListItemResponse.ExplanationStatus (backend) - tin hieu THUAN TUY VE TRANG THAI
+// XU LY, khong mang ham y danh gia ung vien. Xem comment day du trong DTO backend.
+export type ExplanationStatus = 'PENDING' | 'FAILED'
 
 // Khop ApplicationHrListItemResponse (backend, package jobapplication.dto) - GET
 // /hr/jobs/{jobId}/applications. latestScoringRun* CHI phan anh trang thai/tien do cua lot cham
-// GAN NHAT (co the dang chay/FAILED) - totalScore/rank/criterionScores doc tu lot DONE MOI NHAT
-// (Q5, ke hoach D3), co the la MOT LOT KHAC voi lot dang hien thi tien do. totalScore/rank = null
-// khi don chua co lot DONE nao (chua cham, chi toan FAILED, hoac dang cham dang) - KHONG suy dien
-// gia tri thay the.
+// GAN NHAT (co the dang chay/FAILED) - totalScore/rank/criterionScores/explanation* doc tu lot DONE
+// MOI NHAT (Q5, ke hoach D3), co the la MOT LOT KHAC voi lot dang hien thi tien do. totalScore/rank
+// = null khi don chua co lot DONE nao (chua cham, chi toan FAILED, hoac dang cham dang) - KHONG suy
+// dien gia tri thay the. explanationStatus/explanation cung theo quy uoc do - xem comment DTO backend.
 export interface ApplicationHrListItem {
   id: string
   candidateName: string
@@ -45,6 +79,8 @@ export interface ApplicationHrListItem {
   totalScore: number | null
   rank: number | null
   criterionScores: CriterionScoreItem[]
+  explanationStatus: ExplanationStatus | null
+  explanation: Explanation | null
 }
 
 // Khop ApplicationSortOption (backend) - gia tri gui qua tham so ?sort= cua GET .../applications.
