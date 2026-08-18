@@ -77,6 +77,12 @@ class ScoringRunRepositoryTest {
     @Autowired
     private CriterionScoreRepository criterionScoreRepository;
 
+    @Autowired
+    private ScoreExplanationRepository scoreExplanationRepository;
+
+    @Autowired
+    private ScoreExplanationAttemptRepository scoreExplanationAttemptRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -466,5 +472,157 @@ class ScoringRunRepositoryTest {
         int result = scoringRunRepository.finishAggregation(stillScoring.getId(), new BigDecimal("66.667"));
 
         assertThat(result).isEqualTo(0);
+    }
+
+    // Cac test duoi day thuoc Dot 3 cua ke hoach D4 (FR-H06): findRunsReadyForExplanation - dung
+    // DUNG ba dieu kien da chot (status='DONE', chua co score_explanations, chua vuot nguong
+    // attempt_count). Khong can index moi - da xac minh bang EXPLAIN that, xem comment tai
+    // ScoringRunRepository.findRunsReadyForExplanation.
+
+    private UUID createDoneRun(UUID applicationId) {
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.DONE);
+        run.setStartedAt(Instant.now());
+        run.setFinishedAt(Instant.now());
+        run.setTotalScore(new BigDecimal("72.500"));
+        return scoringRunRepository.saveAndFlush(run).getId();
+    }
+
+    private void saveExplanationFor(UUID scoringRunId) {
+        ScoreExplanation explanation = new ScoreExplanation();
+        explanation.setScoringRunId(scoringRunId);
+        explanation.setSummary("Tom tat gia lap");
+        explanation.setStrengths(List.of());
+        explanation.setWeaknesses(List.of());
+        explanation.setMetCriteria(List.of());
+        explanation.setMissingCriteria(List.of());
+        explanation.setModel("claude-sonnet-4-6");
+        explanation.setPromptVersion("score-explanation-v1");
+        scoreExplanationRepository.saveAndFlush(explanation);
+    }
+
+    private void recordAttempts(UUID scoringRunId, int count) {
+        for (int i = 0; i < count; i++) {
+            scoreExplanationAttemptRepository.recordFailedAttempt(scoringRunId, "LLM_ERROR: loi gia lap");
+        }
+    }
+
+    // batchSize lon (khong phai 10) + contains() (khong phai containsExactly()) o hai test "duoc
+    // nhat" duoi day: class nay CO Y KHONG @Transactional o muc class (de cac test kiem
+    // DataIntegrityViolationException tu commit doc lap - xem comment dau file), nen cac dong DONE
+    // khong explanation/attempts do CAC TEST KHAC trong CUNG file (vd
+    // saveAndReload_totalScoreRoundTripsAtScaleThree, hoac chinh cac test findRunsReadyForExplanation
+    // khac chay truoc) tao ra van con nguyen trong DB khi test nay chay - containsExactly() voi
+    // batchSize nho se vo tinh doi ca nhung dong "la" do vao LIMIT truoc khi toi duoc dong cua chinh
+    // test nay.
+    @Test
+    void findRunsReadyForExplanation_doneRunNoExplanationNoAttempts_isPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRun(applicationId);
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 1000);
+
+        assertThat(ready).extracting(ScoringRun::getId).contains(runId);
+    }
+
+    @Test
+    void findRunsReadyForExplanation_failedRun_isNotPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        ScoringRun failed = new ScoringRun();
+        failed.setApplicationId(applicationId);
+        failed.setStatus(ScoringRunStatus.FAILED);
+        failed.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(failed);
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 10);
+
+        assertThat(ready).extracting(ScoringRun::getId).doesNotContain(failed.getId());
+    }
+
+    @Test
+    void findRunsReadyForExplanation_runningRunFinishedAtNull_isNotPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        ScoringRun stillScoring = new ScoringRun();
+        stillScoring.setApplicationId(applicationId);
+        stillScoring.setStatus(ScoringRunStatus.RUNNING);
+        stillScoring.setStartedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(stillScoring);
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 10);
+
+        assertThat(ready).extracting(ScoringRun::getId).doesNotContain(stillScoring.getId());
+    }
+
+    // RUNNING + finished_at KHAC NULL nghia la D2 da cham xong, dang cho D3 tong hop (CLAUDE.md muc
+    // 2b) - CHUA phai DONE, D4 khong duoc dong toi cho toi khi D3 xong.
+    @Test
+    void findRunsReadyForExplanation_runningRunFinishedAtNotNull_isNotPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        ScoringRun waitingForD3 = new ScoringRun();
+        waitingForD3.setApplicationId(applicationId);
+        waitingForD3.setStatus(ScoringRunStatus.RUNNING);
+        waitingForD3.setStartedAt(Instant.now());
+        waitingForD3.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(waitingForD3);
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 10);
+
+        assertThat(ready).extracting(ScoringRun::getId).doesNotContain(waitingForD3.getId());
+    }
+
+    @Test
+    void findRunsReadyForExplanation_doneRunAlreadyHasExplanation_isNotPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRun(applicationId);
+        saveExplanationFor(runId);
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 10);
+
+        assertThat(ready).extracting(ScoringRun::getId).doesNotContain(runId);
+    }
+
+    @Test
+    @Transactional
+    void findRunsReadyForExplanation_attemptCountOneBelowMax_isPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRun(applicationId);
+        recordAttempts(runId, 2); // maxAttempts=3, 2 < 3.
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 1000);
+
+        assertThat(ready).extracting(ScoringRun::getId).contains(runId);
+    }
+
+    @Test
+    @Transactional
+    void findRunsReadyForExplanation_attemptCountAtMax_isNotPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRun(applicationId);
+        recordAttempts(runId, 3); // maxAttempts=3, 3 >= 3.
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 10);
+
+        assertThat(ready).extracting(ScoringRun::getId).doesNotContain(runId);
+    }
+
+    @Test
+    @Transactional
+    void findRunsReadyForExplanation_attemptCountOneAboveMax_isNotPickedUp() {
+        UUID jobId = createJobWithRubric();
+        UUID applicationId = createApplicationFor(jobId);
+        UUID runId = createDoneRun(applicationId);
+        recordAttempts(runId, 4); // maxAttempts=3, 4 > 3.
+
+        List<ScoringRun> ready = scoringRunRepository.findRunsReadyForExplanation(3, 10);
+
+        assertThat(ready).extracting(ScoringRun::getId).doesNotContain(runId);
     }
 }

@@ -124,4 +124,45 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
             nativeQuery = true)
     List<LatestDoneScoringRunView> findLatestDoneByApplicationIdIn(
             @Param("applicationIds") Collection<UUID> applicationIds);
+
+    // D4 (FR-H06, Dot 3) - nhat cac luot san sang de ScoreExplanationOrchestrator xu ly. Ba dieu
+    // kien: status='DONE' (D3 da tong hop xong, xem CLAUDE.md muc 2b), CHUA co score_explanations
+    // (chua sinh bao cao), CHUA vuot nguong thu (score_explanation_attempts.attempt_count con duoi
+    // maxAttempts, hoac chua tung thu lan nao). DAT O DAY (khong phai ScoreExplanationRepository) vi
+    // hai ly do: (1) kieu tra ve la List<ScoringRun> - entity ma repository nay so huu, con
+    // ScoreExplanationRepository la JpaRepository<ScoreExplanation, UUID>, tra ve mot entity khac
+    // se gay ap luc len co che mapping; (2) bang dan dat (driving table) cua truy van la
+    // scoring_runs - hai bang con lai chi duoc tham chieu qua NOT EXISTS - dung tien le da co ngay
+    // trong file nay (findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull, D3) da dat "truy van
+    // nhat luot san sang cho mot giai doan xu ly khac" o day, du muc dich phuc vu D4 chu khong phai
+    // vong doi rieng cua scoring_runs.
+    //
+    // KHONG can migration index moi (da xac minh bang chay that EXPLAIN tren Postgres 17, khong chi
+    // suy luan): dieu kien dau dung DUNG predicate cua idx_scoring_total (V1, "WHERE status =
+    // 'DONE'") - Postgres chon Index Scan tren no du khong ORDER BY total_score; hai dieu kien NOT
+    // EXISTS con lai so khop scoring_run_id, cot da co UNIQUE index tu dong (score_explanations, V1;
+    // score_explanation_attempts, V5) - Postgres chon Index Scan/Index Only Scan tren ca hai. Plan
+    // that (EXPLAIN COSTS OFF, enable_seqscan=off de buoc lo moi phuong an):
+    //   Nested Loop Anti Join
+    //     -> Nested Loop Anti Join
+    //          -> Index Scan using idx_scoring_total on scoring_runs sr
+    //          -> Index Only Scan using score_explanations_scoring_run_id_key on score_explanations
+    //     -> Index Scan using score_explanation_attempts_scoring_run_id_key on score_explanation_attempts
+    // Khong Seq Scan nao trong plan - ca ba dieu kien deu co index dung duoc, KHONG can V6.
+    @Query(
+            value =
+                    """
+                    SELECT sr.* FROM scoring_runs sr
+                    WHERE sr.status = 'DONE'
+                      AND NOT EXISTS (SELECT 1 FROM score_explanations se WHERE se.scoring_run_id = sr.id)
+                      AND NOT EXISTS (
+                            SELECT 1 FROM score_explanation_attempts a
+                            WHERE a.scoring_run_id = sr.id AND a.attempt_count >= :maxAttempts
+                          )
+                    ORDER BY sr.created_at
+                    LIMIT :batchSize
+                    """,
+            nativeQuery = true)
+    List<ScoringRun> findRunsReadyForExplanation(
+            @Param("maxAttempts") int maxAttempts, @Param("batchSize") int batchSize);
 }

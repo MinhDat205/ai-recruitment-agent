@@ -78,6 +78,10 @@ app:
   aggregation:
     poll-interval-ms: 5000
     batch-size: 10
+  explanation:
+    poll-interval-ms: 5000
+    batch-size: 10
+    max-attempts: 3
 
 logging:
   level:
