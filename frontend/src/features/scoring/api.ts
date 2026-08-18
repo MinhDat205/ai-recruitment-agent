@@ -1,8 +1,13 @@
 import { http } from '../../lib/http'
-import type { ApplicationHrListItem, ScoringRun } from './types'
+import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
 
-export async function listHrApplicationsRequest(jobId: string): Promise<ApplicationHrListItem[]> {
-  const response = await http.get<ApplicationHrListItem[]>(`/hr/jobs/${jobId}/applications`)
+export async function listHrApplicationsRequest(
+  jobId: string,
+  sort: ApplicationSortOption,
+): Promise<ApplicationHrListItem[]> {
+  const response = await http.get<ApplicationHrListItem[]>(`/hr/jobs/${jobId}/applications`, {
+    params: { sort },
+  })
   return response.data
 }
 

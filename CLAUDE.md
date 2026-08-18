@@ -92,6 +92,13 @@ transaction ngắn để ghi kết quả.
 **Claim bản ghi bằng `UPDATE` có điều kiện**, không dùng `SELECT FOR UPDATE SKIP LOCKED` (giữ
 transaction mở trong lúc chờ LLM). `@Modifying(clearAutomatically = true)` là bắt buộc.
 
+**`now()`/`CURRENT_TIMESTAMP` của Postgres là transaction-scoped, không phải statement-scoped.**
+Trong test có `@Transactional` ở cấp class, mọi bản ghi tạo trong cùng một test nhận cùng giá trị
+`created_at`/`applied_at` — mọi khẳng định về thứ tự thời gian giữa các bản ghi đó sẽ không xác
+định. Cách xử lý: đặt test cần phân biệt thời gian ở lớp KHÔNG bọc `@Transactional` toàn lớp (mỗi
+`saveAndFlush` tự commit riêng), hoặc backdate tường minh bằng native update. Đã gặp hai lần: D2
+Đợt 5 (thứ tự lượt chấm mới nhất), D3 Đợt 4 (thứ tự `applied_at`).
+
 Đầy đủ (mẫu code, câu SQL claim thật): `fr-implement/SKILL.md` mục "Job nền và transaction"; comment
 trong `ResumeParsingStateService.java`/`ScoringRunStateService.java`.
 

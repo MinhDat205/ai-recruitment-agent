@@ -58,7 +58,7 @@ và không có chỗ ghi kết quả ra.
     Hiện chưa có đường nào trong ứng dụng đặt cờ này; guard mở lại tin ở
     `JobOwnerService.changeStatus` (nhánh `fix/rubric-guard`) dựa vào cờ đó để bỏ qua kiểm đủ
     100% — nếu D2 không cài, HR có job đã chấm sẽ kẹt không mở lại được chu kỳ tuyển dụng mới.
-- [ ] **D3** `feat/fr-h05-aggregate` — FR-H05 · Tổng hợp có trọng số + xếp hạng (Java thuần)
+- [X] **D3** `feat/fr-h05-aggregate` — FR-H05 · Tổng hợp có trọng số + xếp hạng (Java thuần)
 - [ ] **D4** `feat/fr-h06-explain` — FR-H06 · Báo cáo giải thích, mọi luận điểm có evidence
 
 **Xong khi:** unit test `ScoreAggregator` pass; đổi trọng số → thứ hạng đổi đúng công thức;
@@ -96,7 +96,12 @@ không tồn tại cột/field nào tên `verdict`, `label`, `isQualified`, `pas
   - Không có stale-claim reaper: một lượt chạy nền chết vì JVM restart giữa chừng (D1
     `resumes.parse_status = PROCESSING`, D2 `scoring_runs` ở `RUNNING`/`finished_at NULL`) sẽ kẹt
     vĩnh viễn; riêng D2 còn bị `uq_scoring_run_in_progress` (V4) chặn cứng, không tạo được lượt
-    chấm mới cho đơn đó.
+    chấm mới cho đơn đó. D3 (tổng hợp điểm) **không** có khoản nợ tương tự — cố ý không claim (xem
+    walkthrough `fr-h05-aggregate` mục 4b), nên một lượt tổng hợp dở dang khi JVM crash vẫn nằm
+    trong phạm vi quét của `AggregationScheduler`, tự được thử lại ở nhịp poll kế tiếp.
+  - Tổng điểm hiển thị ở frontend làm tròn 2 chữ số thập phân (`toFixed(2)`) trong khi cột
+    `scoring_runs.total_score` lưu scale 3 (`NUMERIC(6,3)`) — chưa có yêu cầu rõ ràng về độ chính
+    xác hiển thị, chọn 2 chữ số cho gọn mắt (D3, `ApplicationsTab.tsx`).
   - `ChatModel.getDefaultOptions()` đã deprecated ở Spring AI 2.0, đang dùng trong mock test của
     cả D1 và D2 — cần thay khi nâng phiên bản.
   - `ResumeParsingErrorCode` (D1) chưa implement `common/FormattedErrorCode` — `CriterionScoringErrorCode`
