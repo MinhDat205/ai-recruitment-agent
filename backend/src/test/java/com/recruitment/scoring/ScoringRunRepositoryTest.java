@@ -29,6 +29,7 @@ import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -426,10 +427,23 @@ class ScoringRunRepositoryTest {
         alreadyAggregated.setTotalScore(new BigDecimal("50.000"));
         scoringRunRepository.saveAndFlush(alreadyAggregated);
 
-        List<ScoringRun> pickedUp = scoringRunRepository.findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull(
-                ScoringRunStatus.RUNNING, PageRequest.of(0, 10));
+        // Class nay khong @Transactional o muc class (xem comment dau file), nen scoring_runs do
+        // cac test KHAC trong cung lop tao ra van con nguyen trong DB khi test nay chay tren CI -
+        // loc lai chi con nam ban ghi tu test nay truoc khi containsExactly, de khong phu thuoc
+        // trang thai DB do test khac de lai.
+        Set<UUID> ownIds = Set.of(
+                eligible.getId(),
+                failed.getId(),
+                pending.getId(),
+                stillScoring.getId(),
+                alreadyAggregated.getId());
 
-        assertThat(pickedUp).extracting(ScoringRun::getId).containsExactly(eligible.getId());
+        List<ScoringRun> pickedUp = scoringRunRepository.findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull(
+                ScoringRunStatus.RUNNING, PageRequest.of(0, 100));
+        List<ScoringRun> pickedUpFromThisTest =
+                pickedUp.stream().filter(run -> ownIds.contains(run.getId())).toList();
+
+        assertThat(pickedUpFromThisTest).extracting(ScoringRun::getId).containsExactly(eligible.getId());
     }
 
     @Test
