@@ -72,7 +72,14 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 
 ## Phase E — Quyết định & thông báo
 
-- [ ] **E1** `feat/fr-h07-pipeline` — FR-H07 · Pipeline, mời phỏng vấn, xác nhận kết quả
+- [X] **E1** `feat/fr-h07-pipeline` — FR-H07 · Pipeline, mời phỏng vấn, xác nhận kết quả
+  - Máy trạng thái (`PATCH /api/hr/applications/{id}/status`) chặn cứng đường tắt đặt thẳng
+    `INTERVIEW_INVITED` — trạng thái này bắt buộc phải kèm lịch hẹn thật (đúng nghĩa "Đã mời phỏng
+    vấn (có lịch hẹn)" trong SRS), chỉ đi được qua `POST .../interview-invitation`. Chi tiết lập
+    luận ở walkthrough `fr-h07-pipeline.md` mục 4b.
+  - Giấy mời phỏng vấn lưu nguyên văn nội dung HR đã gửi (`interview_invitations.rendered_content`),
+    không render lại và không FK ngược về `interview_templates` — HR sửa mẫu sau này không làm đổi
+    nội dung đã gửi, cùng tinh thần `rubric_snapshot` (D2). Chi tiết walkthrough mục 4c/4e.
 - [ ] **E2** `feat/fr-c03-notification` — FR-C03 · Thông báo web + email
 
 **Xong khi:** không tồn tại bất kỳ đường code nào tự động chuyển trạng thái đậu/rớt.
@@ -125,9 +132,16 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     - Form ứng tuyển (C2, `frontend/src/features/applications/JobApplyForm.tsx`) cho chọn cả CV có
       `parse_status = FAILED`. Đơn nộp bằng CV hỏng thì HR không bấm chấm điểm được, đơn nằm chết
       không xử lý được. Cần lọc bỏ CV `FAILED` khỏi danh sách chọn, hoặc chặn nộp kèm thông báo rõ.
-    - `recordStatusChange` (`backend/src/main/java/com/recruitment/jobapplication/ApplicationService.java:119`)
-      đang `private`. E1 (FR-H07) nằm ở service khác nên không gọi được — cần tách thành lớp riêng
-      hoặc đổi visibility. Xử lý ngay trong nhánh E1.
+  - E1: `ApplicationStatusService.changeStatus` (`backend/src/main/java/com/recruitment/jobapplication/ApplicationStatusService.java`)
+    đọc `application.getStatus()` rồi `save()` mà không có `WHERE status = :oldStatus` hay
+    `@Version` — hai request PATCH gần như đồng thời trên cùng một đơn (double-click, hai tab HR)
+    đều có thể đọc cùng một trạng thái gốc, đều qua kiểm luồng, rồi cả hai đều ghi thành công
+    (last-write-wins), có thể để lại hai dòng lịch sử mâu thuẫn cùng xuất phát từ một trạng thái.
+    Phát hiện khi chạy `srs-guard` cho nhánh E1 (không phải vi phạm nào trong 9 mục của skill, chỉ
+    là rủi ro cùng họ — không có ràng buộc "chỉ một X đang hoạt động" nào bị vi phạm theo đúng
+    nghĩa hẹp). Cách sửa đề xuất: đổi sang `UPDATE job_applications SET status = :new WHERE id =
+    :id AND status = :old`, kiểm số dòng ảnh hưởng — cùng khuôn mẫu
+    `ScoringRunRepository.finishAggregation` (D3) đã dùng cho đúng vấn đề tương tự.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 

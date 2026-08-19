@@ -1,5 +1,6 @@
 package com.recruitment.jobapplication.dto;
 
+import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.resume.ParseStatus;
 import com.recruitment.scoring.EvidenceEntry;
 import com.recruitment.scoring.ExplanationPoint;
@@ -36,7 +37,11 @@ public record ApplicationHrListItemResponse(
         Integer rank,
         List<CriterionScoreItem> criterionScores,
         ExplanationStatus explanationStatus,
-        Explanation explanation) {
+        Explanation explanation,
+        // FR-H07 (E1, Dot 3) - trang thai don (PENDING/INTERVIEW_INVITED/HIRED/REJECTED/WITHDRAWN),
+        // de frontend biet nut hanh dong nao hop le. Doc thang tu JobApplication.status dang co san
+        // trong vong lap, khong query them.
+        ApplicationStatus status) {
 
     public ApplicationHrListItemResponse {
         criterionScores = criterionScores == null ? List.of() : criterionScores;

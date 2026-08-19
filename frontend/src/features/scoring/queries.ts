@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient, type Query } from '@tanstack/react-query'
-import { createScoringRunRequest, listHrApplicationsRequest, listScoringRunsRequest } from './api'
+import type { ApplicationStatus } from '../applications/types'
+import { changeApplicationStatusRequest, createScoringRunRequest, listHrApplicationsRequest, listScoringRunsRequest } from './api'
 import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
 
 const HR_APPLICATIONS_KEY_PREFIX = 'hr-applications'
@@ -13,8 +14,9 @@ function hrApplicationsKey(jobId: string, sort: ApplicationSortOption) {
 
 // Key RUT GON (dung cho invalidateQueries) - CO Y KHONG co sort, de mot lan tao luot cham moi lam
 // stale CA HAI bien the sort dang cache (HR co the doi qua lai giua hai kieu sort ma khong mat du
-// lieu moi), khong chi bien the dang xem.
-function hrApplicationsKeyPrefix(jobId: string) {
+// lieu moi), khong chi bien the dang xem. Export (Dot 3, FR-H07) - features/interviewinvitation/
+// cung can invalidate danh sach nay sau khi gui loi moi thanh cong (doi don sang INTERVIEW_INVITED).
+export function hrApplicationsKeyPrefix(jobId: string) {
   return [HR_APPLICATIONS_KEY_PREFIX, jobId]
 }
 
@@ -171,6 +173,19 @@ export function useCreateScoringRunMutation(jobId: string) {
     onSuccess: (_data, applicationId) => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
       queryClient.invalidateQueries({ queryKey: scoringRunsKey(applicationId) })
+    },
+  })
+}
+
+// FR-H07 (E1, Dot 3) - Tu choi/Trung tuyen (REJECTED/HIRED). Mau y het useCreateScoringRunMutation:
+// invalidate danh sach de badge trang thai + nut hanh dong cap nhat theo trang thai moi.
+export function useChangeApplicationStatusMutation(jobId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ applicationId, status }: { applicationId: string; status: ApplicationStatus }) =>
+      changeApplicationStatusRequest(applicationId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
     },
   })
 }

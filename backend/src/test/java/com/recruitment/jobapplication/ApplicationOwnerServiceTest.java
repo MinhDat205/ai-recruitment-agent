@@ -245,6 +245,11 @@ class ApplicationOwnerServiceTest {
 
         assertThat(result).extracting(ApplicationHrListItemResponse::id).containsExactly(app2, app4, app3, app1);
         assertThat(result).extracting(ApplicationHrListItemResponse::rank).containsExactly(1, 2, 3, 4);
+        // FR-H07 (E1, Dot 3) - status phai di theo tu JobApplication that, khong bi bo sot khi map
+        // sang response. createApplicationFor luon tao PENDING (xem helper o tren).
+        assertThat(result)
+                .extracting(ApplicationHrListItemResponse::status)
+                .containsOnly(ApplicationStatus.PENDING);
     }
 
     @Test

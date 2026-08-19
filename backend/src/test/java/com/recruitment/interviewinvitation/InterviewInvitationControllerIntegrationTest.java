@@ -228,6 +228,23 @@ class InterviewInvitationControllerIntegrationTest {
         return sendInvitation(token, applicationId, Instant.now().plus(7, ChronoUnit.DAYS));
     }
 
+    // Dung cho test bien @Size cua subject/content (Dot 3, muc 7) - scheduledAt luon hop le
+    // (tuong lai 7 ngay), CHI subject/content thay doi de kiem dung nguong.
+    private MvcResult sendInvitationWithSubjectAndContent(String token, String applicationId, String subject, String content)
+            throws Exception {
+        String body =
+                """
+                {"scheduledAt":"%s","location":"Van phong cong ty","subject":"%s","content":"%s"}
+                """
+                        .formatted(Instant.now().plus(7, ChronoUnit.DAYS), subject, content);
+        return mockMvc
+                .perform(post("/api/hr/applications/" + applicationId + "/interview-invitation")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andReturn();
+    }
+
     // Dung mot job/company/candidate/application PENDING moi cho moi test.
     private record Fixture(String hrToken, String companyId, String jobId, String applicationId) {
     }
@@ -407,5 +424,74 @@ class InterviewInvitationControllerIntegrationTest {
                 interviewInvitationRepository.findByApplicationIdOrderByCreatedAtDesc(UUID.fromString(fixture.applicationId()));
         assertThat(after.get(0).getRenderedContent()).isEqualTo(contentBefore);
         assertThat(after.get(0).getRenderedContent()).doesNotContain("Noi dung mau da bi HR sua sau khi gui");
+    }
+
+    // ---- Bien @Size cua subject/content (Dot 3, muc 7 - bo sung con thieu tu Dot 2) ----
+    // Dung quy uoc bat buoc cua du an: nguong-1 / dung nguong / nguong+1. subject khop cot that
+    // VARCHAR(255) (InterviewInvitationSendRequest.java), content la chan tang ung dung 10000 ky
+    // tu (cot rendered_content la TEXT, khong gioi han o DB).
+
+    @Test
+    void send_subjectAt254Chars_returnsCreated() throws Exception {
+        Fixture fixture = createPendingApplication("subject-254");
+
+        MvcResult result = sendInvitationWithSubjectAndContent(
+                fixture.hrToken(), fixture.applicationId(), "A".repeat(254), "Noi dung hop le");
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(201);
+    }
+
+    @Test
+    void send_subjectAt255Chars_returnsCreated() throws Exception {
+        Fixture fixture = createPendingApplication("subject-255");
+
+        MvcResult result = sendInvitationWithSubjectAndContent(
+                fixture.hrToken(), fixture.applicationId(), "A".repeat(255), "Noi dung hop le");
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(201);
+    }
+
+    @Test
+    void send_subjectAt256Chars_returns400() throws Exception {
+        Fixture fixture = createPendingApplication("subject-256");
+
+        MvcResult result = sendInvitationWithSubjectAndContent(
+                fixture.hrToken(), fixture.applicationId(), "A".repeat(256), "Noi dung hop le");
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+        assertThat(interviewInvitationRepository.findByApplicationIdOrderByCreatedAtDesc(UUID.fromString(fixture.applicationId())))
+                .isEmpty();
+    }
+
+    @Test
+    void send_contentAt9999Chars_returnsCreated() throws Exception {
+        Fixture fixture = createPendingApplication("content-9999");
+
+        MvcResult result = sendInvitationWithSubjectAndContent(
+                fixture.hrToken(), fixture.applicationId(), "Tieu de hop le", "A".repeat(9999));
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(201);
+    }
+
+    @Test
+    void send_contentAt10000Chars_returnsCreated() throws Exception {
+        Fixture fixture = createPendingApplication("content-10000");
+
+        MvcResult result = sendInvitationWithSubjectAndContent(
+                fixture.hrToken(), fixture.applicationId(), "Tieu de hop le", "A".repeat(10000));
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(201);
+    }
+
+    @Test
+    void send_contentAt10001Chars_returns400() throws Exception {
+        Fixture fixture = createPendingApplication("content-10001");
+
+        MvcResult result = sendInvitationWithSubjectAndContent(
+                fixture.hrToken(), fixture.applicationId(), "Tieu de hop le", "A".repeat(10001));
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+        assertThat(interviewInvitationRepository.findByApplicationIdOrderByCreatedAtDesc(UUID.fromString(fixture.applicationId())))
+                .isEmpty();
     }
 }

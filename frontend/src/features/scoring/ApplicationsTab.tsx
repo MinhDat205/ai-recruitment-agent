@@ -3,14 +3,18 @@ import { useState } from 'react'
 import { Download, FileText, RotateCw } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
+import type { ApplicationStatus } from '../applications/types'
+import { InterviewInvitationDialog } from '../interviewinvitation/InterviewInvitationDialog'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
 import { downloadApplicationResumeRequest } from './api'
 import { CriterionScoreBreakdown } from './CriterionScoreBreakdown'
 import { ExplanationReport } from './ExplanationReport'
-import { useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
+import { useChangeApplicationStatusMutation, useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
 import { ScoringRunStatusBadge } from './ScoringRunStatusBadge'
 import type { ApplicationHrListItem, ApplicationSortOption } from './types'
 
@@ -86,6 +90,21 @@ function resumeDownloadDisabledReason(application: ApplicationHrListItem): strin
   return undefined
 }
 
+// FR-H07 (E1, Dot 3) - nut hanh dong hop le theo DUNG may trang thai backend
+// (ApplicationStatusService.ALLOWED_TRANSITIONS): PENDING -> {INTERVIEW_INVITED, REJECTED},
+// INTERVIEW_INVITED -> {HIRED, REJECTED}. Day CHI la tien dung UI (an nut sai luong) - backend van
+// la chot chan that su, goi sai van bi 400 du UI co an nut hay khong (muc 4 de bai). KHONG doc
+// totalScore/rank/criterionScores o day - nut hien/an CHI phu thuoc status, khong phu thuoc diem so.
+function nextActionsFor(status: ApplicationStatus): { canInvite: boolean; canReject: boolean; canHire: boolean } {
+  if (status === 'PENDING') {
+    return { canInvite: true, canReject: true, canHire: false }
+  }
+  if (status === 'INTERVIEW_INVITED') {
+    return { canInvite: false, canReject: true, canHire: true }
+  }
+  return { canInvite: false, canReject: false, canHire: false }
+}
+
 // Tin hieu tien do NGAN GON duoi o Tong diem (Dot 5b) - thay cho cot "Luot cham gan nhat" rieng da
 // bo di de bang gon lai. CHI hien khi co gi do dang xu ly hoac that bai (PENDING/RUNNING/FAILED) -
 // bo qua ca hai truong hop con lai (null: chua tung cham, DONE: da co Hang/Tong diem tren cung dong
@@ -141,10 +160,16 @@ function ApplicationRow({
   application,
   onScore,
   isScoring,
+  onInvite,
+  onReject,
+  onHire,
 }: {
   application: ApplicationHrListItem
   onScore: () => void
   isScoring: boolean
+  onInvite: () => void
+  onReject: () => void
+  onHire: () => void
 }) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [isDownloadingResume, setDownloadingResume] = useState(false)
@@ -169,6 +194,7 @@ function ApplicationRow({
   // danh gia cua AI" van phai mo duoc trong truong hop do, khong chi phu thuoc hasCriterionScores.
   const hasExplanationInfo = application.explanation !== null || application.explanationStatus !== null
   const hasEvaluationToShow = hasCriterionScores || hasExplanationInfo
+  const actions = nextActionsFor(application.status)
 
   // Blob download qua axios (KHONG phai <a href>/window.open truc tiep toi URL backend) - endpoint
   // yeu cau header Authorization (Bearer token), the <a href> thuong khong gan duoc header nay vao
@@ -201,6 +227,9 @@ function ApplicationRow({
       <TableCell className="text-ink-muted">{formatAppliedAt(application.appliedAt)}</TableCell>
       <TableCell>
         <ParseStatusBadge status={application.resumeParseStatus} />
+      </TableCell>
+      <TableCell>
+        <ApplicationStatusBadge status={application.status} />
       </TableCell>
       {/* Hang/Tong diem: so trung tinh, CUNG mau/kieu chu voi cac cot khac (text-ink) - KHONG to mau
           theo nguong, KHONG in dam du la hang 1. Cam tuyet doi theo srs-guard. */}
@@ -239,15 +268,16 @@ function ApplicationRow({
             </Button>
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!hasEvaluationToShow}
-                  title={hasEvaluationToShow ? undefined : 'Đơn này chưa có kết quả chấm điểm để xem.'}
-                >
+                {/* FR-H07 (E1, Dot 3): nut nay tung bi disable khi chua co ket qua cham diem (Dot
+                    5b) - BO disable o day vi Sheet gio la loi vao CHUNG cho ca "xem danh gia" LAN
+                    "hai nut hanh dong" (Moi phong van/Tu choi/Trung tuyen). CLAUDE.md muc 7 cam ro:
+                    "khong duoc them rang buoc kieu chi cho moi phong van khi da cham diem xong" -
+                    disable o day se vo tinh tao dung rang buoc do. Truong hop chua co danh gia hien
+                    thong bao trung tinh BEN TRONG Sheet (xem hasEvaluationToShow ben duoi), khong
+                    con chan tu nut trigger. */}
+                <Button type="button" variant="outline" size="sm">
                   <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                  Xem đánh giá của AI
+                  Xem hồ sơ
                 </Button>
               </SheetTrigger>
               {/* Panel rong (sm:max-w-xl md:max-w-2xl, xem components/ui/sheet.tsx) thay vi mo rong
@@ -258,18 +288,47 @@ function ApplicationRow({
                   du lieu moi - dung y het CriterionScoreBreakdown/ExplanationReport cua Dot 5. */}
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Đánh giá của AI — {application.candidateName}</SheetTitle>
+                  <SheetTitle>Hồ sơ ứng viên — {application.candidateName}</SheetTitle>
                   <SheetDescription>
                     Điểm từng tiêu chí và báo cáo tổng hợp từ lượt chấm điểm gần nhất đã hoàn tất.
                   </SheetDescription>
+                  <ApplicationStatusBadge status={application.status} />
                 </SheetHeader>
                 <SheetBody>
-                  {hasCriterionScores && <CriterionScoreBreakdown criterionScores={application.criterionScores} />}
-                  <ExplanationReport
-                    explanation={application.explanation}
-                    explanationStatus={application.explanationStatus}
-                  />
+                  {hasEvaluationToShow ? (
+                    <>
+                      {hasCriterionScores && <CriterionScoreBreakdown criterionScores={application.criterionScores} />}
+                      <ExplanationReport
+                        explanation={application.explanation}
+                        explanationStatus={application.explanationStatus}
+                      />
+                    </>
+                  ) : (
+                    <p className="p-4 text-sm text-ink-muted">Đơn này chưa có kết quả chấm điểm để xem.</p>
+                  )}
                 </SheetBody>
+                {/* FR-H07 (E1, Dot 3) - hai hanh dong theo DUNG trang thai hien tai cua don (xem
+                    nextActionsFor). CHI phu thuoc application.status, KHONG doc totalScore/rank o
+                    day - an nut chi la tien dung UI, backend van la chot chan that (muc 4 de bai). */}
+                {(actions.canInvite || actions.canReject || actions.canHire) && (
+                  <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
+                    {actions.canInvite && (
+                      <Button type="button" variant="outline" onClick={onInvite}>
+                        Mời phỏng vấn
+                      </Button>
+                    )}
+                    {actions.canHire && (
+                      <Button type="button" variant="outline" onClick={onHire}>
+                        Trúng tuyển
+                      </Button>
+                    )}
+                    {actions.canReject && (
+                      <Button type="button" variant="outline" onClick={onReject}>
+                        Từ chối
+                      </Button>
+                    )}
+                  </div>
+                )}
               </SheetContent>
             </Sheet>
             <Button
@@ -290,8 +349,30 @@ function ApplicationRow({
   )
 }
 
+// FR-H07 (E1, Dot 3) - nhan tieu de/mo ta cho hop thoai xac nhan Tu choi/Trung tuyen, dung CHUNG
+// mot component cho ca hai (cung hinh dang, khac chu/targetStatus) - mau y het dialog "Rut don ung
+// tuyen?" trong CandidateApplicationsPage.tsx.
+const CONFIRM_STATUS_COPY: Record<'HIRED' | 'REJECTED', { title: string; statusLabel: string; confirmLabel: string; pendingLabel: string }> = {
+  HIRED: {
+    title: 'Xác nhận trúng tuyển?',
+    statusLabel: 'Trúng tuyển',
+    confirmLabel: 'Xác nhận trúng tuyển',
+    pendingLabel: 'Đang lưu...',
+  },
+  REJECTED: {
+    title: 'Từ chối ứng viên?',
+    statusLabel: 'Bị từ chối',
+    confirmLabel: 'Xác nhận từ chối',
+    pendingLabel: 'Đang lưu...',
+  },
+}
+
 export function ApplicationsTab({ jobId }: { jobId: string }) {
   const [sort, setSort] = useState<ApplicationSortOption>('total_score,desc')
+  const [inviteTarget, setInviteTarget] = useState<ApplicationHrListItem | null>(null)
+  const [confirmTarget, setConfirmTarget] = useState<{ application: ApplicationHrListItem; targetStatus: 'HIRED' | 'REJECTED' } | null>(
+    null,
+  )
 
   const {
     data: applications,
@@ -301,6 +382,20 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
     resumePolling: resumeListPolling,
   } = useHrApplicationsQuery(jobId, sort)
   const createScoringRunMutation = useCreateScoringRunMutation(jobId)
+  const changeStatusMutation = useChangeApplicationStatusMutation(jobId)
+
+  function closeConfirmDialog() {
+    setConfirmTarget(null)
+    changeStatusMutation.reset()
+  }
+
+  function confirmChangeStatus() {
+    if (!confirmTarget) return
+    changeStatusMutation.mutate(
+      { applicationId: confirmTarget.application.id, status: confirmTarget.targetStatus },
+      { onSuccess: () => setConfirmTarget(null) },
+    )
+  }
 
   if (isLoading) {
     return <p className="p-6 text-sm text-ink-muted">Đang tải...</p>
@@ -351,6 +446,7 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
                 <TableHead>Ứng viên</TableHead>
                 <TableHead>Ngày nộp</TableHead>
                 <TableHead>Trạng thái CV</TableHead>
+                <TableHead>Trạng thái đơn</TableHead>
                 <TableHead>Hạng</TableHead>
                 <TableHead>Tổng điểm</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
@@ -365,6 +461,9 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
                     createScoringRunMutation.isPending && createScoringRunMutation.variables === application.id
                   }
                   onScore={() => createScoringRunMutation.mutate(application.id)}
+                  onInvite={() => setInviteTarget(application)}
+                  onReject={() => setConfirmTarget({ application, targetStatus: 'REJECTED' })}
+                  onHire={() => setConfirmTarget({ application, targetStatus: 'HIRED' })}
                 />
               ))}
             </TableBody>
@@ -377,6 +476,40 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
           {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
         </p>
       )}
+
+      <InterviewInvitationDialog
+        application={inviteTarget}
+        jobId={jobId}
+        onOpenChange={(open) => !open && setInviteTarget(null)}
+      />
+
+      <Dialog open={confirmTarget !== null} onOpenChange={(open) => !open && closeConfirmDialog()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].title}</DialogTitle>
+            <DialogDescription>
+              Hành động này không thể hoàn tác. Đơn ứng tuyển của{' '}
+              <span className="font-medium text-ink">{confirmTarget?.application.candidateName}</span> sẽ chuyển sang
+              trạng thái "{confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].statusLabel}".
+            </DialogDescription>
+          </DialogHeader>
+          {changeStatusMutation.isError && (
+            <p className="text-sm text-danger">
+              {extractErrorMessage(changeStatusMutation.error, 'Cập nhật trạng thái thất bại, vui lòng thử lại.')}
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeConfirmDialog} disabled={changeStatusMutation.isPending}>
+              Huỷ
+            </Button>
+            <Button type="button" onClick={confirmChangeStatus} disabled={changeStatusMutation.isPending}>
+              {changeStatusMutation.isPending
+                ? confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].pendingLabel
+                : confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].confirmLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

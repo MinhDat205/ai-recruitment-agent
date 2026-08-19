@@ -220,7 +220,8 @@ public class ApplicationOwnerService {
                 totalScore,
                 criterionScores,
                 explanationStatus,
-                explanation);
+                explanation,
+                application.getStatus());
     }
 
     private ApplicationHrListItemResponse.Explanation toExplanation(ScoreExplanation explanation) {
@@ -326,7 +327,8 @@ public class ApplicationOwnerService {
             BigDecimal totalScore,
             List<ApplicationHrListItemResponse.CriterionScoreItem> criterionScores,
             ApplicationHrListItemResponse.ExplanationStatus explanationStatus,
-            ApplicationHrListItemResponse.Explanation explanation) {
+            ApplicationHrListItemResponse.Explanation explanation,
+            ApplicationStatus status) {
 
         ApplicationHrListItemResponse toResponse(Integer rank) {
             return new ApplicationHrListItemResponse(
@@ -341,7 +343,8 @@ public class ApplicationOwnerService {
                     rank,
                     criterionScores,
                     explanationStatus,
-                    explanation);
+                    explanation,
+                    status);
         }
     }
 }
