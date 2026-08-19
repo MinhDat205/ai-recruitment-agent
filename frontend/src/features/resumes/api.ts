@@ -1,5 +1,6 @@
+import { isAxiosError } from 'axios'
 import { http } from '../../lib/http'
-import type { Resume } from './types'
+import type { Resume, ResumeParsedDataResponse } from './types'
 
 export async function listResumesRequest(): Promise<Resume[]> {
   const response = await http.get<Resume[]>('/candidates/resumes')
@@ -28,4 +29,19 @@ export async function setPrimaryResumeRequest(id: string): Promise<Resume> {
 export async function downloadResumeRequest(id: string): Promise<Blob> {
   const response = await http.get(`/candidates/resumes/${id}/download`, { responseType: 'blob' })
   return response.data
+}
+
+// 404 (RESUME_PARSED_DATA_NOT_FOUND) nghia la CV chua parse xong (PENDING/PROCESSING/FAILED) -
+// day la trang thai hop le, khong phai loi he thong, nen tra ve null thay vi nem loi. Loi khac
+// (401, 500...) van nem tiep cho caller xu ly nhu binh thuong.
+export async function getParsedResumeRequest(id: string): Promise<ResumeParsedDataResponse | null> {
+  try {
+    const response = await http.get<ResumeParsedDataResponse>(`/candidates/resumes/${id}/parsed`)
+    return response.data
+  } catch (err) {
+    if (isAxiosError(err) && err.response?.status === 404) {
+      return null
+    }
+    throw err
+  }
 }

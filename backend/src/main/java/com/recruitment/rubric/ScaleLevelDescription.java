@@ -1,5 +1,6 @@
 package com.recruitment.rubric;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 
@@ -12,5 +13,11 @@ import jakarta.validation.constraints.Positive;
 //   - Muc 5: Chuyen gia
 // Neu scale_description = NULL, D2 dung mot doan mo ta thang mac dinh dung chung cho moi tieu
 // chi khong khai bao rieng (FR-H03: "NULL => he thong dung thang diem mac dinh dung chung").
+//
+// @JsonIgnoreProperties(ignoreUnknown = true): record nay duoc nhung vao ca rubric_criteria.
+// scale_description LAN scoring_runs.rubric_snapshot (xem RubricSnapshot ben package scoring) -
+// ca hai deu can doc lai duoc lau dai kem field them sau nay khong lam vo deserialize, giong tien
+// le ResumeParsedPayload.
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ScaleLevelDescription(@Positive int level, @NotBlank String description) {
 }

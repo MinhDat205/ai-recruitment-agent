@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { HrLayout } from '../components/layout/HrLayout'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
 import { RubricTab } from '../features/rubric/RubricTab'
+import { ApplicationsTab } from '../features/scoring/ApplicationsTab'
 import { EMPLOYMENT_TYPE_LABELS, EMPLOYMENT_TYPE_OPTIONS, WORK_MODE_LABELS, WORK_MODE_OPTIONS } from '../features/jobs/jobLabels'
 import {
   useHrJobQuery,
@@ -389,7 +390,7 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
   )
 }
 
-const VALID_TABS = ['job', 'template', 'rubric'] as const
+const VALID_TABS = ['job', 'template', 'rubric', 'applications'] as const
 
 export function HrJobEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -420,6 +421,7 @@ export function HrJobEditPage() {
               <TabsTrigger value="job">Thông tin tin tuyển dụng</TabsTrigger>
               <TabsTrigger value="template">Mẫu giấy mời phỏng vấn</TabsTrigger>
               <TabsTrigger value="rubric">Rubric chấm điểm</TabsTrigger>
+              <TabsTrigger value="applications">Ứng viên</TabsTrigger>
             </TabsList>
           </CardHeader>
 
@@ -444,6 +446,9 @@ export function HrJobEditPage() {
                 </Button>
               </CardFooter>
             )}
+          </TabsContent>
+          <TabsContent value="applications">
+            <ApplicationsTab jobId={id} />
           </TabsContent>
         </Tabs>
       </Card>

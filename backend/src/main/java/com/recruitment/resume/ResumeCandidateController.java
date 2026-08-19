@@ -1,5 +1,6 @@
 package com.recruitment.resume;
 
+import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import com.recruitment.resume.dto.ResumeResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -62,5 +63,10 @@ public class ResumeCandidateController {
                 .contentType(download.contentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(download.resource());
+    }
+
+    @GetMapping("/{id}/parsed")
+    public ResumeParsedDataResponse getParsedData(Authentication authentication, @PathVariable UUID id) {
+        return resumeService.getParsedData(UUID.fromString(authentication.getName()), id);
     }
 }
