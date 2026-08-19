@@ -121,6 +121,13 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     đã nhận đúng kiểu enum `ResumeParsingErrorCode` (không nhận `String` tự do), nên không có lỗ hổng
     thực tế — chỉ lệch chuẩn interface chung. Hoãn vì sửa nó phải đụng code D1 đã merge và chạy lại
     toàn bộ test của nhánh khác, ngoài phạm vi D2.
+  - Phát hiện khi kiểm thử Phase D bằng key thật (19/08/2026):
+    - Form ứng tuyển (C2, `frontend/src/features/applications/JobApplyForm.tsx`) cho chọn cả CV có
+      `parse_status = FAILED`. Đơn nộp bằng CV hỏng thì HR không bấm chấm điểm được, đơn nằm chết
+      không xử lý được. Cần lọc bỏ CV `FAILED` khỏi danh sách chọn, hoặc chặn nộp kèm thông báo rõ.
+    - `recordStatusChange` (`backend/src/main/java/com/recruitment/jobapplication/ApplicationService.java:119`)
+      đang `private`. E1 (FR-H07) nằm ở service khác nên không gọi được — cần tách thành lớp riêng
+      hoặc đổi visibility. Xử lý ngay trong nhánh E1.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
