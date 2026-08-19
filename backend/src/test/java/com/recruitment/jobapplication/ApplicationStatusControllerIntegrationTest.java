@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.recruitment.TestcontainersConfiguration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -185,6 +187,27 @@ class ApplicationStatusControllerIntegrationTest {
                 .andReturn();
     }
 
+    // FR-H07 Dot 2: duong DUY NHAT de dua don sang INTERVIEW_INVITED - PATCH .../status truc tiep
+    // sang trang thai nay bi chan (xem ApplicationStatusController). scheduledAt mac dinh 7 ngay
+    // sau "hien tai" de chac chan luon o tuong lai.
+    private MvcResult sendInterviewInvitation(String token, String applicationId) throws Exception {
+        return sendInterviewInvitation(token, applicationId, Instant.now().plus(7, ChronoUnit.DAYS));
+    }
+
+    private MvcResult sendInterviewInvitation(String token, String applicationId, Instant scheduledAt) throws Exception {
+        String body =
+                """
+                {"scheduledAt":"%s","location":"Van phong cong ty","subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
+                """
+                        .formatted(scheduledAt.toString());
+        return mockMvc
+                .perform(post("/api/hr/applications/" + applicationId + "/interview-invitation")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andReturn();
+    }
+
     // Dung mot job/candidate/application PENDING moi cho moi test - tra ve (hrToken, applicationId).
     private record Fixture(String hrToken, String applicationId) {
     }
@@ -206,21 +229,20 @@ class ApplicationStatusControllerIntegrationTest {
 
     // ---- Case duong ----
 
+    // FR-H07 Dot 2: INTERVIEW_INVITED bat buoc kem lich hen (SRS: "Da moi phong van (co lich hen)")
+    // - PATCH .../status truc tiep sang trang thai nay khong con hop le, phai qua
+    // POST .../interview-invitation (xem InterviewInvitationControllerIntegrationTest cho case
+    // duong tuong ung).
     @Test
-    void changeStatus_pendingToInterviewInvited_returnsOkAndRecordsOneHistoryRow() throws Exception {
+    void changeStatus_pendingToInterviewInvitedViaPatch_returns400() throws Exception {
         Fixture fixture = createPendingApplication("pending-to-invited");
 
         MvcResult result = changeStatus(fixture.hrToken(), fixture.applicationId(), "INTERVIEW_INVITED");
 
-        assertThat(result.getResponse().getStatus()).isEqualTo(200);
-        assertThat(extractJsonField(result.getResponse().getContentAsString(), "status")).isEqualTo("INTERVIEW_INVITED");
-
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
         List<ApplicationStatusHistory> history = statusHistoryRepository.findByApplicationIdOrderByChangedAtAsc(
                 UUID.fromString(fixture.applicationId()));
-        // 2 dong: NULL->PENDING tu luc apply, PENDING->INTERVIEW_INVITED tu PATCH nay.
-        assertThat(history).hasSize(2);
-        assertThat(history.get(1).getFromStatus()).isEqualTo(ApplicationStatus.PENDING);
-        assertThat(history.get(1).getToStatus()).isEqualTo(ApplicationStatus.INTERVIEW_INVITED);
+        assertThat(history).hasSize(1);
     }
 
     @Test
@@ -236,7 +258,7 @@ class ApplicationStatusControllerIntegrationTest {
     @Test
     void changeStatus_interviewInvitedToHired_returnsOk() throws Exception {
         Fixture fixture = createPendingApplication("invited-to-hired");
-        changeStatus(fixture.hrToken(), fixture.applicationId(), "INTERVIEW_INVITED");
+        sendInterviewInvitation(fixture.hrToken(), fixture.applicationId());
 
         MvcResult result = changeStatus(fixture.hrToken(), fixture.applicationId(), "HIRED");
 
@@ -252,7 +274,7 @@ class ApplicationStatusControllerIntegrationTest {
     @Test
     void changeStatus_interviewInvitedToRejected_returnsOk() throws Exception {
         Fixture fixture = createPendingApplication("invited-to-rejected");
-        changeStatus(fixture.hrToken(), fixture.applicationId(), "INTERVIEW_INVITED");
+        sendInterviewInvitation(fixture.hrToken(), fixture.applicationId());
 
         MvcResult result = changeStatus(fixture.hrToken(), fixture.applicationId(), "REJECTED");
 
@@ -277,7 +299,7 @@ class ApplicationStatusControllerIntegrationTest {
     @Test
     void changeStatus_hiredToAnything_returns400() throws Exception {
         Fixture fixture = createPendingApplication("hired-terminal");
-        changeStatus(fixture.hrToken(), fixture.applicationId(), "INTERVIEW_INVITED");
+        sendInterviewInvitation(fixture.hrToken(), fixture.applicationId());
         changeStatus(fixture.hrToken(), fixture.applicationId(), "HIRED");
 
         MvcResult result = changeStatus(fixture.hrToken(), fixture.applicationId(), "REJECTED");
@@ -285,18 +307,20 @@ class ApplicationStatusControllerIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(400);
     }
 
+    // REJECTED la trang thai cuoi - khong quay lai duoc INTERVIEW_INVITED, ke ca qua duong that
+    // (POST .../interview-invitation) chu khong chi qua PATCH bi chan boi guard rieng.
     @Test
     void changeStatus_rejectedToInterviewInvited_returns400() throws Exception {
         Fixture fixture = createPendingApplication("rejected-terminal");
         changeStatus(fixture.hrToken(), fixture.applicationId(), "REJECTED");
 
-        MvcResult result = changeStatus(fixture.hrToken(), fixture.applicationId(), "INTERVIEW_INVITED");
+        MvcResult result = sendInterviewInvitation(fixture.hrToken(), fixture.applicationId());
 
         assertThat(result.getResponse().getStatus()).isEqualTo(400);
         List<ApplicationStatusHistory> history = statusHistoryRepository.findByApplicationIdOrderByChangedAtAsc(
                 UUID.fromString(fixture.applicationId()));
-        // Chi 1 dong PENDING->REJECTED them vao NULL->PENDING - lan REJECTED->INTERVIEW_INVITED bi
-        // chan, khong duoc ghi.
+        // Chi 1 dong PENDING->REJECTED them vao NULL->PENDING - lan gui loi moi bi chan boi ban
+        // chuyen tiep (REJECTED khong phai nguon hop le), khong duoc ghi.
         assertThat(history).hasSize(2);
     }
 
@@ -306,7 +330,10 @@ class ApplicationStatusControllerIntegrationTest {
         String otherHrToken = registerAndLoginHr("other-hr");
         createCompany(otherHrToken, uniqueName("Cong ty Khac"));
 
-        MvcResult result = changeStatus(otherHrToken, fixture.applicationId(), "INTERVIEW_INVITED");
+        // Dung REJECTED (khong phai INTERVIEW_INVITED) - INTERVIEW_INVITED bi chan boi guard o
+        // controller VO DIEU KIEN (xem changeStatus_pendingToInterviewInvitedViaPatch_returns400),
+        // se che mat duong 403 dang can kiem o day.
+        MvcResult result = changeStatus(otherHrToken, fixture.applicationId(), "REJECTED");
 
         assertThat(result.getResponse().getStatus()).isEqualTo(403);
     }
@@ -316,7 +343,7 @@ class ApplicationStatusControllerIntegrationTest {
         String hrToken = registerAndLoginHr("not-found-hr");
         createCompany(hrToken, uniqueName("Cong ty Not Found"));
 
-        MvcResult result = changeStatus(hrToken, UUID.randomUUID().toString(), "INTERVIEW_INVITED");
+        MvcResult result = changeStatus(hrToken, UUID.randomUUID().toString(), "REJECTED");
 
         assertThat(result.getResponse().getStatus()).isEqualTo(404);
     }

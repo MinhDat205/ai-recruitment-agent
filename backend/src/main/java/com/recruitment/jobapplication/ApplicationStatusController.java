@@ -1,5 +1,6 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.common.exception.InvalidApplicationStatusTransitionException;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
 import com.recruitment.jobapplication.dto.ApplicationStatusUpdateRequest;
 import jakarta.validation.Valid;
@@ -29,6 +30,17 @@ public class ApplicationStatusController {
             Authentication authentication,
             @PathVariable UUID applicationId,
             @Valid @RequestBody ApplicationStatusUpdateRequest request) {
+        // INTERVIEW_INVITED (FR-H07 Dot 2, SRS: "Da moi phong van (co lich hen)") bat buoc phai
+        // kem lich hen - khong duoc dat rieng qua PATCH nay, chan tai day de khong tao duoc don o
+        // trang thai INTERVIEW_INVITED ma khong co dong interview_invitations nao di kem. Duong
+        // dung: POST /api/hr/applications/{applicationId}/interview-invitation
+        // (InterviewInvitationService.sendInvitation goi lai chinh applicationStatusService.changeStatus
+        // ben duoi, khong bi chan boi guard nay vi guard chi nam o controller).
+        if (request.status() == ApplicationStatus.INTERVIEW_INVITED) {
+            throw new InvalidApplicationStatusTransitionException(
+                    "Vui lòng dùng endpoint gửi lời mời phỏng vấn (POST /api/hr/applications/{id}/interview-invitation) "
+                            + "để chuyển đơn sang INTERVIEW_INVITED.");
+        }
         UUID ownerId = UUID.fromString(authentication.getName());
         return applicationStatusService.changeStatus(ownerId, applicationId, request.status());
     }

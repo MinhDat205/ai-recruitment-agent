@@ -160,6 +160,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_APPLICATION_STATUS_TRANSITION", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidInterviewScheduleException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidInterviewSchedule(InvalidInterviewScheduleException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_INTERVIEW_SCHEDULE", ex.getMessage()));
+    }
+
     @ExceptionHandler(ResumeNotParsedException.class)
     public ResponseEntity<ErrorResponse> handleResumeNotParsed(ResumeNotParsedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
