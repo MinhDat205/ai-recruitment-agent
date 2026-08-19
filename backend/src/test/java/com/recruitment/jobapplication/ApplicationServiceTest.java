@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,10 +37,17 @@ class ApplicationServiceTest {
     @Mock
     private ResumeRepository resumeRepository;
 
+    @Mock
+    private ApplicationStatusRecorder applicationStatusRecorder;
+
+    private ApplicationService newService() {
+        return new ApplicationService(
+                applicationRepository, statusHistoryRepository, jobRepository, resumeRepository, applicationStatusRecorder);
+    }
+
     @Test
     void apply_happyPath_recordsInitialPendingHistoryRow() {
-        ApplicationService service =
-                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+        ApplicationService service = newService();
 
         UUID candidateId = UUID.randomUUID();
         UUID jobId = UUID.randomUUID();
@@ -65,19 +71,13 @@ class ApplicationServiceTest {
         ApplicationResponse response =
                 service.apply(candidateId, new ApplicationCreateRequest(jobId, resumeId, true, "Cover letter"));
 
-        ArgumentCaptor<ApplicationStatusHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationStatusHistory.class);
-        verify(statusHistoryRepository).save(historyCaptor.capture());
-        ApplicationStatusHistory history = historyCaptor.getValue();
-        assertThat(history.getApplicationId()).isEqualTo(response.id());
-        assertThat(history.getFromStatus()).isNull();
-        assertThat(history.getToStatus()).isEqualTo(ApplicationStatus.PENDING);
-        assertThat(history.getChangedBy()).isEqualTo(candidateId);
+        verify(applicationStatusRecorder)
+                .record(response.id(), null, ApplicationStatus.PENDING, candidateId, null);
     }
 
     @Test
     void getMyApplicationHistory_applicationOfAnotherCandidate_throwsNotFound() {
-        ApplicationService service =
-                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+        ApplicationService service = newService();
 
         UUID candidateId = UUID.randomUUID();
         UUID applicationId = UUID.randomUUID();
@@ -89,8 +89,7 @@ class ApplicationServiceTest {
 
     @Test
     void withdraw_fromPending_recordsHistoryAndChangesStatus() {
-        ApplicationService service =
-                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+        ApplicationService service = newService();
 
         UUID candidateId = UUID.randomUUID();
         UUID applicationId = UUID.randomUUID();
@@ -106,20 +105,13 @@ class ApplicationServiceTest {
 
         assertThat(response.status()).isEqualTo(ApplicationStatus.WITHDRAWN);
 
-        ArgumentCaptor<ApplicationStatusHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationStatusHistory.class);
-        verify(statusHistoryRepository).save(historyCaptor.capture());
-        ApplicationStatusHistory history = historyCaptor.getValue();
-        assertThat(history.getApplicationId()).isEqualTo(applicationId);
-        assertThat(history.getFromStatus()).isEqualTo(ApplicationStatus.PENDING);
-        assertThat(history.getToStatus()).isEqualTo(ApplicationStatus.WITHDRAWN);
-        assertThat(history.getChangedBy()).isEqualTo(candidateId);
-        assertThat(history.getNote()).isNull();
+        verify(applicationStatusRecorder)
+                .record(applicationId, ApplicationStatus.PENDING, ApplicationStatus.WITHDRAWN, candidateId, null);
     }
 
     @Test
     void withdraw_alreadyHired_throwsApplicationNotWithdrawableException() {
-        ApplicationService service =
-                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+        ApplicationService service = newService();
 
         UUID candidateId = UUID.randomUUID();
         UUID applicationId = UUID.randomUUID();
@@ -138,8 +130,7 @@ class ApplicationServiceTest {
 
     @Test
     void withdraw_applicationOfAnotherCandidate_throwsApplicationNotFoundException() {
-        ApplicationService service =
-                new ApplicationService(applicationRepository, statusHistoryRepository, jobRepository, resumeRepository);
+        ApplicationService service = newService();
 
         UUID candidateId = UUID.randomUUID();
         UUID applicationId = UUID.randomUUID();

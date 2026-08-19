@@ -151,6 +151,15 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("APPLICATION_NOT_WITHDRAWABLE", ex.getMessage()));
     }
 
+    // 400, KHAC voi ApplicationNotWithdrawableException (409): day la HR gui sai buoc chuyen trong
+    // request, khong phai "tai nguyen khong con o trang thai cho phep hanh dong" nhu truong hop rut don.
+    @ExceptionHandler(InvalidApplicationStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidApplicationStatusTransition(
+            InvalidApplicationStatusTransitionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_APPLICATION_STATUS_TRANSITION", ex.getMessage()));
+    }
+
     @ExceptionHandler(ResumeNotParsedException.class)
     public ResponseEntity<ErrorResponse> handleResumeNotParsed(ResumeNotParsedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

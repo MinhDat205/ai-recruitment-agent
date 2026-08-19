@@ -25,16 +25,19 @@ public class ApplicationService {
     private final ApplicationStatusHistoryRepository statusHistoryRepository;
     private final JobRepository jobRepository;
     private final ResumeRepository resumeRepository;
+    private final ApplicationStatusRecorder applicationStatusRecorder;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
             ApplicationStatusHistoryRepository statusHistoryRepository,
             JobRepository jobRepository,
-            ResumeRepository resumeRepository) {
+            ResumeRepository resumeRepository,
+            ApplicationStatusRecorder applicationStatusRecorder) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
         this.resumeRepository = resumeRepository;
+        this.applicationStatusRecorder = applicationStatusRecorder;
     }
 
     @Transactional
@@ -67,8 +70,8 @@ public class ApplicationService {
         JobApplication saved = applicationRepository.saveAndFlush(application);
 
         // Dong lich su dau tien cua don: NULL -> PENDING, changed_by = chinh candidate (tu tao
-        // don). Cung transaction voi viec tao don.
-        recordStatusChange(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+        // don). Cung transaction voi viec tao don (goi bean khac, khong phai self-invocation).
+        applicationStatusRecorder.record(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
 
         return toResponse(saved);
     }
@@ -89,7 +92,7 @@ public class ApplicationService {
         application.setStatus(ApplicationStatus.WITHDRAWN);
         JobApplication saved = applicationRepository.save(application);
 
-        recordStatusChange(saved.getId(), fromStatus, ApplicationStatus.WITHDRAWN, candidateId, null);
+        applicationStatusRecorder.record(saved.getId(), fromStatus, ApplicationStatus.WITHDRAWN, candidateId, null);
 
         return toResponse(saved);
     }
@@ -112,19 +115,6 @@ public class ApplicationService {
         return statusHistoryRepository.findByApplicationIdOrderByChangedAtAsc(application.getId()).stream()
                 .map(ApplicationService::toHistoryResponse)
                 .toList();
-    }
-
-    // Mot cho duy nhat ghi lich su chuyen trang thai - E1 (FR-H07, HR doi trang thai) va C4
-    // (FR-U06, rut don) se goi lai method nay, khong ghi rai rac moi noi mot doan insert.
-    private void recordStatusChange(
-            UUID applicationId, ApplicationStatus fromStatus, ApplicationStatus toStatus, UUID changedBy, String note) {
-        ApplicationStatusHistory history = new ApplicationStatusHistory();
-        history.setApplicationId(applicationId);
-        history.setFromStatus(fromStatus);
-        history.setToStatus(toStatus);
-        history.setChangedBy(changedBy);
-        history.setNote(note);
-        statusHistoryRepository.save(history);
     }
 
     private static ApplicationResponse toResponse(JobApplication a) {
