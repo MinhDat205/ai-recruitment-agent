@@ -194,6 +194,22 @@ lời mời**
   `changeStatus_pendingToInterviewInvitedViaPatch_returns400`), và đổi cách hai test 403/404 khác
   dựng dữ liệu (chuyển sang dùng `REJECTED` làm target thay vì `INTERVIEW_INVITED`, vì
   `INTERVIEW_INVITED` giờ bị chặn vô điều kiện trước khi tới được bước kiểm quyền sở hữu).
+- **Lệch với chữ trong `docs/PHASES.md`** (ghi ra đây vì đọc hai tài liệu cạnh nhau sẽ thấy vênh):
+  mục E1 của PHASES.md mô tả máy trạng thái là `PENDING → INTERVIEW_INVITED | REJECTED`, đọc riêng
+  dòng đó thì `PATCH` thẳng sang `INTERVIEW_INVITED` là hợp lệ. Bảng `ALLOWED_TRANSITIONS` trong
+  `ApplicationStatusService` **vẫn đúng nguyên như vậy** — chỗ lệch nằm ở tầng controller, nơi
+  endpoint HTTP `PATCH .../status` từ chối riêng giá trị này. Nói cách khác: luồng chuyển trạng thái
+  không đổi, chỉ có số cửa vào để kích hoạt nó bị thu hẹp còn đúng một cửa (endpoint gửi lời mời).
+  PHASES.md mô tả máy trạng thái ở mức miền nghiệp vụ, không mô tả bề mặt HTTP — hai thứ này không
+  bắt buộc ánh xạ một-một.
+- Đánh đổi: (1) API mất tính đồng nhất — bốn trong năm trạng thái đổi được qua một endpoint chung,
+  riêng một trạng thái phải đi endpoint khác, và client buộc phải biết ngoại lệ đó (frontend đã phản
+  ánh đúng: nút "Mời phỏng vấn" mở `InterviewInvitationDialog` chứ không gọi mutation đổi trạng thái
+  như hai nút còn lại). (2) Guard đặt ở controller nên nó chỉ bảo vệ đúng cửa HTTP đó — nếu sau này
+  có luồng khác gọi thẳng `ApplicationStatusService.changeStatus(..., INTERVIEW_INVITED)` thì ràng
+  buộc "phải có lịch hẹn" không được thực thi. Đây là lựa chọn có ý thức chứ không phải sơ suất: đẩy
+  guard xuống tầng service sẽ chặn luôn `InterviewInvitationService` — bên duy nhất được phép thực
+  hiện chuyển tiếp này — nên tầng service buộc phải giữ nguyên tính trung lập.
 
 **(c) Bước gửi (`POST`) không render lại, không so khớp lại với template**
 - Đã chọn: `InterviewInvitationSendRequest.subject`/`content` là nguyên văn HR gửi lên, lưu thẳng
@@ -266,6 +282,27 @@ không phải từng `ApplicationRow`**
 - Vì sao: đúng mẫu đã có sẵn trong `CandidateApplicationsPage.tsx` (dialog "Rút đơn ứng tuyển?") —
   đảm bảo chỉ một dialog mở tại một thời điểm trên toàn bảng, tránh trạng thái lạ khi HR thao tác
   nhanh giữa nhiều hàng.
+
+**(j) Đường dẫn `/api/hr/applications/...`, không phải `/api/applications/...` như ghi trong
+`docs/PHASES.md`**
+- Bối cảnh: mục E1 của PHASES.md ghi endpoint là `PATCH /api/applications/{id}/status`. Đường dẫn
+  thật trong code là `PATCH /api/hr/applications/{applicationId}/status`. Đây là chỗ lệch thứ hai
+  giữa hai tài liệu (chỗ thứ nhất ở mục 4b), nên ghi rõ ở đây thay vì để người đọc tự đoán.
+- Đã chọn: theo quy ước phân tách theo vai trò đã áp dụng xuyên suốt từ Phase B — API do HR gọi nằm
+  dưới `/api/hr/`, API do ứng viên gọi nằm dưới `/api/candidates/`, API không cần đăng nhập nằm dưới
+  `/api/public/`. Quy ước này ghi ở CLAUDE.md mục 7 và **thắng** đường dẫn minh hoạ trong PHASES.md;
+  PHASES.md viết đường dẫn để chỉ ra *endpoint nào cần có*, không phải để chốt chuỗi URL chính xác.
+- Lựa chọn khác: dùng đúng `/api/applications/{id}/status` như PHASES.md viết, phân biệt HR với ứng
+  viên bằng `@PreAuthorize` trên cùng một cây đường dẫn.
+- Vì sao: cùng một tài nguyên `job_applications` được hai vai trò thao tác với hai tập hành động
+  tách bạch (ứng viên nộp/rút đơn của mình; HR đổi trạng thái/mời phỏng vấn trên đơn gửi tới công ty
+  mình). Tách theo tiền tố làm ranh giới quyền hiện ngay trên URL — đọc `SecurityFilterChain` là
+  thấy được ai vào được nhánh nào, không cần mở từng controller đếm annotation. Trộn chung một cây
+  rồi phân quyền hoàn toàn bằng annotation thì mỗi endpoint mới là một lần phải nhớ gắn đúng
+  `@PreAuthorize`; sót một cái là lỗ hổng im lặng, không có gì ở tầng cấu hình bắt lại được.
+- Đánh đổi: URL dài hơn và lặp thông tin (tiền tố `hr` đã ngụ ý sẵn trong quyền đã kiểm), và mỗi khi
+  PHASES.md viết một đường dẫn minh hoạ thì phải đối chiếu lại với quy ước thay vì chép thẳng — đúng
+  tình huống đã xảy ra ở nhánh này.
 
 ## 5. Ràng buộc SRS đã thực thi
 
