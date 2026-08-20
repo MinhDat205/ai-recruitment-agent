@@ -325,10 +325,20 @@ chính**
 viên, không field cấm, không đường code nào tự đổi trạng thái đơn theo kết quả gửi thông báo). Không
 phát hiện vi phạm nào.
 
+**Đã chạy tay qua giao diện thật** — do chủ dự án thực hiện ngày 20/08/2026, ngoài phiên implement
+(Docker + backend + frontend chạy thật, tài khoản HR và ứng viên thật): nộp đơn mới → HR thấy badge
+số chưa đọc trên chuông, dropdown và trang "Xem tất cả" hiển thị đúng, email tới MailHog với
+`from = noreply@ai-recruitment-agent.local`; ứng viên rút đơn → HR nhận thông báo `APPLICATION_WITHDRAWN`
+(luồng nằm ở bean khác với `changeStatus`, xác nhận không bị bỏ sót); HR từ chối một đơn → ứng viên
+nhận thông báo "Đơn ứng tuyển vị trí ... của bạn đã chuyển sang trạng thái: Bị từ chối", **không kèm
+điểm số, thứ hạng hay nhận xét nào** — trong khi cùng đơn đó phía HR vẫn xem được đầy đủ điểm từng
+tiêu chí và báo cáo giải thích, xác nhận ranh giới thông tin giữa hai vai trò trên giao diện thật.
+  Kiểm chứng tiêu chí "tắt MailHog → nghiệp vụ vẫn chạy": `docker compose stop mailhog` rồi thực
+  hiện rút đơn — nghiệp vụ thành công bình thường, thông báo web vẫn hiện ngay trên chuông, và truy
+  vấn `notifications` cho thấy dòng mới nhất `email_status = FAILED` trong khi các dòng trước đó giữ
+  nguyên `SENT`. Lỗi SMTP không ảnh hưởng transaction nghiệp vụ, đúng thiết kế tách poller ở mục 4c.
+
 **Chưa test**:
-- **Chưa test tay qua giao diện thật** (chưa chạy `docker compose up -d` + backend + frontend thật
-  để xác nhận chuông/badge/email MailHog hoạt động đúng bằng mắt — toàn bộ xác nhận ở nhánh này dừng
-  ở test tự động).
 - **Chưa test race condition đa instance** cho poller gửi email — đúng bản chất giả định "một
   instance" đã nêu ở mục 4d, không có test nào mô phỏng hai instance cùng chạy.
 - **Chưa test biên số lượng** cho phân trang thông báo (vd đúng `LIST_PAGE_SIZE=20`/`MAX_SIZE=50` ở
