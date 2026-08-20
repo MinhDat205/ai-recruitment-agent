@@ -142,6 +142,22 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     nghĩa hẹp). Cách sửa đề xuất: đổi sang `UPDATE job_applications SET status = :new WHERE id =
     :id AND status = :old`, kiểm số dòng ảnh hưởng — cùng khuôn mẫu
     `ScoringRunRepository.finishAggregation` (D3) đã dùng cho đúng vấn đề tương tự.
+  - Phát hiện khi kiểm thử tay nhánh E1 bằng tài khoản thật (20/08/2026):
+    - 6 job seed `10000000-0000-0000-0000-00000000000{1..6}` (`db/seed/dev-seed.sql`) không có rubric
+      lẫn interview_template; job `11111111-1111-1111-1111-111111111111` có rubric nhưng thiếu
+      template. Đây là dữ liệu tạo ngoài `JobOwnerService.create` nên thiếu các bất biến mà B2 đảm
+      bảo (Job+Rubric+InterviewTemplate luôn tạo cùng nhau). Xử lý bằng xoá mềm khi làm
+      `chore/seed-demo`, không vá bằng INSERT tay.
+    - Console cảnh báo `Select is changing from uncontrolled to controlled` (radix-ui) — có `Select`
+      khởi tạo `value={undefined}`. Sửa bằng giá trị khởi tạo hoặc `defaultValue`.
+    - Message lỗi 401 `UNAUTHENTICATED` viết tiếng Việt không dấu ("Can dang nhap de truy cap tai
+      nguyen nay", `JsonAuthenticationEntryPoint.java:22`) — không nhất quán với quy ước "chuỗi hiển
+      thị cho người dùng: tiếng Việt có dấu" (CLAUDE.md mục 4). Rà lại các message tương tự còn
+      thiếu dấu (`GlobalExceptionHandler` và các entry point/handler khác ở tầng filter chain).
+    - Sidebar HR: mục "Ứng viên" và "Rubric" không có `to` trong `NAV_ITEMS`
+      (`frontend/src/components/layout/HrLayout.tsx:15-16`) nên hiển thị mờ, không bấm được. Cố ý ở
+      giai đoạn này (hai màn hình đó vào qua job, chưa có trang danh sách toàn cục). Quyết định ở F3
+      (FR-H08, dashboard): trỏ về màn hình đó hoặc gỡ hẳn khỏi sidebar.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
