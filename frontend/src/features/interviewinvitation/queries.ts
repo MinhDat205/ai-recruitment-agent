@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hrApplicationsKeyPrefix } from '../scoring/queries'
-import { previewInterviewInvitationRequest, sendInterviewInvitationRequest } from './api'
+import { getInterviewInvitationRequest, previewInterviewInvitationRequest, sendInterviewInvitationRequest } from './api'
 import type { InterviewInvitationSendRequest } from './types'
 
 function interviewInvitationPreviewKey(applicationId: string | undefined) {
@@ -28,5 +28,19 @@ export function useSendInterviewInvitationMutation(jobId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
     },
+  })
+}
+
+function interviewInvitationKey(applicationId: string | undefined) {
+  return ['interview-invitation', applicationId]
+}
+
+// enabled truyen tu ngoai (dialog dang mo hay khong) - cung ly do voi
+// useInterviewInvitationPreviewQuery, tranh fetch cho moi dong trong bang khi tai trang.
+export function useInterviewInvitationQuery(applicationId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: interviewInvitationKey(applicationId),
+    queryFn: () => getInterviewInvitationRequest(applicationId as string),
+    enabled: enabled && Boolean(applicationId),
   })
 }

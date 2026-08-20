@@ -2,11 +2,13 @@ package com.recruitment.interviewinvitation;
 
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
+import com.recruitment.common.exception.InterviewInvitationNotFoundException;
 import com.recruitment.common.exception.InterviewTemplateNotFoundException;
 import com.recruitment.common.exception.InvalidInterviewScheduleException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
+import com.recruitment.interviewinvitation.dto.CandidateInterviewInvitationResponse;
 import com.recruitment.interviewinvitation.dto.InterviewInvitationPreviewResponse;
 import com.recruitment.interviewinvitation.dto.InterviewInvitationResponse;
 import com.recruitment.interviewinvitation.dto.InterviewInvitationSendRequest;
@@ -116,6 +118,39 @@ public class InterviewInvitationService {
         InterviewInvitation saved = interviewInvitationRepository.save(invitation);
 
         return toResponse(saved);
+    }
+
+    // Chi doc, khong @Transactional - cung mau previewInvitation. Kiem so huu khac han
+    // loadOwnedApplication (phia HR): so truc tiep application.candidateId, khong qua Company - vi
+    // day la quyen cua UNG VIEN, khong phai HR.
+    //
+    // Co chu dich tra 403 (AccessDeniedException) cho "don cua nguoi khac", KHONG dung pattern
+    // findByIdAndCandidateId->404-cho-ca-hai nhu ApplicationService.getMyApplicationHistory. Ly do:
+    // applicationId la UUID v4 khong doan duoc va nguoi goi da dang nhap (JWT hop le), nen lo "don
+    // nay ton tai nhung khong phai cua ban" khong cho ke tan cong thong tin khai thac duoc gi hon
+    // mot UUID ngau nhien da co san; doi lai tach 403/404 giup debug ro rang hon o phia client. Hai
+    // pattern (403 o day, 404-che-giau o ApplicationService) CUNG TON TAI co chu dich trong du an,
+    // khong phai mot cho quen dong bo voi cho kia - xem walkthrough candidate-view-invitation.
+    public CandidateInterviewInvitationResponse getLatestInvitationForCandidate(UUID candidateId, UUID applicationId) {
+        JobApplication application = jobApplicationRepository
+                .findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+        if (!application.getCandidateId().equals(candidateId)) {
+            throw new AccessDeniedException("Khong co quyen xem giay moi phong van cua don ung tuyen nay");
+        }
+
+        // findFirst tren danh sach da sap createdAt DESC: phong thu cho truong hop co nhieu dong
+        // (hien luong nghiep vu that khong tao ra duoc - ALLOWED_TRANSITIONS chan gui loi moi lan
+        // hai tren cung don, xem ApplicationStatusService), khong co duong nao qua API tao ra 2 dong
+        // interview_invitations cho cung applicationId nen khong co test rieng cho nhanh nay.
+        InterviewInvitation latest = interviewInvitationRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId).stream()
+                .findFirst()
+                .orElseThrow(() -> new InterviewInvitationNotFoundException(applicationId));
+
+        // Khong loc theo application.status - don da HIRED/REJECTED van doc lai duoc giay moi cu
+        // (ung vien doi chieu lich hen sau khi da co ket qua cuoi).
+        return new CandidateInterviewInvitationResponse(
+                latest.getScheduledAt(), latest.getLocation(), latest.getSubject(), latest.getRenderedContent(), latest.getSentAt());
     }
 
     private String render(String text, String candidateName, String jobTitle, String companyName) {

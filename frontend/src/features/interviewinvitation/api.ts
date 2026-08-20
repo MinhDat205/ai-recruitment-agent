@@ -1,5 +1,10 @@
 import { http } from '../../lib/http'
-import type { InterviewInvitationPreview, InterviewInvitationResponse, InterviewInvitationSendRequest } from './types'
+import type {
+  CandidateInterviewInvitation,
+  InterviewInvitationPreview,
+  InterviewInvitationResponse,
+  InterviewInvitationSendRequest,
+} from './types'
 
 export async function previewInterviewInvitationRequest(applicationId: string): Promise<InterviewInvitationPreview> {
   const response = await http.get<InterviewInvitationPreview>(
@@ -15,6 +20,13 @@ export async function sendInterviewInvitationRequest(
   const response = await http.post<InterviewInvitationResponse>(
     `/hr/applications/${applicationId}/interview-invitation`,
     payload,
+  )
+  return response.data
+}
+
+export async function getInterviewInvitationRequest(applicationId: string): Promise<CandidateInterviewInvitation> {
+  const response = await http.get<CandidateInterviewInvitation>(
+    `/candidates/applications/${applicationId}/interview-invitation`,
   )
   return response.data
 }

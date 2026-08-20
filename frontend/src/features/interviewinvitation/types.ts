@@ -35,3 +35,14 @@ export interface InterviewInvitationResponse {
   sentAt: string
   sentBy: string
 }
+
+// Khop CandidateInterviewInvitationResponse (backend) - GET
+// /candidates/applications/{id}/interview-invitation. Chi 5 field, khong co id/applicationId/sentBy
+// - ung vien chi can xem lai lich hen, khong can du lieu noi bo do.
+export interface CandidateInterviewInvitation {
+  scheduledAt: string
+  location: string | null
+  subject: string
+  renderedContent: string
+  sentAt: string
+}
