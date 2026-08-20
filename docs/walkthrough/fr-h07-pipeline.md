@@ -316,7 +316,7 @@ không phải từng `ApplicationRow`**
 | FR-H02 (kế thừa) | `company_name` đóng băng lúc tạo template, không đổi theo hồ sơ công ty sau này | `template.getCompanyName()` dùng để render (không dùng `company.getName()` sống); cảnh báo lệch, không tự sửa (mục 4e) |
 | CLAUDE.md mục 2 | `interview_invitations` lưu nguyên văn, không FK ngược về template | `InterviewInvitation.renderedContent` không render lại ở bước gửi (mục 4c), test `send_thenTemplateEditedAfterward_invitationContentUnchanged` |
 | CLAUDE.md mục 7 | Không ràng buộc "phải chấm điểm xong mới được mời" | Nút hành động chỉ phụ thuộc `application.status`, không đọc `totalScore`/`rank`/`criterionScores` (mục 4h) |
-| UI_GUIDE.md | Badge trạng thái màu trung tính, không đỏ/vàng/xanh theo điểm | Tái dùng nguyên `ApplicationStatusBadge`/token `--color-status-*` đã có từ FR-U03 |
+| UI_GUIDE.md | Badge trạng thái không tô màu theo điểm số | Màu badge phản ánh trạng thái pipeline do HR quyết định (`ApplicationStatusBadge`/token `--color-status-*`, tái dùng nguyên từ FR-U03), không có màu nào phái sinh từ `totalScore` hay thứ hạng — điều SRS cấm là tô màu theo điểm, không phải mọi màu sắc |
 | UI_GUIDE.md | Không gợi ý hành động theo điểm | `nextActionsFor` chỉ nhận `status`, không có câu chữ nào kiểu "Nên mời phỏng vấn" |
 | Quy ước dự án (CLAUDE.md 3c) | Method ghi của job liên-bean không tự self-invocation | `ApplicationStatusRecorder` là bean riêng, `@Transactional` riêng (mục 4a) |
 
@@ -342,13 +342,26 @@ không phải từng `ApplicationRow`**
 **`srs-guard`** — soát đủ 9 mục, không phát hiện vi phạm. Một điểm "cần xem lại" (không phải vi
 phạm 9 mục, xem mục 7) đã được ghi nhận và xếp vào nợ kỹ thuật thay vì sửa trong nhánh này.
 
+**Đã chạy tay qua giao diện thật** — do chủ dự án thực hiện ngày 20/08/2026, ngoài phiên implement
+(Docker + backend + frontend chạy thật, tài khoản HR thật): mở job "Tuyển vị trí tele sale" → tab
+Ứng viên → mở hồ sơ một đơn `PENDING` **chưa từng được chấm điểm** (Sheet vẫn mở được, hiện câu
+trung tính "Đơn này chưa có kết quả chấm điểm để xem", hai nút hành động vẫn đủ — xác nhận mục 4h
+chạy đúng trên giao diện thật) → Mời phỏng vấn (preview đúng tên ứng viên, sửa được nội dung, ngày
+giờ quá khứ bị chặn tại form) → gửi → badge chuyển "Đã mời phỏng vấn", nút đổi thành Trúng tuyển/Từ
+chối → Trúng tuyển; một đơn khác đi đường `PENDING → Từ chối`. Dialog xác nhận hiện đúng câu "Hành
+động này không thể hoàn tác." Không có ô điểm nào tô màu theo ngưỡng, không có câu chữ gợi ý hành
+động theo điểm.
+Kiểm chứng ở tầng dữ liệu (truy vấn trực tiếp PostgreSQL): `interview_invitations.rendered_content`
+lưu đúng nội dung HR đã sửa tay, không phải bản render gốc — xác nhận mục 4c; `scheduled_at` lưu
+đúng UTC sau khi quy đổi từ giờ trình duyệt; `application_status_history` sinh đúng một dòng cho
+mỗi lần đổi, `changed_by` không NULL, đủ chuỗi `PENDING → INTERVIEW_INVITED → HIRED` và
+`PENDING → REJECTED`; timeline phía ứng viên (FR-U03) hiển thị đúng các dòng này.
+Kiểm chứng mục 4b bằng request thật: gọi `PATCH /api/hr/applications/{id}/status` với
+`{"status":"INTERVIEW_INVITED"}` từ console trình duyệt (token HR hợp lệ) trả **400
+`INVALID_APPLICATION_STATUS_TRANSITION`** kèm message chỉ sang endpoint gửi lời mời — chốt chặn
+nằm ở backend, không phải chỉ ẩn nút ở UI.
+
 **Chưa test**:
-- **Chưa chạy tay qua giao diện trình duyệt thật với backend đang chạy.** Toàn bộ xác nhận frontend
-  trong đợt này dừng ở `tsc`/`vite build`/`eslint` — chưa có ai thực sự mở app (`docker compose up`
-  + `mvnw spring-boot:run` + `npm run dev`), đăng nhập HR, mở một job có ứng viên thật, bấm qua
-  luồng mời phỏng vấn/từ chối/trúng tuyển để xác nhận bằng mắt. Đây là khoảng trống so với tiêu chí
-  "chạy được thật trên giao diện" đã đặt ra cho đợt 3 — cần một lượt kiểm tay trước khi coi đợt này
-  là hoàn thành đầy đủ.
 - **Chưa test race condition thật** cho `ApplicationStatusService.changeStatus` (xem mục 7, nợ kỹ
   thuật mới) — test hiện có đều gọi tuần tự, không có test hai request đồng thời.
 - **Chưa test tay với việc gửi thông báo thật** (email/web) khi trạng thái đổi — không thuộc phạm
@@ -370,8 +383,6 @@ sửa trong nhánh này):
    xuất: đổi `changeStatus` sang `UPDATE job_applications SET status = :new WHERE id = :id AND
    status = :old` (native hoặc `@Modifying(clearAutomatically = true)`), kiểm số dòng ảnh hưởng —
    cùng khuôn mẫu `ScoringRunRepository.finishAggregation` (D3) đã dùng cho đúng vấn đề tương tự.
-2. Chưa chạy tay qua giao diện thật (xem mục 6) — không phải nợ code, nhưng là việc còn thiếu trước
-   khi coi tiêu chí "xong" của đợt 3 là đạt đầy đủ.
 
 **Không phải nợ, là hạn chế/quyết định có chủ đích** (đã giải thích ở mục 4, không lặp lại): không
 render lại nội dung ở bước gửi; không tự sửa tên công ty khi lệch, chỉ cảnh báo; giới hạn `@Size`
