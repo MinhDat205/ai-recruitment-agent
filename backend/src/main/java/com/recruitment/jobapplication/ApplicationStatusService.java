@@ -9,9 +9,11 @@ import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
+import com.recruitment.notification.ApplicationStatusChangedEvent;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,16 +37,19 @@ public class ApplicationStatusService {
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
     private final ApplicationStatusRecorder applicationStatusRecorder;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ApplicationStatusService(
             JobApplicationRepository jobApplicationRepository,
             JobRepository jobRepository,
             CompanyRepository companyRepository,
-            ApplicationStatusRecorder applicationStatusRecorder) {
+            ApplicationStatusRecorder applicationStatusRecorder,
+            ApplicationEventPublisher eventPublisher) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.applicationStatusRecorder = applicationStatusRecorder;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -63,6 +68,11 @@ public class ApplicationStatusService {
         // ownerId = users.id cua HR dang dang nhap (JwtService.subject, xem ApplicationStatusRecorder)
         // - dung field changed_by de FR-H08 (lich su audit) tra ra dung nguoi thao tac.
         applicationStatusRecorder.record(saved.getId(), oldStatus, newStatus, ownerId, null);
+
+        // FR-C03: publish TRONG transaction chinh - NotificationEventListener xu ly sau
+        // AFTER_COMMIT (chi khi UPDATE nay that su commit thanh cong).
+        eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
+                saved.getId(), saved.getJobId(), saved.getCandidateId(), oldStatus, newStatus));
 
         return toResponse(saved);
     }

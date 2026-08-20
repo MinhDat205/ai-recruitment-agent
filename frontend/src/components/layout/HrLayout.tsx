@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../features/auth/useAuth'
+import { NotificationBell } from '../../features/notifications/NotificationBell'
 
 interface NavItem {
   label: string
@@ -65,6 +66,7 @@ export function HrLayout({ title, children }: { title: string; children: ReactNo
         <header className="flex h-16 items-center justify-between border-b border-line bg-surface px-6">
           <p className="text-sm text-ink-muted">Quản trị / {title}</p>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.fullName} className="h-8 w-8 rounded-full object-cover" />
             ) : (

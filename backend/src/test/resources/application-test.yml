@@ -12,5 +12,7 @@ app:
     enabled: false
   explanation:
     enabled: false
+  notification:
+    enabled: false
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key

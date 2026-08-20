@@ -178,6 +178,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("SCORING_RUN_IN_PROGRESS", ex.getMessage()));
     }
 
+    @ExceptionHandler(NotificationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotificationNotFound(NotificationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("NOTIFICATION_NOT_FOUND", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)

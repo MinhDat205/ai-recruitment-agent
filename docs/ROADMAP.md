@@ -80,7 +80,12 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
   - Giấy mời phỏng vấn lưu nguyên văn nội dung HR đã gửi (`interview_invitations.rendered_content`),
     không render lại và không FK ngược về `interview_templates` — HR sửa mẫu sau này không làm đổi
     nội dung đã gửi, cùng tinh thần `rubric_snapshot` (D2). Chi tiết walkthrough mục 4c/4e.
-- [ ] **E2** `feat/fr-c03-notification` — FR-C03 · Thông báo web + email
+- [x] **E2** `feat/fr-c03-notification` — FR-C03 · Thông báo web + email
+  - Spring Events (`@TransactionalEventListener(AFTER_COMMIT)` cho 3 sự kiện publish trong transaction
+    nghiệp vụ, `@EventListener` thường cho sự kiện chấm điểm xong publish ngoài transaction ở
+    `AggregationOrchestrator`) + poller gửi email riêng, tách hoàn toàn khỏi transaction ghi chính.
+    Chi tiết lập luận + lỗi thật gặp lúc chạy test (Spring chặn `@Transactional` mặc định trên
+    method AFTER_COMMIT) ở walkthrough `fr-c03-notification.md` mục 4a/4b.
 
 **Xong khi:** không tồn tại bất kỳ đường code nào tự động chuyển trạng thái đậu/rớt.
 
@@ -158,6 +163,8 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       (`frontend/src/components/layout/HrLayout.tsx:15-16`) nên hiển thị mờ, không bấm được. Cố ý ở
       giai đoạn này (hai màn hình đó vào qua job, chưa có trang danh sách toàn cục). Quyết định ở F3
       (FR-H08, dashboard): trỏ về màn hình đó hoặc gỡ hẳn khỏi sidebar.
+  - E2: poller gửi email không claim trước khi gửi — an toàn với một instance, sẽ gửi trùng nếu chạy
+    đa instance. Xem walkthrough `fr-c03-notification.md` mục 4d/7.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 

@@ -3,12 +3,14 @@ import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
+import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
 import { HrHomePage } from './pages/HrHomePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
 import { HrJobEditPage } from './pages/HrJobEditPage'
 import { HrJobListPage } from './pages/HrJobListPage'
+import { HrNotificationsPage } from './pages/HrNotificationsPage'
 import { JobApplyPage } from './pages/JobApplyPage'
 import { LoginPage } from './pages/LoginPage'
 import { PublicCompanyProfilePage } from './pages/PublicCompanyProfilePage'
@@ -59,6 +61,14 @@ function App() {
             }
           />
           <Route
+            path="/candidate/notifications"
+            element={
+              <ProtectedRoute allowedRoles={['CANDIDATE']}>
+                <CandidateNotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/hr"
             element={
               <ProtectedRoute allowedRoles={['HR']}>
@@ -95,6 +105,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['HR']}>
                 <HrJobEditPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/notifications"
+            element={
+              <ProtectedRoute allowedRoles={['HR']}>
+                <HrNotificationsPage />
               </ProtectedRoute>
             }
           />

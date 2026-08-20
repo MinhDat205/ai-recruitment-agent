@@ -10,11 +10,14 @@ import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
 import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
+import com.recruitment.notification.ApplicationSubmittedEvent;
+import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,18 +29,21 @@ public class ApplicationService {
     private final JobRepository jobRepository;
     private final ResumeRepository resumeRepository;
     private final ApplicationStatusRecorder applicationStatusRecorder;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
             ApplicationStatusHistoryRepository statusHistoryRepository,
             JobRepository jobRepository,
             ResumeRepository resumeRepository,
-            ApplicationStatusRecorder applicationStatusRecorder) {
+            ApplicationStatusRecorder applicationStatusRecorder,
+            ApplicationEventPublisher eventPublisher) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
         this.resumeRepository = resumeRepository;
         this.applicationStatusRecorder = applicationStatusRecorder;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -73,6 +79,10 @@ public class ApplicationService {
         // don). Cung transaction voi viec tao don (goi bean khac, khong phai self-invocation).
         applicationStatusRecorder.record(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
 
+        // FR-C03: publish TRONG transaction chinh - NotificationEventListener xu ly sau
+        // AFTER_COMMIT, nguoi nhan la HR so huu cong ty cua job (suy tu jobId o listener).
+        eventPublisher.publishEvent(new ApplicationSubmittedEvent(saved.getId(), job.getId(), candidateId));
+
         return toResponse(saved);
     }
 
@@ -93,6 +103,10 @@ public class ApplicationService {
         JobApplication saved = applicationRepository.save(application);
 
         applicationStatusRecorder.record(saved.getId(), fromStatus, ApplicationStatus.WITHDRAWN, candidateId, null);
+
+        // FR-C03: publish TRONG transaction chinh - nguoi nhan la HR so huu cong ty cua job,
+        // KHONG phai candidate (chinh candidate la nguoi vua thuc hien hanh dong nay).
+        eventPublisher.publishEvent(new ApplicationWithdrawnEvent(saved.getId(), saved.getJobId(), candidateId));
 
         return toResponse(saved);
     }
