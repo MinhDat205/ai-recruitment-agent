@@ -93,7 +93,14 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 
 - [ ] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
 - [ ] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
-- [ ] **F3** `feat/fr-h08-dashboard` — FR-H08 · Dashboard, lọc theo điểm, tra cứu lịch sử đánh giá
+- [x] **F3** `feat/fr-h08-dashboard` — FR-H08 · Dashboard, lọc theo điểm, tra cứu lịch sử đánh giá
+  - Phễu chuyển đổi đếm theo `application_status_history` (đã từng đạt trạng thái), không đếm theo
+    `job_applications.status` hiện tại — đơn được mời phỏng vấn rồi rút đơn vẫn tính vào "đã từng
+    được mời". Nhánh lọc theo điểm tiêu chí dẫn dắt câu SQL từ `criterion_scores` để ép Postgres
+    dùng đúng `idx_criterion_scores_filter` (dẫn dắt từ `scoring_runs` sẽ vô tình chọn index khác).
+    Không có cột "Hạng" ở danh sách ứng viên toàn công ty — FR-H05 chỉ định nghĩa xếp hạng trong
+    phạm vi một chiến dịch. Chi tiết đầy đủ + các quyết định gây tranh luận ở walkthrough
+    `fr-h08-dashboard.md` mục 4.
 
 **Xong khi:** đơn đã rút vẫn được đếm đúng trong thống kê.
 
@@ -163,8 +170,31 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       (`frontend/src/components/layout/HrLayout.tsx:15-16`) nên hiển thị mờ, không bấm được. Cố ý ở
       giai đoạn này (hai màn hình đó vào qua job, chưa có trang danh sách toàn cục). Quyết định ở F3
       (FR-H08, dashboard): trỏ về màn hình đó hoặc gỡ hẳn khỏi sidebar.
+      **Đã xử lý ở F3**: "Ứng viên" trỏ `/hr/candidates` (trang mới); "Rubric" xóa hẳn khỏi
+      `NAV_ITEMS` (rubric thuộc từng job, đã có tab riêng trong `HrJobEditPage`, đặt ở menu cấp cao
+      là điều hướng cụt).
   - E2: poller gửi email không claim trước khi gửi — an toàn với một instance, sẽ gửi trùng nếu chạy
     đa instance. Xem walkthrough `fr-c03-notification.md` mục 4d/7.
+  - Phát hiện khi làm F3 (FR-H08, `feat/fr-h08-dashboard`):
+    - `ScoringRunRepository.findByApplicationIdOrderByCreatedAtDesc` (D2) — derived query `ORDER BY
+      created_at DESC` thiếu khóa cuối duy nhất. Đã kiểm thực nghiệm trên Postgres 17 thật: hai lượt
+      chấm cùng `created_at` (cùng transaction) có thể đổi thứ tự trả về giữa hai lần đọc dữ liệu
+      không đổi, chỉ do khác vị trí vật lý trong heap/index. Đang được `ScoringRunService.listScoringRuns`
+      (D2) dùng trực tiếp — sửa cần thêm `, id DESC` và chạy lại 19 test của D2 để xác nhận không vỡ
+      kỳ vọng thứ tự.
+    - `ScoringRunRepository.findLatestDoneByApplicationIdIn` (D3) — `DISTINCT ON (application_id)
+      ORDER BY application_id, created_at DESC` cùng lỗi thiếu khóa cuối, ảnh hưởng nguồn điểm xếp
+      hạng của D3/D4.
+    - Pattern `requireOwnCompany` chạy **sau** khi tra tài nguyên (thay vì trước) ở
+      `ApplicationStatusService.loadOwnedApplication` (E1) và `ApplicationOwnerService.loadOwnedJob`
+      (D3) — HR chưa tạo hồ sơ công ty nhận nhầm lỗi 404 sai nguyên nhân (`APPLICATION_NOT_FOUND`/
+      `JOB_NOT_FOUND` thay vì `COMPANY_NOT_FOUND`). F3 đã sửa đúng thứ tự này cho
+      `ScoringRunAuditService` (file mới), không sửa hai file D3/E1 kia (ngoài phạm vi một mã FR).
+    - Dropdown "Tin tuyển dụng" trong `CandidatesFilterBar` (F3) giới hạn 50 tin — trần
+      `JobOwnerService.MAX_SIZE` ở backend, không phải lựa chọn tùy ý ở frontend. Công ty có hơn 50
+      tin sẽ không lọc được tin cũ nhất qua dropdown này (đã có chú thích UI báo số lượng bị cắt bớt).
+    - Cột số trong `CandidatesTable` và `JobPerformanceTable` (F3) căn trái theo mặc định — nên căn
+      phải để dễ so sánh giá trị giữa các dòng.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
