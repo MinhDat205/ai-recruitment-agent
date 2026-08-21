@@ -9,9 +9,11 @@ interface NavItem {
 }
 
 // Dung 5 muc theo docs/UI_GUIDE.md muc 3. "Ho so cong ty" co route tu B1, "Tin tuyen dung" co
-// route tu B2 - 3 muc con lai la placeholder khong the bam, cho tan cac nhanh tuong ung lam.
+// route tu B2, "Dashboard" co route tu F3/Dot 5 - "Ung vien" con lai la placeholder, cho Dot 6
+// (F3) lam. "Rubric" se bi xoa hoan toan khoi mang nay o Dot 6 (rubric thuoc tung job, da co tab
+// rieng trong HrJobEditPage - de o menu cap cao la dieu huong cut, xem quyet dinh #10 trong plan).
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard' },
+  { label: 'Dashboard', to: '/hr' },
   { label: 'Tin tuyển dụng', to: '/hr/jobs' },
   { label: 'Ứng viên' },
   { label: 'Rubric' },
@@ -44,9 +46,13 @@ export function HrLayout({ title, children }: { title: string; children: ReactNo
                 </span>
               )
             }
-            // "/hr/jobs" phai active ca o cac trang con (/hr/jobs/new, /hr/jobs/:id/edit).
+            // "/hr/jobs" phai active ca o cac trang con (/hr/jobs/new, /hr/jobs/:id/edit) - nhung
+            // "/hr" (Dashboard) la tien to cua MOI route HR khac, nen KHONG duoc dung prefix match
+            // cho no (startsWith('/hr/') se khop nham voi ca /hr/jobs, /hr/company...), chi active
+            // dung khi khop chinh xac.
             const active =
-              location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+              location.pathname === item.to ||
+              (item.to !== '/hr' && location.pathname.startsWith(`${item.to}/`))
             return (
               <Link
                 key={item.label}
