@@ -5,18 +5,18 @@ import { NotificationBell } from '../../features/notifications/NotificationBell'
 
 interface NavItem {
   label: string
-  to?: string
+  to: string
 }
 
-// Dung 5 muc theo docs/UI_GUIDE.md muc 3. "Ho so cong ty" co route tu B1, "Tin tuyen dung" co
-// route tu B2, "Dashboard" co route tu F3/Dot 5 - "Ung vien" con lai la placeholder, cho Dot 6
-// (F3) lam. "Rubric" se bi xoa hoan toan khoi mang nay o Dot 6 (rubric thuoc tung job, da co tab
-// rieng trong HrJobEditPage - de o menu cap cao la dieu huong cut, xem quyet dinh #10 trong plan).
+// docs/UI_GUIDE.md muc 3 liet ke 5 muc (bao gom "Rubric") nhung da lac hau so voi quyet dinh #10
+// trong plan FR-H08: BO HAN "Rubric" khoi menu cap cao - rubric thuoc TUNG job, da co tab rieng
+// trong HrJobEditPage, dat o menu cap cao la dieu huong cut (khong co trang "Rubric" doc lap nao
+// de tro toi). Con lai 4 muc, tat ca da co route: "Ho so cong ty" (B1), "Tin tuyen dung" (B2),
+// "Dashboard" (F3/Dot 5), "Ung vien" (F3/Dot 6).
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', to: '/hr' },
   { label: 'Tin tuyển dụng', to: '/hr/jobs' },
-  { label: 'Ứng viên' },
-  { label: 'Rubric' },
+  { label: 'Ứng viên', to: '/hr/candidates' },
   { label: 'Hồ sơ công ty', to: '/hr/company' },
 ]
 
@@ -35,17 +35,6 @@ export function HrLayout({ title, children }: { title: string; children: ReactNo
         </Link>
         <nav className="flex flex-col gap-1 p-3">
           {NAV_ITEMS.map((item) => {
-            if (!item.to) {
-              return (
-                <span
-                  key={item.label}
-                  aria-disabled="true"
-                  className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-ink-muted/60"
-                >
-                  {item.label}
-                </span>
-              )
-            }
             // "/hr/jobs" phai active ca o cac trang con (/hr/jobs/new, /hr/jobs/:id/edit) - nhung
             // "/hr" (Dashboard) la tien to cua MOI route HR khac, nen KHONG duoc dung prefix match
             // cho no (startsWith('/hr/') se khop nham voi ca /hr/jobs, /hr/company...), chi active
