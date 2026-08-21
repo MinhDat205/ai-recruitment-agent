@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../components/ui/sheet'
+import { formatScore } from '../../lib/score'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
 import type { CriterionScoreItem, ScoringRunStatus } from '../scoring/types'
 import { useScoringRunAuditQuery } from './queries'
@@ -45,12 +46,6 @@ function formatDateTime(iso: string | null): string {
     minute: '2-digit',
     second: '2-digit',
   })
-}
-
-// Cung quy uoc voi JobPerformanceTable/CandidatesTable: null = CHUA CO diem (khac 0 diem that),
-// hien "Chưa chấm" chu khong hien "0".
-function formatTotalScore(totalScore: number | null): string {
-  return totalScore === null ? 'Chưa chấm' : totalScore.toFixed(3)
 }
 
 // Bang gon RIENG cho panel audit - KHONG tai dung CriterionScoreBreakdown (features/scoring,
@@ -116,7 +111,7 @@ export function ScoringRunAuditPanel({
                   <div className="flex flex-col gap-2 border-b border-line p-4">
                     <div className="flex items-center justify-between gap-2">
                       <StatusLabel status={run.status} />
-                      <span className="text-sm font-medium text-ink">{formatTotalScore(run.totalScore)}</span>
+                      <span className="text-sm font-medium text-ink">{formatScore(run.totalScore)}</span>
                     </div>
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink-muted">
                       <div>

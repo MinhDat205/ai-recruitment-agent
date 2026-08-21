@@ -1,13 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { formatScore } from '../../lib/score'
 import { JobStatusBadge } from '../jobs/JobStatusBadge'
 import type { JobPerformanceItem } from './types'
-
-// averageScore = null nghia la CHUA co luot cham DONE nao (khac 0 diem that) - hien "Chưa chấm",
-// khong hien "0". Khong to mau o diem theo nguong (CLAUDE.md/PHASES.md D3) - chi mot mau chu
-// ink-muted trung tinh cho ca hai truong hop.
-function formatAverageScore(averageScore: number | null): string {
-  return averageScore === null ? 'Chưa chấm' : String(averageScore)
-}
 
 export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) {
   if (items.length === 0) {
@@ -40,7 +34,7 @@ export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) 
                 <TableCell className="text-ink-muted">{item.recruitmentCycle}</TableCell>
                 <TableCell className="text-ink-muted">{item.totalApplications}</TableCell>
                 <TableCell className="text-ink-muted">{item.scoredApplications}</TableCell>
-                <TableCell className="text-ink-muted">{formatAverageScore(item.averageScore)}</TableCell>
+                <TableCell className="text-ink-muted">{formatScore(item.averageScore)}</TableCell>
                 <TableCell className="text-ink-muted">{item.everInvitedCount}</TableCell>
                 <TableCell className="text-ink-muted">{item.everHiredCount}</TableCell>
               </TableRow>

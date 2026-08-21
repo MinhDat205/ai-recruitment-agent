@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FileText } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { formatScore } from '../../lib/score'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
 import { ScoringRunAuditPanel } from './ScoringRunAuditPanel'
@@ -17,13 +18,9 @@ function formatAppliedAt(iso: string): string {
   })
 }
 
-// null = CHUA CO luot DONE nao (khac 0 diem that) - hien "Chưa chấm", khong hien "0" (cung quy
-// uoc voi JobPerformanceTable). KHONG co cot Hang: FR-H05 chi dinh nghia xep hang trong PHAM VI
-// MOT chien dich (mot job) - danh sach nay xuyen nhieu job nen khong hien rank (quyet dinh #2
-// trong plan Dot 3, ap dung lai o day).
-function formatTotalScore(totalScore: number | null): string {
-  return totalScore === null ? 'Chưa chấm' : totalScore.toFixed(3)
-}
+// KHONG co cot Hang: FR-H05 chi dinh nghia xep hang trong PHAM VI MOT chien dich (mot job) -
+// danh sach nay xuyen nhieu job nen khong hien rank (quyet dinh #2 trong plan Dot 3, ap dung lai
+// o day).
 
 export function CandidatesTable({ items }: { items: CandidateSearchItem[] }) {
   const [auditTarget, setAuditTarget] = useState<CandidateSearchItem | null>(null)
@@ -63,7 +60,7 @@ export function CandidatesTable({ items }: { items: CandidateSearchItem[] }) {
                 <TableCell>
                   <ApplicationStatusBadge status={item.status} />
                 </TableCell>
-                <TableCell className="text-ink">{formatTotalScore(item.totalScore)}</TableCell>
+                <TableCell className="text-ink">{formatScore(item.totalScore)}</TableCell>
                 <TableCell className="text-right">
                   <Button type="button" variant="outline" size="sm" onClick={() => setAuditTarget(item)}>
                     <FileText className="h-3.5 w-3.5" aria-hidden="true" />

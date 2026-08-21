@@ -56,6 +56,13 @@ function toParams(draft: FilterDraft): CandidateSearchParams {
 // chi khi da go diem". filterMismatch la lop CUOI, khong phai lop chinh - bat truong hop mot duong
 // set draft moi sau nay lo quen ca hai lop tren, disable nut Ap dung + hien thong bao thay vi im
 // lang gui sai.
+//
+// scoreRangeInvalid (phat hien qua test tay Dot 6, minTotalScore > maxTotalScore) ap dung CUNG
+// nguyen tac: backend (ApplicationSearchService.validateFilters) chac chan tra 400 cho to hop nay,
+// UI phai chan TRUOC chu khong de loi 400 roi hien thong bao chung chung "khong tai duoc du lieu"
+// (HR se hieu nham la loi he thong). hasBlockingError gop CA HAI dieu kien thanh MOT diem chan duy
+// nhat cho nut Ap dung - khong phai gop chung mot thong bao (moi loi van hien rieng, ro nguyen
+// nhan).
 export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSearchParams) => void }) {
   const [draft, setDraft] = useState<FilterDraft>(EMPTY_DRAFT)
   const { data: jobsPage } = useHrJobsQuery({ size: JOB_DROPDOWN_SIZE })
@@ -64,10 +71,19 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
   const criterionSelected = draft.criterionName !== NO_CRITERION
   const minCriterionScoreFilled = draft.minCriterionScore !== ''
   const filterMismatch = criterionSelected !== minCriterionScoreFilled
+  // Cung nguyen tac voi filterMismatch: chan TRUOC o UI, khong bao gio goi API voi to hop ma
+  // backend chac chan tra 400 (ApplicationSearchService.validateFilters: minTotalScore >
+  // maxTotalScore). Chi kich hoat khi CA HAI co gia tri - mot ve rong (khong gioi han) khong bao
+  // gio tao khoang rong.
+  const scoreRangeInvalid =
+    draft.minTotalScore !== '' &&
+    draft.maxTotalScore !== '' &&
+    Number(draft.minTotalScore) > Number(draft.maxTotalScore)
+  const hasBlockingError = filterMismatch || scoreRangeInvalid
   const jobListTruncated = Boolean(jobsPage) && jobsPage!.totalElements > jobsPage!.items.length
 
   function handleApply() {
-    if (filterMismatch) return
+    if (hasBlockingError) return
     onApply(toParams(draft))
   }
 
@@ -78,12 +94,22 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
 
   return (
     <div className="flex flex-col gap-3 rounded-(--radius-card) border border-line bg-surface p-4">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <div className="flex flex-col gap-1">
+      {/* lg:grid-cols-3 (khong phai -6, xem test tay Dot 6 LOI 2): gia tri that dai nhat hien co
+          ("Java Backend Developer (test Phase D)", "Trinh do hoc van nganh CNTT") van bi cat qua
+          ngan de phan biet duoc o 6 cot tren mot hang du da co min-w-0/truncate - bo loc khong
+          phai thu can nen vao dung mot hang. */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label>Tin tuyển dụng</Label>
           <Select value={draft.jobId} onValueChange={(value) => setDraft((d) => ({ ...d, jobId: value }))}>
-            <SelectTrigger>
-              <SelectValue />
+            {/* w-full bat buoc: SelectTrigger mac dinh w-fit + whitespace-nowrap (components/ui/select.tsx)
+                nen KHONG tu co theo cot luoi du div cha da co min-w-0 - w-fit + noi dung khong the
+                xuong dong khien fit-content luon bang max-content, bo qua khong gian con lai. Ba
+                lop bo sung cho nhau, khong lop nao thua: min-w-0 (div) cho grid track co duoc,
+                w-full (o day) cho trigger bam theo track, truncate (SelectValue) cat chu khi da bi
+                gioi han that su. */}
+            <SelectTrigger className="w-full">
+              <SelectValue className="truncate" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_JOBS}>Tất cả tin</SelectItem>
@@ -101,11 +127,11 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
           )}
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label>Trạng thái đơn</Label>
           <Select value={draft.status} onValueChange={(value) => setDraft((d) => ({ ...d, status: value }))}>
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger className="w-full">
+              <SelectValue className="truncate" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_STATUS}>Tất cả trạng thái</SelectItem>
@@ -118,7 +144,7 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label htmlFor="min-total-score">Tổng điểm từ</Label>
           <Input
             id="min-total-score"
@@ -128,7 +154,7 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
             placeholder="Không giới hạn"
           />
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label htmlFor="max-total-score">Tổng điểm đến</Label>
           <Input
             id="max-total-score"
@@ -139,7 +165,7 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
           />
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label>Tiêu chí</Label>
           <Select
             value={draft.criterionName}
@@ -151,8 +177,8 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
               }))
             }
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger className="w-full">
+              <SelectValue className="truncate" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NO_CRITERION}>Không lọc theo tiêu chí</SelectItem>
@@ -164,7 +190,7 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label htmlFor="min-criterion-score">Điểm tiêu chí từ</Label>
           <Input
             id="min-criterion-score"
@@ -180,12 +206,15 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
       {filterMismatch && (
         <p className="text-xs text-danger">Phải chọn cả tiêu chí lẫn điểm tối thiểu, hoặc bỏ trống cả hai.</p>
       )}
+      {scoreRangeInvalid && (
+        <p className="text-xs text-danger">Tổng điểm từ không được lớn hơn tổng điểm đến.</p>
+      )}
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={handleReset}>
           Xóa bộ lọc
         </Button>
-        <Button type="button" onClick={handleApply} disabled={filterMismatch}>
+        <Button type="button" onClick={handleApply} disabled={hasBlockingError}>
           Áp dụng
         </Button>
       </div>
