@@ -190,6 +190,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INTERVIEW_INVITATION_NOT_FOUND", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidCandidateSearchFilterException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCandidateSearchFilter(InvalidCandidateSearchFilterException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CANDIDATE_SEARCH_FILTER", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)

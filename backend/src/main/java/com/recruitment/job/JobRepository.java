@@ -59,7 +59,10 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
     // de job CHUA co don nao van xuat hien (totalApplications=0). LATERAL latest_done lay dung
     // luot DONE MOI NHAT cua moi don - cung ngu nghia voi
     // ScoringRunRepository.findLatestDoneByApplicationIdIn (D3/D4), khong phai luot moi nhat bat
-    // ke trang thai. LATERAL ever_invited/ever_hired dem theo "DA TUNG dat trang thai" qua
+    // ke trang thai. LATERAL ORDER BY co them sr.id DESC lam khoa cuoi (khac ban goc D3 - xem bao
+    // cao duyet Dot 3): hai luot DONE cua CUNG mot don co the trung created_at (cung transaction),
+    // thieu khoa cuoi thi LIMIT 1 chon hang nao trong nhom hoa la KHONG xac dinh. LATERAL
+    // ever_invited/ever_hired dem theo "DA TUNG dat trang thai" qua
     // application_status_history - CUNG nguyen tac voi
     // JobApplicationRepository.countFunnelForCompany, ap dung nhat quan cho ca hai cot trong bang
     // nay (Dot 2, quyet dinh #6 trong plan). GROUP BY liet ke ca j.created_at vi no chi dung o
@@ -93,7 +96,7 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                     LEFT JOIN LATERAL (
                         SELECT sr.id, sr.total_score FROM scoring_runs sr
                         WHERE sr.application_id = ja.id AND sr.status = 'DONE'
-                        ORDER BY sr.created_at DESC LIMIT 1
+                        ORDER BY sr.created_at DESC, sr.id DESC LIMIT 1
                     ) latest_done ON true
                     LEFT JOIN LATERAL (
                         SELECT 1 AS hit FROM application_status_history ash
