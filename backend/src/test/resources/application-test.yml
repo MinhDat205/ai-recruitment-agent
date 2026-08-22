@@ -16,5 +16,11 @@ app:
     enabled: false
   cv-improvement:
     enabled: false
+  job-embedding:
+    enabled: false
+  resume-embedding:
+    enabled: false
+  job-recommendation:
+    enabled: false
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key

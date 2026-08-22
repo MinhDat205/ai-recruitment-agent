@@ -86,6 +86,15 @@ app:
     poll-interval-ms: 5000
     batch-size: 10
     mail-from: noreply@ai-recruitment-agent.local
+  job-embedding:
+    poll-interval-ms: 5000
+    batch-size: 10
+  resume-embedding:
+    poll-interval-ms: 5000
+    batch-size: 10
+  job-recommendation:
+    poll-interval-ms: 5000
+    batch-size: 10
 
 logging:
   level:
