@@ -138,6 +138,12 @@ public class CvImprovementOrchestrator {
     // TRUC (da qua D1 trich xuat, gioi han boi ResumeParsingService.MAX_PROMPT_CHARS=45000 roi), nen
     // thu tu render CO CHU DICH - contact/hoc van/kinh nghiem/ky nang truoc (quan trong nhat cho so
     // sanh tu khoa), du an sau cung - neu phai cat, cat dung phan it quan trong nhat truoc.
+    //
+    // Render DAY DU MOI FIELD cua ResumeParsedPayload, khong chi vai field "chinh" - da tra gia mot
+    // lan (test tay F2): thieu startDate/endDate/gpa cua Education khien LLM tuong CV chua co nam
+    // tot nghiep/GPA du CV da co day du, tu do goi y "bo sung" mot thu da ton tai. Nguyen tac: neu D1
+    // da trich xuat duoc thi PHAI dua vao prompt - bo sot field nao cung co the tai dien loi tuong tu
+    // cho field do.
     static String buildResumeText(ResumeParsedPayload payload) {
         StringBuilder text = new StringBuilder();
 
@@ -146,8 +152,17 @@ public class CvImprovementOrchestrator {
             text.append("Thong tin lien he: ")
                     .append(nullToEmpty(contact.fullName()))
                     .append(", ")
-                    .append(nullToEmpty(contact.email()))
-                    .append('\n');
+                    .append(nullToEmpty(contact.email()));
+            if (!nullToEmpty(contact.phone()).isEmpty()) {
+                text.append(", ").append(contact.phone());
+            }
+            if (!nullToEmpty(contact.address()).isEmpty()) {
+                text.append(", ").append(contact.address());
+            }
+            if (!nullToEmpty(contact.linkedin()).isEmpty()) {
+                text.append(", ").append(contact.linkedin());
+            }
+            text.append('\n');
         }
 
         if (!payload.education().isEmpty()) {
@@ -159,7 +174,11 @@ public class CvImprovementOrchestrator {
                         .append(nullToEmpty(edu.major()))
                         .append(" tai ")
                         .append(nullToEmpty(edu.school()))
-                        .append('\n');
+                        .append(formatDateRange(edu.startDate(), edu.endDate()));
+                if (edu.gpa() != null) {
+                    text.append(", GPA ").append(edu.gpa());
+                }
+                text.append('\n');
             }
         }
 
@@ -170,6 +189,7 @@ public class CvImprovementOrchestrator {
                         .append(nullToEmpty(exp.title()))
                         .append(" tai ")
                         .append(nullToEmpty(exp.company()))
+                        .append(formatDateRange(exp.startDate(), exp.endDate()))
                         .append(": ")
                         .append(nullToEmpty(exp.description()))
                         .append('\n');
@@ -186,8 +206,11 @@ public class CvImprovementOrchestrator {
                 text.append("- ")
                         .append(nullToEmpty(cert.name()))
                         .append(" (")
-                        .append(nullToEmpty(cert.issuer()))
-                        .append(")\n");
+                        .append(nullToEmpty(cert.issuer()));
+                if (!nullToEmpty(cert.issueDate()).isEmpty()) {
+                    text.append(", ").append(cert.issueDate());
+                }
+                text.append(")\n");
             }
         }
 
@@ -197,12 +220,27 @@ public class CvImprovementOrchestrator {
                 text.append("- ")
                         .append(nullToEmpty(project.name()))
                         .append(": ")
-                        .append(nullToEmpty(project.description()))
-                        .append('\n');
+                        .append(nullToEmpty(project.description()));
+                if (!project.technologies().isEmpty()) {
+                    text.append(" (Cong nghe: ").append(String.join(", ", project.technologies())).append(")");
+                }
+                text.append('\n');
             }
         }
 
         return truncateResumeText(text.toString());
+    }
+
+    // Dung chung cho Education (startDate/endDate) va Experience (startDate/endDate) - hai cap
+    // START/END duy nhat trong payload. Tra chuoi rong (khong them gi vao van ban) khi ca hai deu
+    // trong - tranh in ra " ( - )" vo nghia.
+    private static String formatDateRange(String startDate, String endDate) {
+        String start = nullToEmpty(startDate);
+        String end = nullToEmpty(endDate);
+        if (start.isEmpty() && end.isEmpty()) {
+            return "";
+        }
+        return " (" + start + " - " + end + ")";
     }
 
     private static String nullToEmpty(String value) {

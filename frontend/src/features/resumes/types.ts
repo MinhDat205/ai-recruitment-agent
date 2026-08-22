@@ -67,3 +67,24 @@ export interface ResumeParsedDataResponse {
   data: ResumeParsedPayload
   parsedAt: string
 }
+
+export type CvImprovementStatus = 'NOT_REQUESTED' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED'
+
+export interface CvImprovementSectionSuggestion {
+  section: string
+  suggestion: string
+}
+
+export interface CvImprovementLearningPathItem {
+  topic: string
+  reason: string
+}
+
+export interface CvImprovementSuggestion {
+  resumeId: string
+  status: CvImprovementStatus
+  missingKeywords: string[]
+  sectionSuggestions: CvImprovementSectionSuggestion[]
+  learningPath: CvImprovementLearningPathItem[]
+  generatedAt: string | null
+}

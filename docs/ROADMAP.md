@@ -92,7 +92,11 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 ## Phase F — Gợi ý & thống kê
 
 - [ ] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
-- [ ] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
+- [x] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
+  - Cố ý bỏ vế "kết quả đánh giá trước đó" của SRS FR-U05 — PHASES.md cấm lộ điểm/rubric/nhận xét
+    nội bộ của HR cho ứng viên, hai văn bản mâu thuẫn nhau, ưu tiên PHASES.md. Ba lớp phòng thủ độc
+    lập chống rò rỉ dữ liệu chấm điểm (chữ ký service, prompt gửi LLM, response trả ứng viên) — mỗi
+    lớp có test riêng. Chi tiết lập luận đầy đủ ở walkthrough `fr-u05-cv-improve.md` mục 4a/4b.
 - [x] **F3** `feat/fr-h08-dashboard` — FR-H08 · Dashboard, lọc theo điểm, tra cứu lịch sử đánh giá
   - Phễu chuyển đổi đếm theo `application_status_history` (đã từng đạt trạng thái), không đếm theo
     `job_applications.status` hiện tại — đơn được mời phỏng vấn rồi rút đơn vẫn tính vào "đã từng
@@ -195,6 +199,21 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       tin sẽ không lọc được tin cũ nhất qua dropdown này (đã có chú thích UI báo số lượng bị cắt bớt).
     - Cột số trong `CandidatesTable` và `JobPerformanceTable` (F3) căn trái theo mặc định — nên căn
       phải để dễ so sánh giá trị giữa các dòng.
+  - Phát sinh khi làm F2 (FR-U05, `feat/fr-u05-cv-improve`):
+    - `ApplicationHistoryEntryResponse.note` trả cho ứng viên (F3, endpoint `GET
+      /api/candidates/applications/{id}/history`) — hiện an toàn vì cả 4 điểm ghi trong toàn bộ
+      codebase đều truyền `null`, chưa có đường nào cho HR nhập `note` tự do. Khi cho HR nhập note
+      phải bỏ field này khỏi DTO hoặc tách DTO riêng cho ứng viên. Chưa có integration test HTTP
+      phủ endpoint này. Phát hiện khi khảo sát Plan Mode của F2, không phải lỗi do F2 gây ra.
+    - Nút "Thử lại" khi trạng thái gợi ý cải thiện CV là `FAILED` chưa kiểm thử tay được với API
+      key Anthropic thật — model gần như luôn trả JSON hợp lệ đúng schema, không có cách ép LLM
+      thật trả lỗi một cách tin cậy để dựng thủ công tình huống này qua giao diện.
+    - Chưa test race condition thật (hai request HTTP đồng thời thật sự) cho
+      `uq_cv_improvement_request_active` — test hiện có gọi tuần tự, không phải song song thật.
+    - Danh sách 20 job `OPEN` mới nhất gửi cho LLM không lọc theo lĩnh vực ở tầng SQL — việc lọc
+      lĩnh vực hoàn toàn do LLM tự đọc và tự loại trong prompt, không dùng semantic search (F1/
+      FR-U04 mới có hạ tầng embedding để lọc chính xác theo ngữ nghĩa). Nếu hệ thống có rất nhiều
+      job đa dạng lĩnh vực, 20 tin mới nhất có thể không đủ đại diện cho lĩnh vực của một CV cụ thể.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 

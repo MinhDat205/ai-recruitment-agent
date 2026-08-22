@@ -6,6 +6,7 @@ import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
+import { CvImprovementSuggestionsPage } from './pages/CvImprovementSuggestionsPage'
 import { HrCandidatesPage } from './pages/HrCandidatesPage'
 import { HrHomePage } from './pages/HrHomePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
@@ -66,6 +67,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['CANDIDATE']}>
                 <CandidateNotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidate/resumes/:id/improvement-suggestions"
+            element={
+              <ProtectedRoute allowedRoles={['CANDIDATE']}>
+                <CvImprovementSuggestionsPage />
               </ProtectedRoute>
             }
           />

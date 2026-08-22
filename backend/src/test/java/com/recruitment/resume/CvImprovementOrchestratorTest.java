@@ -280,6 +280,56 @@ class CvImprovementOrchestratorTest {
         assertThat(text).isNotBlank();
     }
 
+    // ---- Khong bo sot field khi render CV (loi phat hien qua test tay F2) ----
+
+    @Test
+    void buildResumeText_payloadWithAllFields_rendersEveryField() {
+        ResumeParsedPayload payload = new ResumeParsedPayload(
+                new ResumeParsedPayload.Contact(
+                        "Nguyen Van A", "a@example.com", "0900000000", "123 Duong ABC, Q1", "linkedin.com/in/nguyenvana"),
+                List.of(new ResumeParsedPayload.Education(
+                        "Dai hoc Bach Khoa", "Ky su", "Cong nghe thong tin", "09/2016", "06/2020", 3.2)),
+                List.of(new ResumeParsedPayload.Experience(
+                        "Cong ty ABC", "Backend Developer", "07/2020", "Hien tai", "Phat trien API")),
+                List.of("Java"),
+                List.of(new ResumeParsedPayload.Certification("AWS Certified Developer", "Amazon", "03/2022")),
+                List.of(new ResumeParsedPayload.Project(
+                        "He thong dat ve", "Xay dung backend dat ve xe", List.of("Spring Boot", "PostgreSQL"))));
+
+        String text = CvImprovementOrchestrator.buildResumeText(payload);
+
+        // Test nay sinh ra tu loi phat hien khi test tay F2: LLM goi y "bo sung GPA" cho mot CV DA CO
+        // GPA, vi buildResumeText luc do khong render startDate/endDate/gpa cua Education - LLM
+        // khong thay nen tuong thieu (xem comment tren buildResumeText, production code). Khang dinh
+        // DU CA 10 field tung bi bo sot truoc khi sua - Contact.phone/address/linkedin (3),
+        // Education.startDate/endDate/gpa (3), Experience.startDate/endDate (2),
+        // Certification.issueDate (1), Project.technologies (1). Bo sot field nao trong tuong lai
+        // (vd them field moi vao ResumeParsedPayload ma quen dua vao buildResumeText) cung lam test
+        // nay do ngay, khong phai doi den lan test tay ke tiep moi phat hien nhu lan nay.
+        assertThat(text).contains("0900000000"); // Contact.phone
+        assertThat(text).contains("123 Duong ABC, Q1"); // Contact.address
+        assertThat(text).contains("linkedin.com/in/nguyenvana"); // Contact.linkedin
+        assertThat(text).contains("09/2016"); // Education.startDate
+        assertThat(text).contains("06/2020"); // Education.endDate
+        assertThat(text).contains("3.2"); // Education.gpa
+        assertThat(text).contains("07/2020"); // Experience.startDate
+        assertThat(text).contains("Hien tai"); // Experience.endDate
+        assertThat(text).contains("03/2022"); // Certification.issueDate
+        assertThat(text).contains("Spring Boot").contains("PostgreSQL"); // Project.technologies
+
+        // Chot chan co hoc: 10 assertion noi dung o tren KHONG bat duoc truong hop them field MOI
+        // vao cac record long ma quen dua vao buildResumeText (field moi don gian la khong co gia
+        // tri nao de kiem, nen khong assertion nao that bai). Dem SO LUONG record component buoc
+        // nguoi them field moi phai chu dong sua CA HAI noi (them field vao buildResumeText VA cap
+        // nhat con so o day) - neu chi sua ResumeParsedPayload ma quen buildResumeText, assertion
+        // nay do ngay, khong phai doi lan test tay ke tiep.
+        assertThat(ResumeParsedPayload.Contact.class.getRecordComponents()).hasSize(5);
+        assertThat(ResumeParsedPayload.Education.class.getRecordComponents()).hasSize(6);
+        assertThat(ResumeParsedPayload.Experience.class.getRecordComponents()).hasSize(5);
+        assertThat(ResumeParsedPayload.Certification.class.getRecordComponents()).hasSize(3);
+        assertThat(ResumeParsedPayload.Project.class.getRecordComponents()).hasSize(3);
+    }
+
     // ---- Ranh gioi F2: khong ro ri du lieu cham diem vao prompt ----
 
     @Test

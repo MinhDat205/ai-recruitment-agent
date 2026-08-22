@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
-import { Download, FileSearch, FileText, RotateCw } from 'lucide-react'
+import { Download, FileSearch, FileText, RotateCw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { downloadResumeRequest } from './api'
@@ -45,6 +46,7 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 export function ResumeList() {
   const { data: resumes, isLoading, refetch, isFetching } = useResumesQuery()
   const setPrimaryMutation = useSetPrimaryResumeMutation()
+  const navigate = useNavigate()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [viewingResume, setViewingResume] = useState<{ id: string; fileName: string } | null>(null)
@@ -149,6 +151,17 @@ export function ResumeList() {
                     >
                       <FileSearch className="h-4 w-4" aria-hidden="true" />
                       Xem dữ liệu đã trích xuất
+                    </Button>
+                  )}
+                  {resume.parseStatus === 'DONE' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/candidate/resumes/${resume.id}/improvement-suggestions`)}
+                    >
+                      <Sparkles className="h-4 w-4" aria-hidden="true" />
+                      Gợi ý cải thiện CV
                     </Button>
                   )}
                   <Button
