@@ -50,6 +50,21 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             nativeQuery = true)
     Optional<Job> findOpenJobById(@Param("id") UUID id);
 
+    // Sinh doi voi findOpenJobById nhung nhan danh sach id - dung cho
+    // JobPublicService.getByIds (Dot 5): loc lai OPEN + deleted_at IS NULL + deadline chua qua TAI
+    // THOI DIEM DOC, phong job_recommendations cache con giu mot job vua dong/het han/bi xoa giua
+    // hai lot lam moi cache (Plan Mode F1 muc F). Khong dam bao thu tu ket qua theo dung thu tu
+    // ids dau vao - caller (JobPublicService.getByIds) tu sap lai qua Map.
+    @Query(
+            value =
+                    """
+                    SELECT * FROM jobs j
+                    WHERE j.id IN :ids AND j.status = 'OPEN' AND j.deleted_at IS NULL
+                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
+                    """,
+            nativeQuery = true)
+    List<Job> findOpenJobsByIdIn(@Param("ids") List<UUID> ids);
+
     Page<Job> findByCompanyIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID companyId, Pageable pageable);
 
     Page<Job> findByCompanyIdAndDeletedAtIsNullAndStatusOrderByCreatedAtDesc(
@@ -83,11 +98,6 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                            j.recruitment_cycle AS recruitmentCycle,
                            COUNT(ja.id) AS totalApplications,
                            COUNT(latest_done.id) AS scoredApplications,
-                           -- AVG tren numeric mo rong scale (da kiem thuc nghiem: AVG cua
-                           -- NUMERIC(6,3) tra ve numeric voi 16 chu so thap phan), ROUND ve 3
-                           -- cho khop scale that cua scoring_runs.total_score NUMERIC(6,3).
-                           -- ROUND(NULL, 3) van la NULL nen khong doi hanh vi khi chua co luot
-                           -- DONE nao - DUNG xoa ROUND nay o cac dot sau, no khong thua.
                            ROUND(AVG(latest_done.total_score), 3) AS averageScore,
                            COUNT(*) FILTER (WHERE ever_invited.hit IS NOT NULL) AS everInvitedCount,
                            COUNT(*) FILTER (WHERE ever_hired.hit IS NOT NULL) AS everHiredCount

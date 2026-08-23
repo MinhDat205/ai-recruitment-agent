@@ -64,8 +64,15 @@ class ResumeEmbeddingPipelineIntegrationTest {
         doReturn(fakeResponse(1536, "text-embedding-3-small")).when(embeddingModel).embedForResponse(anyList());
     }
 
+    // vector[0] = 0.1f (KHONG de vector toan so 0) - cung ly do voi ResumeEmbeddingOrchestratorTest/
+    // JobEmbeddingOrchestratorTest: tranh vector suy bien gay NaN o cosine distance, ro ri that vao
+    // Postgres Testcontainers dung chung (file nay khong @Transactional).
     private EmbeddingResponse fakeResponse(int dimensions, String model) {
-        Embedding embedding = new Embedding(new float[dimensions], 0);
+        float[] vector = new float[dimensions];
+        if (dimensions > 0) {
+            vector[0] = 0.1f;
+        }
+        Embedding embedding = new Embedding(vector, 0);
         return new EmbeddingResponse(List.of(embedding), new EmbeddingResponseMetadata(model, new DefaultUsage(10, 0)));
     }
 

@@ -96,8 +96,17 @@ class JobEmbeddingPipelineIntegrationTest {
         companyId = companyRepository.save(company).getId();
     }
 
+    // vector[0] = 0.1f (KHONG de vector toan so 0) - cung ly do voi JobEmbeddingOrchestratorTest:
+    // vector 0 gay NaN o cosine distance, Postgres coi NaN >= x la true, job vector suy bien se
+    // vuot moi nguong similarity. File nay cung KHONG @Transactional nen se ghi that vao Postgres
+    // Testcontainers dung chung - da gay loi that o JobRecommendationCacheServiceTest trong full
+    // suite (xem yeu cau review sau Dot 5).
     private EmbeddingResponse fakeResponse(int dimensions, String model) {
-        Embedding embedding = new Embedding(new float[dimensions], 0);
+        float[] vector = new float[dimensions];
+        if (dimensions > 0) {
+            vector[0] = 0.1f;
+        }
+        Embedding embedding = new Embedding(vector, 0);
         return new EmbeddingResponse(List.of(embedding), new EmbeddingResponseMetadata(model, new DefaultUsage(10, 0)));
     }
 

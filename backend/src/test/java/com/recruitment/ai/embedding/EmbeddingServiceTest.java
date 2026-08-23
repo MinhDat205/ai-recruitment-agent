@@ -41,8 +41,21 @@ class EmbeddingServiceTest {
         Mockito.reset(embeddingModel);
     }
 
+    // vector[0] = 0.1f (KHONG de vector toan so 0) - tu khi EmbeddingService.toResult them guard
+    // chan vector suy bien (xem yeu cau review sau Dot 5), mot response vector 0 se bi tu choi du
+    // dung so chieu. Cac test dimension (1535/1537) van dung binh thuong vi kiem tra so chieu chay
+    // TRUOC kiem tra suy bien, khong bao gio toi duoc nhanh nay.
     private EmbeddingResponse fakeResponse(int dimensions, String model) {
-        Embedding embedding = new Embedding(new float[dimensions], 0);
+        float[] vector = new float[dimensions];
+        if (dimensions > 0) {
+            vector[0] = 0.1f;
+        }
+        Embedding embedding = new Embedding(vector, 0);
+        return new EmbeddingResponse(List.of(embedding), new EmbeddingResponseMetadata(model, new DefaultUsage(10, 0)));
+    }
+
+    private EmbeddingResponse fakeZeroVectorResponse(String model) {
+        Embedding embedding = new Embedding(new float[1536], 0);
         return new EmbeddingResponse(List.of(embedding), new EmbeddingResponseMetadata(model, new DefaultUsage(10, 0)));
     }
 
@@ -97,6 +110,21 @@ class EmbeddingServiceTest {
         EmbeddingResult result = embeddingService.embed("noi dung mau");
 
         assertThat(result.model()).isEqualTo("text-embedding-3-small");
+    }
+
+    // Vector suy bien (toan so 0, dung 1536 chieu) - kiem tra DOC LAP voi kiem tra so chieu (dimension
+    // dung nhung vector van bi tu choi). Bang chung thuc nghiem dan toi guard nay: da xac nhan tren
+    // Postgres 17 that 'NaN'::float8 >= 0.4 tra ve TRUE - job co vector 0 se vuot moi nguong
+    // similarity va xuat hien dau danh sach goi y cho MOI ung vien neu khong chan tai day (xem
+    // comment EmbeddingService.toResult).
+    @Test
+    void embed_zeroVector_throwsZeroVector() {
+        doReturn(fakeZeroVectorResponse("text-embedding-3-small")).when(embeddingModel).embedForResponse(anyList());
+
+        EmbeddingFailedException exception =
+                assertThrows(EmbeddingFailedException.class, () -> embeddingService.embed("noi dung mau"));
+
+        assertThat(exception.errorCode()).isEqualTo(EmbeddingErrorCode.ZERO_VECTOR);
     }
 
     // --- EmbeddingTextFormat (Dot 2, sau review) - gop vao day thay vi file rieng, cung mot khai

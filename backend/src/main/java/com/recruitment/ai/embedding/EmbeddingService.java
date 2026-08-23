@@ -58,6 +58,25 @@ public class EmbeddingService {
             throw new EmbeddingFailedException(EmbeddingErrorCode.INVALID_DIMENSION);
         }
 
+        // Chan vector suy bien (toan so 0) NGAY TAI DAY - day la noi DUY NHAT moi vector di qua
+        // truoc khi vao DB, chan o day thi khong con noi nao khac phai tu lo lieu nua. He qua neu
+        // KHONG chan: vector 0 co do dai (norm) bang 0, cosine distance voi bat ky vector nao khac
+        // la 0/0 = NaN. Postgres xu ly NaN cho float8 KHAC chuan IEEE754- NaN duoc coi la LON HON
+        // moi so khac (da kiem chung thuc nghiem tren Postgres 17 that: 'NaN'::float8 >= 0.4 tra ve
+        // true). Ket qua: mot job co vector suy bien se VUOT MOI NGUONG similarity va xuat hien dau
+        // danh sach goi y cho MOI ung vien - sai hoan toan, va rat kho phat hien vi khong co loi ro
+        // rang o tang goi API (van la mot cau tra loi 200 OK hop le, chi la du lieu suy bien).
+        // Dung tong binh phuong (khong phai kiem tung phan tu == 0) - tuong duong ve mat toan hoc
+        // voi "moi phan tu bang 0" nhung mot phep kiem duy nhat, khong can vong lap rieng.
+        double sumOfSquares = 0.0;
+        for (float value : vector) {
+            sumOfSquares += (double) value * value;
+        }
+        if (sumOfSquares == 0.0) {
+            log.warn("Embedding tra ve la vector suy bien (toan so 0)");
+            throw new EmbeddingFailedException(EmbeddingErrorCode.ZERO_VECTOR);
+        }
+
         // model la fallback "gia tri thay the khi metadata thieu" - cung mau CvImprovementService.toResult.
         String model = response.getMetadata() != null ? response.getMetadata().getModel() : null;
         if (model == null || model.isBlank()) {

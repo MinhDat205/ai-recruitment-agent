@@ -53,4 +53,48 @@ public interface JobEmbeddingRepository extends JpaRepository<JobEmbedding, UUID
     // cua Spring Data van doc duoc hang binh thuong (embedding NOT NULL chi rang buoc luc INSERT,
     // khong anh huong SELECT/DELETE). Dung cho muc B (sinh lai embedding khi HR sua title/description).
     int deleteByJobId(UUID jobId);
+
+    // Truy van similarity chinh - hai buoc theo dung ban da duyet o Plan Mode muc D (sau review):
+    // vector CV duoc GOI TU BEN NGOAI nhu mot THAM SO CO DINH (queryVector, da la text dang
+    // "[0.1,0.2,...]" - xem ResumeParsedDataRepository.findEmbeddingTextByResumeId), KHONG lay bang
+    // subquery long trong chinh cau nay - subquery long lam ve phai cua <=> tro thanh mot bieu thuc
+    // phu thuoc tung hang thay vi hang so, khien planner Postgres khong con nhan dien duoc dang
+    // "ORDER BY cot_vector <=> hang_so LIMIT n" de can nhac dung HNSW index (bang chung: da doc
+    // bytecode PgVectorStore that, xem Plan Mode muc D).
+    //
+    // 1 - (embedding <=> queryVector): <=> la cosine DISTANCE (khop vector_cosine_ops cua
+    // idx_job_emb_vec), doi sang similarity de khop y nghia cot job_recommendations.similarity_score.
+    // Loc OPEN + deleted_at IS NULL + deadline chua qua giong het JobRepository.searchPublicJobs.
+    // ORDER BY ket thuc bang j.id ASC - khoa cuoi duy nhat dung quy uoc chung cua du an.
+    //
+    // "< 'Infinity'::float8" - PHONG THU CHIEU SAU chan gia tri NaN, dung du EmbeddingService.embed
+    // da chan vector suy bien tai nguon (khong con duong nao MOI tao ra NaN o day nua). Van giu lai
+    // vi du lieu CU co the da nam trong job_embeddings TRUOC KHI guard do ton tai. Da kiem chung
+    // thuc nghiem tren Postgres 17 that (sau yeu cau review): 'NaN'::float8 >= 0.4 tra ve TRUE (khac
+    // chuan IEEE754 - Postgres coi NaN LON HON moi so khac khi so sanh thu tu), nen mot job vector-0
+    // se vuot dieu kien >= :minSimilarity va lot vao ket qua. 'NaN'::float8 = 'NaN'::float8 CUNG tra
+    // ve true (meo WHERE x = x quen thuoc KHONG loc duoc NaN o Postgres) va isnan() KHONG ton tai
+    // cho ca float8 lan numeric trong Postgres 17 (da thu, loi "function isnan(...) does not exist").
+    // 'NaN'::float8 < 'Infinity'::float8 tra ve FALSE - day la dieu kien duy nhat da kiem chung dung:
+    // moi similarity that (luon nam trong [-1,1]) chac chan < Infinity, chi rieng NaN thi khong.
+    @Query(
+            value =
+                    """
+                    SELECT j.id AS jobId,
+                           1 - (je.embedding <=> CAST(:queryVector AS vector)) AS similarityScore
+                    FROM job_embeddings je
+                    JOIN jobs j ON j.id = je.job_id
+                    WHERE j.status = 'OPEN'
+                      AND j.deleted_at IS NULL
+                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
+                      AND (1 - (je.embedding <=> CAST(:queryVector AS vector))) < 'Infinity'::float8
+                      AND (1 - (je.embedding <=> CAST(:queryVector AS vector))) >= :minSimilarity
+                    ORDER BY je.embedding <=> CAST(:queryVector AS vector), j.id ASC
+                    LIMIT :topN
+                    """,
+            nativeQuery = true)
+    List<JobMatchView> findTopMatchingJobs(
+            @Param("queryVector") String queryVector,
+            @Param("minSimilarity") double minSimilarity,
+            @Param("topN") int topN);
 }

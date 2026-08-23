@@ -7,7 +7,8 @@ package com.recruitment.ai.embedding;
 // khong co markFailed/trang thai FAILED nao de ghi ma nay vao.
 public enum EmbeddingErrorCode {
     API_ERROR("Có lỗi xảy ra khi gọi API sinh embedding"),
-    INVALID_DIMENSION("Embedding trả về sai số chiều so với schema (1536)");
+    INVALID_DIMENSION("Embedding trả về sai số chiều so với schema (1536)"),
+    ZERO_VECTOR("API trả về vector suy biến (toàn số 0)");
 
     private final String description;
 

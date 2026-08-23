@@ -59,8 +59,19 @@ class JobEmbeddingOrchestratorTest {
         Mockito.reset(embeddingModel);
     }
 
+    // vector[0] = 0.1f (KHONG de vector toan so 0) - vector 0 co norm bang 0, cosine distance voi
+    // bat ky vector nao khac la NaN; Postgres coi NaN LON HON moi so khac khi so sanh thu tu
+    // (>= 0.4 tra ve true), khien job co vector suy bien vuot moi nguong similarity va loi vao ket
+    // qua goi y cho MOI ung vien. Test o day KHONG @Transactional (orchestrator tu commit qua
+    // stateService), nen vector 0 se ton tai THAT trong Postgres Testcontainers dung chung sau khi
+    // test ket thuc - gay loi NaN o JobRecommendationCacheServiceTest chay sau trong cung full suite
+    // (da gap loi nay that, xem yeu cau review sau Dot 5).
     private EmbeddingResponse fakeResponse(int dimensions, String model) {
-        Embedding embedding = new Embedding(new float[dimensions], 0);
+        float[] vector = new float[dimensions];
+        if (dimensions > 0) {
+            vector[0] = 0.1f;
+        }
+        Embedding embedding = new Embedding(vector, 0);
         return new EmbeddingResponse(List.of(embedding), new EmbeddingResponseMetadata(model, new DefaultUsage(10, 0)));
     }
 
