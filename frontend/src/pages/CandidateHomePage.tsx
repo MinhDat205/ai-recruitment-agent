@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
+import { RecommendedJobs } from '../features/jobs/RecommendedJobs'
 
 export function CandidateHomePage() {
   const { user, logout } = useAuth()
@@ -28,6 +29,8 @@ export function CandidateHomePage() {
           Đăng xuất
         </button>
       </div>
+
+      <RecommendedJobs />
     </div>
   )
 }

@@ -91,7 +91,16 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 
 ## Phase F — Gợi ý & thống kê
 
-- [ ] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
+- [x] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
+  - `MIN_SIMILARITY_SCORE = 0.40` chốt từ đo thực nghiệm thật (2 CV × 7 job, `OpenAI
+    text-embedding-3-small` thật) — không đoán số. Truy vấn similarity hai bước, vector truyền như
+    tham số cố định (không `JOIN ... ON true`) — đã xác nhận bằng `EXPLAIN ANALYZE` thật rằng
+    planner CÓ THỂ chọn index HNSW (474ms khi ép, so với 0.41ms Seq Scan mà planner tự chọn ở quy
+    mô 7 hàng hiện tại). Cố ý giữ nguyên không thêm gate consent (FR-U02) cho luồng sinh embedding
+    CV: consent trong SRS nhắm tới việc bên thứ ba (HR) dùng AI ra quyết định về ứng viên, còn F1
+    chỉ phục vụ chính ứng viên và không sinh nội dung mới — thêm gate sẽ khiến ứng viên chưa từng
+    ứng tuyển (đúng nhóm cần gợi ý nhất) không bao giờ thấy gợi ý. Chi tiết đầy đủ ở walkthrough
+    `fr-u04-recommend.md` mục 4.
 - [x] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
   - Cố ý bỏ vế "kết quả đánh giá trước đó" của SRS FR-U05 — PHASES.md cấm lộ điểm/rubric/nhận xét
     nội bộ của HR cho ứng viên, hai văn bản mâu thuẫn nhau, ưu tiên PHASES.md. Ba lớp phòng thủ độc
@@ -214,6 +223,25 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       lĩnh vực hoàn toàn do LLM tự đọc và tự loại trong prompt, không dùng semantic search (F1/
       FR-U04 mới có hạ tầng embedding để lọc chính xác theo ngữ nghĩa). Nếu hệ thống có rất nhiều
       job đa dạng lĩnh vực, 20 tin mới nhất có thể không đủ đại diện cho lĩnh vực của một CV cụ thể.
+  - Phát sinh khi làm F1 (FR-U04, `feat/fr-u04-recommend`):
+    - Không có claim/stale-reaper cho `JobEmbeddingScheduler`/`ResumeEmbeddingScheduler`/
+      `JobRecommendationCacheScheduler` — an toàn với một instance (fixedDelay không chạy chồng
+      lượt), nhưng nếu triển khai đa instance có thể sinh embedding trùng cho cùng một job/CV ở hai
+      lượt poll gần nhau (tốn thêm lời gọi API OpenAI, không sai dữ liệu vì upsert/update cuối cùng
+      vẫn nhất quán). Cùng họ với khoản nợ đã ghi ở D1/D2/E2.
+    - `resume_parsed_data` không có cột lưu tên model embedding đã dùng cho CV — cột `model` (V1)
+      đã bị D1 chiếm dụng cho metadata bước parse. Mất provenance nếu sau này cần audit CV được
+      embed bằng model nào (khác `job_embeddings.model` có cột riêng).
+    - Danh sách job dùng để tính similarity không ưu tiên/lọc theo `deadline` xa/gần — mọi job
+      `OPEN` (kể cả sắp hết hạn) đều được so sánh như nhau trong `findTopMatchingJobs`.
+    - Chưa test race condition thật cho `uq_reco` (hai lượt `refreshOne` đồng thời thật sự, ví dụ
+      hai instance scheduler chạy trùng) — bug thứ tự flush của Hibernate (đã sửa, thêm
+      `jobRecommendationRepository.flush()` giữa `deleteByCandidateId` và `saveAll`) được phát hiện
+      qua gọi tuần tự trong test, không phải qua đồng thời thật.
+    - `EXPLAIN ANALYZE` xác nhận planner không dùng HNSW ở quy mô hiện tại (7 hàng
+      `job_embeddings`) — đúng ở quy mô nhỏ (Seq Scan nhanh hơn), cần đo lại khi dữ liệu production
+      đủ lớn để xác nhận planner tự chuyển sang Index Scan như dự đoán, không chỉ khi bị ép bằng
+      tay qua `enable_seqscan`.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
