@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios'
 import { http } from '../../lib/http'
-import type { Resume, ResumeParsedDataResponse } from './types'
+import type { CvImprovementSuggestion, Resume, ResumeParsedDataResponse } from './types'
 
 export async function listResumesRequest(): Promise<Resume[]> {
   const response = await http.get<Resume[]>('/candidates/resumes')
@@ -44,4 +44,20 @@ export async function getParsedResumeRequest(id: string): Promise<ResumeParsedDa
     }
     throw err
   }
+}
+
+// Idempotent o backend (CvImprovementSuggestionService.requestSuggestions) - goi lai nhieu lan
+// khong tao them request/khong goi LLM them, luon tra ve trang thai hien hanh.
+export async function requestCvImprovementRequest(resumeId: string): Promise<CvImprovementSuggestion> {
+  const response = await http.post<CvImprovementSuggestion>(
+    `/candidates/resumes/${resumeId}/improvement-suggestions`,
+  )
+  return response.data
+}
+
+export async function getCvImprovementRequest(resumeId: string): Promise<CvImprovementSuggestion> {
+  const response = await http.get<CvImprovementSuggestion>(
+    `/candidates/resumes/${resumeId}/improvement-suggestions`,
+  )
+  return response.data
 }

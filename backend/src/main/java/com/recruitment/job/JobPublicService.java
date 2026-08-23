@@ -9,6 +9,7 @@ import com.recruitment.job.dto.JobDetailResponse;
 import com.recruitment.job.dto.JobSummaryResponse;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,26 @@ public class JobPublicService {
         Job job = jobRepository.findOpenJobById(id).orElseThrow(() -> new JobNotFoundException(id));
         Company company = companyRepository.findById(job.getCompanyId()).orElse(null);
         return toDetail(job, company);
+    }
+
+    // Dung cho JobRecommendationCandidateService (Dot 5, F1): hydrate day du JobSummaryResponse tu
+    // danh sach jobId da co san trong cache job_recommendations, GIU NGUYEN thu tu jobIds dau vao
+    // (da sap theo similarity_score DESC tu tang goi). findOpenJobsByIdIn tu loc lai OPEN/deleted_at/
+    // deadline nen mot job vua dong/het han/bi xoa giua hai lot lam moi cache se tu dong bien mat
+    // khoi ket qua, khong loi, khong can xu ly rieng.
+    public List<JobSummaryResponse> getByIds(List<UUID> jobIds) {
+        if (jobIds.isEmpty()) {
+            return List.of();
+        }
+        List<Job> jobs = jobRepository.findOpenJobsByIdIn(jobIds);
+        Map<UUID, Job> jobsById = jobs.stream().collect(Collectors.toMap(Job::getId, job -> job));
+        Map<UUID, Company> companiesById = loadCompanies(jobs);
+
+        return jobIds.stream()
+                .map(jobsById::get)
+                .filter(Objects::nonNull)
+                .map(job -> toSummary(job, companiesById.get(job.getCompanyId())))
+                .toList();
     }
 
     private Map<UUID, Company> loadCompanies(List<Job> jobs) {

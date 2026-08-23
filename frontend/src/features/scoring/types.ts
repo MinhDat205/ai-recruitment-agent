@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from '../applications/types'
 import type { ParseStatus } from '../resumes/types'
 
 export type ScoringRunStatus = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED'
@@ -81,6 +82,10 @@ export interface ApplicationHrListItem {
   criterionScores: CriterionScoreItem[]
   explanationStatus: ExplanationStatus | null
   explanation: Explanation | null
+  // FR-H07 (E1, Dot 3) - trang thai don, dung de quyet dinh nut hanh dong nao hop le (Moi phong
+  // van/Tu choi/Trung tuyen). Chi la tien dung UI - backend (ApplicationStatusService) moi la chot
+  // chan that su cho moi luong chuyen trang thai.
+  status: ApplicationStatus
 }
 
 // Khop ApplicationSortOption (backend) - gia tri gui qua tham so ?sort= cua GET .../applications.

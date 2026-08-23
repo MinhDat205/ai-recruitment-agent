@@ -11,6 +11,9 @@ import com.recruitment.job.JobStatus;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
+import com.recruitment.notification.Notification;
+import com.recruitment.notification.NotificationRepository;
+import com.recruitment.notification.NotificationType;
 import com.recruitment.resume.ParseStatus;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeFileType;
@@ -76,8 +79,19 @@ class AggregationOrchestratorTest {
     @Autowired
     private CriterionScoreRepository criterionScoreRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
+
+    // FR-C03: AggregationFinishedEvent publish sau khi finishAggregation() tra true - nguoi nhan
+    // la owner cua company so huu job. createJobWithRubric() khong tra ve hrId truc tiep nen suy
+    // lai qua company, khong sua signature helper da co.
+    private UUID hrOwnerIdOf(UUID jobId) {
+        Job job = jobRepository.findById(jobId).orElseThrow();
+        return companyRepository.findById(job.getCompanyId()).orElseThrow().getOwnerId();
+    }
 
     private UUID createJobWithRubric(List<CriterionSpec> criteria) {
         User hr = new User();
@@ -308,6 +322,51 @@ class AggregationOrchestratorTest {
         ScoringRun afterSecond = scoringRunRepository.findById(runId).orElseThrow();
         assertThat(afterSecond.getStatus()).isEqualTo(ScoringRunStatus.DONE);
         assertThat(afterSecond.getTotalScore()).isEqualByComparingTo("80.000");
+    }
+
+    // FR-C03: publish AggregationFinishedEvent chi khi finishAggregation() ghi thanh cong (rowcount=1)
+    // - NotificationEventListener.onAggregationFinished xu ly dong bo (plain @EventListener,
+    // KHONG hoan AFTER_COMMIT), nen luc processOne() tra ve la Notification da duoc commit.
+    @Test
+    void processOne_eligibleRun_createsNotificationForHrOwner() {
+        UUID jobId = createJobWithRubric(List.of(new CriterionSpec("Kinh nghiem Java", new BigDecimal("100.00"), 5)));
+        UUID applicationId = createApplicationFor(jobId);
+        RubricSnapshot snapshot = new RubricSnapshot(
+                "Rubric Backend", List.of(criterionSnapshot("Kinh nghiem Java", new BigDecimal("100.00"), 5)));
+        UUID runId = createRunningRunWithSnapshot(applicationId, snapshot);
+        insertCriterionScore(runId, "Kinh nghiem Java", new BigDecimal("100.00"), 5, new BigDecimal("4.00"));
+        UUID hrOwnerId = hrOwnerIdOf(jobId);
+
+        orchestrator.processOne(runId);
+
+        List<Notification> notifications = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(hrOwnerId, PageRequest.of(0, 10))
+                .getContent();
+        assertThat(notifications).hasSize(1);
+        assertThat(notifications.get(0).getType()).isEqualTo(NotificationType.SCORING_FINISHED);
+        assertThat(notifications.get(0).getEntityId()).isEqualTo(applicationId);
+    }
+
+    // Nhip poll thu hai tren CUNG mot luot (giong processOne_calledTwiceInARow_secondCallDoesNotRewrite)
+    // - finishAggregation() lan hai tra false (khong con thoa WHERE), doProcess() return SOM, KHONG
+    // publish event lan nua. Neu thieu "return" o nhanh !written se tao them 1 thong bao trung.
+    @Test
+    void processOne_calledTwiceInARow_secondCallDoesNotCreateSecondNotification() {
+        UUID jobId = createJobWithRubric(List.of(new CriterionSpec("Kinh nghiem Java", new BigDecimal("100.00"), 5)));
+        UUID applicationId = createApplicationFor(jobId);
+        RubricSnapshot snapshot = new RubricSnapshot(
+                "Rubric Backend", List.of(criterionSnapshot("Kinh nghiem Java", new BigDecimal("100.00"), 5)));
+        UUID runId = createRunningRunWithSnapshot(applicationId, snapshot);
+        insertCriterionScore(runId, "Kinh nghiem Java", new BigDecimal("100.00"), 5, new BigDecimal("4.00"));
+        UUID hrOwnerId = hrOwnerIdOf(jobId);
+
+        orchestrator.processOne(runId);
+        orchestrator.processOne(runId);
+
+        List<Notification> notifications = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(hrOwnerId, PageRequest.of(0, 10))
+                .getContent();
+        assertThat(notifications).hasSize(1);
     }
 
     // Test nguyen tac (Q4/CLAUDE.md muc 2): doi trong so rubric SONG sau khi luot da DONE khong

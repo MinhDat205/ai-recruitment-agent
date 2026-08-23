@@ -10,11 +10,14 @@ import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
 import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
+import com.recruitment.notification.ApplicationSubmittedEvent;
+import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,16 +28,22 @@ public class ApplicationService {
     private final ApplicationStatusHistoryRepository statusHistoryRepository;
     private final JobRepository jobRepository;
     private final ResumeRepository resumeRepository;
+    private final ApplicationStatusRecorder applicationStatusRecorder;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
             ApplicationStatusHistoryRepository statusHistoryRepository,
             JobRepository jobRepository,
-            ResumeRepository resumeRepository) {
+            ResumeRepository resumeRepository,
+            ApplicationStatusRecorder applicationStatusRecorder,
+            ApplicationEventPublisher eventPublisher) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
         this.resumeRepository = resumeRepository;
+        this.applicationStatusRecorder = applicationStatusRecorder;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -67,8 +76,12 @@ public class ApplicationService {
         JobApplication saved = applicationRepository.saveAndFlush(application);
 
         // Dong lich su dau tien cua don: NULL -> PENDING, changed_by = chinh candidate (tu tao
-        // don). Cung transaction voi viec tao don.
-        recordStatusChange(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+        // don). Cung transaction voi viec tao don (goi bean khac, khong phai self-invocation).
+        applicationStatusRecorder.record(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+
+        // FR-C03: publish TRONG transaction chinh - NotificationEventListener xu ly sau
+        // AFTER_COMMIT, nguoi nhan la HR so huu cong ty cua job (suy tu jobId o listener).
+        eventPublisher.publishEvent(new ApplicationSubmittedEvent(saved.getId(), job.getId(), candidateId));
 
         return toResponse(saved);
     }
@@ -89,7 +102,11 @@ public class ApplicationService {
         application.setStatus(ApplicationStatus.WITHDRAWN);
         JobApplication saved = applicationRepository.save(application);
 
-        recordStatusChange(saved.getId(), fromStatus, ApplicationStatus.WITHDRAWN, candidateId, null);
+        applicationStatusRecorder.record(saved.getId(), fromStatus, ApplicationStatus.WITHDRAWN, candidateId, null);
+
+        // FR-C03: publish TRONG transaction chinh - nguoi nhan la HR so huu cong ty cua job,
+        // KHONG phai candidate (chinh candidate la nguoi vua thuc hien hanh dong nay).
+        eventPublisher.publishEvent(new ApplicationWithdrawnEvent(saved.getId(), saved.getJobId(), candidateId));
 
         return toResponse(saved);
     }
@@ -112,19 +129,6 @@ public class ApplicationService {
         return statusHistoryRepository.findByApplicationIdOrderByChangedAtAsc(application.getId()).stream()
                 .map(ApplicationService::toHistoryResponse)
                 .toList();
-    }
-
-    // Mot cho duy nhat ghi lich su chuyen trang thai - E1 (FR-H07, HR doi trang thai) va C4
-    // (FR-U06, rut don) se goi lai method nay, khong ghi rai rac moi noi mot doan insert.
-    private void recordStatusChange(
-            UUID applicationId, ApplicationStatus fromStatus, ApplicationStatus toStatus, UUID changedBy, String note) {
-        ApplicationStatusHistory history = new ApplicationStatusHistory();
-        history.setApplicationId(applicationId);
-        history.setFromStatus(fromStatus);
-        history.setToStatus(toStatus);
-        history.setChangedBy(changedBy);
-        history.setNote(note);
-        statusHistoryRepository.save(history);
     }
 
     private static ApplicationResponse toResponse(JobApplication a) {

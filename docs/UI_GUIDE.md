@@ -57,7 +57,7 @@ Footer           : 4 cột link + thông tin liên hệ, nền tối
 
 **Trang HR (quản trị)**
 ```
-Sidebar trái cố định 240px : Dashboard · Tin tuyển dụng · Ứng viên · Rubric · Hồ sơ công ty
+Sidebar trái cố định 240px : Dashboard · Tin tuyển dụng · Ứng viên · Hồ sơ công ty
 Topbar                     : breadcrumb · chuông thông báo · avatar
 Nội dung                   : bảng dữ liệu dày, bộ lọc trên đầu, phân trang dưới
 ```

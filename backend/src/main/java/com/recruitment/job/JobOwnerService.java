@@ -20,6 +20,7 @@ import com.recruitment.rubric.RubricRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,18 +40,21 @@ public class JobOwnerService {
     private final RubricRepository rubricRepository;
     private final RubricCriterionRepository rubricCriterionRepository;
     private final InterviewTemplateRepository interviewTemplateRepository;
+    private final JobEmbeddingRepository jobEmbeddingRepository;
 
     public JobOwnerService(
             JobRepository jobRepository,
             CompanyRepository companyRepository,
             RubricRepository rubricRepository,
             RubricCriterionRepository rubricCriterionRepository,
-            InterviewTemplateRepository interviewTemplateRepository) {
+            InterviewTemplateRepository interviewTemplateRepository,
+            JobEmbeddingRepository jobEmbeddingRepository) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.rubricRepository = rubricRepository;
         this.rubricCriterionRepository = rubricCriterionRepository;
         this.interviewTemplateRepository = interviewTemplateRepository;
+        this.jobEmbeddingRepository = jobEmbeddingRepository;
     }
 
     // Job, Rubric va InterviewTemplate phai duoc tao cung mot transaction: khong duoc ton tai
@@ -102,11 +106,31 @@ public class JobOwnerService {
         return toResponse(job, findRubricId(job.getId()), findInterviewTemplateId(job.getId()));
     }
 
+    // So sanh title/description/category CU-MOI TRUOC khi applyRequest ghi de len entity (phai luu
+    // gia tri cu ra bien rieng, applyRequest se doi truc tiep tren job) - neu MOT trong ba truong nay
+    // doi, xoa job_embeddings cu (DELETE thuong, khong phai loi goi AI, an toan nam trong transaction
+    // co san). Ca ba truong nay dung ghep thanh text sinh embedding (xem
+    // JobEmbeddingOrchestrator.buildEmbeddingText) - vector cu se khong con phan anh dung noi dung
+    // job neu bat ky truong nao trong ba truong doi. Job quay lai trang thai "chua co embedding" mot
+    // cach tu nhien, JobEmbeddingScheduler (dieu kien NOT EXISTS) tu nhat lai o lot poll ke tiep -
+    // KHONG goi EmbeddingModel dong bo trong request cua HR (xem Plan Mode F1 muc B).
     @Transactional
     public JobOwnerResponse update(UUID ownerId, UUID jobId, JobRequest request) {
         Job job = loadOwned(jobId, ownerId);
+        String oldTitle = job.getTitle();
+        String oldDescription = job.getDescription();
+        String oldCategory = job.getCategory();
+
         applyRequest(job, request);
         job = jobRepository.save(job);
+
+        boolean embeddingTextChanged = !Objects.equals(oldTitle, job.getTitle())
+                || !Objects.equals(oldDescription, job.getDescription())
+                || !Objects.equals(oldCategory, job.getCategory());
+        if (embeddingTextChanged) {
+            jobEmbeddingRepository.deleteByJobId(jobId);
+        }
+
         return toResponse(job, findRubricId(job.getId()), findInterviewTemplateId(job.getId()));
     }
 

@@ -1,5 +1,6 @@
 package com.recruitment.resume;
 
+import com.recruitment.resume.dto.CvImprovementSuggestionResponse;
 import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import com.recruitment.resume.dto.ResumeResponse;
 import java.nio.charset.StandardCharsets;
@@ -22,16 +23,20 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 // /api/candidates/** da bi SecurityConfig chan hasRole("CANDIDATE") o tang filter chain, khong
-// can @PreAuthorize them. Quyen so huu tung resume duoc kiem rieng o ResumeService (404 neu sai
-// chu, khong phai 403 - tranh lo resume cua nguoi khac co ton tai hay khong).
+// can @PreAuthorize them. Quyen so huu tung resume duoc kiem rieng o ResumeService/
+// CvImprovementSuggestionService (404 neu sai chu, khong phai 403 - tranh lo resume cua nguoi khac
+// co ton tai hay khong).
 @RestController
 @RequestMapping("/api/candidates/resumes")
 public class ResumeCandidateController {
 
     private final ResumeService resumeService;
+    private final CvImprovementSuggestionService cvImprovementSuggestionService;
 
-    public ResumeCandidateController(ResumeService resumeService) {
+    public ResumeCandidateController(
+            ResumeService resumeService, CvImprovementSuggestionService cvImprovementSuggestionService) {
         this.resumeService = resumeService;
+        this.cvImprovementSuggestionService = cvImprovementSuggestionService;
     }
 
     @GetMapping
@@ -68,5 +73,17 @@ public class ResumeCandidateController {
     @GetMapping("/{id}/parsed")
     public ResumeParsedDataResponse getParsedData(Authentication authentication, @PathVariable UUID id) {
         return resumeService.getParsedData(UUID.fromString(authentication.getName()), id);
+    }
+
+    @PostMapping("/{id}/improvement-suggestions")
+    public CvImprovementSuggestionResponse requestImprovementSuggestions(
+            Authentication authentication, @PathVariable UUID id) {
+        return cvImprovementSuggestionService.requestSuggestions(UUID.fromString(authentication.getName()), id);
+    }
+
+    @GetMapping("/{id}/improvement-suggestions")
+    public CvImprovementSuggestionResponse getImprovementSuggestions(
+            Authentication authentication, @PathVariable UUID id) {
+        return cvImprovementSuggestionService.getSuggestions(UUID.fromString(authentication.getName()), id);
     }
 }

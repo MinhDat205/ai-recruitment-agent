@@ -151,6 +151,21 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("APPLICATION_NOT_WITHDRAWABLE", ex.getMessage()));
     }
 
+    // 400, KHAC voi ApplicationNotWithdrawableException (409): day la HR gui sai buoc chuyen trong
+    // request, khong phai "tai nguyen khong con o trang thai cho phep hanh dong" nhu truong hop rut don.
+    @ExceptionHandler(InvalidApplicationStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidApplicationStatusTransition(
+            InvalidApplicationStatusTransitionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_APPLICATION_STATUS_TRANSITION", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidInterviewScheduleException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidInterviewSchedule(InvalidInterviewScheduleException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_INTERVIEW_SCHEDULE", ex.getMessage()));
+    }
+
     @ExceptionHandler(ResumeNotParsedException.class)
     public ResponseEntity<ErrorResponse> handleResumeNotParsed(ResumeNotParsedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -161,6 +176,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleScoringRunInProgress(ScoringRunInProgressException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("SCORING_RUN_IN_PROGRESS", ex.getMessage()));
+    }
+
+    @ExceptionHandler(NotificationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotificationNotFound(NotificationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("NOTIFICATION_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InterviewInvitationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleInterviewInvitationNotFound(InterviewInvitationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("INTERVIEW_INVITATION_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCandidateSearchFilterException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCandidateSearchFilter(InvalidCandidateSearchFilterException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CANDIDATE_SEARCH_FILTER", ex.getMessage()));
     }
 
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500

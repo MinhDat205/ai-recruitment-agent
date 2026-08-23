@@ -2,6 +2,7 @@ import { Briefcase } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../features/auth/useAuth'
 import type { Role } from '../../features/auth/types'
+import { NotificationBell } from '../../features/notifications/NotificationBell'
 
 function roleHomePath(role: Role): string {
   if (role === 'CANDIDATE') return '/candidate'
@@ -29,6 +30,7 @@ export function PublicHeader() {
         <div className="flex items-center gap-3">
           {isLoading ? null : user ? (
             <>
+              <NotificationBell />
               <span className="text-sm font-medium text-ink">{user.fullName}</span>
               <Link
                 to={roleHomePath(user.role)}

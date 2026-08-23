@@ -1,10 +1,14 @@
 package com.recruitment.scoring;
 
+import com.recruitment.jobapplication.JobApplication;
+import com.recruitment.jobapplication.JobApplicationRepository;
+import com.recruitment.notification.AggregationFinishedEvent;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 // KHONG method nao o day duoc @Transactional - xem CLAUDE.md muc 3c va ScoringRunOrchestrator.
@@ -22,14 +26,20 @@ public class AggregationOrchestrator {
     private final ScoringRunStateService stateService;
     private final ScoringRunRepository scoringRunRepository;
     private final CriterionScoreRepository criterionScoreRepository;
+    private final JobApplicationRepository jobApplicationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AggregationOrchestrator(
             ScoringRunStateService stateService,
             ScoringRunRepository scoringRunRepository,
-            CriterionScoreRepository criterionScoreRepository) {
+            CriterionScoreRepository criterionScoreRepository,
+            JobApplicationRepository jobApplicationRepository,
+            ApplicationEventPublisher eventPublisher) {
         this.stateService = stateService;
         this.scoringRunRepository = scoringRunRepository;
         this.criterionScoreRepository = criterionScoreRepository;
+        this.jobApplicationRepository = jobApplicationRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public void processOne(UUID scoringRunId) {
@@ -98,10 +108,22 @@ public class AggregationOrchestrator {
         if (!written) {
             // Khong phai loi - mot nhip poll khac da ghi truoc do (ca hai deu tinh ra CUNG gia tri
             // tu cung du lieu da commit, xem ScoringRunRepository.finishAggregation). Chi log.debug
-            // de truy vet neu can, khong markFailed.
+            // de truy vet neu can, khong markFailed, KHONG publish event (nhip da ghi truoc do da
+            // publish roi - publish lai o day se tao thong bao trung).
             log.debug(
                     "finishAggregation khong ghi duoc (co the da duoc mot nhip khac ghi truoc do): scoringRunId={}",
                     scoringRunId);
+            return;
         }
+
+        // FR-C03: publish NGOAI transaction (doProcess khong @Transactional - xem CLAUDE.md muc
+        // 3c) - KHONG publish trong ScoringRunStateService.finishAggregation, tranh keo dai
+        // transaction ghi ngan cua no chi de phuc vu thong bao. run.getApplicationId() da co san
+        // tu lan doc dau method, chi can them 1 truy van de lay jobId (chap nhan duoc vi dang o
+        // ngoai moi transaction).
+        JobApplication application =
+                jobApplicationRepository.findById(run.getApplicationId()).orElseThrow();
+        eventPublisher.publishEvent(
+                new AggregationFinishedEvent(scoringRunId, run.getApplicationId(), application.getJobId()));
     }
 }

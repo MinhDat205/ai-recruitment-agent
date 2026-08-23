@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios'
+import { CalendarClock } from 'lucide-react'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ import { ApplicationHistoryTimeline } from '../features/applications/Application
 import { ApplicationStatusBadge } from '../features/applications/ApplicationStatusBadge'
 import { useMyApplicationsQuery, useWithdrawApplicationMutation } from '../features/applications/queries'
 import type { ApplicationSummary } from '../features/applications/types'
+import { useInterviewInvitationQuery } from '../features/interviewinvitation/queries'
 
 function formatAppliedAt(iso: string): string {
   return new Date(iso).toLocaleString('vi-VN', {
@@ -25,6 +27,65 @@ function formatAppliedAt(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+// Gio Viet Nam, hien day-thang-nam + gio-phut - dung format voi formatAppliedAt/formatChangedAt
+// (ApplicationHistoryTimeline.tsx) de nhat quan toan trang.
+function formatScheduledAt(iso: string): string {
+  return new Date(iso).toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
+}
+
+// Dialog xem giay moi phong van - noi dung do HR soan, hien NGUYEN VAN (whitespace-pre-wrap giu
+// xuong dong), khong render/tom tat lai gi them.
+function InterviewInvitationDetailDialog({ applicationId }: { applicationId: string }) {
+  const {
+    data: invitation,
+    isLoading,
+    isError,
+    error: invitationError,
+  } = useInterviewInvitationQuery(applicationId, true)
+
+  if (isLoading) {
+    return <p className="text-sm text-ink-muted">Đang tải giấy mời...</p>
+  }
+
+  if (isError) {
+    // 404 INTERVIEW_INVITATION_NOT_FOUND: don co the bi REJECTED thang tu PENDING (khong qua
+    // phong van) - khong phai loi, chi la khong co giay moi nao de xem. Loi khac (mang, 500...)
+    // moi hien canh bao do.
+    if (isAxiosError(invitationError) && invitationError.response?.status === 404) {
+      return <p className="text-sm text-ink-muted">Đơn này chưa có giấy mời phỏng vấn.</p>
+    }
+    return <p className="text-sm text-danger">Không tải được giấy mời, vui lòng thử lại.</p>
+  }
+
+  if (!invitation) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-sm">
+        <CalendarClock className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+        <span className="font-medium text-ink">{formatScheduledAt(invitation.scheduledAt)}</span>
+      </div>
+      {invitation.location && (
+        <p className="text-sm text-ink-muted">
+          <span className="font-medium text-ink">Địa điểm: </span>
+          {invitation.location}
+        </p>
+      )}
+      <p className="text-sm font-medium text-ink">{invitation.subject}</p>
+      <p className="whitespace-pre-wrap text-sm text-ink">{invitation.renderedContent}</p>
+    </div>
+  )
 }
 
 // Backend tra loi qua ErrorResponse { error, message } (xem GlobalExceptionHandler), giong
@@ -42,10 +103,16 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 
 const WITHDRAWABLE_STATUSES: ApplicationSummary['status'][] = ['PENDING', 'INTERVIEW_INVITED']
 
+// Xem lai giay moi duoc o ca HIRED/REJECTED - ung vien phong van xong, HR chot ket qua, ho van
+// can doi chieu lai lich hen cu. Backend khong loc theo status (xem 2 test
+// get_applicationHiredAfterInterview_stillReturnsInvitation / ...Rejected...).
+const INVITATION_VIEWABLE_STATUSES: ApplicationSummary['status'][] = ['INTERVIEW_INVITED', 'HIRED', 'REJECTED']
+
 export function CandidateApplicationsPage() {
   const { data: applications, isLoading, isError } = useMyApplicationsQuery()
   const [selected, setSelected] = useState<ApplicationSummary | null>(null)
   const [withdrawTarget, setWithdrawTarget] = useState<ApplicationSummary | null>(null)
+  const [invitationTarget, setInvitationTarget] = useState<ApplicationSummary | null>(null)
   const withdrawMutation = useWithdrawApplicationMutation()
 
   const closeWithdrawDialog = () => {
@@ -100,6 +167,16 @@ export function CandidateApplicationsPage() {
                           <Button type="button" variant="outline" size="sm" onClick={() => setSelected(application)}>
                             Xem lịch sử
                           </Button>
+                          {INVITATION_VIEWABLE_STATUSES.includes(application.status) && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setInvitationTarget(application)}
+                            >
+                              Xem giấy mời
+                            </Button>
+                          )}
                           {WITHDRAWABLE_STATUSES.includes(application.status) && (
                             <Button
                               type="button"
@@ -152,6 +229,15 @@ export function CandidateApplicationsPage() {
               {withdrawMutation.isPending ? 'Đang rút đơn...' : 'Xác nhận rút đơn'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={invitationTarget !== null} onOpenChange={(open) => !open && setInvitationTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Giấy mời phỏng vấn{invitationTarget ? ` — ${invitationTarget.jobTitle}` : ''}</DialogTitle>
+          </DialogHeader>
+          {invitationTarget && <InterviewInvitationDetailDialog applicationId={invitationTarget.id} />}
         </DialogContent>
       </Dialog>
     </PublicLayout>

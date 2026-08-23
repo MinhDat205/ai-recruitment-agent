@@ -1,4 +1,5 @@
 import { http } from '../../lib/http'
+import type { Application, ApplicationStatus } from '../applications/types'
 import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
 
 export async function listHrApplicationsRequest(
@@ -13,6 +14,18 @@ export async function listHrApplicationsRequest(
 
 export async function createScoringRunRequest(applicationId: string): Promise<ScoringRun> {
   const response = await http.post<ScoringRun>(`/hr/applications/${applicationId}/scoring-runs`)
+  return response.data
+}
+
+// FR-H07 (E1, Dot 3) - doi trang thai don (REJECTED/HIRED). INTERVIEW_INVITED KHONG duoc phep gui
+// qua day (backend tu choi 400) - luon phai qua InterviewInvitationDialog/sendInterviewInvitationRequest
+// (features/interviewinvitation/api.ts), giong dung ranh gioi da chot o ApplicationStatusController.
+// Response khop y het type Application (candidate-facing) da co san - khong dinh nghia lai.
+export async function changeApplicationStatusRequest(
+  applicationId: string,
+  status: ApplicationStatus,
+): Promise<Application> {
+  const response = await http.patch<Application>(`/hr/applications/${applicationId}/status`, { status })
   return response.data
 }
 

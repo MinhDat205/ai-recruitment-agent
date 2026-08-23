@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient, type Query } from '@tanstack/react-query'
-import { getParsedResumeRequest, listResumesRequest, setPrimaryResumeRequest, uploadResumeRequest } from './api'
-import type { Resume, ResumeParsedDataResponse } from './types'
+import {
+  getCvImprovementRequest,
+  getParsedResumeRequest,
+  listResumesRequest,
+  requestCvImprovementRequest,
+  setPrimaryResumeRequest,
+  uploadResumeRequest,
+} from './api'
+import type { CvImprovementStatus, CvImprovementSuggestion, Resume, ResumeParsedDataResponse } from './types'
 
 const RESUMES_QUERY_KEY = ['resumes', 'mine']
 
@@ -73,6 +80,43 @@ export function useSetPrimaryResumeMutation() {
     mutationFn: (id: string) => setPrimaryResumeRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RESUMES_QUERY_KEY })
+    },
+  })
+}
+
+// Hang so poll RIENG cho trang goi y cai thien CV - KHONG dung chung RESUME_LIST_POLL_INTERVAL_MS
+// du cung gia tri 5000ms, vi hai hang so gan voi hai poller backend doc lap
+// (app.resume-parsing.poll-interval-ms cua D1 va app.cv-improvement.poll-interval-ms cua F2) -
+// doi mot ben trong tuong lai khong keo theo ben con lai.
+const CV_IMPROVEMENT_POLL_INTERVAL_MS = 5000
+
+function cvImprovementQueryKey(resumeId: string) {
+  return ['resumes', resumeId, 'improvement-suggestions']
+}
+
+// PENDING/RUNNING la hai trang thai con dang cho poller backend (CvImprovementScheduler) xu ly -
+// mau y het hasResumeStillPolling/isResumeStalled cua D1, nhung don gian hon: khong can nguong
+// "cho qua lau" o day, trang chi phuc vu dung MOT resumeId (khong phai danh sach nhieu CV) nen
+// nguoi dung tu thay ro dang cho gi, khong can co che tu ngat poll rieng.
+function isCvImprovementPending(status: CvImprovementStatus | undefined): boolean {
+  return status === 'PENDING' || status === 'RUNNING'
+}
+
+export function useCvImprovementQuery(resumeId: string) {
+  return useQuery({
+    queryKey: cvImprovementQueryKey(resumeId),
+    queryFn: () => getCvImprovementRequest(resumeId),
+    refetchInterval: (query: Query<CvImprovementSuggestion>) =>
+      isCvImprovementPending(query.state.data?.status) ? CV_IMPROVEMENT_POLL_INTERVAL_MS : false,
+  })
+}
+
+export function useRequestCvImprovementMutation(resumeId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => requestCvImprovementRequest(resumeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cvImprovementQueryKey(resumeId) })
     },
   })
 }

@@ -51,6 +51,13 @@ public class SecurityConfig {
                                         .hasRole("HR")
                                         .requestMatchers("/api/candidates/**")
                                         .hasRole("CANDIDATE")
+                                        // FR-C03: endpoint dung-chung-2-role DAU TIEN cua du an -
+                                        // notifications.user_id tro thang users(id) truc tiep, khong
+                                        // phan biet duoc role tu path nen khong khop prefix RBAC nao
+                                        // o tren. Chi can da dang nhap; quyen so huu that su (chi
+                                        // doc/sua thong bao cua chinh minh) kiem o NotificationService.
+                                        .requestMatchers("/api/notifications/**")
+                                        .authenticated()
                                         .anyRequest()
                                         .authenticated())
                 .exceptionHandling(

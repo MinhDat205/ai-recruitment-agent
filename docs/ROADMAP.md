@@ -72,16 +72,48 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 
 ## Phase E — Quyết định & thông báo
 
-- [ ] **E1** `feat/fr-h07-pipeline` — FR-H07 · Pipeline, mời phỏng vấn, xác nhận kết quả
-- [ ] **E2** `feat/fr-c03-notification` — FR-C03 · Thông báo web + email
+- [X] **E1** `feat/fr-h07-pipeline` — FR-H07 · Pipeline, mời phỏng vấn, xác nhận kết quả
+  - Máy trạng thái (`PATCH /api/hr/applications/{id}/status`) chặn cứng đường tắt đặt thẳng
+    `INTERVIEW_INVITED` — trạng thái này bắt buộc phải kèm lịch hẹn thật (đúng nghĩa "Đã mời phỏng
+    vấn (có lịch hẹn)" trong SRS), chỉ đi được qua `POST .../interview-invitation`. Chi tiết lập
+    luận ở walkthrough `fr-h07-pipeline.md` mục 4b.
+  - Giấy mời phỏng vấn lưu nguyên văn nội dung HR đã gửi (`interview_invitations.rendered_content`),
+    không render lại và không FK ngược về `interview_templates` — HR sửa mẫu sau này không làm đổi
+    nội dung đã gửi, cùng tinh thần `rubric_snapshot` (D2). Chi tiết walkthrough mục 4c/4e.
+- [x] **E2** `feat/fr-c03-notification` — FR-C03 · Thông báo web + email
+  - Spring Events (`@TransactionalEventListener(AFTER_COMMIT)` cho 3 sự kiện publish trong transaction
+    nghiệp vụ, `@EventListener` thường cho sự kiện chấm điểm xong publish ngoài transaction ở
+    `AggregationOrchestrator`) + poller gửi email riêng, tách hoàn toàn khỏi transaction ghi chính.
+    Chi tiết lập luận + lỗi thật gặp lúc chạy test (Spring chặn `@Transactional` mặc định trên
+    method AFTER_COMMIT) ở walkthrough `fr-c03-notification.md` mục 4a/4b.
 
 **Xong khi:** không tồn tại bất kỳ đường code nào tự động chuyển trạng thái đậu/rớt.
 
 ## Phase F — Gợi ý & thống kê
 
-- [ ] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
-- [ ] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
-- [ ] **F3** `feat/fr-h08-dashboard` — FR-H08 · Dashboard, lọc theo điểm, tra cứu lịch sử đánh giá
+- [x] **F1** `feat/fr-u04-recommend` — FR-U04 · Embedding + cosine similarity, gợi ý việc làm
+  - `MIN_SIMILARITY_SCORE = 0.40` chốt từ đo thực nghiệm thật (2 CV × 7 job, `OpenAI
+    text-embedding-3-small` thật) — không đoán số. Truy vấn similarity hai bước, vector truyền như
+    tham số cố định (không `JOIN ... ON true`) — đã xác nhận bằng `EXPLAIN ANALYZE` thật rằng
+    planner CÓ THỂ chọn index HNSW (474ms khi ép, so với 0.41ms Seq Scan mà planner tự chọn ở quy
+    mô 7 hàng hiện tại). Cố ý giữ nguyên không thêm gate consent (FR-U02) cho luồng sinh embedding
+    CV: consent trong SRS nhắm tới việc bên thứ ba (HR) dùng AI ra quyết định về ứng viên, còn F1
+    chỉ phục vụ chính ứng viên và không sinh nội dung mới — thêm gate sẽ khiến ứng viên chưa từng
+    ứng tuyển (đúng nhóm cần gợi ý nhất) không bao giờ thấy gợi ý. Chi tiết đầy đủ ở walkthrough
+    `fr-u04-recommend.md` mục 4.
+- [x] **F2** `feat/fr-u05-cv-improve` — FR-U05 · Gợi ý cải thiện CV
+  - Cố ý bỏ vế "kết quả đánh giá trước đó" của SRS FR-U05 — PHASES.md cấm lộ điểm/rubric/nhận xét
+    nội bộ của HR cho ứng viên, hai văn bản mâu thuẫn nhau, ưu tiên PHASES.md. Ba lớp phòng thủ độc
+    lập chống rò rỉ dữ liệu chấm điểm (chữ ký service, prompt gửi LLM, response trả ứng viên) — mỗi
+    lớp có test riêng. Chi tiết lập luận đầy đủ ở walkthrough `fr-u05-cv-improve.md` mục 4a/4b.
+- [x] **F3** `feat/fr-h08-dashboard` — FR-H08 · Dashboard, lọc theo điểm, tra cứu lịch sử đánh giá
+  - Phễu chuyển đổi đếm theo `application_status_history` (đã từng đạt trạng thái), không đếm theo
+    `job_applications.status` hiện tại — đơn được mời phỏng vấn rồi rút đơn vẫn tính vào "đã từng
+    được mời". Nhánh lọc theo điểm tiêu chí dẫn dắt câu SQL từ `criterion_scores` để ép Postgres
+    dùng đúng `idx_criterion_scores_filter` (dẫn dắt từ `scoring_runs` sẽ vô tình chọn index khác).
+    Không có cột "Hạng" ở danh sách ứng viên toàn công ty — FR-H05 chỉ định nghĩa xếp hạng trong
+    phạm vi một chiến dịch. Chi tiết đầy đủ + các quyết định gây tranh luận ở walkthrough
+    `fr-h08-dashboard.md` mục 4.
 
 **Xong khi:** đơn đã rút vẫn được đếm đúng trong thống kê.
 
@@ -125,9 +157,91 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     - Form ứng tuyển (C2, `frontend/src/features/applications/JobApplyForm.tsx`) cho chọn cả CV có
       `parse_status = FAILED`. Đơn nộp bằng CV hỏng thì HR không bấm chấm điểm được, đơn nằm chết
       không xử lý được. Cần lọc bỏ CV `FAILED` khỏi danh sách chọn, hoặc chặn nộp kèm thông báo rõ.
-    - `recordStatusChange` (`backend/src/main/java/com/recruitment/jobapplication/ApplicationService.java:119`)
-      đang `private`. E1 (FR-H07) nằm ở service khác nên không gọi được — cần tách thành lớp riêng
-      hoặc đổi visibility. Xử lý ngay trong nhánh E1.
+  - E1: `ApplicationStatusService.changeStatus` (`backend/src/main/java/com/recruitment/jobapplication/ApplicationStatusService.java`)
+    đọc `application.getStatus()` rồi `save()` mà không có `WHERE status = :oldStatus` hay
+    `@Version` — hai request PATCH gần như đồng thời trên cùng một đơn (double-click, hai tab HR)
+    đều có thể đọc cùng một trạng thái gốc, đều qua kiểm luồng, rồi cả hai đều ghi thành công
+    (last-write-wins), có thể để lại hai dòng lịch sử mâu thuẫn cùng xuất phát từ một trạng thái.
+    Phát hiện khi chạy `srs-guard` cho nhánh E1 (không phải vi phạm nào trong 9 mục của skill, chỉ
+    là rủi ro cùng họ — không có ràng buộc "chỉ một X đang hoạt động" nào bị vi phạm theo đúng
+    nghĩa hẹp). Cách sửa đề xuất: đổi sang `UPDATE job_applications SET status = :new WHERE id =
+    :id AND status = :old`, kiểm số dòng ảnh hưởng — cùng khuôn mẫu
+    `ScoringRunRepository.finishAggregation` (D3) đã dùng cho đúng vấn đề tương tự.
+  - Phát hiện khi kiểm thử tay nhánh E1 bằng tài khoản thật (20/08/2026):
+    - 6 job seed `10000000-0000-0000-0000-00000000000{1..6}` (`db/seed/dev-seed.sql`) không có rubric
+      lẫn interview_template; job `11111111-1111-1111-1111-111111111111` có rubric nhưng thiếu
+      template. Đây là dữ liệu tạo ngoài `JobOwnerService.create` nên thiếu các bất biến mà B2 đảm
+      bảo (Job+Rubric+InterviewTemplate luôn tạo cùng nhau). Xử lý bằng xoá mềm khi làm
+      `chore/seed-demo`, không vá bằng INSERT tay.
+    - Console cảnh báo `Select is changing from uncontrolled to controlled` (radix-ui) — có `Select`
+      khởi tạo `value={undefined}`. Sửa bằng giá trị khởi tạo hoặc `defaultValue`.
+    - Message lỗi 401 `UNAUTHENTICATED` viết tiếng Việt không dấu ("Can dang nhap de truy cap tai
+      nguyen nay", `JsonAuthenticationEntryPoint.java:22`) — không nhất quán với quy ước "chuỗi hiển
+      thị cho người dùng: tiếng Việt có dấu" (CLAUDE.md mục 4). Rà lại các message tương tự còn
+      thiếu dấu (`GlobalExceptionHandler` và các entry point/handler khác ở tầng filter chain).
+    - Sidebar HR: mục "Ứng viên" và "Rubric" không có `to` trong `NAV_ITEMS`
+      (`frontend/src/components/layout/HrLayout.tsx:15-16`) nên hiển thị mờ, không bấm được. Cố ý ở
+      giai đoạn này (hai màn hình đó vào qua job, chưa có trang danh sách toàn cục). Quyết định ở F3
+      (FR-H08, dashboard): trỏ về màn hình đó hoặc gỡ hẳn khỏi sidebar.
+      **Đã xử lý ở F3**: "Ứng viên" trỏ `/hr/candidates` (trang mới); "Rubric" xóa hẳn khỏi
+      `NAV_ITEMS` (rubric thuộc từng job, đã có tab riêng trong `HrJobEditPage`, đặt ở menu cấp cao
+      là điều hướng cụt).
+  - E2: poller gửi email không claim trước khi gửi — an toàn với một instance, sẽ gửi trùng nếu chạy
+    đa instance. Xem walkthrough `fr-c03-notification.md` mục 4d/7.
+  - Phát hiện khi làm F3 (FR-H08, `feat/fr-h08-dashboard`):
+    - `ScoringRunRepository.findByApplicationIdOrderByCreatedAtDesc` (D2) — derived query `ORDER BY
+      created_at DESC` thiếu khóa cuối duy nhất. Đã kiểm thực nghiệm trên Postgres 17 thật: hai lượt
+      chấm cùng `created_at` (cùng transaction) có thể đổi thứ tự trả về giữa hai lần đọc dữ liệu
+      không đổi, chỉ do khác vị trí vật lý trong heap/index. Đang được `ScoringRunService.listScoringRuns`
+      (D2) dùng trực tiếp — sửa cần thêm `, id DESC` và chạy lại 19 test của D2 để xác nhận không vỡ
+      kỳ vọng thứ tự.
+    - `ScoringRunRepository.findLatestDoneByApplicationIdIn` (D3) — `DISTINCT ON (application_id)
+      ORDER BY application_id, created_at DESC` cùng lỗi thiếu khóa cuối, ảnh hưởng nguồn điểm xếp
+      hạng của D3/D4.
+    - Pattern `requireOwnCompany` chạy **sau** khi tra tài nguyên (thay vì trước) ở
+      `ApplicationStatusService.loadOwnedApplication` (E1) và `ApplicationOwnerService.loadOwnedJob`
+      (D3) — HR chưa tạo hồ sơ công ty nhận nhầm lỗi 404 sai nguyên nhân (`APPLICATION_NOT_FOUND`/
+      `JOB_NOT_FOUND` thay vì `COMPANY_NOT_FOUND`). F3 đã sửa đúng thứ tự này cho
+      `ScoringRunAuditService` (file mới), không sửa hai file D3/E1 kia (ngoài phạm vi một mã FR).
+    - Dropdown "Tin tuyển dụng" trong `CandidatesFilterBar` (F3) giới hạn 50 tin — trần
+      `JobOwnerService.MAX_SIZE` ở backend, không phải lựa chọn tùy ý ở frontend. Công ty có hơn 50
+      tin sẽ không lọc được tin cũ nhất qua dropdown này (đã có chú thích UI báo số lượng bị cắt bớt).
+    - Cột số trong `CandidatesTable` và `JobPerformanceTable` (F3) căn trái theo mặc định — nên căn
+      phải để dễ so sánh giá trị giữa các dòng.
+  - Phát sinh khi làm F2 (FR-U05, `feat/fr-u05-cv-improve`):
+    - `ApplicationHistoryEntryResponse.note` trả cho ứng viên (F3, endpoint `GET
+      /api/candidates/applications/{id}/history`) — hiện an toàn vì cả 4 điểm ghi trong toàn bộ
+      codebase đều truyền `null`, chưa có đường nào cho HR nhập `note` tự do. Khi cho HR nhập note
+      phải bỏ field này khỏi DTO hoặc tách DTO riêng cho ứng viên. Chưa có integration test HTTP
+      phủ endpoint này. Phát hiện khi khảo sát Plan Mode của F2, không phải lỗi do F2 gây ra.
+    - Nút "Thử lại" khi trạng thái gợi ý cải thiện CV là `FAILED` chưa kiểm thử tay được với API
+      key Anthropic thật — model gần như luôn trả JSON hợp lệ đúng schema, không có cách ép LLM
+      thật trả lỗi một cách tin cậy để dựng thủ công tình huống này qua giao diện.
+    - Chưa test race condition thật (hai request HTTP đồng thời thật sự) cho
+      `uq_cv_improvement_request_active` — test hiện có gọi tuần tự, không phải song song thật.
+    - Danh sách 20 job `OPEN` mới nhất gửi cho LLM không lọc theo lĩnh vực ở tầng SQL — việc lọc
+      lĩnh vực hoàn toàn do LLM tự đọc và tự loại trong prompt, không dùng semantic search (F1/
+      FR-U04 mới có hạ tầng embedding để lọc chính xác theo ngữ nghĩa). Nếu hệ thống có rất nhiều
+      job đa dạng lĩnh vực, 20 tin mới nhất có thể không đủ đại diện cho lĩnh vực của một CV cụ thể.
+  - Phát sinh khi làm F1 (FR-U04, `feat/fr-u04-recommend`):
+    - Không có claim/stale-reaper cho `JobEmbeddingScheduler`/`ResumeEmbeddingScheduler`/
+      `JobRecommendationCacheScheduler` — an toàn với một instance (fixedDelay không chạy chồng
+      lượt), nhưng nếu triển khai đa instance có thể sinh embedding trùng cho cùng một job/CV ở hai
+      lượt poll gần nhau (tốn thêm lời gọi API OpenAI, không sai dữ liệu vì upsert/update cuối cùng
+      vẫn nhất quán). Cùng họ với khoản nợ đã ghi ở D1/D2/E2.
+    - `resume_parsed_data` không có cột lưu tên model embedding đã dùng cho CV — cột `model` (V1)
+      đã bị D1 chiếm dụng cho metadata bước parse. Mất provenance nếu sau này cần audit CV được
+      embed bằng model nào (khác `job_embeddings.model` có cột riêng).
+    - Danh sách job dùng để tính similarity không ưu tiên/lọc theo `deadline` xa/gần — mọi job
+      `OPEN` (kể cả sắp hết hạn) đều được so sánh như nhau trong `findTopMatchingJobs`.
+    - Chưa test race condition thật cho `uq_reco` (hai lượt `refreshOne` đồng thời thật sự, ví dụ
+      hai instance scheduler chạy trùng) — bug thứ tự flush của Hibernate (đã sửa, thêm
+      `jobRecommendationRepository.flush()` giữa `deleteByCandidateId` và `saveAll`) được phát hiện
+      qua gọi tuần tự trong test, không phải qua đồng thời thật.
+    - `EXPLAIN ANALYZE` xác nhận planner không dùng HNSW ở quy mô hiện tại (7 hàng
+      `job_embeddings`) — đúng ở quy mô nhỏ (Seq Scan nhanh hơn), cần đo lại khi dữ liệu production
+      đủ lớn để xác nhận planner tự chuyển sang Index Scan như dự đoán, không chỉ khi bị ép bằng
+      tay qua `enable_seqscan`.
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
