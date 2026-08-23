@@ -18,13 +18,23 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
 
     // GET /api/hr/applications/{id}/scoring-runs (Dot 5) - lich su cac luot cham cua MOT don, moi
     // nhat truoc, khop dung thu tu ma idx_scoring_app(application_id, created_at DESC) da danh san.
-    List<ScoringRun> findByApplicationIdOrderByCreatedAtDesc(UUID applicationId);
+    // Da them khoa cuoi ", id DESC" (Dot 2, chore/hardening) - derived query goc (ORDER BY
+    // created_at DESC KHONG khoa cuoi) da xac nhan thuc nghiem tren Postgres that: hai luot cham
+    // CUNG created_at (cung transaction, xem CLAUDE.md muc 3c ve now() transaction-scoped) co the
+    // doi thu tu giua hai lan doc du CUNG mot ke hoach truy van. Ten method GIU NGUYEN (khong doi
+    // sang OrderByCreatedAtDescIdDesc) de khong keo theo moi call site chi vi mo ta ten khong con
+    // chinh xac 100% - dung @Query JPQL tuong minh thay cho derived query.
+    @Query("SELECT s FROM ScoringRun s WHERE s.applicationId = :applicationId ORDER BY s.createdAt DESC, s.id DESC")
+    List<ScoringRun> findByApplicationIdOrderByCreatedAtDesc(@Param("applicationId") UUID applicationId);
 
     // GET /api/hr/jobs/{jobId}/applications (Dot 5) - lay luot cham GAN NHAT cho MOI don trong
     // applicationIds bang MOT query duy nhat, tranh N+1 (goi rieng findByApplicationIdOrderBy...
     // roi .get(0) cho tung don trong vong lap se la N+1 khi danh sach dai). DISTINCT ON la cu phap
     // rieng cua Postgres, khop dung idx_scoring_app(application_id, created_at DESC) da co san -
     // moi application_id chi giu lai dong co created_at lon nhat.
+    // Da them khoa cuoi ", id DESC" (Dot 2, chore/hardening) - cung ly do voi
+    // findByApplicationIdOrderByCreatedAtDesc: hai luot CUNG created_at (cung transaction) doi thu
+    // tu vat ly giua hai lan doc du khong ORDER BY thay doi.
     @Query(
             value =
                     """
@@ -32,7 +42,7 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
                         application_id AS applicationId, id AS id, status AS status, finished_at AS finishedAt
                     FROM scoring_runs
                     WHERE application_id IN (:applicationIds)
-                    ORDER BY application_id, created_at DESC
+                    ORDER BY application_id, created_at DESC, id DESC
                     """,
             nativeQuery = true)
     List<LatestScoringRunView> findLatestByApplicationIdIn(@Param("applicationIds") Collection<UUID> applicationIds);
@@ -112,6 +122,8 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
     // nhat) cho moi application_id, khop dung idx_scoring_app(application_id, created_at DESC) da
     // co san. Don khong co lot DONE nao (chua cham, chi co lot FAILED, hoac dang cham do) khong
     // xuat hien trong ket qua - tang goi (ApplicationOwnerService) coi la totalScore=null.
+    // Da them khoa cuoi ", id DESC" (Dot 2, chore/hardening) - cung ly do voi
+    // findByApplicationIdOrderByCreatedAtDesc/findLatestByApplicationIdIn.
     @Query(
             value =
                     """
@@ -119,7 +131,7 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
                         application_id AS applicationId, id AS id, total_score AS totalScore
                     FROM scoring_runs
                     WHERE application_id IN (:applicationIds) AND status = 'DONE'
-                    ORDER BY application_id, created_at DESC
+                    ORDER BY application_id, created_at DESC, id DESC
                     """,
             nativeQuery = true)
     List<LatestDoneScoringRunView> findLatestDoneByApplicationIdIn(

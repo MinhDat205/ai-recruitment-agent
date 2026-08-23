@@ -122,6 +122,19 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 ## Hoàn thiện trước bảo vệ
 
 - [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), presigned URL cho file CV
+  - **`java.util.UUID.compareTo()` KHÔNG cùng ngữ nghĩa với `ORDER BY id` của Postgres trên cột
+    `uuid`** — Java so sánh hai `long` có dấu (`mostSigBits`/`leastSigBits`), Postgres so sánh 16
+    byte không dấu. Hai thứ tự này cho kết quả khác nhau tuỳ giá trị UUID cụ thể. **Không được** dùng
+    `UUID.compareTo()` để dự đoán hay tái tạo thứ tự một truy vấn `ORDER BY id` — muốn biết thứ tự
+    thật, đọc lại từ chính repository/truy vấn đó. Phát hiện khi Đợt 2 xoá workaround sort-lại-bằng-Java
+    trong `ScoringRunAuditService.listAudit` (dùng đúng `UUID.compareTo()` để mô phỏng `id DESC`)
+    và test `ScoringRunAuditControllerIntegrationTest.listAudit_tiedCreatedAt_...` vỡ vì test đó
+    cũng đoán thứ tự bằng `UUID.compareTo()` — tức workaround cũ đang **che giấu** đúng sai lệch này
+    (test pass "may" trước đó, không phải pass đúng). Đã sửa test lấy thứ tự mong đợi từ repository
+    thật, và thêm test tương tự cho `ScoringRunService.listScoringRuns` (khoảng trống chưa có test
+    tie-break trước Đợt 2). Tiền lệ xử lý đúng đã có sẵn từ trước ở
+    `CvImprovementRequestRepositoryTest.findByStatusOrderByRequestedAtAscIdAsc_returnsOldestFirst`
+    (F2) — không phải phát hiện đầu tiên, nhưng chưa được áp dụng nhất quán ở D2/D3.
   - Presigned URL: từ D4 áp dụng cho **cả hai** đường tải file CV (ứng viên qua
     `ResumeCandidateController`, HR qua `ResumeHrController` mới) — cả hai đều stream file qua app
     server, không phải chỉ một. Chưa gây vấn đề ở quy mô hiện tại (`app.storage.type=local`, không

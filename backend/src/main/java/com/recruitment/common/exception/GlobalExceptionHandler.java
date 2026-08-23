@@ -160,6 +160,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_APPLICATION_STATUS_TRANSITION", ex.getMessage()));
     }
 
+    // 409 - lost-update chan boi updateStatusIfCurrent (Dot 2, chore/hardening), xem
+    // ApplicationStatusConflictException.
+    @ExceptionHandler(ApplicationStatusConflictException.class)
+    public ResponseEntity<ErrorResponse> handleApplicationStatusConflict(ApplicationStatusConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("APPLICATION_STATUS_CONFLICT", ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidInterviewScheduleException.class)
     public ResponseEntity<ErrorResponse> handleInvalidInterviewSchedule(InvalidInterviewScheduleException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

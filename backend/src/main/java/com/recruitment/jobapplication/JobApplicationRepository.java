@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +16,22 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     // Ownership check: don khong thuoc ve candidateId dang dang nhap -> Optional rong -> 404,
     // giong het pattern ResumeRepository.findByIdAndCandidateId dung trong ApplicationService.apply.
     Optional<JobApplication> findByIdAndCandidateId(UUID id, UUID candidateId);
+
+    // Chot chan lost-update cho ApplicationStatusService.changeStatus (Dot 2, chore/hardening) -
+    // dung khuon ScoringRunRepository.finishAggregation: UPDATE co dieu kien tren CA id LAN trang
+    // thai goc, kiem rowcount o noi goi thay vi doc-roi-save khong dieu kien. Hai request PATCH gan
+    // nhu dong thoi (double-click, hai tab HR) cung doc duoc oldStatus, chi request nao ghi TRUOC
+    // moi thoa dieu kien WHERE - request con lai rowcount=0, ném ApplicationStatusConflictException
+    // (409) thay vi am tham ghi de (last-write-wins).
+    // flushAutomatically=true: phong ho neu sau nay co thao tac ghi ORM khac truoc dong nay trong
+    // cung transaction (hien tai changeStatus khong co thao tac ghi nao truoc no nen khong bat buoc,
+    // nhung re khong dang gi de an toan hon).
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE JobApplication a SET a.status = :newStatus WHERE a.id = :id AND a.status = :oldStatus")
+    int updateStatusIfCurrent(
+            @Param("id") UUID id,
+            @Param("oldStatus") ApplicationStatus oldStatus,
+            @Param("newStatus") ApplicationStatus newStatus);
 
     // GET /api/hr/jobs/{jobId}/applications (Dot 5, ApplicationOwnerService) - danh sach don cua
     // MOT job, moi nop gan day nhat truoc.

@@ -297,10 +297,14 @@ public class ApplicationOwnerService {
                 .toList();
     }
 
-    // Mau ownership giong het JobOwnerService.loadOwned/RubricOwnerService.loadOwnedRubric.
+    // Mau ownership giong het JobOwnerService.loadOwned/RubricOwnerService.loadOwnedRubric, NHUNG
+    // doi thu tu (Dot 2, chore/hardening): requireOwnCompany chay TRUOC khi tra jobs, dung khuon
+    // ScoringRunAuditService.loadOwnedApplication - HR chua tao ho so cong ty phai nhan dung 404
+    // COMPANY_NOT_FOUND thay vi 404 JOB_NOT_FOUND gay hieu nham, va tranh doc thua bang jobs khi da
+    // biet chac se loi.
     private Job loadOwnedJob(UUID jobId, UUID ownerId) {
-        Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
         Company company = requireOwnCompany(ownerId);
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
         if (!job.getCompanyId().equals(company.getId())) {
             throw new AccessDeniedException("Khong co quyen truy cap danh sach ung vien cua tin tuyen dung nay");
         }

@@ -11,7 +11,6 @@ import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
 import com.recruitment.jobapplication.dto.ApplicationHrListItemResponse;
 import com.recruitment.scoring.dto.ScoringRunAuditItemResponse;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,21 +48,10 @@ public class ScoringRunAuditService {
     public List<ScoringRunAuditItemResponse> listAudit(UUID ownerId, UUID applicationId) {
         loadOwnedApplication(applicationId, ownerId);
 
-        // KHONG dua vao thu tu tra ve cua findByApplicationIdOrderByCreatedAtDesc - derived query
-        // nay ORDER BY created_at DESC KHONG co khoa cuoi, da xac minh thuc nghiem tren Postgres
-        // that: hai luot cham CUNG created_at (cung transaction) co the doi thu tu giua hai lan
-        // doc du CUNG mot kieu ke hoach truy van, chi khac vi tri vat ly trong heap/index (xem bao
-        // cao duyet Dot 4). KHONG sua repository nay o day - thuoc FR-H04 (D2), dang duoc
-        // ScoringRunService.listScoringRuns dung va co 19 test khang dinh hinh dang hien tai; sua
-        // se cham code ngoai pham vi FR-H08 (no ky thuat da ghi vao ROADMAP, xem Dot 7). Sort lai
-        // bang Java o day: moi don chi co vai luot cham, khong ton kem gi. reversed() dao CA HAI
-        // khoa (createdAt roi id) - "moi nhat truoc, id lon hon truoc", nhat quan voi
-        // ORDER BY created_at DESC, id DESC da dung o Dot 2/3.
-        List<ScoringRun> runs = scoringRunRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId).stream()
-                .sorted(Comparator.comparing(ScoringRun::getCreatedAt)
-                        .thenComparing(ScoringRun::getId)
-                        .reversed())
-                .toList();
+        // findByApplicationIdOrderByCreatedAtDesc gio da co khoa cuoi ", id DESC" ngay trong @Query
+        // (Dot 2, chore/hardening) - khong con can sort lai bang Java o day nua (workaround cu da
+        // xoa, xem git history/walkthrough neu can doi chieu ly do truoc do).
+        List<ScoringRun> runs = scoringRunRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
         if (runs.isEmpty()) {
             return List.of();
         }

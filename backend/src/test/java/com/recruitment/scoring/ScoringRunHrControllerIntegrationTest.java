@@ -615,6 +615,44 @@ class ScoringRunHrControllerIntegrationTest {
         assertThat(body.indexOf(secondRunId)).isLessThan(body.indexOf(firstRunId));
     }
 
+    // Dot 2 (chore/hardening) - khoang trong test da phat hien: listScoringRuns dung chung
+    // findByApplicationIdOrderByCreatedAtDesc voi ScoringRunAuditService.listAudit nhung truoc do
+    // KHONG co test nao phu tinh huong hai luot TRUNG created_at (chi co
+    // listScoringRuns_multipleRuns_returnsNewestFirst o tren, va no CHU DONG lui created_at de
+    // TRANH tie, nen khong dung cham toi nhanh tie-break). Them test nay dong khoang trong, dung
+    // dung mau da sua cho ScoringRunAuditControllerIntegrationTest.listAudit_tiedCreatedAt_...:
+    // lay thu tu mong doi TU CHINH repository (Postgres ORDER BY id DESC, so sanh UUID theo byte
+    // khong dau), KHONG doan bang java.util.UUID.compareTo() (so sanh long co dau - hai ngu nghia
+    // co the lech nhau, xem docs/ROADMAP.md muc chore/hardening).
+    @Test
+    void listScoringRuns_tiedCreatedAt_ordersByIdDescendingAsTiebreak() throws Exception {
+        ReadyApplication ctx = setupReadyApplication("list-tie");
+        UUID applicationId = UUID.fromString(ctx.applicationId());
+
+        // Tao qua POST that (khong tu dung ScoringRun() thu cong) de rubricSnapshot duoc dien day
+        // du - toResponse() doc run.getRubricSnapshot().criteria(), thieu se NPE. Danh dau lot dau
+        // "da cham xong" de qua dieu kien tien quyet #5 cho lot thu hai (mau
+        // listScoringRuns_multipleRuns_returnsNewestFirst o tren), nhung CO Y KHONG lui created_at
+        // ve qua khu nhu test do - o day can GIU NGUYEN tie (ca hai cung mot @Transactional test
+        // nen mac dinh da nhan CUNG mot gia tri created_at, dung y dinh cho tinh huong tie-break).
+        MvcResult first = createScoringRun(ctx.hrToken(), ctx.applicationId());
+        String firstRunId = extractJsonField(first.getResponse().getContentAsString(), "id");
+        ScoringRun firstRun = scoringRunRepository.findById(UUID.fromString(firstRunId)).orElseThrow();
+        firstRun.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(firstRun);
+
+        createScoringRun(ctx.hrToken(), ctx.applicationId());
+
+        List<ScoringRun> expectedOrder = scoringRunRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId);
+        String expectedFirst = expectedOrder.get(0).getId().toString();
+        String expectedSecond = expectedOrder.get(1).getId().toString();
+
+        MvcResult list = listScoringRuns(ctx.hrToken(), ctx.applicationId());
+        String body = list.getResponse().getContentAsString();
+        assertThat(body.indexOf(expectedFirst)).isGreaterThanOrEqualTo(0);
+        assertThat(body.indexOf(expectedSecond)).isGreaterThan(body.indexOf(expectedFirst));
+    }
+
     @Test
     void listScoringRuns_calledByCandidate_returns403() throws Exception {
         ReadyApplication ctx = setupReadyApplication("list-candidate-call");

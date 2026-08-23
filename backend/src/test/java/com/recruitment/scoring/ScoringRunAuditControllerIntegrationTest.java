@@ -381,9 +381,11 @@ class ScoringRunAuditControllerIntegrationTest {
         assertThat(body).doesNotContain("weaknesses");
     }
 
-    // Sort lai bang Java (Comparator.comparing(createdAt).thenComparing(id).reversed()) phai on
-    // dinh khi hai luot TRUNG created_at (cung transaction, now() transaction-scoped) - id lon hon
-    // (theo UUID.compareTo cua Java) phai dung TRUOC.
+    // Tie-break ", id DESC" trong findByApplicationIdOrderByCreatedAtDesc (Dot 2, chore/hardening)
+    // phai on dinh khi hai luot TRUNG created_at (cung transaction, now() transaction-scoped). Thu
+    // tu mong doi lay TU repository that (Postgres ORDER BY id DESC), KHONG doan bang
+    // java.util.UUID.compareTo() cua Java - xem docs/ROADMAP.md muc chore/hardening ve ly do hai
+    // ngu nghia nay co the lech nhau.
     @Test
     void listAudit_tiedCreatedAt_ordersByIdDescendingAsTiebreak() throws Exception {
         String hrToken = registerAndLoginHr("hr-audit-tie");
@@ -391,12 +393,21 @@ class ScoringRunAuditControllerIntegrationTest {
         String jobId = createOpenJob(hrToken, uniqueName("Job Audit Tie"));
         String applicationId = createApplication("cand-audit-tie", "Ung Vien Audit Tie", jobId);
 
-        UUID runA = createScoringRun(
+        createScoringRun(
                 UUID.fromString(applicationId), ScoringRunStatus.FAILED, null, "claude-sonnet-4-6", "criterion-score-v1");
-        UUID runB = createScoringRun(
+        createScoringRun(
                 UUID.fromString(applicationId), ScoringRunStatus.FAILED, null, "claude-sonnet-4-6", "criterion-score-v1");
-        UUID expectedFirst = runA.compareTo(runB) > 0 ? runA : runB;
-        UUID expectedSecond = expectedFirst.equals(runA) ? runB : runA;
+
+        // Thu tu mong doi lay TU CHINH truy van that (repository), KHONG du doan bang
+        // java.util.UUID.compareTo() cua Java - Postgres ORDER BY id DESC so sanh UUID theo BYTE
+        // KHONG DAU, khac voi UUID.compareTo() so sanh hai long CO DAU (mostSigBits/leastSigBits),
+        // hai thu tu nay co the LECH NHAU tuy gia tri cu the (phat hien khi ORDER BY id DESC that
+        // su chay tren Postgres o Dot 2, chore/hardening - truoc do test nay vo tinh dung vi
+        // ScoringRunAuditService con sort lai bang Java qua UUID.compareTo()).
+        List<ScoringRun> expectedOrder =
+                scoringRunRepository.findByApplicationIdOrderByCreatedAtDesc(UUID.fromString(applicationId));
+        UUID expectedFirst = expectedOrder.get(0).getId();
+        UUID expectedSecond = expectedOrder.get(1).getId();
 
         MvcResult result = listAudit(hrToken, applicationId);
 

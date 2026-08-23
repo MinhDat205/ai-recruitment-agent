@@ -1,6 +1,7 @@
 package com.recruitment.jobapplication;
 
 import com.recruitment.common.exception.ApplicationNotFoundException;
+import com.recruitment.common.exception.ApplicationStatusConflictException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InvalidApplicationStatusTransitionException;
 import com.recruitment.common.exception.JobNotFoundException;
@@ -52,6 +53,16 @@ public class ApplicationStatusService {
         this.eventPublisher = eventPublisher;
     }
 
+    // Doi trang thai bang UPDATE co dieu kien tren ca id LAN trang thai goc (updateStatusIfCurrent,
+    // xem JobApplicationRepository) thay vi doc-roi-save khong dieu kien - chot chan lost-update
+    // that: hai request PATCH gan nhu dong thoi (double-click, hai tab HR) cung doc duoc oldStatus,
+    // chi mot trong hai duoc phep ghi (Dot 2, chore/hardening).
+    //
+    // clearAutomatically=true tren updateStatusIfCurrent xoa persistence context - object
+    // "application" trong tay tu day tro di la STALE (van mang oldStatus, khong tu cap nhat qua
+    // UPDATE nam ngoai ORM). KHONG doc lai status/updatedAt tu no: dung thang bien oldStatus/newStatus
+    // da co san cho recorder/event, va BAT BUOC findById MOI de dung response - lan doc nay chac
+    // chan la SELECT that tu DB (khong con gi trong persistence context de tra ve nham ban cu).
     @Transactional
     public ApplicationResponse changeStatus(UUID ownerId, UUID applicationId, ApplicationStatus newStatus) {
         JobApplication application = loadOwnedApplication(applicationId, ownerId);
@@ -62,32 +73,39 @@ public class ApplicationStatusService {
             throw new InvalidApplicationStatusTransitionException(oldStatus.name(), newStatus.name());
         }
 
-        application.setStatus(newStatus);
-        JobApplication saved = jobApplicationRepository.save(application);
+        int updated = jobApplicationRepository.updateStatusIfCurrent(applicationId, oldStatus, newStatus);
+        if (updated == 0) {
+            throw new ApplicationStatusConflictException();
+        }
 
         // ownerId = users.id cua HR dang dang nhap (JwtService.subject, xem ApplicationStatusRecorder)
         // - dung field changed_by de FR-H08 (lich su audit) tra ra dung nguoi thao tac.
-        applicationStatusRecorder.record(saved.getId(), oldStatus, newStatus, ownerId, null);
+        applicationStatusRecorder.record(applicationId, oldStatus, newStatus, ownerId, null);
 
         // FR-C03: publish TRONG transaction chinh - NotificationEventListener xu ly sau
-        // AFTER_COMMIT (chi khi UPDATE nay that su commit thanh cong).
+        // AFTER_COMMIT (chi khi UPDATE nay that su commit thanh cong). jobId/candidateId doc tu
+        // "application" (object cu) la an toan - hai truong nay bat bien, khong bi UPDATE tren doi.
         eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
-                saved.getId(), saved.getJobId(), saved.getCandidateId(), oldStatus, newStatus));
+                applicationId, application.getJobId(), application.getCandidateId(), oldStatus, newStatus));
 
-        return toResponse(saved);
+        JobApplication refreshed = jobApplicationRepository.findById(applicationId).orElseThrow();
+        return toResponse(refreshed);
     }
 
-    // Mau y het ScoringRunService.loadOwnedApplication/ResumeHrService.loadOwnedApplication: 404
-    // khi don khong ton tai, 403 (AccessDeniedException) khi don ton tai nhung job cua no khong
-    // thuoc cong ty cua HR dang dang nhap. Khong tach dung chung - dung tien le lap lai cua du an.
+    // Mau y het ScoringRunService.loadOwnedApplication/ResumeHrService.loadOwnedApplication, NHUNG
+    // doi thu tu: requireOwnCompany chay TRUOC khi tra job_applications/jobs (khac ban goc, dung
+    // khuon ScoringRunAuditService.loadOwnedApplication - Dot 2, chore/hardening). Ly do: HR chua
+    // tao ho so cong ty phai nhan dung 404 COMPANY_NOT_FOUND, khong phai 404
+    // APPLICATION_NOT_FOUND/JOB_NOT_FOUND gay hieu nham (nguyen nhan that la thieu cong ty, khong
+    // phai don/job khong ton tai) - va tranh doc thua hai bang do khi da biet chac se loi.
     private JobApplication loadOwnedApplication(UUID applicationId, UUID ownerId) {
+        Company company = requireOwnCompany(ownerId);
         JobApplication application = jobApplicationRepository
                 .findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
         Job job = jobRepository
                 .findById(application.getJobId())
                 .orElseThrow(() -> new JobNotFoundException(application.getJobId()));
-        Company company = requireOwnCompany(ownerId);
         if (!job.getCompanyId().equals(company.getId())) {
             throw new AccessDeniedException("Khong co quyen doi trang thai don ung tuyen nay");
         }
