@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.anthropic.errors.AnthropicIoException;
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.ai.criterion.CriterionScoringErrorCode;
 import com.recruitment.company.Company;
@@ -367,6 +368,81 @@ class ScoringRunOrchestratorTest {
     // doProcess()) hoat dong that: resume_parsed_data "bien mat" (khong duoc tao, du resume da
     // DONE) khien orElseThrow() nem NoSuchElementException tu doProcess() - neu khong duoc bat lai,
     // luot cham se ket vinh vien o RUNNING/finished_at NULL va bi V4 chan moi lan cham lai sau nay.
+    // Dot 4e+4f+4g (chore/hardening) - test wiring TONG HOP qua toan bo chuoi that: loi LLM TAM
+    // THOI o tieu chi thu 2/3 dua luot ve PENDING (4e) chu khong FAILED; claim() tu choi xu ly lai
+    // khi next_attempt_at chua qua (4f); sau khi qua backoff, lan thu lai CHI cham cac tieu chi CON
+    // THIEU, khong cham lai tieu chi da xong (4g). Neu bat ky mat xich nao trong day dut (vd quen
+    // doc errorCode() o Dot 4e, hoac claim khong loc next_attempt_at o Dot 4f, hoac vong lap khong
+    // loc alreadyScored o Dot 4g), test nay se do theo dung cho dut do.
+    @Test
+    void processOne_temporaryErrorOnSecondCriterion_returnsToPendingThenResumesSkippingAlreadyScoredCriteria() {
+        UUID jobId = createJobWithRubric(List.of(
+                new CriterionSpec("Kinh nghiem Java", new BigDecimal("40"), 5),
+                new CriterionSpec("Kinh nghiem Docker", new BigDecimal("30"), 5),
+                new CriterionSpec("Tieng Anh", new BigDecimal("30"), 5)));
+        UUID applicationId = createApplicationWithParsedResume(jobId, RAW_TEXT);
+        UUID runId = createPendingRun(applicationId, jobId);
+        doReturn(fakeResponse(VALID_JSON))
+                .doThrow(new AnthropicIoException())
+                .doReturn(fakeResponse(VALID_JSON))
+                .doReturn(fakeResponse(VALID_JSON))
+                .when(chatModel)
+                .call(any(Prompt.class));
+
+        orchestrator.processOne(runId);
+
+        entityManager.clear();
+        ScoringRun afterFirstAttempt = scoringRunRepository.findById(runId).orElseThrow();
+        assertThat(afterFirstAttempt.getStatus()).isEqualTo(ScoringRunStatus.PENDING);
+        assertThat(afterFirstAttempt.getAttemptCount()).isEqualTo(1);
+        assertThat(afterFirstAttempt.getErrorMessage())
+                .isEqualTo(CriterionScoringErrorCode.LLM_TEMPORARILY_UNAVAILABLE.formatted());
+        assertThat(afterFirstAttempt.getNextAttemptAt()).isNotNull();
+        List<CriterionScore> scoresAfterFirst = criterionScoreRepository.findAll().stream()
+                .filter(s -> s.getScoringRunId().equals(runId))
+                .toList();
+        assertThat(scoresAfterFirst).hasSize(1);
+        assertThat(scoresAfterFirst.get(0).getCriterionNameSnapshot()).isEqualTo("Kinh nghiem Java");
+
+        // Dot 4f - claim() tu choi ngay vi next_attempt_at con trong tuong lai (backoff-ms[0]=50ms
+        // trong application-test.yml) - goi lai NGAY (khong doi) phai la NO-OP hoan toan.
+        orchestrator.processOne(runId);
+        entityManager.clear();
+        assertThat(scoringRunRepository.findById(runId).orElseThrow().getStatus()).isEqualTo(ScoringRunStatus.PENDING);
+        verify(chatModel, times(2)).call(any(Prompt.class));
+
+        // Day next_attempt_at ve qua khu THAY VI Thread.sleep - test can kiem dung "poller nhat lai
+        // khi da qua moc backoff", khong phai kiem dong ho that. Thread.sleep tren nguong backoff
+        // mong (50ms) la nguon flaky tren CI (GC pause, may tai cao) va loai vo do rat kho tai hien.
+        // Dung lai scoringRunRepository (da autowired san trong file, dang dung khap noi de dung
+        // saveAndFlush) thay vi them jdbcTemplate/EntityManager native query rieng - save()/
+        // saveAndFlush() cua SimpleJpaRepository tu co @Transactional cua chinh no nen khong can
+        // @Transactional o muc test method (khac voi cac @Modifying query tuy chinh nhu
+        // claimForProcessing, xem ScoringRunStateServiceTest).
+        ScoringRun waitingRun = scoringRunRepository.findById(runId).orElseThrow();
+        waitingRun.setNextAttemptAt(Instant.now().minusSeconds(3600));
+        scoringRunRepository.saveAndFlush(waitingRun);
+        entityManager.clear();
+
+        orchestrator.processOne(runId);
+
+        entityManager.clear();
+        ScoringRun finalRun = scoringRunRepository.findById(runId).orElseThrow();
+        assertThat(finalRun.getStatus()).isEqualTo(ScoringRunStatus.RUNNING);
+        assertThat(finalRun.getFinishedAt()).isNotNull();
+        List<CriterionScore> finalScores = criterionScoreRepository.findAll().stream()
+                .filter(s -> s.getScoringRunId().equals(runId))
+                .toList();
+        assertThat(finalScores).hasSize(3);
+        assertThat(finalScores)
+                .extracting(CriterionScore::getCriterionNameSnapshot)
+                .containsExactlyInAnyOrder("Kinh nghiem Java", "Kinh nghiem Docker", "Tieng Anh");
+
+        // 2 cuoc dau (thanh cong + loi) + 2 cuoc sau (Docker retry + Tieng Anh) = 4. Neu la 5, nghia
+        // la "Kinh nghiem Java" bi cham LAI o lan hai - 4g khong hoat dong.
+        verify(chatModel, times(4)).call(any(Prompt.class));
+    }
+
     @Test
     void processOne_resumeParsedDataMissing_marksFailedInsteadOfStuckRunning() {
         UUID jobId = createJobWithRubric(List.of(new CriterionSpec("Kinh nghiem Java", new BigDecimal("100"), 5)));

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 
+import com.anthropic.errors.AnthropicIoException;
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.storage.StorageService;
 import com.recruitment.user.Role;
@@ -223,6 +224,28 @@ class ResumeParsingOrchestratorTest {
         entityManager.clear();
         Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
         assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.FAILED);
+        assertThat(resumeParsedDataRepository.findByResumeId(resumeId)).isEmpty();
+    }
+
+    // Dot 4e (chore/hardening) - bang chung duong re LLM_TEMPORARILY_UNAVAILABLE -> markTemporaryFailure
+    // CHAY DUOC THAT qua ca chuoi that (ResumeParsingService bat AnthropicIoException -> throw
+    // ResumeParsingFailedException(LLM_TEMPORARILY_UNAVAILABLE) -> ResumeParsingOrchestrator doc
+    // errorCode() va re nhanh dung), KHONG chi assert rieng tung khuc. Neu day noi bi dut (vd catch
+    // sai thu tu, hoac quen doc errorCode()), ban ghi se roi thang FAILED nhu loi vinh vien - khong
+    // exception, khong log, chi la khong bao gio duoc thu lai.
+    @Test
+    void processOne_temporaryLlmError_returnsToPendingInsteadOfFailed() throws IOException {
+        UUID resumeId = createResumeFromFixture("cv-mot-cot.pdf");
+        Mockito.doThrow(new AnthropicIoException()).when(chatModel).call(any(Prompt.class));
+
+        orchestrator.processOne(resumeId);
+
+        entityManager.clear();
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(resume.getParseStatus()).isEqualTo(ParseStatus.PENDING);
+        assertThat(resume.getAttemptCount()).isEqualTo(1);
+        assertThat(resume.getParseError()).isEqualTo(ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE.formatted());
+        assertThat(resume.getNextAttemptAt()).isNotNull();
         assertThat(resumeParsedDataRepository.findByResumeId(resumeId)).isEmpty();
     }
 

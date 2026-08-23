@@ -1,6 +1,10 @@
 package com.recruitment.resume;
 
+import com.anthropic.errors.AnthropicIoException;
+import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.AnthropicServiceException;
+import com.anthropic.errors.InternalServerException;
+import com.anthropic.errors.RateLimitException;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +54,15 @@ public class ResumeParsingService {
     // nao, va DefaultChatClient.doResponseEntity() cung goi thang converter.convert(...) khong
     // bat gi them - nen loi JSON khong hop le se la tools.jackson.core.JacksonException (unchecked,
     // extends RuntimeException) nem thang ra khoi .call().responseEntity(converter) khong bi boc
-    // lai. Loi khac (mang, timeout SDK...) khong retry, map thang ve LLM_ERROR - hien chua xac
-    // dinh duoc chinh xac loai exception timeout tu SDK Anthropic thuc te (chi mock o tang
-    // ChatModel trong test nen chua cham toi SDK that), nen LLM_TIMEOUT hien khong co duong code
-    // nao tao ra duoc - ghi nhan la gioi han da biet, khong tu doan de tranh bat sai loai exception.
+    // lai.
+    //
+    // Loi khac phan thanh hai nhom (Dot 4, chore/hardening) - xac minh bang javap tren
+    // anthropic-java-core-2.40.1.jar that: AnthropicIoException/AnthropicRetryableException KHONG
+    // phai AnthropicServiceException (khong co statusCode()) - la loi mang/timeout thuan hoac SDK
+    // da tu retry noi bo roi van het han; RateLimitException (429)/InternalServerException (5xx) LA
+    // AnthropicServiceException. Ca bon deu la TAM THOI - map ve LLM_TEMPORARILY_UNAVAILABLE, se
+    // duoc tu dong thu lai qua co che backoff (Dot 4e, nhip sau). Con lai (401/400/403/404/422,
+    // AnthropicServiceException khac) la VINH VIEN, map ve LLM_ERROR nhu cu.
     public ResumeParsingResult parse(UUID resumeId, String rawText) {
         String promptText = truncateForPrompt(rawText, resumeId);
         BeanOutputConverter<ResumeParsedPayload> converter = new BeanOutputConverter<>(ResumeParsedPayload.class);
@@ -67,6 +76,10 @@ public class ResumeParsingService {
                     resumeId,
                     firstAttemptError);
             result = retryAfterInvalidJson(resumeId, promptText, converter);
+        } catch (AnthropicIoException | AnthropicRetryableException | RateLimitException | InternalServerException
+                temporaryError) {
+            log.debug("Loi LLM tam thoi (lan 1): resumeId={}", resumeId, temporaryError);
+            throw new ResumeParsingFailedException(ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE, temporaryError);
         } catch (RuntimeException firstAttemptError) {
             log.debug("Loi khi goi LLM (lan 1): resumeId={}", resumeId, firstAttemptError);
             log.warn(
@@ -88,6 +101,10 @@ public class ResumeParsingService {
         } catch (JacksonException secondAttemptError) {
             log.debug("LLM tra JSON khong hop le ca lan 2, dung lai: resumeId={}", resumeId, secondAttemptError);
             throw new ResumeParsingFailedException(ResumeParsingErrorCode.LLM_INVALID_JSON, secondAttemptError);
+        } catch (AnthropicIoException | AnthropicRetryableException | RateLimitException | InternalServerException
+                temporaryError) {
+            log.debug("Loi LLM tam thoi (lan 2): resumeId={}", resumeId, temporaryError);
+            throw new ResumeParsingFailedException(ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE, temporaryError);
         } catch (RuntimeException secondAttemptError) {
             log.debug("Loi khi goi LLM (lan 2): resumeId={}", resumeId, secondAttemptError);
             log.warn(

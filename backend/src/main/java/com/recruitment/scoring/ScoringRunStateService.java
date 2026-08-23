@@ -3,6 +3,7 @@ package com.recruitment.scoring;
 import com.recruitment.ai.criterion.CriterionScorePayload;
 import com.recruitment.ai.criterion.CriterionScoringResult;
 import com.recruitment.common.FormattedErrorCode;
+import com.recruitment.common.LlmRetryPolicy;
 import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
 import com.recruitment.rubric.Rubric;
@@ -13,32 +14,41 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 // Bean GHI rieng cho scoring - xem CLAUDE.md muc 3c va ResumeParsingStateService. KHONG method nao o
 // day duoc goi qua self-invocation tu ScoringRunService/ScoringRunOrchestrator - phai qua bean nay de
-// @Transactional di qua proxy Spring.
+// @Transactional di qua proxy Spring. unlockRubricIfSafe la private helper (khong @Transactional
+// rieng) nen goi tu markFailed/markTemporaryFailure trong CUNG class KHONG phai self-invocation qua
+// proxy - no chay trong transaction cua method goi no.
 @Service
 public class ScoringRunStateService {
+
+    private static final Logger log = LoggerFactory.getLogger(ScoringRunStateService.class);
 
     private final ScoringRunRepository scoringRunRepository;
     private final CriterionScoreRepository criterionScoreRepository;
     private final RubricRepository rubricRepository;
     private final RubricCriterionRepository rubricCriterionRepository;
     private final JobApplicationRepository jobApplicationRepository;
+    private final LlmRetryPolicy retryPolicy;
 
     public ScoringRunStateService(
             ScoringRunRepository scoringRunRepository,
             CriterionScoreRepository criterionScoreRepository,
             RubricRepository rubricRepository,
             RubricCriterionRepository rubricCriterionRepository,
-            JobApplicationRepository jobApplicationRepository) {
+            JobApplicationRepository jobApplicationRepository,
+            LlmRetryPolicy retryPolicy) {
         this.scoringRunRepository = scoringRunRepository;
         this.criterionScoreRepository = criterionScoreRepository;
         this.rubricRepository = rubricRepository;
         this.rubricCriterionRepository = rubricCriterionRepository;
         this.jobApplicationRepository = jobApplicationRepository;
+        this.retryPolicy = retryPolicy;
     }
 
     // Q6 (ke hoach D2): khoa rubric CUNG transaction voi viec tao scoring_runs, ngay tai thoi diem
@@ -105,7 +115,12 @@ public class ScoringRunStateService {
         criterionScore.setScore(toScoreScale(result.payload().score()));
         criterionScore.setReasoning(result.payload().reasoning());
         criterionScore.setEvidence(toEvidenceEntries(result.payload().evidence()));
-        criterionScoreRepository.save(criterionScore);
+        // Dot 4g (chore/hardening) - saveAndFlush thay vi save: bat INSERT chay NGAY trong pham vi
+        // method nay de DataIntegrityViolationException cua uq_score_per_criterion (V1, khi hai
+        // worker cung cham mot tieu chi do race stale-claim reaper) noi len cho ScoringRunOrchestrator
+        // bat duoc TAI DAY, khong bi hoan toi luc commit cuoi transaction (luc do da ra khoi try-catch
+        // du dinh). Cung khuon voi ScoringRunStateService.create da dung cho uq_scoring_run_in_progress.
+        criterionScoreRepository.saveAndFlush(criterionScore);
 
         ScoringRun run = scoringRunRepository.findById(scoringRunId).orElseThrow();
         run.setModel(result.model());
@@ -139,29 +154,84 @@ public class ScoringRunStateService {
     // set FAILED+finished_at TRUOC, roi moi chay isSafeToUnlock, roi moi mo khoa neu thoa - tat ca
     // trong CUNG transaction, de chinh luot dang fail tu loai khoi ve thu hai cua dieu kien "dang
     // chay" (Postgres thay duoc ghi cua chinh transaction minh, khong can loai tru tuong minh id).
+    // Da doi tu findById+save khong dieu kien sang UPDATE co dieu kien status='RUNNING' (Dot 4e,
+    // Viec 3 - xem ScoringRunRepository.markFailedIfRunning ve ly do va gioi han da biet). Hanh vi
+    // "CHI set finished_at khi dang NULL" giu nguyen qua COALESCE trong chinh cau UPDATE do - van
+    // dam bao D3 (AggregationOrchestrator, goi ham nay khi finished_at DA CO tu D2) khong bi ghi de
+    // moc "D2 cham xong toan bo tieu chi" (xem CLAUDE.md muc 2b).
     @Transactional
     public void markFailed(UUID scoringRunId, FormattedErrorCode errorCode) {
         ScoringRun run = scoringRunRepository.findById(scoringRunId).orElseThrow();
-        run.setStatus(ScoringRunStatus.FAILED);
-        // CHI set finished_at khi dang NULL - KHONG ghi de mot moc da co san (sua o Dot 2, ke
-        // hoach D3, sau khi phat hien qua cau hoi Q2+Q3 gop). Call site D2
-        // (ScoringRunOrchestrator.doProcess, tieu chi loi giua chung) luon goi ham nay khi
-        // finished_at CON NULL (luot chua tung cham xong) nen hanh vi KHONG DOI: van la lan dau
-        // tien finished_at duoc set, giong het truoc khi sua (xem
-        // ScoringRunStateServiceTest#markFailed_finishedAtNullBeforeCall_setsFinishedAtNow). Call
-        // site MOI cua D3 (AggregationOrchestrator, Dot 3) goi ham nay khi luot DA CO finished_at
-        // do D2 set tu truoc (moc "D2 cham xong toan bo tieu chi", xem CLAUDE.md muc 2b) - neu
-        // khong co guard nay, D3 se ghi de moc do bang thoi diem D3 phat hien loi toan ven, lam
-        // mat dau vet that su "khi nao D2 cham xong", sai lech audit (xem
-        // ScoringRunStateServiceTest#markFailed_finishedAtAlreadySetBeforeCall_keepsOriginalTimestamp).
-        if (run.getFinishedAt() == null) {
-            run.setFinishedAt(Instant.now());
+        int updated = scoringRunRepository.markFailedIfRunning(scoringRunId, errorCode.formatted(), Instant.now());
+        if (updated == 0) {
+            log.warn(
+                    "Bo qua markFailed: scoringRunId={} khong con RUNNING (da bi xu ly boi luong khac)",
+                    scoringRunId);
+            return;
         }
-        run.setErrorMessage(errorCode.formatted());
-        scoringRunRepository.save(run);
+        unlockRubricIfSafe(run.getApplicationId());
+    }
 
-        JobApplication application =
-                jobApplicationRepository.findById(run.getApplicationId()).orElseThrow();
+    // Dot 4e (chore/hardening) - loi LLM TAM THOI (CriterionScoringErrorCode.LLM_TEMPORARILY_UNAVAILABLE)
+    // hoac stale-claim (ScoringRunErrorCode.STALE_CLAIM_TIMEOUT, Dot 4h nhip sau) di qua day thay vi
+    // markFailed. TUYET DOI KHONG goi markFailed o nhanh exhausted: markFailed hien la UPDATE dieu
+    // kien status='RUNNING' KHONG mang attempt_count, se mat lop chong race cua chinh method nay va
+    // ghi sai attempt_count cuoi cung - nhanh exhausted tu chay markRetryExhausted (dieu kien VA
+    // GHI attempt_count trong CUNG mot UPDATE), roi tu goi unlockRubricIfSafe rieng.
+    @Transactional
+    public void markTemporaryFailure(UUID scoringRunId, FormattedErrorCode errorCode) {
+        ScoringRun current = scoringRunRepository.findById(scoringRunId).orElseThrow();
+        int expectedCount = current.getAttemptCount();
+        int nextAttempt = expectedCount + 1;
+        boolean exhausted = nextAttempt >= retryPolicy.maxAttempts();
+
+        if (exhausted) {
+            int updated = scoringRunRepository.markRetryExhausted(
+                    scoringRunId,
+                    expectedCount,
+                    nextAttempt,
+                    ScoringRunErrorCode.LLM_RETRY_EXHAUSTED.formatted(),
+                    Instant.now());
+            if (updated == 0) {
+                log.warn(
+                        "Bo qua markTemporaryFailure (exhausted): scoringRunId={} da bi thay doi boi "
+                                + "luong khac (expectedCount={})",
+                        scoringRunId,
+                        expectedCount);
+                return;
+            }
+            unlockRubricIfSafe(current.getApplicationId());
+        } else {
+            Instant nextAttemptAt = Instant.now().plusMillis(retryPolicy.backoffMillisAfterAttempt(nextAttempt));
+            int updated = scoringRunRepository.markTemporaryFailure(
+                    scoringRunId, expectedCount, nextAttempt, errorCode.formatted(), nextAttemptAt);
+            if (updated == 0) {
+                log.warn(
+                        "Bo qua markTemporaryFailure: scoringRunId={} da bi thay doi boi luong khac "
+                                + "(expectedCount={})",
+                        scoringRunId,
+                        expectedCount);
+            }
+        }
+    }
+
+    // Dot 4h (chore/hardening) - CHI doc, KHONG vong lap va KHONG goi markTemporaryFailure o day
+    // (cung ly do voi ResumeParsingStateService.findStaleClaimIds - tranh bay self-invocation).
+    // Vong lap that su nam o ScoringRunScheduler, bean KHAC. Dieu kien finished_at IS NULL o
+    // ScoringRunRepository.findIdsByStatusAndFinishedAtIsNullAndStartedAtBefore loai tru luot DA
+    // cham xong dang cho D3 tong hop (xem CLAUDE.md muc 2b) - reaper KHONG duoc dong toi luot do.
+    @Transactional(readOnly = true)
+    public List<UUID> findStaleClaimIds(Instant threshold) {
+        return scoringRunRepository.findIdsByStatusAndFinishedAtIsNullAndStartedAtBefore(
+                ScoringRunStatus.RUNNING, threshold);
+    }
+
+    // Trich tu markFailed cu (Dot 4e) - method private KHONG @Transactional rieng nen goi tu
+    // markFailed/markTemporaryFailure trong CUNG class chay trong transaction cua caller, KHONG
+    // phai self-invocation qua proxy (bay chi xay ra khi method duoc goi mang @Transactional rieng
+    // cua chinh no - xem CLAUDE.md muc 3c).
+    private void unlockRubricIfSafe(UUID applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId).orElseThrow();
         if (scoringRunRepository.isSafeToUnlock(application.getJobId())) {
             Rubric rubric = rubricRepository.findByJobId(application.getJobId()).orElseThrow();
             rubric.setLocked(false);

@@ -67,6 +67,17 @@ public class ScoringRun {
     @Column(name = "error_message")
     private String errorMessage;
 
+    // Dot 4 (chore/hardening) - retry-with-backoff cho loi LLM tam thoi. Cung ten voi
+    // Resume.attemptCount/score_explanation_attempts.attempt_count (V5) cho nhat quan thuat ngu.
+    @Column(name = "attempt_count", nullable = false)
+    private int attemptCount;
+
+    // Moc backoff truoc lan thu ke tiep - NULL nghia la san sang ngay. KHONG can cot claim-time
+    // rieng nhu Resume.claimedAt: startedAt (co san, ghi luc claim() PENDING->RUNNING) da dung dung
+    // vai tro do cho stale-claim reaper.
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+
     // Khong @Generated - code phai tu ghi ca hai cot nay. claim() (Dot 4) ghi startedAt luc
     // PENDING->RUNNING. finishedAt la moc "D2 da cham xong toan bo tieu chi" theo Q1 cua ke hoach
     // D2 - dung cho CA case thanh cong (status van RUNNING, cho D3) LAN case FAILED, khong chi

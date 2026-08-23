@@ -76,10 +76,14 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
+		<!-- Dot 4g (chore/hardening) - BO scope runtime: ScoringRunOrchestrator.isUniqueViolation
+		     import truc tiep org.postgresql.util.PSQLException de khop CHINH XAC ten rang buoc
+		     (uq_score_per_criterion) qua getServerErrorMessage().getConstraint(), thay vi doan
+		     chuoi message nhu GlobalExceptionHandler dang lam cho cac rang buoc khac - can co mat
+		     tren classpath BIEN DICH cua main code, khong chi luc chay. -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

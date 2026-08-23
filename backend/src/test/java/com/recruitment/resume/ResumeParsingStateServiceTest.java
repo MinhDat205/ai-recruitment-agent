@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.recruitment.TestcontainersConfiguration;
+import com.recruitment.common.LlmRetryPolicy;
 import com.recruitment.user.Role;
 import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 // KHONG @Transactional o class hay method nao trong file nay. Neu co, markDone() se THAM GIA
 // (join) vao transaction cua chinh test thay vi mo transaction rieng cua no - UNIQUE violation luc
@@ -38,6 +41,9 @@ class ResumeParsingStateServiceTest {
 
     @Autowired
     private ResumeParsedDataRepository resumeParsedDataRepository;
+
+    @Autowired
+    private LlmRetryPolicy retryPolicy;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -130,5 +136,227 @@ class ResumeParsingStateServiceTest {
         Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
         assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.FAILED);
         assertThat(reloaded.getParseError()).isEqualTo(ResumeParsingErrorCode.EXTRACT_EMPTY.formatted());
+    }
+
+    // Dot 4e (chore/hardening) - loi LLM TAM THOI lan DAU (attempt_count 0 -> 1, con lan thu vi
+    // max-attempts=3 trong application-test.yml): PHAI ve PENDING (khong phai FAILED) de scheduler
+    // nhat lai, kem next_attempt_at trong TUONG LAI. Day la bang chung duong re chay duoc that (khac
+    // voi chi map dung ma loi o Dot 4 nhip 1) - claimed_at PHAI reset ve NULL cho lan claim ke tiep.
+    @Test
+    void markTemporaryFailure_firstFailure_returnsToPendingWithAttemptCountOneAndFutureNextAttempt() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        Instant before = Instant.now();
+
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+
+        entityManager.clear();
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.PENDING);
+        assertThat(reloaded.getAttemptCount()).isEqualTo(1);
+        assertThat(reloaded.getParseError()).isEqualTo(ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE.formatted());
+        assertThat(reloaded.getClaimedAt()).isNull();
+        assertThat(reloaded.getNextAttemptAt())
+                .isAfter(before.plusMillis(retryPolicy.backoffMillisAfterAttempt(1) - 20));
+    }
+
+    // Bien duoi: lan thu THU HAI = max-attempts - 1 (2 trong 3) - VAN con mot lan thu nua, phai con
+    // PENDING, KHONG duoc FAILED som.
+    @Test
+    void markTemporaryFailure_secondFailure_atMaxAttemptsMinusOne_stillPendingWithAttemptCountTwo() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+        // Mo phong scheduler claim lai sau backoff (khong doi that, dat lai PROCESSING truc tiep -
+        // khong di qua claimForProcessing() vi test nay khong kiem tra next_attempt_at, chi kiem
+        // hanh vi markTemporaryFailure() o bien attempt thu hai).
+        entityManager.clear();
+        Resume afterFirst = resumeRepository.findById(resumeId).orElseThrow();
+        afterFirst.setParseStatus(ParseStatus.PROCESSING);
+        resumeRepository.saveAndFlush(afterFirst);
+        entityManager.clear();
+
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+
+        entityManager.clear();
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.PENDING);
+        assertThat(reloaded.getAttemptCount()).isEqualTo(2);
+        assertThat(reloaded.getNextAttemptAt()).isNotNull();
+    }
+
+    // Bien tren: lan thu THU BA = dung max-attempts (3) - HET luot thu, phai FAILED han voi
+    // LLM_RETRY_EXHAUSTED (KHONG phai LLM_TEMPORARILY_UNAVAILABLE), next_attempt_at ve NULL.
+    @Test
+    void markTemporaryFailure_thirdFailure_atMaxAttempts_marksFailedWithRetryExhausted() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+        entityManager.clear();
+        resetToProcessing(resumeId);
+
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+        entityManager.clear();
+        resetToProcessing(resumeId);
+
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+
+        entityManager.clear();
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.FAILED);
+        assertThat(reloaded.getAttemptCount()).isEqualTo(3);
+        assertThat(reloaded.getParseError()).isEqualTo(ResumeParsingErrorCode.LLM_RETRY_EXHAUSTED.formatted());
+        assertThat(reloaded.getNextAttemptAt()).isNull();
+    }
+
+    private void resetToProcessing(UUID resumeId) {
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setParseStatus(ParseStatus.PROCESSING);
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+    }
+
+    // Dot 4e - race: mot luong khac (vd reaper Dot 4h, hoac worker goc markDone) da doi ban ghi nay
+    // (status khong con la PROCESSING) GIUA luc mot loi tam thoi khac xay ra va luc no goi
+    // markTemporaryFailure. Mo phong bang cach doi status sang FAILED truc tiep truoc khi goi -
+    // dieu kien "parse_status = 'PROCESSING'" trong UPDATE se khong khop, rowcount=0. PHAI tra ve
+    // EM (khong nem exception), va KHONG duoc ghi de ban ghi da FAILED do luong kia.
+    @Test
+    void markTemporaryFailure_recordChangedByAnotherFlowBetweenReadAndWrite_noOpDoesNotOverwrite() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        stateService.markFailed(resumeId, ResumeParsingErrorCode.EXTRACT_EMPTY);
+        entityManager.clear();
+        // resume gio da FAILED voi EXTRACT_EMPTY, attempt_count=0 - markTemporaryFailure() se doc
+        // attempt_count=0 lam expectedCount, nhung dieu kien parse_status='PROCESSING' se khong con
+        // khop (da la FAILED) -> rowcount 0.
+        Resume beforeCall = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(beforeCall.getParseStatus()).isEqualTo(ParseStatus.FAILED);
+
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE);
+
+        entityManager.clear();
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.FAILED);
+        assertThat(reloaded.getParseError()).isEqualTo(ResumeParsingErrorCode.EXTRACT_EMPTY.formatted());
+        assertThat(reloaded.getAttemptCount()).isEqualTo(0);
+    }
+
+    // Dot 4f (chore/hardening) - claimForProcessing() gio them dieu kien next_attempt_at: mot ban
+    // ghi PENDING nhung con dang cho backoff (moc trong TUONG LAI xa, +10 phut de tranh flaky do
+    // timing) KHONG duoc claim, du dung parse_status.
+    // @Transactional o muc method (khong phai lop) - claimForProcessing() la @Modifying, doi hoi
+    // mot transaction dang mo de thuc thi executeUpdate() (tien le da co o ScoringRunRepositoryTest,
+    // Dot 1: "claimForProcessing la @Modifying nen doi hoi mot transaction dang mo").
+    @Test
+    @Transactional
+    void claimForProcessing_nextAttemptInFuture_doesNotClaimAndKeepsPending() {
+        UUID resumeId = createResume(ParseStatus.PENDING);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setNextAttemptAt(Instant.now().plusSeconds(600));
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        int updated = resumeRepository.claimForProcessing(resumeId);
+
+        assertThat(updated).isZero();
+        entityManager.clear();
+        assertThat(resumeRepository.findById(resumeId).orElseThrow().getParseStatus()).isEqualTo(ParseStatus.PENDING);
+    }
+
+    @Test
+    @Transactional
+    void claimForProcessing_nextAttemptInPast_claimsSuccessfully() {
+        UUID resumeId = createResume(ParseStatus.PENDING);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setNextAttemptAt(Instant.now().minusSeconds(60));
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        int updated = resumeRepository.claimForProcessing(resumeId);
+
+        assertThat(updated).isEqualTo(1);
+        entityManager.clear();
+        assertThat(resumeRepository.findById(resumeId).orElseThrow().getParseStatus())
+                .isEqualTo(ParseStatus.PROCESSING);
+    }
+
+    // findReadyForProcessing la nguon quet cua ResumeParsingScheduler (Dot 4f) - phai loai ban ghi
+    // con dang cho backoff ra khoi lo xu ly, neu khong no chiem cho cua cac ban ghi PENDING that su
+    // san sang khi so luong PENDING vuot batchSize (dung loi Dot 2b da sua o ScoringRunRepository).
+    @Test
+    void findReadyForProcessing_pendingWithFutureNextAttempt_excludedFromBatch() {
+        UUID readyId = createResume(ParseStatus.PENDING);
+        UUID waitingId = createResume(ParseStatus.PENDING);
+        Resume waiting = resumeRepository.findById(waitingId).orElseThrow();
+        waiting.setNextAttemptAt(Instant.now().plusSeconds(600));
+        resumeRepository.saveAndFlush(waiting);
+        entityManager.clear();
+
+        List<Resume> ready = resumeRepository.findReadyForProcessing(10);
+
+        assertThat(ready).extracting(Resume::getId).contains(readyId).doesNotContain(waitingId);
+    }
+
+    // Dot 4h (chore/hardening) - danh sach nguon cua stale-claim reaper.
+    @Test
+    void findStaleClaimIds_processingClaimedBeforeThreshold_includesIt() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setClaimedAt(Instant.now().minusSeconds(3600));
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        List<UUID> staleIds = stateService.findStaleClaimIds(Instant.now().minusSeconds(60));
+
+        assertThat(staleIds).contains(resumeId);
+    }
+
+    @Test
+    void findStaleClaimIds_claimedAfterThreshold_excluded() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setClaimedAt(Instant.now());
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        List<UUID> staleIds = stateService.findStaleClaimIds(Instant.now().minusSeconds(600));
+
+        assertThat(staleIds).doesNotContain(resumeId);
+    }
+
+    @Test
+    void findStaleClaimIds_notProcessingStatus_excludedEvenIfClaimedAtOld() {
+        UUID resumeId = createResume(ParseStatus.DONE);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setClaimedAt(Instant.now().minusSeconds(3600));
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        List<UUID> staleIds = stateService.findStaleClaimIds(Instant.now().minusSeconds(60));
+
+        assertThat(staleIds).doesNotContain(resumeId);
+    }
+
+    // Dot 4h - kich ban "worker goc hoan thanh GIUA luc reaper doc va ghi": mo phong bang cach lay
+    // id tu findStaleClaimIds() TRUOC (dai dien cho danh sach reaper da doc), roi cho worker goc
+    // hoan thanh that su (markDone), CUOI CUNG moi goi markTemporaryFailure tren chinh id do (dai
+    // dien buoc ghi cua reaper, dung id no da doc tu truoc, khong doc lai). parse_status luc nay la
+    // DONE (khong con PROCESSING) nen dieu kien UPDATE khong khop - rowcount 0, KHONG duoc ghi de.
+    @Test
+    void markTemporaryFailure_calledWithStaleClaimIdAfterOriginalWorkerFinished_doesNotOverwriteDone() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setClaimedAt(Instant.now().minusSeconds(3600));
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+        List<UUID> staleIds = stateService.findStaleClaimIds(Instant.now().minusSeconds(60));
+        assertThat(staleIds).contains(resumeId);
+
+        stateService.markDone(resumeId, "raw text", samplePayload(), "claude-sonnet-4-6", "resume-parse-v1", 100);
+        entityManager.clear();
+
+        stateService.markTemporaryFailure(resumeId, ResumeParsingErrorCode.STALE_CLAIM_TIMEOUT);
+
+        entityManager.clear();
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.DONE);
+        assertThat(resumeParsedDataRepository.findByResumeId(resumeId)).isPresent();
     }
 }

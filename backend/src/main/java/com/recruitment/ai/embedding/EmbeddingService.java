@@ -1,5 +1,9 @@
 package com.recruitment.ai.embedding;
 
+import com.openai.errors.InternalServerException;
+import com.openai.errors.OpenAIIoException;
+import com.openai.errors.OpenAIRetryableException;
+import com.openai.errors.RateLimitException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +44,21 @@ public class EmbeddingService {
     // service do retry vi loi thuong la JSON hong, co the tu sua o lan goi lai; o day dau ra la vector
     // so thuan tuy tu API, khong co khai niem "JSON khong hop le" can retry - loi API la loi API, de
     // lan poll ke tiep tu nhien thu lai, xem Plan Mode F1 muc A).
+    //
+    // Phan loai tam thoi/vinh vien (Dot 4, chore/hardening) chi anh huong LOG (log.warn ghi dung
+    // nguyen nhan hon) - KHONG doi hanh vi thu lai, ca hai deu roi xuong "de lan poll ke tiep tu
+    // nhien thu lai" nhu nhau (F1 khong co trang thai FAILED, khong markFailed). Hai lop loi doi
+    // xung voi Anthropic (xac minh bang javap tren openai-java-core-4.39.1.jar, cung cau truc):
+    // OpenAIIoException/OpenAIRetryableException (mang/timeout, hoac SDK da tu retry noi bo roi van
+    // het han) va RateLimitException (429)/InternalServerException (5xx) deu la TAM THOI.
     public EmbeddingResult embed(String text) {
         EmbeddingResponse response;
         try {
             response = embeddingModel.embedForResponse(List.of(text));
+        } catch (OpenAIIoException | OpenAIRetryableException | RateLimitException | InternalServerException
+                temporaryError) {
+            log.warn("Goi API embedding that bai tam thoi: loai={}", temporaryError.getClass().getSimpleName());
+            throw new EmbeddingFailedException(EmbeddingErrorCode.TEMPORARY_UNAVAILABLE, temporaryError);
         } catch (RuntimeException e) {
             log.warn("Goi API embedding that bai: loai={}", e.getClass().getSimpleName());
             throw new EmbeddingFailedException(EmbeddingErrorCode.API_ERROR, e);

@@ -1,6 +1,10 @@
 package com.recruitment.ai.criterion;
 
+import com.anthropic.errors.AnthropicIoException;
+import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.AnthropicServiceException;
+import com.anthropic.errors.InternalServerException;
+import com.anthropic.errors.RateLimitException;
 import com.recruitment.rubric.ScaleLevelDescription;
 import com.recruitment.scoring.RubricSnapshot;
 import java.util.List;
@@ -118,6 +122,13 @@ public class CriterionScoringService {
                     criterion.criterionId(),
                     firstAttemptError);
             result = retryAfterInvalidResponse(promptText, scaleDescriptionText, criterion, rawText, converter);
+        } catch (AnthropicIoException | AnthropicRetryableException | RateLimitException | InternalServerException
+                temporaryError) {
+            // Dot 4 (chore/hardening) - phan loai tam thoi/vinh vien, xac minh bang javap tren
+            // anthropic-java-core that (xem ResumeParsingService.parse cho day du bang chung).
+            log.debug("Loi LLM tam thoi (lan 1): criterionId={}", criterion.criterionId(), temporaryError);
+            throw new CriterionScoringFailedException(
+                    CriterionScoringErrorCode.LLM_TEMPORARILY_UNAVAILABLE, temporaryError);
         } catch (RuntimeException firstAttemptError) {
             log.debug("Loi khi goi LLM (lan 1): criterionId={}", criterion.criterionId(), firstAttemptError);
             log.warn(
@@ -153,6 +164,11 @@ public class CriterionScoringService {
                     secondAttemptError.errorCode(),
                     secondAttemptError);
             throw secondAttemptError;
+        } catch (AnthropicIoException | AnthropicRetryableException | RateLimitException | InternalServerException
+                temporaryError) {
+            log.debug("Loi LLM tam thoi (lan 2): criterionId={}", criterion.criterionId(), temporaryError);
+            throw new CriterionScoringFailedException(
+                    CriterionScoringErrorCode.LLM_TEMPORARILY_UNAVAILABLE, temporaryError);
         } catch (RuntimeException secondAttemptError) {
             log.debug("Loi khi goi LLM (lan 2): criterionId={}", criterion.criterionId(), secondAttemptError);
             log.warn(

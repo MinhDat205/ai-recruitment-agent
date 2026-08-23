@@ -16,7 +16,9 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.generator.EventType;
 
 // candidate_id la UUID thuong, khong dung @ManyToOne (tranh lazy-loading ngoai transaction).
-// Bang resumes CHI co uploaded_at, khong co updated_at - dung copy nguyen mau Company/Job.
+// Bang resumes KHONG co updated_at (dung copy nguyen mau Company/Job) - chi co uploaded_at (BAT
+// BIEN, @Generated INSERT) va claimed_at moi them o V7 (GHI TAY luc claim(), KHONG @Generated -
+// khac uploaded_at, cot nay phai tu code set).
 @Entity
 @Table(name = "resumes")
 @Getter
@@ -56,6 +58,23 @@ public class Resume {
 
     @Column(name = "parse_error")
     private String parseError;
+
+    // Ghi luc claimForProcessing() chuyen PENDING->PROCESSING (Dot 4, chore/hardening) - dung cho
+    // stale-claim reaper phat hien ban ghi "ket" qua stale-timeout-ms. KHONG @Generated: code phai
+    // tu ghi (khac uploaded_at).
+    @Column(name = "claimed_at")
+    private Instant claimedAt;
+
+    // So lan da thu tu dong khi gap loi LLM tam thoi (timeout/429/5xx) hoac stale-claim - dat ten
+    // trung voi score_explanation_attempts.attempt_count (V5) cho nhat quan thuat ngu. int nguyen
+    // thuy (khong wrapper): cot NOT NULL DEFAULT 0, luon co gia tri.
+    @Column(name = "attempt_count", nullable = false)
+    private int attemptCount;
+
+    // Moc backoff truoc lan thu ke tiep - NULL nghia la san sang ngay (chua tung loi tam thoi lan
+    // nao, hoac da FAILED han). Scheduler chi claim khi NULL hoac da qua moc nay.
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
 
     @Generated(event = EventType.INSERT)
     @Column(name = "uploaded_at", insertable = false, updatable = false)

@@ -22,5 +22,28 @@ app:
     enabled: false
   job-recommendation:
     enabled: false
+  # Dot 4 (chore/hardening) - gia tri NHO de test nhanh (khong phai 30s/2 phut that cua production).
+  # max-attempts giu nguyen 3 (giong production) vi test can kiem dung nguong nghiep vu that (vd
+  # "dung 3 lan thi FAILED"). backoff-ms nho (50ms/100ms, khong phai 30000/120000) va
+  # anthropic-timeout-ms/openai-timeout-ms nho (5000, khong phai 30000) - khong test nao thuc su
+  # cho het backoff/timeout that (test goi thang orchestrator.processOne(id) hoac mock ChatModel,
+  # khong cho @Scheduled tick that), nhung gia tri nho giu an toan/nhanh neu co duong nao vo tinh
+  # cham toi timeout that trong tuong lai.
+  hardening:
+    anthropic-timeout-ms: 5000
+    openai-timeout-ms: 5000
+    llm:
+      max-attempts: 3
+      backoff-ms: 50,100
+    # KHONG khai stale-timeout-ms/reaper-poll-interval-ms o day (co chu dich, khong phai bo sot).
+    # ResumeParsingScheduler/ScoringRunScheduler - hai bean DUY NHAT doc hai key nay qua @Value -
+    # khong ton tai trong context test (tat qua app.resume-parsing.enabled=false/
+    # app.scoring.enabled=false), va quy uoc test cua Dot 4h la tu "new" scheduler bang tay, TRUYEN
+    # THANG staleTimeoutMs qua constructor (xem ResumeParsingSchedulerReaperTest/
+    # ScoringRunSchedulerReaperTest), khong doc qua Spring property binding. Hai key nay vi vay
+    # KHONG CO DUONG NAO doc toi trong test o kien truc hien tai - khai o day chi la cau hinh chet,
+    # ai doc vao se hieu nham la co tac dung. Neu sau nay co test thuc su bat bean qua context (vd
+    # @TestPropertySource(properties = "app.resume-parsing.enabled=true")), hay them lai luc do voi
+    # gia tri phu hop cho tinh huong cu the, khong khai truoc "phong khi".
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key

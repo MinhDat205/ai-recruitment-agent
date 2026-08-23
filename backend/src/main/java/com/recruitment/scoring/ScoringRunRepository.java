@@ -1,6 +1,7 @@
 package com.recruitment.scoring;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -12,9 +13,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
 
-    // Dung boi ScoringRunScheduler (Dot 4) de quet cac luot cham cho xu ly - mau
-    // ResumeRepository.findByParseStatus.
-    List<ScoringRun> findByStatus(ScoringRunStatus status, Pageable pageable);
+    // Dot 4f (chore/hardening) - thay the findByStatus(PENDING, pageable) cu: them dieu kien
+    // next_attempt_at (bo qua luot con dang cho backoff) VA khoa cuoi ", id", mau
+    // ResumeRepository.findReadyForProcessing (ResumeRepository.findByParseStatus cu da bi xoa
+    // cung ly do o Dot 4f).
+    @Query(
+            value = "SELECT * FROM scoring_runs WHERE status = 'PENDING' "
+                    + "AND (next_attempt_at IS NULL OR next_attempt_at <= now()) "
+                    + "ORDER BY created_at, id LIMIT :batchSize",
+            nativeQuery = true)
+    List<ScoringRun> findReadyForProcessing(@Param("batchSize") int batchSize);
 
     // GET /api/hr/applications/{id}/scoring-runs (Dot 5) - lich su cac luot cham cua MOT don, moi
     // nhat truoc, khop dung thu tu ma idx_scoring_app(application_id, created_at DESC) da danh san.
@@ -57,12 +65,86 @@ public interface ScoringRunRepository extends JpaRepository<ScoringRun, UUID> {
     // Claim bang UPDATE co dieu kien, kiem tra rowcount ben ngoai (xem CLAUDE.md muc 3c) - KHONG
     // dung SELECT FOR UPDATE SKIP LOCKED vi no giu transaction mo trong luc cho LLM.
     // clearAutomatically = true bat buoc - cung ly do voi ResumeRepository.claimForProcessing.
+    // Dot 4f: them dieu kien next_attempt_at - dong bo voi findReadyForProcessing.
     @Modifying(clearAutomatically = true)
     @Query(
             value = "UPDATE scoring_runs SET status = 'RUNNING', started_at = now() "
-                    + "WHERE id = :id AND status = 'PENDING'",
+                    + "WHERE id = :id AND status = 'PENDING' "
+                    + "AND (next_attempt_at IS NULL OR next_attempt_at <= now())",
             nativeQuery = true)
     int claimForProcessing(@Param("id") UUID id);
+
+    // Dot 4e (chore/hardening) - markFailed (ScoringRunStateService) doi tu findById+save khong
+    // dieu kien sang UPDATE co dieu kien status='RUNNING'. Ly do (Viec 3, plan Dot 4): stale-claim
+    // reaper (Dot 4h) tao kha nang mot luot bi coi la "ket", reap ve PENDING roi duoc claim lai boi
+    // worker khac (status luc do la RUNNING CUA LAN CLAIM MOI) trong khi worker goc (zombie) van
+    // song va cuoi cung goi markFailed - dieu kien nay chan duoc truong hop worker goc ghi de len
+    // dung luot ma worker moi dang xu ly (rowcount=0 vi status khong con la RUNNING cua lan claim cu
+    // - that ra van la 'RUNNING' nhung ve mat gia tri thi giong nhau, XEM GIOI HAN DA BIET duoi day).
+    // GIOI HAN DA BIET (ghi ROADMAP, KHONG chua o nhanh nay): dieu kien status='RUNNING' don thuan
+    // KHONG phan biet duoc hai worker cung thay 'RUNNING' tu CUNG mot lan claim (worker zombie song
+    // sot qua het stale-timeout-ms, luot da bi reap va claim lai - ca hai deu thay RUNNING). Chan
+    // triet de doi mot cot version tang theo tung lan claim (vd so khop them started_at), ngoai
+    // pham vi nhanh nay.
+    // COALESCE(finished_at, :now) giu dung guard cu cua markFailed: chi set finished_at khi dang
+    // NULL, KHONG ghi de mot moc da co san (xem comment ScoringRunStateService.markFailed cu).
+    @Modifying(clearAutomatically = true)
+    @Query(
+            value = "UPDATE scoring_runs SET status = 'FAILED', error_message = :errorMessage, "
+                    + "finished_at = COALESCE(finished_at, :now) WHERE id = :id AND status = 'RUNNING'",
+            nativeQuery = true)
+    int markFailedIfRunning(
+            @Param("id") UUID id, @Param("errorMessage") String errorMessage, @Param("now") Instant now);
+
+    // Dot 4e - loi LLM TAM THOI, con lan thu: quay ve PENDING de scheduler nhat lai sau backoff.
+    // attempt_count dong vai tro optimistic lock, dung khuon voi ResumeRepository.markTemporaryFailure
+    // (xem ScoringRunStateService.markTemporaryFailure ve ly do KHONG goi markFailed o day).
+    // "AND finished_at IS NULL" them o Dot 4h (phat hien khi code reaper, KHONG co truoc do): ca hai
+    // call site cua markTemporaryFailure (ScoringRunOrchestrator.doProcess VA reaper moi) deu chi
+    // duoc phep tac dong len mot luot CHUA cham xong toan bo tieu chi. Voi call site D2 dieu nay vo
+    // hai (finished_at luon dang NULL tai thoi diem do). Nhung reaper (Dot 4h) doc danh sach "ket"
+    // qua mot @Query rieng (finished_at IS NULL tai thoi diem DOC) roi moi ghi - GIUA hai buoc do,
+    // worker goc co the cham xong that su (goi markFinished(), set finished_at) TRUOC khi reaper
+    // kip ghi. Thieu dieu kien nay, UPDATE van khop (status van la RUNNING, attempt_count khong doi)
+    // va se keo NHAM mot luot DA XONG, dang cho D3 tong hop, quay ve PENDING - mat du lieu that.
+    @Modifying(clearAutomatically = true)
+    @Query(
+            value = "UPDATE scoring_runs SET status = 'PENDING', attempt_count = :nextAttempt, "
+                    + "error_message = :errorMessage, next_attempt_at = :nextAttemptAt "
+                    + "WHERE id = :id AND status = 'RUNNING' AND finished_at IS NULL AND attempt_count = :expectedCount",
+            nativeQuery = true)
+    int markTemporaryFailure(
+            @Param("id") UUID id,
+            @Param("expectedCount") int expectedCount,
+            @Param("nextAttempt") int nextAttempt,
+            @Param("errorMessage") String errorMessage,
+            @Param("nextAttemptAt") Instant nextAttemptAt);
+
+    // Dot 4e - loi LLM TAM THOI nhung DA HET so lan thu (nextAttempt >= max-attempts): FAILED han,
+    // khong con next_attempt_at. Tach rieng voi markFailedIfRunning vi nhanh nay CAN dieu kien
+    // attempt_count (optimistic lock) VA can ghi attempt_count cuoi cung cho dung so lan da thu that.
+    // "AND finished_at IS NULL" them o Dot 4h - cung ly do voi markTemporaryFailure o tren.
+    @Modifying(clearAutomatically = true)
+    @Query(
+            value = "UPDATE scoring_runs SET status = 'FAILED', attempt_count = :nextAttempt, "
+                    + "error_message = :errorMessage, finished_at = :now, next_attempt_at = NULL "
+                    + "WHERE id = :id AND status = 'RUNNING' AND finished_at IS NULL AND attempt_count = :expectedCount",
+            nativeQuery = true)
+    int markRetryExhausted(
+            @Param("id") UUID id,
+            @Param("expectedCount") int expectedCount,
+            @Param("nextAttempt") int nextAttempt,
+            @Param("errorMessage") String errorMessage,
+            @Param("now") Instant now);
+
+    // Dot 4h (chore/hardening) - danh sach ID cho stale-claim reaper: mot luot RUNNING claim qua lau
+    // (started_at truoc nguong stale-timeout-ms) MA CHUA cham xong (finished_at con NULL - loai tru
+    // luot da xong dang cho D3, dung tien le findByStatusAndFinishedAtIsNotNullAndTotalScoreIsNull
+    // o tren nhung dao nguoc dieu kien finished_at) nghia la JVM co the da restart giua chung. Tra
+    // List<UUID>, khong tra entity - cung ly do voi ResumeRepository.findIdsByParseStatusAndClaimedAtBefore.
+    @Query("SELECT s.id FROM ScoringRun s WHERE s.status = :status AND s.finishedAt IS NULL AND s.startedAt < :threshold")
+    List<UUID> findIdsByStatusAndFinishedAtIsNullAndStartedAtBefore(
+            @Param("status") ScoringRunStatus status, @Param("threshold") Instant threshold);
 
     // D3 (FR-H05, Dot 3 se dung): nhat cac luot da CHAM XONG toan bo tieu chi (D2 xong, xem
     // CLAUDE.md muc 2b) nhung CHUA duoc tong hop - dung dung dieu kien da chot trong ke hoach D3:

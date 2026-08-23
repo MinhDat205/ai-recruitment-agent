@@ -23,9 +23,10 @@ public interface CvImprovementRequestRepository extends JpaRepository<CvImprovem
     // cv_improvement_suggestions nao. Cung ly do id lam khoa cuoi nhu tren.
     Optional<CvImprovementRequest> findFirstByResumeIdOrderByRequestedAtDescIdDesc(UUID resumeId);
 
-    // Dot 4 (CvImprovementScheduler) - quet lo PENDING theo dot, mau
-    // ResumeRepository.findByParseStatus. OrderBy requestedAt Asc, id Asc BAT BUOC (khac
-    // ResumeRepository.findByParseStatus khong can): requested_at la DEFAULT now() cua Postgres -
+    // Dot 4 (CvImprovementScheduler) - quet lo PENDING theo dot. OrderBy requestedAt Asc, id Asc BAT
+    // BUOC (khac cac poller findReadyForProcessing khac trong ResumeRepository/ScoringRunRepository,
+    // vi cac poller do da tu co khoa cuoi id trong chinh query): requested_at la DEFAULT now() cua
+    // Postgres -
     // transaction-scoped (CLAUDE.md muc 3c), nhieu hang tao cung mot transaction (vd nhieu candidate
     // bam xin goi y gan nhau, hoac test seed) co the trung requested_at tuyet doi. Thieu khoa cuoi
     // IdAsc thi thu tu khong xac dinh, ket hop voi LIMIT cua Pageable se gay starvation - mot request

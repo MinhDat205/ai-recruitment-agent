@@ -9,6 +9,10 @@ import com.recruitment.common.FormattedErrorCode;
 // mot chuoi tu do (stack trace, output tho cua LLM) vao cot last_error.
 public enum ScoreExplanationErrorCode implements FormattedErrorCode {
     LLM_INVALID_JSON("AI trả về dữ liệu không đúng định dạng sau khi đã thử lại"),
+    // Dot 4 (chore/hardening) - phan loai tam thoi/vinh vien nhu CriterionScoringErrorCode. D4 da
+    // co san co che gioi han so lan thu rieng qua score_explanation_attempts (V5) - ma nay chi giup
+    // last_error ghi dung nguyen nhan hon, KHONG doi cach dem attempt_count hien tai.
+    LLM_TEMPORARILY_UNAVAILABLE("AI tạm thời không phản hồi được do quá tải hoặc gián đoạn kết nối, hệ thống sẽ tự thử lại"),
     LLM_ERROR("Có lỗi xảy ra khi gọi AI để sinh báo cáo giải thích"),
     SUMMARY_BLANK("AI trả về tóm tắt rỗng cho báo cáo giải thích"),
     CRITERION_NAME_MISMATCH("AI nhắc tới một tiêu chí không thuộc danh sách đã chấm của lượt này");

@@ -11,7 +11,12 @@ import com.recruitment.common.FormattedErrorCode;
 // ScoringRunStateService.markFailed(FormattedErrorCode), KHONG boc lai qua enum nay.
 public enum ScoringRunErrorCode implements FormattedErrorCode {
 
-    UNEXPECTED_ERROR("Có lỗi không lường trước xảy ra trong quá trình chấm điểm hồ sơ này");
+    UNEXPECTED_ERROR("Có lỗi không lường trước xảy ra trong quá trình chấm điểm hồ sơ này"),
+    // Hai ma duoi day GHI THAT su o Dot 4e/4h (nhip sau, ScoringRunStateService.markTemporaryFailure)
+    // - khai truoc o day trong Dot 4d cho enum day du, chua co duong code nao tao ra duoc cho toi
+    // khi state service moi duoc viet.
+    LLM_RETRY_EXHAUSTED("Đã thử lại nhiều lần do lỗi kết nối/quá tải của AI nhưng không thành công"),
+    STALE_CLAIM_TIMEOUT("Quá trình xử lý bị gián đoạn do hệ thống khởi động lại, đang tự động thử lại");
 
     private final String description;
 

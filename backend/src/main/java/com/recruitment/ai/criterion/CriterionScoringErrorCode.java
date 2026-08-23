@@ -10,6 +10,9 @@ import com.recruitment.common.FormattedErrorCode;
 // interface nay dat o common/ chu khong phai scoring/.
 public enum CriterionScoringErrorCode implements FormattedErrorCode {
     LLM_INVALID_JSON("AI trả về dữ liệu không đúng định dạng sau khi đã thử lại"),
+    // Dot 4 (chore/hardening) - tach khoi LLM_ERROR (vinh vien): mang/timeout, hoac 429/5xx, se
+    // duoc tu dong thu lai qua co che backoff (Dot 4e, nhip sau), khong markFailed ngay.
+    LLM_TEMPORARILY_UNAVAILABLE("AI tạm thời không phản hồi được do quá tải hoặc gián đoạn kết nối, hệ thống sẽ tự thử lại"),
     LLM_ERROR("Có lỗi xảy ra khi gọi AI để chấm điểm tiêu chí"),
     SCORE_OUT_OF_RANGE("AI trả về điểm số nằm ngoài thang điểm cho phép của tiêu chí"),
     EVIDENCE_MISSING_WITH_NONZERO_SCORE("AI chấm điểm khác 0 nhưng không kèm minh chứng trích dẫn từ CV"),

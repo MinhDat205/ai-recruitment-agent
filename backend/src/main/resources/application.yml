@@ -95,6 +95,22 @@ app:
   job-recommendation:
     poll-interval-ms: 5000
     batch-size: 10
+  # Dot 4 (chore/hardening) - retry-with-backoff cho loi LLM tam thoi (D1, D2) + timeout tuong minh
+  # cho ca hai client (ap dung cho ca 4 dich vu Anthropic: D1/D2/D4/F2, xem AnthropicChatModelConfig
+  # - CHUNG mot AnthropicChatModel ben duoi nen chi can cau hinh MOT CHO).
+  hardening:
+    anthropic-timeout-ms: 30000
+    openai-timeout-ms: 30000
+    llm:
+      max-attempts: 3
+      # DUNG max-attempts - 1 moc (= 2): lan thu CUOI cung that bai la FAILED ngay, khong co lan
+      # cho nao sau no. LlmRetryPolicy validate dieu nay luc khoi dong.
+      backoff-ms: 30000,120000
+    # Dot 4h - stale-claim reaper (ResumeParsingScheduler/ScoringRunScheduler.reapStaleClaims): 15
+    # phut la nguong coi mot ban ghi PROCESSING/RUNNING la "ket" do JVM restart giua chung; chu ky
+    # quet rieng 60s, tach khoi poll-interval-ms xu ly chinh.
+    stale-timeout-ms: 900000
+    reaper-poll-interval-ms: 60000
 
 logging:
   level:

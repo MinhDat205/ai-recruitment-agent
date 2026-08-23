@@ -7,6 +7,8 @@ import com.recruitment.common.FormattedErrorCode;
 // viec truyen mot chuoi tu do (stack trace, output tho cua LLM) vao cot loi cua cv_improvement_requests.
 public enum CvImprovementErrorCode implements FormattedErrorCode {
     LLM_INVALID_JSON("AI trả về dữ liệu không đúng định dạng sau khi đã thử lại"),
+    // Dot 4 (chore/hardening) - phan loai tam thoi/vinh vien nhu CriterionScoringErrorCode.
+    LLM_TEMPORARILY_UNAVAILABLE("AI tạm thời không phản hồi được do quá tải hoặc gián đoạn kết nối, hệ thống sẽ tự thử lại"),
     LLM_ERROR("Có lỗi xảy ra khi gọi AI để sinh gợi ý cải thiện CV"),
     EMPTY_RESULT("AI trả về gợi ý rỗng cho cả ba mục"),
     INVALID_SECTION("AI trả về tên mục CV không hợp lệ"),

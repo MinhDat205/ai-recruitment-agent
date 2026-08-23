@@ -122,6 +122,14 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 ## Hoàn thiện trước bảo vệ
 
 - [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), presigned URL cho file CV
+  - **V6 (`cv_improvement_requests`, F2/FR-U05) chưa từng được áp cho DB dev cho tới khi chạy V7**
+    (chore/hardening) — `flyway_schema_history` cho thấy V5 áp ngày 2026-08-18, còn V6 và V7 cùng áp
+    một lượt vào 2026-08-24 (log Flyway: "Migrating schema... to version 6" rồi "7" liên tiếp trong
+    cùng lần khởi động). Tức là F2 đã đánh dấu xong trong ROADMAP nhưng **chưa từng chạy thật trên
+    DB dev này** suốt khoảng thời gian đó — không phải lỗi của `chore/hardening`, nhưng là phát hiện
+    phụ khi kiểm Flyway cho V7. **Cần kiểm thử tay lại toàn bộ luồng FR-U05 trước bảo vệ**, và kiểm
+    cùng cách (`SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 3`)
+    trên mọi máy khác đang chạy dự án — DB dev khác có thể cũng đang thiếu V6 mà chưa ai để ý.
   - **`java.util.UUID.compareTo()` KHÔNG cùng ngữ nghĩa với `ORDER BY id` của Postgres trên cột
     `uuid`** — Java so sánh hai `long` có dấu (`mostSigBits`/`leastSigBits`), Postgres so sánh 16
     byte không dấu. Hai thứ tự này cho kết quả khác nhau tuỳ giá trị UUID cụ thể. **Không được** dùng
@@ -144,10 +152,26 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
   - Cố ý không xây tầng tổng hợp/cảnh báo chi phí token — ngoài phạm vi đồ án, không phải bỏ sót.
     Cột `scoring_runs.token_usage`/`resume_parsed_data.token_usage` vẫn được ghi đầy đủ như hiện
     tại, chỉ không có gì đọc/tổng hợp từ đó.
-  - ResumeParsingErrorCode.LLM_TIMEOUT hiện không có
-   đường code nào tạo ra được — comment trong ResumeParsingService đã ghi nhận là chưa xác
-   định được loại exception timeout thật từ SDK Anthropic (test chỉ mock ở tầng ChatModel).
-   Cần kiểm bằng SDK thật rồi hoặc map đúng, hoặc xoá mã lỗi này.
+  - ~~`ResumeParsingErrorCode.LLM_TIMEOUT` hiện không có đường code nào tạo ra được~~ — **đã xử lý
+    ở Đợt 4 (`chore/hardening`)**: xoá hẳn, thay bằng `LLM_TEMPORARILY_UNAVAILABLE` (bao quát cả
+    mạng/timeout lẫn 429/5xx, không chỉ riêng timeout) và `LLM_RETRY_EXHAUSTED` (mã cuối khi hết số
+    lần thử tự động). Xác nhận bằng `javap` trên `anthropic-java-core-2.40.1.jar`/
+    `openai-java-core-4.39.1.jar` thật: `AnthropicIoException`/`AnthropicRetryableException` (mạng/
+    timeout thuần, SDK tự retry nội bộ rồi vẫn hết hạn) và `RateLimitException`(429)/
+    `InternalServerException`(5xx) đều map về mã tạm thời; áp dụng nhất quán cho D1, D2, D4, F1, F2.
+  - **`org.postgresql:postgresql` đổi từ `<scope>runtime</scope>` sang mặc định (`compile`) ở Đợt
+    4 (`chore/hardening`), đánh đổi có chủ đích, không phải sơ suất.** Lý do: thiết kế xử lý race
+    `uq_score_per_criterion` ở `ScoringRunOrchestrator` (mục 4g) cần khớp CHÍNH XÁC theo tên ràng
+    buộc qua `PSQLException.getServerErrorMessage().getConstraint()` — một API có cấu trúc, đáng tin
+    cậy hơn cách khớp chuỗi message tự do mà `GlobalExceptionHandler.handleDataIntegrityViolation`
+    đang dùng cho các ràng buộc khác — nhưng `PSQLException` chỉ có mặt trên classpath BIÊN DỊCH của
+    main code nếu bỏ `scope=runtime`. **Hệ quả ngoài phạm vi một dòng pom**: từ nay main code
+    compile được thẳng với API của driver Postgres, không còn gì ở tầng build ngăn code tương lai
+    import trực tiếp lớp `org.postgresql.*` ở những chỗ không thật sự cần (trước đây `scope=runtime`
+    tự nó là một hàng rào). Giới hạn tự đặt ra để bù lại: **chỉ dùng `PSQLException` trong ĐÚNG MỘT
+    helper** (`ScoringRunOrchestrator.isUniqueViolation`), không rải cách này ra các service khác —
+    nơi nào chỉ cần biết "có vi phạm ràng buộc hay không" (không cần biết ràng buộc nào) vẫn nên
+    dùng `DataIntegrityViolationException` chung như cũ, không cần đọc tới `PSQLException`.
   - Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời (vd
     thiếu `ANTHROPIC_API_KEY` lúc chạy) — hiện ứng viên phải upload lại từ đầu.
   - Không có stale-claim reaper: một lượt chạy nền chết vì JVM restart giữa chừng (D1
@@ -161,11 +185,9 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     xác hiển thị, chọn 2 chữ số cho gọn mắt (D3, `ApplicationsTab.tsx`).
   - `ChatModel.getDefaultOptions()` đã deprecated ở Spring AI 2.0, đang dùng trong mock test của
     cả D1 và D2 — cần thay khi nâng phiên bản.
-  - `ResumeParsingErrorCode` (D1) chưa implement `common/FormattedErrorCode` — `CriterionScoringErrorCode`
-    và `ScoringRunErrorCode` (D2) đã implement. Không cấp bách: `ResumeParsingStateService.markFailed`
-    đã nhận đúng kiểu enum `ResumeParsingErrorCode` (không nhận `String` tự do), nên không có lỗ hổng
-    thực tế — chỉ lệch chuẩn interface chung. Hoãn vì sửa nó phải đụng code D1 đã merge và chạy lại
-    toàn bộ test của nhánh khác, ngoài phạm vi D2.
+  - ~~`ResumeParsingErrorCode` (D1) chưa implement `common/FormattedErrorCode`~~ — **đã xử lý ở Đợt
+    4 (`chore/hardening`)**: thêm `implements FormattedErrorCode`, `formatted()` đã khớp sẵn chữ ký,
+    không đổi hành vi.
   - Phát hiện khi kiểm thử Phase D bằng key thật (19/08/2026):
     - Form ứng tuyển (C2, `frontend/src/features/applications/JobApplyForm.tsx`) cho chọn cả CV có
       `parse_status = FAILED`. Đơn nộp bằng CV hỏng thì HR không bấm chấm điểm được, đơn nằm chết

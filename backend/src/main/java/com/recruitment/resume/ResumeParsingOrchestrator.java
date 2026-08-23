@@ -81,7 +81,14 @@ public class ResumeParsingOrchestrator {
         try {
             result = resumeParsingService.parse(resumeId, rawText);
         } catch (ResumeParsingFailedException e) {
-            stateService.markFailed(resumeId, e.errorCode());
+            // Dot 4e (chore/hardening) - loi TAM THOI (mang/timeout/429/5xx) di qua markTemporaryFailure
+            // de tu dong thu lai theo backoff; cac ma con lai (noi dung CV, JSON hong, loi vinh vien)
+            // giu nguyen duong markFailed cu.
+            if (e.errorCode() == ResumeParsingErrorCode.LLM_TEMPORARILY_UNAVAILABLE) {
+                stateService.markTemporaryFailure(resumeId, e.errorCode());
+            } else {
+                stateService.markFailed(resumeId, e.errorCode());
+            }
             return;
         }
 
