@@ -5,7 +5,7 @@ import java.util.UUID;
 public class CompanyNotFoundException extends RuntimeException {
 
     public CompanyNotFoundException(UUID id) {
-        super("Khong tim thay cong ty: " + id);
+        super("Không tìm thấy công ty: " + id);
     }
 
     public CompanyNotFoundException(String message) {

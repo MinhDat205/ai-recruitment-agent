@@ -5,7 +5,7 @@ import java.util.UUID;
 public class ResumeNotFoundException extends RuntimeException {
 
     public ResumeNotFoundException(UUID id) {
-        super("Khong tim thay CV: " + id);
+        super("Không tìm thấy CV: " + id);
     }
 
     public ResumeNotFoundException(String message) {

@@ -258,7 +258,15 @@ export function HrJobCreatePage() {
                       control={control}
                       name="employmentType"
                       render={({ field }) => (
-                        <Select value={field.value || undefined} onValueChange={field.onChange}>
+                        // Dot 6 (chore/hardening) - value={field.value} TRUC TIEP (khong "|| undefined"):
+                        // defaultValues (EMPTY_VALUES) da dam bao field.value la chuoi '' ngay tu lan
+                        // render DAU TIEN, khong bao gio la undefined - Radix Select coi '' la "chua
+                        // chon gi" (khong khop SelectItem nao nen hien placeholder), hoan toan hop le
+                        // lam gia tri controlled. "|| undefined" cu khien value chuyen tu undefined
+                        // (chua chon) sang chuoi that (da chon) NGAY LUC nguoi dung chon lan dau - day
+                        // moi la nguyen nhan that cua canh bao "changing an uncontrolled ... to be
+                        // controlled" (khong phai do thieu default, xem CLAUDE.md/ROADMAP).
+                        <Select value={field.value} onValueChange={field.onChange}>
                           <SelectTrigger id="job-employment-type" className="w-full">
                             <SelectValue placeholder="Chọn loại hình" />
                           </SelectTrigger>
@@ -279,7 +287,7 @@ export function HrJobCreatePage() {
                       control={control}
                       name="workMode"
                       render={({ field }) => (
-                        <Select value={field.value || undefined} onValueChange={field.onChange}>
+                        <Select value={field.value} onValueChange={field.onChange}>
                           <SelectTrigger id="job-work-mode" className="w-full">
                             <SelectValue placeholder="Chọn hình thức" />
                           </SelectTrigger>

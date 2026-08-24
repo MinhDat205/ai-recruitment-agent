@@ -5,6 +5,6 @@ import java.util.UUID;
 public class RubricCriterionNotFoundException extends RuntimeException {
 
     public RubricCriterionNotFoundException(UUID id) {
-        super("Khong tim thay tieu chi rubric: " + id);
+        super("Không tìm thấy tiêu chí rubric: " + id);
     }
 }

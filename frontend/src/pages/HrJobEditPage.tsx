@@ -101,6 +101,30 @@ function JobInfoTab({ jobId }: { jobId: string }) {
     formState: { errors, isSubmitting, isDirty },
   } = useForm<JobInfoFormValues>({
     resolver: zodResolver(jobInfoSchema),
+    // Dot 6 (chore/hardening) - defaultValues THEM MOI, dung song song voi values (khong thay the):
+    // truoc day chi co "values" (RHF sync lai khi job tai xong QUA MOT useEffect NOI BO, chay SAU
+    // khi render da commit) - trong khoang thoi gian giua lan render DAU TIEN cua Select (ngay khi
+    // job vua tai xong, thoat khoi nhanh isLoading) va luc effect do kip chay, field.value cho
+    // employmentType/workMode VAN la undefined (RHF chua co defaultValues nao de dung tam) - Select
+    // nhan value={undefined} luc mount, roi chuyen sang chuoi that ngay sau do khi effect chay xong
+    // -> dung LA canh bao "changing an uncontrolled ... to controlled". defaultValues cung chuoi
+    // rong nhu EMPTY_VALUES cua HrJobCreatePage dam bao field.value la '' (KHONG PHAI undefined)
+    // tu chinh lan render dau tien, xoa nguyen nhan gay canh bao. Cac field Input dung register()
+    // it lo ro trieu chung tuong tu (native input dung defaultValue+register khac co che), nhung
+    // van dong bo cho nhat quan.
+    defaultValues: {
+      title: '',
+      description: '',
+      requirements: '',
+      category: '',
+      location: '',
+      employmentType: '',
+      workMode: '',
+      salaryMin: '',
+      salaryMax: '',
+      salaryCurrency: '',
+      deadline: '',
+    },
     values: job
       ? {
           title: job.title,
@@ -185,7 +209,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
               control={control}
               name="employmentType"
               render={({ field }) => (
-                <Select value={field.value || undefined} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="edit-employment-type" className="w-full">
                     <SelectValue placeholder="Chọn loại hình" />
                   </SelectTrigger>
@@ -206,7 +230,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
               control={control}
               name="workMode"
               render={({ field }) => (
-                <Select value={field.value || undefined} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="edit-work-mode" className="w-full">
                     <SelectValue placeholder="Chọn hình thức" />
                   </SelectTrigger>

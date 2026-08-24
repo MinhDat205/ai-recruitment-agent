@@ -17,6 +17,7 @@ public class JsonAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write("{\"error\":\"FORBIDDEN\",\"message\":\"Tai khoan khong co quyen truy cap tai nguyen nay\"}");
+        response.getWriter()
+                .write("{\"error\":\"FORBIDDEN\",\"message\":\"Tài khoản không có quyền truy cập tài nguyên này\"}");
     }
 }

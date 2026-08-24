@@ -23,14 +23,22 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 }
 
 export function JobApplyForm({ jobId }: { jobId: string }) {
-  const { data: resumes, isLoading: resumesLoading, isError: resumesError } = useResumesQuery()
+  const { data: allResumes, isLoading: resumesLoading, isError: resumesError } = useResumesQuery()
   const [selectedResumeId, setSelectedResumeId] = useState<string | undefined>(undefined)
   const [coverLetter, setCoverLetter] = useState('')
   const [consentChecked, setConsentChecked] = useState(false)
   const createMutation = useCreateApplicationMutation()
 
+  // CV parseStatus=FAILED khong the cham diem duoc (AI chua trich xuat xong noi dung) - loai khoi
+  // danh sach chon truoc khi tinh default/render, tranh ung vien nop don bang mot CV hong khien don
+  // do "chet", HR khong bao gio bam cham diem duoc (xem docs/ROADMAP.md, phat hien khi kiem thu
+  // Phase D bang key that).
+  const resumes = allResumes?.filter((r) => r.parseStatus !== 'FAILED')
+  const hiddenFailedCount = allResumes ? allResumes.length - (resumes?.length ?? 0) : 0
+
   // Mac dinh chon CV chinh (is_primary) neu co, ung vien van doi duoc sang CV khac. Tinh truc
-  // tiep khi render thay vi dong bo qua useEffect+setState (tranh cascading render).
+  // tiep khi render thay vi dong bo qua useEffect+setState (tranh cascading render). Chi xet trong
+  // danh sach DA LOC - khong bao gio mac dinh chon nham mot CV FAILED.
   const defaultResumeId =
     resumes && resumes.length > 0 ? (resumes.find((r) => r.isPrimary) ?? resumes[0]).id : undefined
   const resumeId = selectedResumeId ?? defaultResumeId
@@ -95,6 +103,11 @@ export function JobApplyForm({ jobId }: { jobId: string }) {
               ))}
             </SelectContent>
           </Select>
+        )}
+        {hiddenFailedCount > 0 && (
+          <p className="text-xs text-ink-muted">
+            {hiddenFailedCount} CV không thể chọn do phân tích thất bại, xem trong hồ sơ CV của bạn.
+          </p>
         )}
       </div>
 

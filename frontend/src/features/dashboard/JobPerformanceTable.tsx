@@ -17,11 +17,11 @@ export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) 
               <TableHead>Tin tuyển dụng</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Chu kỳ</TableHead>
-              <TableHead>Số đơn</TableHead>
-              <TableHead>Đã chấm xong</TableHead>
-              <TableHead>Điểm trung bình</TableHead>
-              <TableHead>Đã từng mời PV</TableHead>
-              <TableHead>Đã từng trúng tuyển</TableHead>
+              <TableHead className="text-right">Số đơn</TableHead>
+              <TableHead className="text-right">Đã chấm xong</TableHead>
+              <TableHead className="text-right">Điểm trung bình</TableHead>
+              <TableHead className="text-right">Đã từng mời PV</TableHead>
+              <TableHead className="text-right">Đã từng trúng tuyển</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -32,11 +32,11 @@ export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) 
                   <JobStatusBadge status={item.status} />
                 </TableCell>
                 <TableCell className="text-ink-muted">{item.recruitmentCycle}</TableCell>
-                <TableCell className="text-ink-muted">{item.totalApplications}</TableCell>
-                <TableCell className="text-ink-muted">{item.scoredApplications}</TableCell>
-                <TableCell className="text-ink-muted">{formatScore(item.averageScore)}</TableCell>
-                <TableCell className="text-ink-muted">{item.everInvitedCount}</TableCell>
-                <TableCell className="text-ink-muted">{item.everHiredCount}</TableCell>
+                <TableCell className="text-right text-ink-muted">{item.totalApplications}</TableCell>
+                <TableCell className="text-right text-ink-muted">{item.scoredApplications}</TableCell>
+                <TableCell className="text-right text-ink-muted">{formatScore(item.averageScore)}</TableCell>
+                <TableCell className="text-right text-ink-muted">{item.everInvitedCount}</TableCell>
+                <TableCell className="text-right text-ink-muted">{item.everHiredCount}</TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -37,13 +37,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponse("BAD_CREDENTIALS", "Email hoac mat khau khong dung"));
+                .body(new ErrorResponse("BAD_CREDENTIALS", "Email hoặc mật khẩu không đúng"));
     }
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<ErrorResponse> handleJwtException(JwtException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponse("INVALID_TOKEN", "Token khong hop le hoac da het han"));
+                .body(new ErrorResponse("INVALID_TOKEN", "Token không hợp lệ hoặc đã hết hạn"));
     }
 
     @ExceptionHandler(JobNotFoundException.class)

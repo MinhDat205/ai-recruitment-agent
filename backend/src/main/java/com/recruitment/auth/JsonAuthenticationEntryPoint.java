@@ -19,6 +19,7 @@ public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write("{\"error\":\"UNAUTHENTICATED\",\"message\":\"Can dang nhap de truy cap tai nguyen nay\"}");
+        response.getWriter()
+                .write("{\"error\":\"UNAUTHENTICATED\",\"message\":\"Cần đăng nhập để truy cập tài nguyên này\"}");
     }
 }

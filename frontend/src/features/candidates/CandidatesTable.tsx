@@ -44,7 +44,7 @@ export function CandidatesTable({ items }: { items: CandidateSearchItem[] }) {
               <TableHead>Ngày nộp</TableHead>
               <TableHead>Trạng thái CV</TableHead>
               <TableHead>Trạng thái đơn</TableHead>
-              <TableHead>Tổng điểm</TableHead>
+              <TableHead className="text-right">Tổng điểm</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
@@ -60,7 +60,7 @@ export function CandidatesTable({ items }: { items: CandidateSearchItem[] }) {
                 <TableCell>
                   <ApplicationStatusBadge status={item.status} />
                 </TableCell>
-                <TableCell className="text-ink">{formatScore(item.totalScore)}</TableCell>
+                <TableCell className="text-right text-ink">{formatScore(item.totalScore)}</TableCell>
                 <TableCell className="text-right">
                   <Button type="button" variant="outline" size="sm" onClick={() => setAuditTarget(item)}>
                     <FileText className="h-3.5 w-3.5" aria-hidden="true" />

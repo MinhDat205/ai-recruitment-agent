@@ -69,9 +69,9 @@ public class AuthService {
         User user =
                 userRepository
                         .findByEmail(request.email())
-                        .orElseThrow(() -> new BadCredentialsException("Email hoac mat khau khong dung"));
+                        .orElseThrow(() -> new BadCredentialsException("Email hoặc mật khẩu không đúng"));
         if (!user.isActive() || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new BadCredentialsException("Email hoac mat khau khong dung");
+            throw new BadCredentialsException("Email hoặc mật khẩu không đúng");
         }
         return buildAuthResponse(user);
     }

@@ -5,6 +5,6 @@ import java.util.UUID;
 public class RubricNotFoundException extends RuntimeException {
 
     public RubricNotFoundException(UUID jobId) {
-        super("Khong tim thay rubric cho job: " + jobId);
+        super("Không tìm thấy rubric cho job: " + jobId);
     }
 }
