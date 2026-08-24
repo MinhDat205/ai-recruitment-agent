@@ -121,7 +121,21 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 
 ## Hoàn thiện trước bảo vệ
 
-- [ ] `chore/hardening` — rate limit, xử lý lỗi LLM (timeout/quota), presigned URL cho file CV
+- [x] `chore/hardening` — **HOÀN THÀNH** (6 đợt, xem `docs/walkthrough/chore-hardening.md` để hiểu
+  luồng và quyết định thiết kế đầy đủ). Tóm tắt việc đã làm:
+  - Đợt 2: sửa lost-update thật ở `ApplicationStatusService.changeStatus` (UPDATE có điều kiện thay
+    `findById`+`save` không điều kiện); thêm khoá cuối `id` cho 3 query `ORDER BY` thiếu tie-break
+    (`ScoringRunRepository`); đảo thứ tự kiểm quyền sở hữu công ty trước khi tra tài nguyên ở
+    `ApplicationStatusService`/`ApplicationOwnerService`.
+  - Đợt 4: retry-with-backoff tự động cho lỗi LLM tạm thời (mạng/timeout/429/5xx, phân biệt với lỗi
+    vĩnh viễn 401/400/403/404/422) cho D1 (`resumes`) và D2 (`scoring_runs`), dùng chung
+    `LlmRetryPolicy`; stale-claim reaper phục hồi job nền kẹt do JVM restart giữa chừng; xử lý đúng
+    race giữa worker "zombie" và worker vừa claim lại (`uq_score_per_criterion`); migration
+    `V7__llm_retry_backoff.sql`.
+  - Đợt 5: rate limit in-memory bằng Bucket4j — theo IP cho endpoint xác thực, theo `userId` cho 3
+    endpoint tốn LLM; kho bucket bounded chống OOM.
+  - Đợt 6: Việt hoá có dấu 14 chuỗi lỗi hiển thị cho người dùng; lọc CV `FAILED` khỏi form ứng
+    tuyển; sửa tận gốc cảnh báo Radix Select uncontrolled→controlled; căn phải cột số.
   - **V6 (`cv_improvement_requests`, F2/FR-U05) chưa từng được áp cho DB dev cho tới khi chạy V7**
     (chore/hardening) — `flyway_schema_history` cho thấy V5 áp ngày 2026-08-18, còn V6 và V7 cùng áp
     một lượt vào 2026-08-24 (log Flyway: "Migrating schema... to version 6" rồi "7" liên tiếp trong
@@ -143,10 +157,6 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     tie-break trước Đợt 2). Tiền lệ xử lý đúng đã có sẵn từ trước ở
     `CvImprovementRequestRepositoryTest.findByStatusOrderByRequestedAtAscIdAsc_returnsOldestFirst`
     (F2) — không phải phát hiện đầu tiên, nhưng chưa được áp dụng nhất quán ở D2/D3.
-  - Presigned URL: từ D4 áp dụng cho **cả hai** đường tải file CV (ứng viên qua
-    `ResumeCandidateController`, HR qua `ResumeHrController` mới) — cả hai đều stream file qua app
-    server, không phải chỉ một. Chưa gây vấn đề ở quy mô hiện tại (`app.storage.type=local`, không
-    S3/MinIO thật dù có chạy container MinIO trong `docker-compose`).
   - D4: `app.explanation.max-attempts=3` không có nút "thử lại ngay" riêng cho việc sinh báo cáo
     giải thích khi đã `FAILED` — HR phải tạo một lượt chấm điểm mới cho đơn đó để có cơ hội thử lại.
   - Cố ý không xây tầng tổng hợp/cảnh báo chi phí token — ngoài phạm vi đồ án, không phải bỏ sót.
@@ -159,19 +169,6 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     `openai-java-core-4.39.1.jar` thật: `AnthropicIoException`/`AnthropicRetryableException` (mạng/
     timeout thuần, SDK tự retry nội bộ rồi vẫn hết hạn) và `RateLimitException`(429)/
     `InternalServerException`(5xx) đều map về mã tạm thời; áp dụng nhất quán cho D1, D2, D4, F1, F2.
-  - **`org.postgresql:postgresql` đổi từ `<scope>runtime</scope>` sang mặc định (`compile`) ở Đợt
-    4 (`chore/hardening`), đánh đổi có chủ đích, không phải sơ suất.** Lý do: thiết kế xử lý race
-    `uq_score_per_criterion` ở `ScoringRunOrchestrator` (mục 4g) cần khớp CHÍNH XÁC theo tên ràng
-    buộc qua `PSQLException.getServerErrorMessage().getConstraint()` — một API có cấu trúc, đáng tin
-    cậy hơn cách khớp chuỗi message tự do mà `GlobalExceptionHandler.handleDataIntegrityViolation`
-    đang dùng cho các ràng buộc khác — nhưng `PSQLException` chỉ có mặt trên classpath BIÊN DỊCH của
-    main code nếu bỏ `scope=runtime`. **Hệ quả ngoài phạm vi một dòng pom**: từ nay main code
-    compile được thẳng với API của driver Postgres, không còn gì ở tầng build ngăn code tương lai
-    import trực tiếp lớp `org.postgresql.*` ở những chỗ không thật sự cần (trước đây `scope=runtime`
-    tự nó là một hàng rào). Giới hạn tự đặt ra để bù lại: **chỉ dùng `PSQLException` trong ĐÚNG MỘT
-    helper** (`ScoringRunOrchestrator.isUniqueViolation`), không rải cách này ra các service khác —
-    nơi nào chỉ cần biết "có vi phạm ràng buộc hay không" (không cần biết ràng buộc nào) vẫn nên
-    dùng `DataIntegrityViolationException` chung như cũ, không cần đọc tới `PSQLException`.
   - **Rate limit (Đợt 5, `chore/hardening`) tắt trong test profile** (`app.rate-limit.enabled=false`)
     — `RateLimitBucketStore` dùng CHUNG một map trong-nhớ cho toàn bộ Spring context, mà ~20 file
     test hiện có gọi THẬT `POST /api/auth/login` qua MockMvc trên context cache dùng chung (hàng
@@ -198,14 +195,25 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     `HttpMessageConverter`, tự commit trước khi filter chain trả về) — **bẫy này áp dụng cho MỌI
     filter tự ghi thẳng vào `HttpServletResponse` sau này**, không riêng gì rate limit, ghi lại ở
     đây để không lặp lại.
-  - Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời (vd
-    thiếu `ANTHROPIC_API_KEY` lúc chạy) — hiện ứng viên phải upload lại từ đầu.
-  - Không có stale-claim reaper: một lượt chạy nền chết vì JVM restart giữa chừng (D1
-    `resumes.parse_status = PROCESSING`, D2 `scoring_runs` ở `RUNNING`/`finished_at NULL`) sẽ kẹt
-    vĩnh viễn; riêng D2 còn bị `uq_scoring_run_in_progress` (V4) chặn cứng, không tạo được lượt
-    chấm mới cho đơn đó. D3 (tổng hợp điểm) **không** có khoản nợ tương tự — cố ý không claim (xem
-    walkthrough `fr-h05-aggregate` mục 4b), nên một lượt tổng hợp dở dang khi JVM crash vẫn nằm
-    trong phạm vi quét của `AggregationScheduler`, tự được thử lại ở nhịp poll kế tiếp.
+  - ~~Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời~~ —
+    **phần lớn nguyên nhân đã xử lý ở Đợt 4**: lỗi mạng/timeout/429/5xx giờ tự động thử lại tối đa
+    `max-attempts` lần, không còn đốt ngay thành `FAILED`. Vẫn **chưa có** endpoint thử lại thủ công
+    (`PATCH /api/candidates/resumes/{id}/retry`, có trong kế hoạch gốc Đợt 3 nhưng không triển khai)
+    cho trường hợp hết hẳn số lần thử tự động hoặc lỗi môi trường không phải lỗi SDK (ví dụ thiếu
+    `ANTHROPIC_API_KEY` lúc chạy) — ứng viên vẫn phải upload lại từ đầu trong các trường hợp đó.
+  - ~~Không có stale-claim reaper~~ — **đã xử lý ở Đợt 4**: `ResumeParsingScheduler.reapStaleClaims`/
+    `ScoringRunScheduler.reapStaleClaims` tự phục hồi bản ghi kẹt do JVM restart giữa chừng (D1
+    `PROCESSING`, D2 `RUNNING`/`finished_at NULL`) sau `app.hardening.stale-timeout-ms`. **Giới hạn
+    còn lại chưa xử lý**: điều kiện `status = 'RUNNING'` của `markFailed`/`markRetryExhausted` không
+    phân biệt được hai worker cùng nhìn thấy `RUNNING` từ CÙNG một lần claim (worker A "zombie" sống
+    sót qua hết `stale-timeout-ms` trong khi lượt đã bị reap và claim lại thành công bởi worker B —
+    cả hai đều thấy `status = 'RUNNING'` và đều có thể ghi). Chặn triệt để đòi thêm một cột version
+    tăng theo từng lần claim (so khớp thêm `started_at = :expectedStartedAt`, tương tự cách
+    `attempt_count` đang dùng cho `markTemporaryFailure`) và sửa chữ ký `markFailed` cùng mọi call
+    site D2/D3 — vượt phạm vi nhánh `chore/hardening`, để lại cho nhánh sau. D3 (tổng hợp điểm)
+    **không** có khoản nợ reaper tương tự — cố ý không claim (xem walkthrough `fr-h05-aggregate`
+    mục 4b), nên một lượt tổng hợp dở dang khi JVM crash vẫn nằm trong phạm vi quét của
+    `AggregationScheduler`, tự được thử lại ở nhịp poll kế tiếp.
   - Tổng điểm hiển thị ở frontend làm tròn 2 chữ số thập phân (`toFixed(2)`) trong khi cột
     `scoring_runs.total_score` lưu scale 3 (`NUMERIC(6,3)`) — chưa có yêu cầu rõ ràng về độ chính
     xác hiển thị, chọn 2 chữ số cho gọn mắt (D3, `ApplicationsTab.tsx`).
@@ -215,31 +223,27 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     4 (`chore/hardening`)**: thêm `implements FormattedErrorCode`, `formatted()` đã khớp sẵn chữ ký,
     không đổi hành vi.
   - Phát hiện khi kiểm thử Phase D bằng key thật (19/08/2026):
-    - Form ứng tuyển (C2, `frontend/src/features/applications/JobApplyForm.tsx`) cho chọn cả CV có
-      `parse_status = FAILED`. Đơn nộp bằng CV hỏng thì HR không bấm chấm điểm được, đơn nằm chết
-      không xử lý được. Cần lọc bỏ CV `FAILED` khỏi danh sách chọn, hoặc chặn nộp kèm thông báo rõ.
-  - E1: `ApplicationStatusService.changeStatus` (`backend/src/main/java/com/recruitment/jobapplication/ApplicationStatusService.java`)
-    đọc `application.getStatus()` rồi `save()` mà không có `WHERE status = :oldStatus` hay
-    `@Version` — hai request PATCH gần như đồng thời trên cùng một đơn (double-click, hai tab HR)
-    đều có thể đọc cùng một trạng thái gốc, đều qua kiểm luồng, rồi cả hai đều ghi thành công
-    (last-write-wins), có thể để lại hai dòng lịch sử mâu thuẫn cùng xuất phát từ một trạng thái.
-    Phát hiện khi chạy `srs-guard` cho nhánh E1 (không phải vi phạm nào trong 9 mục của skill, chỉ
-    là rủi ro cùng họ — không có ràng buộc "chỉ một X đang hoạt động" nào bị vi phạm theo đúng
-    nghĩa hẹp). Cách sửa đề xuất: đổi sang `UPDATE job_applications SET status = :new WHERE id =
-    :id AND status = :old`, kiểm số dòng ảnh hưởng — cùng khuôn mẫu
-    `ScoringRunRepository.finishAggregation` (D3) đã dùng cho đúng vấn đề tương tự.
+    - ~~Form ứng tuyển (C2, `frontend/src/features/applications/JobApplyForm.tsx`) cho chọn cả CV có
+      `parse_status = FAILED`~~ — **đã xử lý ở Đợt 6 (`chore/hardening`)**: lọc bỏ CV `FAILED` khỏi
+      danh sách chọn, thêm chú thích số lượng CV bị ẩn.
+  - ~~E1: `ApplicationStatusService.changeStatus` đọc `application.getStatus()` rồi `save()` mà
+    không có `WHERE status = :oldStatus` hay `@Version`~~ — **đã xử lý ở Đợt 2 (`chore/hardening`)**:
+    đổi sang `JobApplicationRepository.updateStatusIfCurrent` (`UPDATE ... WHERE id = :id AND status
+    = :oldStatus`, kiểm rowcount), rowcount 0 → `ApplicationStatusConflictException` (409), đúng
+    khuôn mẫu `ScoringRunRepository.finishAggregation` (D3) đã đề xuất từ trước.
   - Phát hiện khi kiểm thử tay nhánh E1 bằng tài khoản thật (20/08/2026):
     - 6 job seed `10000000-0000-0000-0000-00000000000{1..6}` (`db/seed/dev-seed.sql`) không có rubric
       lẫn interview_template; job `11111111-1111-1111-1111-111111111111` có rubric nhưng thiếu
       template. Đây là dữ liệu tạo ngoài `JobOwnerService.create` nên thiếu các bất biến mà B2 đảm
       bảo (Job+Rubric+InterviewTemplate luôn tạo cùng nhau). Xử lý bằng xoá mềm khi làm
       `chore/seed-demo`, không vá bằng INSERT tay.
-    - Console cảnh báo `Select is changing from uncontrolled to controlled` (radix-ui) — có `Select`
-      khởi tạo `value={undefined}`. Sửa bằng giá trị khởi tạo hoặc `defaultValue`.
-    - Message lỗi 401 `UNAUTHENTICATED` viết tiếng Việt không dấu ("Can dang nhap de truy cap tai
-      nguyen nay", `JsonAuthenticationEntryPoint.java:22`) — không nhất quán với quy ước "chuỗi hiển
-      thị cho người dùng: tiếng Việt có dấu" (CLAUDE.md mục 4). Rà lại các message tương tự còn
-      thiếu dấu (`GlobalExceptionHandler` và các entry point/handler khác ở tầng filter chain).
+    - ~~Console cảnh báo `Select is changing from uncontrolled to controlled` (radix-ui)~~ — **đã
+      xử lý ở Đợt 6 (`chore/hardening`)**: nguyên nhân thật là pattern `field.value || undefined`
+      (biến giá trị rỗng hợp lệ `''` thành `undefined`), không phải thiếu `defaultValues` — sửa cả
+      hai ở `HrJobCreatePage.tsx`/`HrJobEditPage.tsx`.
+    - ~~Message lỗi 401 `UNAUTHENTICATED` viết tiếng Việt không dấu~~ — **đã xử lý ở Đợt 6
+      (`chore/hardening`)**: sửa 14 chỗ (4 điểm đã biết + 10 điểm phát hiện thêm qua rà soát —
+      `AuthService` và các `*NotFoundException`/`EmailAlreadyExistsException`).
     - Sidebar HR: mục "Ứng viên" và "Rubric" không có `to` trong `NAV_ITEMS`
       (`frontend/src/components/layout/HrLayout.tsx:15-16`) nên hiển thị mờ, không bấm được. Cố ý ở
       giai đoạn này (hai màn hình đó vào qua job, chưa có trang danh sách toàn cục). Quyết định ở F3
@@ -250,25 +254,22 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
   - E2: poller gửi email không claim trước khi gửi — an toàn với một instance, sẽ gửi trùng nếu chạy
     đa instance. Xem walkthrough `fr-c03-notification.md` mục 4d/7.
   - Phát hiện khi làm F3 (FR-H08, `feat/fr-h08-dashboard`):
-    - `ScoringRunRepository.findByApplicationIdOrderByCreatedAtDesc` (D2) — derived query `ORDER BY
-      created_at DESC` thiếu khóa cuối duy nhất. Đã kiểm thực nghiệm trên Postgres 17 thật: hai lượt
-      chấm cùng `created_at` (cùng transaction) có thể đổi thứ tự trả về giữa hai lần đọc dữ liệu
-      không đổi, chỉ do khác vị trí vật lý trong heap/index. Đang được `ScoringRunService.listScoringRuns`
-      (D2) dùng trực tiếp — sửa cần thêm `, id DESC` và chạy lại 19 test của D2 để xác nhận không vỡ
-      kỳ vọng thứ tự.
-    - `ScoringRunRepository.findLatestDoneByApplicationIdIn` (D3) — `DISTINCT ON (application_id)
-      ORDER BY application_id, created_at DESC` cùng lỗi thiếu khóa cuối, ảnh hưởng nguồn điểm xếp
-      hạng của D3/D4.
-    - Pattern `requireOwnCompany` chạy **sau** khi tra tài nguyên (thay vì trước) ở
+    - ~~`ScoringRunRepository.findByApplicationIdOrderByCreatedAtDesc` (D2) — derived query `ORDER
+      BY created_at DESC` thiếu khóa cuối duy nhất~~ và ~~`findLatestDoneByApplicationIdIn` (D3) —
+      `DISTINCT ON (application_id) ORDER BY application_id, created_at DESC` cùng lỗi~~ — **đã xử
+      lý ở Đợt 2 (`chore/hardening`)**: thêm `, id DESC`/`, id` tie-break cho cả ba query (gồm cả
+      `findLatestByApplicationIdIn`); phát hiện phụ liên quan: `UUID.compareTo()` của Java KHÔNG
+      cùng ngữ nghĩa với `ORDER BY id` của Postgres — xem `docs/walkthrough/chore-hardening.md`
+      mục 4.
+    - ~~Pattern `requireOwnCompany` chạy **sau** khi tra tài nguyên (thay vì trước) ở
       `ApplicationStatusService.loadOwnedApplication` (E1) và `ApplicationOwnerService.loadOwnedJob`
-      (D3) — HR chưa tạo hồ sơ công ty nhận nhầm lỗi 404 sai nguyên nhân (`APPLICATION_NOT_FOUND`/
-      `JOB_NOT_FOUND` thay vì `COMPANY_NOT_FOUND`). F3 đã sửa đúng thứ tự này cho
-      `ScoringRunAuditService` (file mới), không sửa hai file D3/E1 kia (ngoài phạm vi một mã FR).
+      (D3)~~ — **đã xử lý ở Đợt 2 (`chore/hardening`)**: đảo thứ tự, kiểm quyền sở hữu công ty
+      trước khi tra tài nguyên, đúng khuôn `ScoringRunAuditService` (F3) đã làm.
     - Dropdown "Tin tuyển dụng" trong `CandidatesFilterBar` (F3) giới hạn 50 tin — trần
       `JobOwnerService.MAX_SIZE` ở backend, không phải lựa chọn tùy ý ở frontend. Công ty có hơn 50
       tin sẽ không lọc được tin cũ nhất qua dropdown này (đã có chú thích UI báo số lượng bị cắt bớt).
-    - Cột số trong `CandidatesTable` và `JobPerformanceTable` (F3) căn trái theo mặc định — nên căn
-      phải để dễ so sánh giá trị giữa các dòng.
+    - ~~Cột số trong `CandidatesTable` và `JobPerformanceTable` (F3) căn trái theo mặc định~~ — **đã
+      xử lý ở Đợt 6 (`chore/hardening`)**: căn phải các cột số ở cả hai bảng.
   - Phát sinh khi làm F2 (FR-U05, `feat/fr-u05-cv-improve`):
     - `ApplicationHistoryEntryResponse.note` trả cho ứng viên (F3, endpoint `GET
       /api/candidates/applications/{id}/history`) — hiện an toàn vì cả 4 điểm ghi trong toàn bộ
@@ -303,6 +304,34 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       `job_embeddings`) — đúng ở quy mô nhỏ (Seq Scan nhanh hơn), cần đo lại khi dữ liệu production
       đủ lớn để xác nhận planner tự chuyển sang Index Scan như dự đoán, không chỉ khi bị ép bằng
       tay qua `enable_seqscan`.
+### Cố ý không làm / đánh đổi có chủ đích (`chore/hardening`, không phải bỏ sót)
+
+Giữ riêng mục này để không mất dấu vết quyết định — đây là những chỗ **cố ý** chọn phương án đơn
+giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đầy đủ trong
+`docs/walkthrough/chore-hardening.md` mục 4.
+
+- **Không làm presigned URL cho tải file CV** (áp dụng cho cả ứng viên qua `ResumeCandidateController`
+  lẫn HR qua `ResumeHrController`) — luồng hiện tại stream file qua app server và kiểm quyền sở hữu
+  ở MỖI request, chặt hơn presigned (URL rò rỉ trong TTL truy cập được mà không kiểm lại quyền tại
+  thời điểm truy cập). Presigned chỉ đáng làm khi cần giảm tải băng thông app server ở quy mô lớn —
+  ngoài phạm vi đồ án. Chưa gây vấn đề ở quy mô hiện tại (`app.storage.type=local`, không S3/MinIO
+  thật dù có chạy container MinIO trong `docker-compose`).
+- **`org.postgresql:postgresql` đổi từ `<scope>runtime</scope>` sang mặc định (`compile`) ở Đợt 4.**
+  Lý do: xử lý race `uq_score_per_criterion` ở `ScoringRunOrchestrator` (mục 4g) cần khớp CHÍNH XÁC
+  theo tên ràng buộc qua `PSQLException.getServerErrorMessage().getConstraint()` — đáng tin cậy hơn
+  cách khớp chuỗi message tự do mà `GlobalExceptionHandler.handleDataIntegrityViolation` đang dùng
+  cho các ràng buộc khác — nhưng `PSQLException` chỉ có mặt trên classpath biên dịch của main code
+  nếu bỏ `scope=runtime`. Hệ quả ngoài phạm vi một dòng pom: từ nay main code compile được thẳng với
+  API của driver Postgres, không còn hàng rào build nào ngăn code tương lai import trực tiếp
+  `org.postgresql.*` ở chỗ không thật sự cần. Giới hạn tự đặt để bù lại: chỉ dùng `PSQLException`
+  trong ĐÚNG MỘT helper (`ScoringRunOrchestrator.isUniqueViolation`), không rải ra các service khác.
+- **Rate limit chọn in-memory (Bucket4j), không Redis — chấp nhận có thể bị bypass.** Trần
+  `app.rate-limit.max-tracked-keys` (LRU eviction qua `LinkedHashMap accessOrder`) chặn được OOM,
+  nhưng đúng cơ chế đó mở đường khác: tạo hơn 10.000 khoá giả (IP giả/nhiều tài khoản) để đẩy khoá
+  của chính mình ra khỏi map — mỗi lần bucket bị evict, hạn mức của khoá đó coi như reset về đầy.
+  Đánh đổi cố hữu của rate limit in-memory không có backend chia sẻ, không phải sơ suất — cách chữa
+  thật là chuyển sang bucket lưu tập trung ở Redis, ngoài phạm vi "một instance là đủ" của đồ án này.
+
 - [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
