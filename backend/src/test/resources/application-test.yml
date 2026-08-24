@@ -22,6 +22,14 @@ app:
     enabled: false
   job-recommendation:
     enabled: false
+  # Dot 5 (chore/hardening) - RateLimitBucketStore la MOT map trong-nho DUY NHAT cho toan bo Spring
+  # context. Hang chuc @SpringBootTest khac (dung chung context cache) goi that POST /api/auth/login
+  # qua MockMvc de lay token - TONG CONG hang tram lan trong ca bo test - neu bat len se lam vo hang
+  # loat test khong lien quan gi den rate limit chi vi dung chung MOT bucket cho "auth:127.0.0.1".
+  # Test rieng cua RateLimitFilter/RateLimitBucketStore khong can Spring context (tu "new" instance
+  # bang tay), mau ResumeParsingScheduler/app.resume-parsing.enabled da co.
+  rate-limit:
+    enabled: false
   # Dot 4 (chore/hardening) - gia tri NHO de test nhanh (khong phai 30s/2 phut that cua production).
   # max-attempts giu nguyen 3 (giong production) vi test can kiem dung nguong nghiep vu that (vd
   # "dung 3 lan thi FAILED"). backoff-ms nho (50ms/100ms, khong phai 30000/120000) va

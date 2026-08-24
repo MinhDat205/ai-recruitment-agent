@@ -1,5 +1,7 @@
 package com.recruitment.auth;
 
+import com.recruitment.ratelimit.RateLimitFilter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -26,7 +28,8 @@ public class SecurityConfig {
             HttpSecurity http,
             JwtService jwtService,
             JsonAuthenticationEntryPoint authenticationEntryPoint,
-            JsonAccessDeniedHandler accessDeniedHandler)
+            JsonAccessDeniedHandler accessDeniedHandler,
+            ObjectProvider<RateLimitFilter> rateLimitFilterProvider)
             throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -66,6 +69,11 @@ public class SecurityConfig {
                                         .accessDeniedHandler(accessDeniedHandler))
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+        // Dot 5 (chore/hardening) - RateLimitFilter vang mat trong context test
+        // (app.rate-limit.enabled=false, xem RateLimitFilter) nen phai lay qua ObjectProvider, KHONG
+        // autowire truc tiep - autowire truc tiep se lam context test that bai khoi dong vi thieu bean.
+        rateLimitFilterProvider.ifAvailable(
+                rateLimitFilter -> http.addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class));
         return http.build();
     }
 }

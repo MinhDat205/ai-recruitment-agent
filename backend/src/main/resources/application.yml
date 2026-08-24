@@ -112,6 +112,18 @@ app:
     stale-timeout-ms: 900000
     reaper-poll-interval-ms: 60000
 
+  # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
+  # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint
+  # ton LLM. max-tracked-keys chan OOM cho kho bucket trong-nho (xem RateLimitBucketStore).
+  rate-limit:
+    max-tracked-keys: 10000
+    auth:
+      capacity: 10
+      refill-per-minute: 10
+    llm-action:
+      capacity: 20
+      refill-per-minute: 20
+
 logging:
   level:
     org.springframework.ai: INFO

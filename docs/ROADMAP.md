@@ -172,6 +172,32 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     helper** (`ScoringRunOrchestrator.isUniqueViolation`), không rải cách này ra các service khác —
     nơi nào chỉ cần biết "có vi phạm ràng buộc hay không" (không cần biết ràng buộc nào) vẫn nên
     dùng `DataIntegrityViolationException` chung như cũ, không cần đọc tới `PSQLException`.
+  - **Rate limit (Đợt 5, `chore/hardening`) tắt trong test profile** (`app.rate-limit.enabled=false`)
+    — `RateLimitBucketStore` dùng CHUNG một map trong-nhớ cho toàn bộ Spring context, mà ~20 file
+    test hiện có gọi THẬT `POST /api/auth/login` qua MockMvc trên context cache dùng chung (hàng
+    trăm lần trong cả bộ test) — bật lên sẽ làm vỡ hàng loạt test không liên quan gì đến rate limit
+    chỉ vì dùng chung một bucket cho `"auth:127.0.0.1"`. **Hệ quả**: 13 test hiện có
+    (`RateLimitBucketStoreTest`/`RateLimitFilterTest`) phủ đúng logic tiêu thụ token/refill/trần
+    `max-tracked-keys` ở mức đơn vị (tự "new" instance bằng tay, không qua Spring), nhưng KHÔNG có
+    test tự động nào chứng minh `RateLimitFilter` nằm ĐÚNG VỊ TRÍ trong chain thật của Spring
+    Security và thực sự chặn được request đi qua HTTP thật — bằng chứng duy nhất cho điều đó là một
+    lượt kiểm thử tay (20 request `POST /api/auth/login` sai mật khẩu liên tiếp, request thứ 11 trả
+    `429` kèm `Retry-After: 6`, xem báo cáo Đợt 5). Cách phủ được bằng test tự động: dựng một
+    `@SpringBootTest` riêng với context riêng (`@TestPropertySource(properties = "app.rate-limit.enabled=true")`)
+    bật rate limit thật để test qua MockMvc — chưa làm vì tốn thêm một context cache riêng trong CI
+    cho một tính năng không gắn mã FR nào, cân nhắc lại nếu sau này có sự cố thật liên quan tới rate
+    limit.
+  - **`Spring Boot ErrorPageFilter` nuốt mất body của response 4xx/5xx CHƯA COMMIT** — phát hiện khi
+    kiểm thử tay `RateLimitFilter` (Đợt 5): filter tự ghi `response.getWriter().write(...)` rồi
+    `return` mà KHÔNG flush, `ErrorPageFilter` (đặt ngoài chain của Spring Security, bọc toàn bộ)
+    thấy status 429 nhưng response chưa commit, tự điều hướng sang xử lý lỗi mặc định và ghi đè mất
+    body — client nhận đúng status code nhưng body rỗng, dù log server cho thấy đã ghi. Sửa bằng
+    gọi `response.flushBuffer()` NGAY sau khi ghi body, ép response commit trước khi trả về khỏi
+    filter. `JsonAuthenticationEntryPoint`/`JsonAccessDeniedHandler` (401/403) không gặp lỗi này vì
+    thân của chúng đi qua đường Spring MVC bình thường (`DispatcherServlet` ghi qua
+    `HttpMessageConverter`, tự commit trước khi filter chain trả về) — **bẫy này áp dụng cho MỌI
+    filter tự ghi thẳng vào `HttpServletResponse` sau này**, không riêng gì rate limit, ghi lại ở
+    đây để không lặp lại.
   - Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời (vd
     thiếu `ANTHROPIC_API_KEY` lúc chạy) — hiện ứng viên phải upload lại từ đầu.
   - Không có stale-claim reaper: một lượt chạy nền chết vì JVM restart giữa chừng (D1

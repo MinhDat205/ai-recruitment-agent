@@ -21,6 +21,10 @@
 		<poi.version>5.4.0</poi.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<spring-dotenv.version>5.0.1</spring-dotenv.version>
+		<!-- Dot 5 (chore/hardening) - ban moi nhat xac nhan qua maven-metadata.xml that tren Maven
+		     Central (repo1.maven.org/maven2/com/bucket4j/bucket4j-core/maven-metadata.xml), khong
+		     doan theo tim kiem/tai lieu (CLAUDE.md muc 3b). -->
+		<bucket4j.version>8.10.1</bucket4j.version>
 	</properties>
 
 	<dependencyManagement>
@@ -89,6 +93,13 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+		<!-- Dot 5 (chore/hardening) - rate limit (RateLimitFilter). Chi bucket4j-core (in-memory,
+		     khong backend Redis) - dung yeu cau "mot instance la du" cua do an. -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j-core</artifactId>
+			<version>${bucket4j.version}</version>
 		</dependency>
 
 		<!-- ===== Tien ich phat trien =====
