@@ -4,6 +4,7 @@ import {
   getParsedResumeRequest,
   listResumesRequest,
   requestCvImprovementRequest,
+  retryResumeRequest,
   setPrimaryResumeRequest,
   uploadResumeRequest,
 } from './api'
@@ -78,6 +79,18 @@ export function useSetPrimaryResumeMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => setPrimaryResumeRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESUMES_QUERY_KEY })
+    },
+  })
+}
+
+// Sau khi thu lai thanh cong, ban ghi ve PENDING - invalidate de danh sach refetch va
+// refetchInterval (hasResumeStillPolling) tu bat lai polling cho dung ban ghi nay.
+export function useRetryResumeMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => retryResumeRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RESUMES_QUERY_KEY })
     },

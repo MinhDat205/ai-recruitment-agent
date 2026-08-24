@@ -139,6 +139,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RESUME_PARSED_DATA_NOT_FOUND", ex.getMessage()));
     }
 
+    // 409 - CV khong o trang thai FAILED (muc 3b, chore/hardening), xem ResumeRetryNotAllowedException.
+    @ExceptionHandler(ResumeRetryNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleResumeRetryNotAllowed(ResumeRetryNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RESUME_RETRY_NOT_ALLOWED", ex.getMessage()));
+    }
+
     @ExceptionHandler(ApplicationNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleApplicationNotFound(ApplicationNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

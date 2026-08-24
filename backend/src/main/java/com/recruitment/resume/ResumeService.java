@@ -3,6 +3,7 @@ package com.recruitment.resume;
 import com.recruitment.common.exception.InvalidResumeFileException;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.common.exception.ResumeParsedDataNotFoundException;
+import com.recruitment.common.exception.ResumeRetryNotAllowedException;
 import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import com.recruitment.resume.dto.ResumeResponse;
 import com.recruitment.storage.StorageService;
@@ -28,14 +29,17 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
     private final StorageService storageService;
+    private final ResumeParsingStateService resumeParsingStateService;
 
     public ResumeService(
             ResumeRepository resumeRepository,
             ResumeParsedDataRepository resumeParsedDataRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            ResumeParsingStateService resumeParsingStateService) {
         this.resumeRepository = resumeRepository;
         this.resumeParsedDataRepository = resumeParsedDataRepository;
         this.storageService = storageService;
+        this.resumeParsingStateService = resumeParsingStateService;
     }
 
     public List<ResumeResponse> listMine(UUID candidateId) {
@@ -132,6 +136,31 @@ public class ResumeService {
                 .findByResumeId(resumeId)
                 .orElseThrow(() -> new ResumeParsedDataNotFoundException(resumeId));
         return new ResumeParsedDataResponse(data.getResumeId(), data.getData(), data.getParsedAt());
+    }
+
+    // Muc 3b con sot cua ke hoach Dot 3/4 (chore/hardening) - duong thu lai THU CONG cho candidate
+    // khi CV da FAILED han (het so lan thu tu dong o Dot 4, hoac loi moi truong khong phai loi SDK
+    // vi du thieu ANTHROPIC_API_KEY luc chay). Kiem so huu truoc (404, dung pattern
+    // downloadMine/getParsedData), roi kiem parseStatus == FAILED (409, thong bao ro) TRUOC KHI goi
+    // UPDATE co dieu kien - lop kiem nay chi de tra loi som, than thien; chot chan that su la dieu
+    // kien WHERE parse_status = 'FAILED' trong ResumeParsingStateService.retry (xem CLAUDE.md muc
+    // 4). Rowcount 0 tu do (race hiem: CV vua bi mot luong khac doi khoi FAILED giua hai buoc nay)
+    // nem CUNG mot loai loi 409 - khong phan biet nguyen nhan, ca hai deu bao nguoi dung tai lai
+    // trang la du. KHONG @Transactional o method nay: ghi that su nam trong transaction rieng, ngan
+    // cua resumeParsingStateService.retry - hai lan doc o day (truoc va sau) la doc thuan, khong
+    // can bao boc chung mot transaction voi buoc ghi.
+    public ResumeResponse retry(UUID candidateId, UUID resumeId) {
+        Resume resume =
+                resumeRepository
+                        .findByIdAndCandidateId(resumeId, candidateId)
+                        .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        if (resume.getParseStatus() != ParseStatus.FAILED) {
+            throw new ResumeRetryNotAllowedException();
+        }
+        if (!resumeParsingStateService.retry(resumeId)) {
+            throw new ResumeRetryNotAllowedException();
+        }
+        return toResponse(resumeRepository.findById(resumeId).orElseThrow());
     }
 
     private static Optional<ResumeFileType> detectFileType(byte[] content) {

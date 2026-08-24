@@ -24,6 +24,11 @@ export async function setPrimaryResumeRequest(id: string): Promise<Resume> {
   return response.data
 }
 
+export async function retryResumeRequest(id: string): Promise<Resume> {
+  const response = await http.patch<Resume>(`/candidates/resumes/${id}/retry`)
+  return response.data
+}
+
 // responseType 'blob' bat buoc: endpoint yeu cau dang nhap, con the` <a href> thuong khong gan
 // duoc header Authorization. Ham nay chi tai du lieu ve, viec kich hoat download nam o UI.
 export async function downloadResumeRequest(id: string): Promise<Blob> {

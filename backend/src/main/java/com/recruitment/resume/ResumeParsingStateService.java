@@ -112,4 +112,17 @@ public class ResumeParsingStateService {
     public List<UUID> findStaleClaimIds(Instant threshold) {
         return resumeRepository.findIdsByParseStatusAndClaimedAtBefore(ParseStatus.PROCESSING, threshold);
     }
+
+    // Muc 3b con sot (chore/hardening) - duong thu lai THU CONG do NGUOI DUNG bam nut, KHAC voi
+    // markTemporaryFailure (Dot 4e, TU DONG boi scheduler khi loi LLM tam thoi). Khong doc
+    // attempt_count hien tai lam dieu kien nhu markTemporaryFailure - dieu kien nguon CHI la
+    // "parse_status = 'FAILED'" (xem ResumeRepository.retryFailedResume) la du, vi FAILED la trang
+    // thai CUOI CUNG, chi co dung mot duong di vao no. Rowcount 0 (CV da bi mot luong khac doi khoi
+    // FAILED giua luc ResumeService kiem tra va luc goi ham nay) tra false, KHONG nem exception o
+    // day - ResumeService (tang goi) la noi quyet dinh co nem 409 hay khong, bean nay chi bao cao
+    // ket qua that.
+    @Transactional
+    public boolean retry(UUID resumeId) {
+        return resumeRepository.retryFailedResume(resumeId) == 1;
+    }
 }

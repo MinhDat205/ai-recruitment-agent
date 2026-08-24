@@ -121,7 +121,7 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
 
 ## Hoàn thiện trước bảo vệ
 
-- [x] `chore/hardening` — **HOÀN THÀNH** (6 đợt, xem `docs/walkthrough/chore-hardening.md` để hiểu
+- [x] `chore/hardening` — **HOÀN THÀNH** (7 đợt, xem `docs/walkthrough/chore-hardening.md` để hiểu
   luồng và quyết định thiết kế đầy đủ). Tóm tắt việc đã làm:
   - Đợt 2: sửa lost-update thật ở `ApplicationStatusService.changeStatus` (UPDATE có điều kiện thay
     `findById`+`save` không điều kiện); thêm khoá cuối `id` cho 3 query `ORDER BY` thiếu tie-break
@@ -136,6 +136,9 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     endpoint tốn LLM; kho bucket bounded chống OOM.
   - Đợt 6: Việt hoá có dấu 14 chuỗi lỗi hiển thị cho người dùng; lọc CV `FAILED` khỏi form ứng
     tuyển; sửa tận gốc cảnh báo Radix Select uncontrolled→controlled; căn phải cột số.
+  - Đợt 7: hoàn thiện mục 3b còn sót của kế hoạch gốc — endpoint `PATCH
+    /api/candidates/resumes/{id}/retry` cho candidate tự thử lại thủ công một CV `FAILED` hẳn, nút
+    "Phân tích lại" trong `ResumeList.tsx`.
   - **V6 (`cv_improvement_requests`, F2/FR-U05) chưa từng được áp cho DB dev cho tới khi chạy V7**
     (chore/hardening) — `flyway_schema_history` cho thấy V5 áp ngày 2026-08-18, còn V6 và V7 cùng áp
     một lượt vào 2026-08-24 (log Flyway: "Migrating schema... to version 6" rồi "7" liên tiếp trong
@@ -196,11 +199,23 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     filter tự ghi thẳng vào `HttpServletResponse` sau này**, không riêng gì rate limit, ghi lại ở
     đây để không lặp lại.
   - ~~Không có đường thử lại cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời~~ —
-    **phần lớn nguyên nhân đã xử lý ở Đợt 4**: lỗi mạng/timeout/429/5xx giờ tự động thử lại tối đa
-    `max-attempts` lần, không còn đốt ngay thành `FAILED`. Vẫn **chưa có** endpoint thử lại thủ công
-    (`PATCH /api/candidates/resumes/{id}/retry`, có trong kế hoạch gốc Đợt 3 nhưng không triển khai)
-    cho trường hợp hết hẳn số lần thử tự động hoặc lỗi môi trường không phải lỗi SDK (ví dụ thiếu
-    `ANTHROPIC_API_KEY` lúc chạy) — ứng viên vẫn phải upload lại từ đầu trong các trường hợp đó.
+    **đã xử lý đầy đủ**: lỗi mạng/timeout/429/5xx tự động thử lại tối đa `max-attempts` lần từ Đợt
+    4, không còn đốt ngay thành `FAILED`; **và Đợt 7 hoàn thiện nốt mục 3b còn sót của kế hoạch gốc**
+    — endpoint `PATCH /api/candidates/resumes/{id}/retry` (`ResumeCandidateController`) cho trường
+    hợp hết hẳn số lần thử tự động hoặc lỗi môi trường không phải lỗi SDK (ví dụ thiếu
+    `ANTHROPIC_API_KEY` lúc chạy). Kiểm sở hữu (404) → kiểm `parseStatus == FAILED` (409,
+    `RESUME_RETRY_NOT_ALLOWED`) → `UPDATE ... WHERE parse_status = 'FAILED'` reset
+    `attempt_count = 0`/`next_attempt_at = NULL`/`claimed_at = NULL`/`parse_error = NULL` (coi thao
+    tác thủ công là bắt đầu lại từ đầu, không tính vào số lần thử tự động đã dùng hết). Nút "Phân
+    tích lại" trong `ResumeList.tsx`, chỉ hiện khi `FAILED`. Kiểm thử tay bằng tài khoản QA + CV
+    thật + LLM thật: CV `FAILED` (mô phỏng hết lượt thử) → bấm nút → về `PENDING` ngay trên UI →
+    poller thật nhặt lại trong vòng poll kế tiếp → `DONE` với `resume_parsed_data` ghi đúng, không
+    vi phạm `resume_parsed_data_resume_id_key` (đã kiểm invariant: `DONE` là trạng thái cuối, không
+    có đường code nào đưa một resume đã `DONE` quay lại `FAILED`, nên `retry` không bao giờ chạm một
+    resume đã có sẵn `resume_parsed_data` — xác nhận qua chính việc dựng test thủ công: ép trạng
+    thái `FAILED` bằng SQL tay trên một resume ĐÃ có `resume_parsed_data` từ trước tạo ra đúng vi
+    phạm unique đó, nhưng đây là trạng thái không thể đạt được qua bất kỳ đường code thật nào, chỉ
+    dựng được bằng SQL tay bỏ qua mọi ràng buộc ứng dụng).
   - ~~Không có stale-claim reaper~~ — **đã xử lý ở Đợt 4**: `ResumeParsingScheduler.reapStaleClaims`/
     `ScoringRunScheduler.reapStaleClaims` tự phục hồi bản ghi kẹt do JVM restart giữa chừng (D1
     `PROCESSING`, D2 `RUNNING`/`finished_at NULL`) sau `app.hardening.stale-timeout-ms`. **Giới hạn

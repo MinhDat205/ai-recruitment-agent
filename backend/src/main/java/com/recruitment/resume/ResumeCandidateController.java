@@ -59,6 +59,11 @@ public class ResumeCandidateController {
         return resumeService.setPrimary(UUID.fromString(authentication.getName()), id);
     }
 
+    @PatchMapping("/{id}/retry")
+    public ResumeResponse retry(Authentication authentication, @PathVariable UUID id) {
+        return resumeService.retry(UUID.fromString(authentication.getName()), id);
+    }
+
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(Authentication authentication, @PathVariable UUID id) {
         ResumeDownload download = resumeService.downloadMine(UUID.fromString(authentication.getName()), id);

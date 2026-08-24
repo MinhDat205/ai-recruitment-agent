@@ -35,6 +35,12 @@ class ResumeIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    // Chi dung de dung fixture truc tiep (dua mot resume ve FAILED) - scheduler xu ly that bi tat o
+    // profile test (app.resume-parsing.enabled=false), khong co duong HTTP nao dua duoc mot ban ghi
+    // vao trang thai FAILED that su.
+    @Autowired
+    private ResumeRepository resumeRepository;
+
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
     }
@@ -196,5 +202,89 @@ class ResumeIntegrationTest {
         mockMvc
                 .perform(get("/api/candidates/profile/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+    }
+
+    private void forceStatus(String resumeId, ParseStatus status) {
+        Resume resume = resumeRepository.findById(UUID.fromString(resumeId)).orElseThrow();
+        resume.setParseStatus(status);
+        if (status == ParseStatus.FAILED) {
+            resume.setParseError(ResumeParsingErrorCode.LLM_RETRY_EXHAUSTED.formatted());
+            resume.setAttemptCount(3);
+        }
+        resumeRepository.save(resume);
+    }
+
+    @Test
+    void retry_failedResumeByOwner_returnsToPendingAndClearsAttemptState() throws Exception {
+        String token = registerAndLoginCandidate("cand-retry-owner");
+        MvcResult uploaded = uploadResume(token, VALID_PDF_CONTENT, "cv.pdf");
+        String resumeId = extractJsonField(uploaded.getResponse().getContentAsString(), "id");
+        forceStatus(resumeId, ParseStatus.FAILED);
+
+        MvcResult result = mockMvc
+                .perform(patch("/api/candidates/resumes/" + resumeId + "/retry").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(extractJsonField(result.getResponse().getContentAsString(), "parseStatus")).isEqualTo("PENDING");
+
+        Resume reloaded = resumeRepository.findById(UUID.fromString(resumeId)).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.PENDING);
+        assertThat(reloaded.getParseError()).isNull();
+        assertThat(reloaded.getAttemptCount()).isZero();
+        assertThat(reloaded.getNextAttemptAt()).isNull();
+    }
+
+    @Test
+    void retry_byDifferentCandidate_returnsNotFound() throws Exception {
+        String ownerToken = registerAndLoginCandidate("cand-retry-owner2");
+        MvcResult uploaded = uploadResume(ownerToken, VALID_PDF_CONTENT, "cv.pdf");
+        String resumeId = extractJsonField(uploaded.getResponse().getContentAsString(), "id");
+        forceStatus(resumeId, ParseStatus.FAILED);
+
+        String otherToken = registerAndLoginCandidate("cand-retry-other");
+
+        mockMvc
+                .perform(
+                        patch("/api/candidates/resumes/" + resumeId + "/retry")
+                                .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void retry_onPendingResume_returnsConflict() throws Exception {
+        String token = registerAndLoginCandidate("cand-retry-pending");
+        MvcResult uploaded = uploadResume(token, VALID_PDF_CONTENT, "cv.pdf");
+        String resumeId = extractJsonField(uploaded.getResponse().getContentAsString(), "id");
+        // Vua upload da la PENDING - khong can force gi them.
+
+        MvcResult result = mockMvc
+                .perform(patch("/api/candidates/resumes/" + resumeId + "/retry").header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("RESUME_RETRY_NOT_ALLOWED");
+    }
+
+    @Test
+    void retry_onProcessingResume_returnsConflict() throws Exception {
+        String token = registerAndLoginCandidate("cand-retry-processing");
+        MvcResult uploaded = uploadResume(token, VALID_PDF_CONTENT, "cv.pdf");
+        String resumeId = extractJsonField(uploaded.getResponse().getContentAsString(), "id");
+        forceStatus(resumeId, ParseStatus.PROCESSING);
+
+        mockMvc
+                .perform(patch("/api/candidates/resumes/" + resumeId + "/retry").header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void retry_onDoneResume_returnsConflict() throws Exception {
+        String token = registerAndLoginCandidate("cand-retry-done");
+        MvcResult uploaded = uploadResume(token, VALID_PDF_CONTENT, "cv.pdf");
+        String resumeId = extractJsonField(uploaded.getResponse().getContentAsString(), "id");
+        forceStatus(resumeId, ParseStatus.DONE);
+
+        mockMvc
+                .perform(patch("/api/candidates/resumes/" + resumeId + "/retry").header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict());
     }
 }

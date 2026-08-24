@@ -359,4 +359,82 @@ class ResumeParsingStateServiceTest {
         assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.DONE);
         assertThat(resumeParsedDataRepository.findByResumeId(resumeId)).isPresent();
     }
+
+    // Muc 3b con sot (chore/hardening) - thu lai THU CONG. Dung het attempt_count/parse_error/
+    // next_attempt_at truoc do (mo phong dung trang thai FAILED that su sau khi da het luot thu tu
+    // dong o Dot 4) de xac nhan retry() reset SACH ca ba cot, khong chi doi parse_status.
+    @Test
+    void retry_failedResume_resetsToPendingAndClearsRetryState() {
+        UUID resumeId = createResume(ParseStatus.FAILED);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setAttemptCount(retryPolicy.maxAttempts());
+        resume.setParseError(ResumeParsingErrorCode.LLM_RETRY_EXHAUSTED.formatted());
+        resume.setNextAttemptAt(null);
+        resume.setClaimedAt(Instant.now().minusSeconds(120));
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        boolean retried = stateService.retry(resumeId);
+        assertThat(retried).isTrue();
+
+        entityManager.clear();
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.PENDING);
+        assertThat(reloaded.getParseError()).isNull();
+        assertThat(reloaded.getAttemptCount()).isZero();
+        assertThat(reloaded.getNextAttemptAt()).isNull();
+        assertThat(reloaded.getClaimedAt()).isNull();
+    }
+
+    // Ban ghi vua duoc reset ve PENDING/next_attempt_at NULL phai duoc scheduler nhat lai NGAY, khong
+    // phai cho het mot chu ky backoff nao - xac nhan bang chinh truy van scheduler dung
+    // (findReadyForProcessing), khong chi doc lai entity.
+    @Test
+    void retry_failedResume_becomesReadyForProcessingImmediately() {
+        UUID resumeId = createResume(ParseStatus.FAILED);
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+        resume.setAttemptCount(retryPolicy.maxAttempts());
+        resume.setParseError(ResumeParsingErrorCode.LLM_RETRY_EXHAUSTED.formatted());
+        resumeRepository.saveAndFlush(resume);
+        entityManager.clear();
+
+        assertThat(stateService.retry(resumeId)).isTrue();
+        entityManager.clear();
+
+        List<Resume> ready = resumeRepository.findReadyForProcessing(50);
+        assertThat(ready).extracting(Resume::getId).contains(resumeId);
+    }
+
+    // FAILED la trang thai CUOI CUNG, chi co dung mot duong di vao no - dieu kien nguon cua
+    // retryFailedResume KHONG can so khop them attempt_count nhu markTemporaryFailure. Kiem ca ba
+    // trang thai con lai (PENDING/PROCESSING/DONE) deu la no-op an toan, khong ghi de gi.
+    @Test
+    void retry_pendingResume_returnsFalseAndDoesNotChangeRecord() {
+        UUID resumeId = createResume(ParseStatus.PENDING);
+
+        assertThat(stateService.retry(resumeId)).isFalse();
+
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.PENDING);
+    }
+
+    @Test
+    void retry_processingResume_returnsFalseAndDoesNotChangeRecord() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+
+        assertThat(stateService.retry(resumeId)).isFalse();
+
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.PROCESSING);
+    }
+
+    @Test
+    void retry_doneResume_returnsFalseAndDoesNotChangeRecord() {
+        UUID resumeId = createResume(ParseStatus.DONE);
+
+        assertThat(stateService.retry(resumeId)).isFalse();
+
+        Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
+        assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.DONE);
+    }
 }

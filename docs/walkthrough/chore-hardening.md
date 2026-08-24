@@ -10,9 +10,10 @@ giữa chừng (JVM restart), lỗi gọi LLM tạm thời (mạng/429/5xx) bị
 một lượt xử lý thay vì tự thử lại), không có rate limit cho endpoint xác thực và endpoint tốn LLM,
 và vài chỗ không nhất quán nhỏ (tiếng Việt không dấu, cảnh báo React, cột số không căn phải).
 
-Nhánh chia làm 6 đợt, xử lý lần lượt: tính đúng đắn dữ liệu (Đợt 2) → đường thử lại thủ công cho
+Nhánh chia làm 7 đợt, xử lý lần lượt: tính đúng đắn dữ liệu (Đợt 2) → đường thử lại thủ công cho
 CV lỗi (Đợt 3, gộp một phần vào Đợt 4) → retry-with-backoff tự động + stale-claim reaper cho D1/D2
-(Đợt 4) → rate limit (Đợt 5) → nhất quán giao diện/thông báo (Đợt 6).
+(Đợt 4) → rate limit (Đợt 5) → nhất quán giao diện/thông báo (Đợt 6) → hoàn thiện nốt endpoint thử
+lại thủ công còn sót của Đợt 3 (Đợt 7).
 
 ## 2. Các file đã tạo/sửa
 
@@ -69,6 +70,24 @@ này đi thẳng ra `ErrorResponse` cho người dùng cuối qua `ex.getMessage
 | `features/applications/JobApplyForm.tsx` | Ẩn CV `parseStatus = FAILED` khỏi dropdown, thêm chú thích số lượng bị ẩn |
 | `features/candidates/CandidatesTable.tsx`, `features/dashboard/JobPerformanceTable.tsx` | Căn phải cột số |
 | `pages/HrJobCreatePage.tsx`, `pages/HrJobEditPage.tsx` | Sửa cảnh báo Radix Select uncontrolled→controlled |
+
+### Backend — Đợt 7 (hoàn thiện mục 3b còn sót)
+
+| File | Vai trò |
+|---|---|
+| `resume/ResumeRepository.java` | `retryFailedResume` — UPDATE có điều kiện `WHERE parse_status = 'FAILED'` |
+| `resume/ResumeParsingStateService.java` | `retry(UUID)` — gọi repository, trả boolean, không nem exception |
+| `resume/ResumeService.java` | `retry(candidateId, resumeId)` — kiểm sở hữu + kiểm trạng thái trước khi gọi state service |
+| `resume/ResumeCandidateController.java` | Endpoint `PATCH /{id}/retry` |
+| `common/exception/ResumeRetryNotAllowedException.java` | 409 khi CV không ở trạng thái `FAILED` |
+| `common/exception/GlobalExceptionHandler.java` | Đăng ký handler cho exception trên |
+
+### Frontend — Đợt 7
+
+| File | Vai trò |
+|---|---|
+| `features/resumes/api.ts`, `features/resumes/queries.ts` | `retryResumeRequest`, `useRetryResumeMutation` |
+| `features/resumes/ResumeList.tsx` | Nút "Phân tích lại", chỉ hiện khi `parseStatus === 'FAILED'` |
 
 ## 3. Luồng chính
 
@@ -224,6 +243,29 @@ chỉ phủ logic tiêu thụ token/refill/trần ở mức đơn vị (tự "ne
 **không có test tự động nào chứng minh `RateLimitFilter` nằm đúng vị trí trong chain thật của Spring
 Security**. Bằng chứng duy nhất cho điều đó là kiểm thử tay (xem mục 6).
 
+**`retryFailedResume` không so khớp `attempt_count` như `markTemporaryFailure`** — điều kiện nguồn
+chỉ là `parse_status = 'FAILED'`, khác với `markTemporaryFailure` (dùng `attempt_count = :expectedCount`
+làm optimistic lock). Lý do đủ: `FAILED` là trạng thái **cuối cùng** của vòng đời parse, chỉ có đúng
+một đường đi vào nó (`markFailed` hoặc `markTemporaryFailure` khi hết lượt) — không có khái niệm
+"phiên bản" nào cần phân biệt như `attempt_count` đang làm cho các lần thử tự động liên tiếp. Rowcount
+0 (race hiếm: một luồng khác đổi CV khỏi `FAILED` giữa lúc `ResumeService.retry` kiểm tra và lúc gọi
+`ResumeParsingStateService.retry`) vẫn được xử lý đúng — trả `false`, `ResumeService` ném 409, không
+ghi đè gì.
+
+**Reset `attempt_count = 0` khi retry thủ công, không giữ nguyên số cũ** — thao tác của người dùng
+(bấm nút) được coi là **bắt đầu lại từ đầu**, tách biệt hoàn toàn khỏi ngân sách `max-attempts` của
+cơ chế tự động (Đợt 4). Lựa chọn khác (giữ nguyên `attempt_count` cũ) sẽ khiến CV vừa được thử lại
+thủ công lập tức `FAILED` hẳn (không còn cơ hội tự động thử lại) ngay ở lần lỗi tạm thời kế tiếp, vì
+đã đứng sẵn ở ngưỡng exhausted — phản trực giác với hành động "thử lại" mà người dùng vừa thực hiện.
+
+**Không cần cột thời gian mới để phân biệt "vừa retry" khỏi "đã treo từ lâu"** — cân nhắc khi kiểm
+thử tay phát hiện `isResumeStalled` (frontend) tính "đã chờ quá lâu" dựa trên `uploadedAt` (thời
+điểm upload gốc), nên một CV vừa được retry (sau khi đã treo `FAILED` một thời gian) hiển thị ngay
+dòng "Quá trình xử lý lâu hơn dự kiến" dù mới bấm nút được vài giây. Đây là hạn chế UI đã biết
+(mục 7), không sửa ở nhánh này — không thêm cột `retriedAt` chỉ để phục vụ một dòng cảnh báo phụ,
+trong khi poller thật (5 giây/lần) luôn nhặt lại gần như ngay lập tức nên cửa sổ hiển thị sai chỉ
+kéo dài vài giây.
+
 **`UUID.compareTo()` của Java không cùng ngữ nghĩa với `ORDER BY id` của Postgres trên cột `uuid`** —
 Java so sánh hai `long` có dấu (`mostSigBits`/`leastSigBits`), Postgres so sánh 16 byte không dấu.
 Hai thứ tự này cho kết quả khác nhau tuỳ giá trị UUID cụ thể. Phát hiện khi xoá workaround
@@ -267,6 +309,9 @@ từ chính repository/truy vấn đó.
   (không `Thread.sleep`); trần `max-tracked-keys` tự evict khoá cũ nhất.
 - `ApplicationStatusService.changeStatus` gọi hai lần liên tiếp từ cùng trạng thái gốc → lần hai
   `ApplicationStatusConflictException`, không ghi đè âm thầm.
+- Retry (Đợt 7): CV `FAILED` của chính mình → 200, về `PENDING`, `attempt_count = 0`, `parse_error`
+  `NULL`, `findReadyForProcessing` nhặt được ngay; CV của người khác → 404; CV đang
+  `PENDING`/`PROCESSING`/`DONE` → 409 `RESUME_RETRY_NOT_ALLOWED`, không đổi gì.
 
 **Thủ công (không thể tự động hoá đầy đủ hoặc cần bằng chứng chạy thật):**
 - **Reaper trên DB dev, chạy app thật** (Đợt 4): tạm hạ `stale-timeout-ms`/`reaper-poll-interval-ms`
@@ -287,6 +332,20 @@ từ chính repository/truy vấn đó.
   hiện CV DONE, chú thích số lượng CV bị ẩn hiển thị đúng; xác nhận 0 cảnh báo console qua toàn bộ
   luồng tạo tin → sửa tin → tương tác lại 2 Select trên cả hai trang. Dọn sạch dữ liệu QA sau khi
   xong.
+- **Endpoint retry, đầu-cuối bằng CV thật + LLM thật** (Đợt 7): tài khoản QA, upload CV thật
+  (`cv-mot-cot.pdf`), ép `parse_status = FAILED` (mô phỏng hết lượt thử tự động) bằng SQL trực tiếp
+  (backend thật không có đường code nào tạo ra trạng thái này nhanh để test), bấm "Phân tích lại"
+  qua Playwright điều khiển Chromium thật — xác nhận UI chuyển ngay sang "Chờ xử lý", 0 cảnh báo
+  console; poller thật (chu kỳ 5 giây) nhặt lại trong lượt kế tiếp, gọi Anthropic thật, kết thúc
+  `DONE` với `resume_parsed_data` ghi đúng (`model=claude-sonnet-4-6`), nút hành động đổi đúng sang
+  "Xem dữ liệu đã trích xuất"/"Gợi ý cải thiện CV". Phát hiện phụ trong lúc dựng test: ép `FAILED`
+  bằng SQL trên một CV **đã có sẵn** `resume_parsed_data` (từ một lần parse thành công trước đó,
+  không xoá) tạo ra vi phạm `resume_parsed_data_resume_id_key` khi retry — xác nhận đây KHÔNG phải
+  lỗi thật của tính năng: `DONE` là trạng thái cuối, không có đường code nào trong ứng dụng đưa một
+  resume đã `DONE` quay lại `FAILED`, nên `resume_parsed_data` không bao giờ tồn tại sẵn cho một CV
+  hợp lệ đang ở `FAILED` — trạng thái đó chỉ dựng được bằng SQL tay bỏ qua mọi ràng buộc ứng dụng,
+  không phản ánh khả năng xảy ra thật. Dọn sạch dữ liệu QA (resume, `resume_parsed_data`, user) sau
+  khi kiểm xong.
 
 **Chưa test:**
 - Không có test tích hợp nào chứng minh `RateLimitFilter` nằm đúng vị trí trong chain Spring
@@ -321,10 +380,13 @@ từ chính repository/truy vấn đó.
   2026-08-18, còn V6 và V7 cùng áp một lượt vào 2026-08-24). Cần kiểm thử tay lại toàn bộ luồng
   FR-U05 trước bảo vệ, và kiểm tương tự trên mọi máy khác đang chạy dự án.
 - Rate limit chưa có test tích hợp qua chain Spring Security thật (xem mục 6 "Chưa test").
-- Đường thử lại thủ công cho `resumes.parse_status = FAILED` do lỗi môi trường tạm thời (thiếu
-  `ANTHROPIC_API_KEY` lúc chạy) chưa có — ứng viên phải upload lại từ đầu. Mục 3b của kế hoạch gốc
-  (endpoint `PATCH /api/candidates/resumes/{id}/retry`) chưa triển khai, vì cơ chế tự động (Đợt 4)
-  đã xử lý phần lớn nguyên nhân gây `FAILED` tạm thời — cân nhắc lại nếu vẫn còn nhu cầu thực tế.
+- **`isResumeStalled` (frontend, `features/resumes/queries.ts`) tính "đã chờ quá lâu" dựa trên
+  `resume.uploadedAt`** — một CV vừa được thử lại thủ công (Đợt 7) qua nút "Phân tích lại" sẽ hiển
+  thị ngay dòng "Quá trình xử lý lâu hơn dự kiến" trong vài giây đầu (từ lúc bấm tới lúc poller thật
+  nhặt lại, ~5 giây), vì `uploadedAt` là mốc upload GỐC (đã cũ, vốn là lý do CV này rơi vào `FAILED`
+  từ trước), không phải mốc vừa retry. Không sửa ở nhánh này — cửa sổ hiển thị sai chỉ kéo dài vài
+  giây, và sửa đúng đòi thêm một cột mốc thời gian mới (`resumes` không có cột nào ghi lại "lần thay
+  đổi trạng thái gần nhất" ngoài `uploaded_at`/`claimed_at` cụ thể theo mục đích riêng).
 
 Chi tiết đầy đủ hơn (kèm số dòng, đoạn code cụ thể) nằm ở `docs/ROADMAP.md` mục "Hoàn thiện trước
 bảo vệ" → `chore/hardening`.

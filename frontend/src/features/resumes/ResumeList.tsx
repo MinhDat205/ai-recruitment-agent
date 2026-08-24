@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { downloadResumeRequest } from './api'
 import { ParseStatusBadge } from './ParseStatusBadge'
-import { isResumeStalled, useResumesQuery, useSetPrimaryResumeMutation } from './queries'
+import { isResumeStalled, useResumesQuery, useRetryResumeMutation, useSetPrimaryResumeMutation } from './queries'
 import { ResumeParsedDataDialog } from './ResumeParsedDataDialog'
 import type { Resume } from './types'
 
@@ -46,10 +46,24 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 export function ResumeList() {
   const { data: resumes, isLoading, refetch, isFetching } = useResumesQuery()
   const setPrimaryMutation = useSetPrimaryResumeMutation()
+  const retryMutation = useRetryResumeMutation()
   const navigate = useNavigate()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [viewingResume, setViewingResume] = useState<{ id: string; fileName: string } | null>(null)
+
+  async function handleRetry(resumeId: string) {
+    setError(null)
+    setRetryingId(resumeId)
+    try {
+      await retryMutation.mutateAsync(resumeId)
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Không thể thử lại phân tích, vui lòng thử lại.'))
+    } finally {
+      setRetryingId(null)
+    }
+  }
 
   async function handleDownload(resume: Resume) {
     setError(null)
@@ -140,6 +154,18 @@ export function ResumeList() {
                       onClick={() => setPrimaryMutation.mutate(resume.id)}
                     >
                       Đặt làm CV chính
+                    </Button>
+                  )}
+                  {resume.parseStatus === 'FAILED' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={retryingId === resume.id}
+                      onClick={() => handleRetry(resume.id)}
+                    >
+                      <RotateCw className="h-4 w-4" aria-hidden="true" />
+                      Phân tích lại
                     </Button>
                   )}
                   {resume.parseStatus === 'DONE' && (
