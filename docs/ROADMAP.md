@@ -347,7 +347,55 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
   Đánh đổi cố hữu của rate limit in-memory không có backend chia sẻ, không phải sơ suất — cách chữa
   thật là chuyển sang bucket lưu tập trung ở Redis, ngoài phạm vi "một instance là đủ" của đồ án này.
 
-- [ ] `chore/seed-demo` — dữ liệu demo: 1 HR, 2 job có rubric, 8 ứng viên với CV thật
+- [x] `chore/seed-demo` — dữ liệu demo: 1 HR, 6 job có rubric (lệch so với 2 job dự
+  kiến ban đầu), 9 CV thật cho 8 ứng viên (lệch so với 8 CV dự kiến ban đầu)
+  - Phát hiện khi tạo dữ liệu demo (28/08/2026) — **D2: một tiêu chí trượt guard
+    evidence làm hỏng cả lượt chấm.** Tái hiện 2/2 lần với cùng một đơn (CV kế toán
+    của Nguyễn Thị Thu Hà nộp job Senior Java Backend Developer, rubric 4 tiêu chí).
+    Ba tiêu chí đầu ghi vào `criterion_scores` thành công — trong đó hai tiêu chí có
+    `evidence = []` kèm `score = 0`, xác nhận guard **chấp nhận** evidence rỗng khi
+    không có gì để trích. Tiêu chí thứ tư "Kỹ năng mềm & giao tiếp" luôn trượt
+    `EVIDENCE_NOT_VERIFIED`, khiến `scoring_runs.status = FAILED` và `total_score`
+    không được tính, dù ba tiêu chí kia đã có điểm hợp lệ.
+
+    Giả thuyết nguyên nhân (**chưa xác nhận** — câu trích bị từ chối không được ghi
+    vào DB và log console đã trôi): LLM nhận CV dưới dạng JSON (`resume_parsed_data.data`),
+    nơi các gạch đầu dòng trong `experience[].description` nối nhau bằng `\n` trần;
+    guard đối chiếu evidence với `resume_parsed_data.raw_text`, nơi cùng nội dung đó
+    mang tiền tố `•  ` và phân tách bằng `\r\n`. Trích **một** gạch đầu dòng thì khớp
+    (chuỗi con liên tục ở cả hai bản); trích **hai gạch liền nhau** thì trượt chắc chắn
+    vì bản JSON thiếu ký tự bullet xen giữa. Bằng chứng gián tiếp: các quote đã qua
+    guard đều thuộc khối liền mạch không bullet (học vấn, chứng chỉ), và chúng dùng
+    `\n` trong khi raw_text dùng `\r\n` — tức guard CÓ chuẩn hoá xuống dòng, chỉ không
+    chuẩn hoá bullet.
+
+    Phạm vi ảnh hưởng rộng hơn ca demo này: các tiêu chí kiểu "kỹ năng mềm", "làm việc
+    nhóm", "tinh thần học hỏi" rất phổ biến trong rubric thật, và nội dung tương ứng
+    trong CV gần như luôn nằm rải rác nhiều gạch đầu dòng chứ không thành khối. Lỗi có
+    thể xảy ra cả với ứng viên đúng ngành.
+
+    Chưa sửa, và **không nới guard trước**. Thứ tự đề xuất:
+    (1) Cho phép chấm lại riêng từng tiêu chí thay vì hỏng cả lượt — giảm hậu quả mà
+        không đụng tới tính đúng đắn của guard.
+    (2) Dựng test với evidence gộp hai gạch đầu dòng để xác nhận giả thuyết trên.
+    (3) Chỉ khi (2) xác nhận: chuẩn hoá cả hai vế trước khi so khớp (bỏ ký tự bullet,
+        gộp khoảng trắng liên tiếp). Nới có kiểm soát — tuyệt đối không hạ xuống mức
+        chấp nhận diễn giải thay cho trích nguyên văn, vì đó là cốt lõi FR-H06.
+
+    Ghi nhận mặt tích cực: guard đang làm đúng việc của nó. Hệ thống thà báo thất bại
+    còn hơn lưu evidence không kiểm chứng được — đúng tinh thần Explainable AI.
+  - Hoàn thành (28/08/2026) — lệch có chủ đích so với PHASES.md, lý do chi tiết ở
+    `docs/walkthrough/chore-seed-demo.md` mục "Quyết định thiết kế":
+    - **6 job thay vì 2**: cần đủ đa ngành để ca demo ngưỡng `MIN_SIMILARITY_SCORE =
+      0.40` (FR-U04) thuyết phục — ứng viên Nhân sự phải thấy gợi ý việc làm RỖNG
+      thật, không phải vì hệ thống chưa chạy.
+    - **9 CV (không phải 8)**: ứng viên Lê Văn Đức upload thêm bản CV thay thế sau
+      khi phát hiện bản đầu ghi nhầm tên người khác — diễn biến thật trong lúc kiểm
+      thử tay, không phải kế hoạch ban đầu.
+    - File vận hành: `db/seed/reset-demo-db.sql`, `db/seed/seed-demo-structural.sql`
+      (tầng 1), `db/seed/seed-demo-ai-output.sql` + `db/seed/resumes/` (tầng 2, sinh
+      qua `export-ai-output.ps1` từ một lần chạy pipeline AI thật), `db/seed/install-demo-files.ps1`.
+      Hướng dẫn đầy đủ: `db/seed/README.md`.
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
 ---
