@@ -10,20 +10,15 @@ interface NavItem {
   isActive: (pathname: string) => boolean
 }
 
-// Moi muc tu quyet dinh isActive rieng - KHONG dung chung mot quy tac exact/tien to cho
-// tat ca: "/" (Viec lam) khong the dung tien to (moi route deu bat dau bang "/", se sang
-// nham moi trang), va "/candidate" (Bang tin) khong the dung tien to (se sang nham ca
-// /candidate/profile, /candidate/applications...). "Viec lam" sang o ca trang chi tiet
-// job (/jobs/:id) vi do van la luong duyet job, tro ve dung route danh sach cong khai that
-// (A2/FR-C02: PublicJobListPage o "/", co HeroSearch + JobList - da xac nhan doc code, khong
-// phai trang chu marketing rieng).
+// Moi muc tu quyet dinh isActive rieng - KHONG dung chung mot quy tac exact/tien to cho tat ca:
+// "/candidate" (Viec lam, trang landing cua candidate - xem CandidateJobListPage.tsx) va
+// "/candidate/dashboard" (Bang tin) deu la trang la (khong co route con) nen dung exact match;
+// "Ho so va CV"/"Don ung tuyen" co route con (vd /candidate/profile/...) nen dung prefix match.
+// "Viec lam" dat DAU hang - trang candidate thay ngay sau dang nhap (LoginForm.tsx,
+// ProtectedRoute.tsx deu redirect role CANDIDATE toi "/candidate").
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Bảng tin', to: '/candidate', isActive: (path) => path === '/candidate' },
-  {
-    label: 'Việc làm',
-    to: '/',
-    isActive: (path) => path === '/' || path === '/jobs' || path.startsWith('/jobs/'),
-  },
+  { label: 'Việc làm', to: '/candidate', isActive: (path) => path === '/candidate' },
+  { label: 'Bảng tin', to: '/candidate/dashboard', isActive: (path) => path === '/candidate/dashboard' },
   {
     label: 'Hồ sơ và CV',
     to: '/candidate/profile',

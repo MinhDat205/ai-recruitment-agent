@@ -16,26 +16,28 @@ export function PublicHeader() {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-surface">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4 md:px-6">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-ink">
-          <Briefcase size={22} className="text-brand" />
-          AI Recruitment Agent
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-ink">
+            <Briefcase size={22} className="text-brand" />
+            AI Recruitment Agent
+          </Link>
 
-        <nav className="hidden items-center gap-6 text-sm text-ink sm:flex">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `flex h-10 items-center rounded-md px-4 text-sm font-medium ${
-                isActive
-                  ? 'bg-brand-light text-brand'
-                  : 'bg-canvas text-ink hover:bg-brand-light hover:text-brand'
-              }`
-            }
-          >
-            Việc làm
-          </NavLink>
-        </nav>
+          <nav className="hidden items-center gap-6 text-sm text-ink sm:flex">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `flex h-10 items-center rounded-md px-4 text-sm font-medium ${
+                  isActive
+                    ? 'bg-brand-light text-brand'
+                    : 'bg-canvas text-ink hover:bg-brand-light hover:text-brand'
+                }`
+              }
+            >
+              Việc làm
+            </NavLink>
+          </nav>
+        </div>
 
         <div className="flex items-center gap-3">
           {isLoading ? null : user ? (

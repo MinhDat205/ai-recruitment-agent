@@ -3,6 +3,7 @@ import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
+import { CandidateJobListPage } from './pages/CandidateJobListPage'
 import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
@@ -32,6 +33,14 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route
             path="/candidate"
+            element={
+              <ProtectedRoute allowedRoles={['CANDIDATE']}>
+                <CandidateJobListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidate/dashboard"
             element={
               <ProtectedRoute allowedRoles={['CANDIDATE']}>
                 <CandidateHomePage />
