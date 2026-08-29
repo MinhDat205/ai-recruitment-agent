@@ -459,6 +459,8 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
       (tầng 1), `db/seed/seed-demo-ai-output.sql` + `db/seed/resumes/` (tầng 2, sinh
       qua `export-ai-output.ps1` từ một lần chạy pipeline AI thật), `db/seed/install-demo-files.ps1`.
       Hướng dẫn đầy đủ: `db/seed/README.md`.
+- PublicHeader không có menu mobile — nav ẩn hẳn dưới 640px (hidden sm:flex), trên điện thoại
+  không có đường vào danh sách việc làm. Có sẵn từ A2, phát hiện khi làm fix/ui-nav-job-edit-layout.
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
 ---

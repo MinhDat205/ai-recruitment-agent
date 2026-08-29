@@ -431,7 +431,7 @@ export function HrJobEditPage() {
 
   return (
     <HrLayout title="Sửa tin tuyển dụng">
-      <Card className="mx-auto max-w-2xl">
+      <Card className="mx-auto max-w-5xl">
         <Tabs defaultValue={initialTab}>
           <CardHeader>
             <CardTitle>Sửa tin tuyển dụng</CardTitle>

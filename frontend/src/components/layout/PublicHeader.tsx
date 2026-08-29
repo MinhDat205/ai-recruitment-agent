@@ -1,5 +1,5 @@
 import { Briefcase } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../features/auth/useAuth'
 import type { Role } from '../../features/auth/types'
 import { NotificationBell } from '../../features/notifications/NotificationBell'
@@ -22,9 +22,19 @@ export function PublicHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-ink sm:flex">
-          <Link to="/" className="hover:text-brand">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `flex h-10 items-center rounded-md px-4 text-sm font-medium ${
+                isActive
+                  ? 'bg-brand-light text-brand'
+                  : 'bg-canvas text-ink hover:bg-brand-light hover:text-brand'
+              }`
+            }
+          >
             Việc làm
-          </Link>
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-3">

@@ -138,7 +138,9 @@ function ScoringProgressHint({
         criteriaScored={criteriaScored}
         criteriaTotal={criteriaTotal}
       />
-      {status === 'FAILED' && errorMessage && <p className="text-xs text-ink-muted">{errorMessage}</p>}
+      {status === 'FAILED' && errorMessage && (
+        <p className="whitespace-normal break-words text-xs text-ink-muted">{errorMessage}</p>
+      )}
       {/* timedOut: lot cham nay dung tu dong cap nhat sau 10 phut khong doi (co the ket vinh vien do
           JVM backend restart giua chung, xem MAX_POLL_DURATION_MS) - HR tu bam de kiem tra lai,
           khong tu dong lap lai vo han. */}
@@ -223,7 +225,7 @@ function ApplicationRow({
 
   return (
     <TableRow>
-      <TableCell>{application.candidateName}</TableCell>
+      <TableCell className="whitespace-normal break-words">{application.candidateName}</TableCell>
       <TableCell className="text-ink-muted">{formatAppliedAt(application.appliedAt)}</TableCell>
       <TableCell>
         <ParseStatusBadge status={application.resumeParseStatus} />
@@ -249,7 +251,7 @@ function ApplicationRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex flex-col items-end gap-1.5">
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {/* Xem CV goc (FR-H06, Dot 5b): dat CANH nut "Xem danh gia cua AI" theo dung yeu cau -
                 phuc vu doi chieu evidence trong bao cao AI voi van ban CV that (nguyen tac
                 Explainable AI, xem ResumeHrService). Tai xuong (khong mo tab moi) - xem comment
