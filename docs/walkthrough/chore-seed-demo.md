@@ -84,19 +84,21 @@ nguyên tắc mà tính năng đang chứng minh. Sinh một lần rồi đông 
 demo **ổn định giữa các lần chạy**, không phụ thuộc vào việc LLM trả lời không xác
 định.
 
-**6 job thay vì 2 như PHASES.md quy định — lệch có chủ đích.** Với chỉ 2 job, ca demo
-trọng tâm của FR-U04 — "ứng viên Nhân sự nhận gợi ý việc làm RỖNG vì không job nào
-vượt ngưỡng 0.40" — không thuyết phục, trông giống hệ thống chưa chạy hơn là ngưỡng
-lọc đang hoạt động đúng. Cần đủ job trải nhiều lĩnh vực khác nhau (không chỉ IT) để
-phép so khớp embedding có ý nghĩa thống kê thật, không phải màn trình diễn dàn dựng.
-Ghi rõ trong `docs/ROADMAP.md`.
+**6 job thay vì 2 như PHASES.md quy định — lệch có chủ đích.** Với chỉ 2 job, phép so
+khớp embedding không có đủ mẫu để nói lên điều gì — cần job trải nhiều lĩnh vực khác
+nhau (không chỉ IT) để kiểm chứng được F1 phân biệt ngành đến đâu. Kết quả đo trên 6
+job cho thấy F1 **xếp hạng** đúng 7/7 ứng viên (job đúng ngành luôn đứng đầu), nhưng
+ngưỡng tuyệt đối 0.40 không loại được các cặp không liên quan — chi tiết ở
+`docs/ROADMAP.md`. Nếu chỉ có 2 job thì không phát hiện được điều này.
 
-**Bùi Ngọc Mai (Nhân sự) cố ý không nộp đơn nào, và không có job ngành Nhân sự
-trong 6 job.** Đây là ca chứng minh trực tiếp `MIN_SIMILARITY_SCORE = 0.40`
-(`JobRecommendationCacheService.java:29`) loại đúng: ứng viên này nhận
-`job_recommendations` RỖNG dù đã có embedding hợp lệ. Cố ý tách biệt khỏi ca demo
-chấm điểm (không nộp đơn nào) để không lẫn hai thông điệp khác nhau (F1 lọc gợi ý ≠
-D2/D3 chấm điểm).
+**Bùi Ngọc Mai (Nhân sự) cố ý không nộp đơn nào, và không có job ngành Nhân sự trong
+6 job.** Ý định ban đầu: dựng ca chứng minh `MIN_SIMILARITY_SCORE = 0.40` loại đúng —
+ứng viên này lẽ ra nhận `job_recommendations` RỖNG. **Kết quả đo thật cho thấy điều
+ngược lại**: cô ấy vẫn nhận 3 gợi ý (Marketing 0.466, Sales 0.436, QA 0.432) vì nền
+tương đồng của văn bản tiếng Việt cùng thể loại nằm quanh 0.40. Ca này vì vậy trở
+thành bằng chứng cho **giới hạn của ngưỡng tuyệt đối**, không phải cho hiệu quả của
+nó — xem ghi chú chi tiết trong `docs/ROADMAP.md`. Điều F1 làm đúng là **xếp hạng**:
+7/7 ứng viên có job đúng ngành đứng đầu danh sách.
 
 **Commit file PDF vào `db/seed/resumes/`.** Nguyên tắc "không commit file CV" trong
 `.gitignore`/CLAUDE.md nhắm vào CV **thật do người dùng** upload lúc ứng dụng chạy
@@ -216,7 +218,9 @@ ngoài mục đã nêu trên.
    giữa thì sao? — Vỡ ngay ở câu `INSERT` đầu tiên trùng khoá chính
    (`duplicate key value violates unique constraint`) vì đây là dump thuần, không có
    `ON CONFLICT`. Phải reset trước khi nạp lại.
-3. Vì sao ứng viên Bùi Ngọc Mai không nộp đơn nào lại không phải một thiếu sót? —
-   Đây là ca demo cố ý cho ngưỡng `MIN_SIMILARITY_SCORE = 0.40` của FR-U04: không có
-   job nào trong 6 job thuộc ngành Nhân sự, nên `job_recommendations` của ứng viên
-   này đúng ra phải RỖNG — chứng minh hệ thống lọc đúng ngữ nghĩa thay vì gợi ý bừa.
+3. Vì sao ứng viên Bùi Ngọc Mai vẫn nhận được gợi ý việc làm dù không có job ngành
+   Nhân sự nào? — Vì `MIN_SIMILARITY_SCORE = 0.40` là ngưỡng tuyệt đối, trong khi sàn
+   tương đồng thực tế của CV và JD tiếng Việt cùng nằm quanh mức đó (đo trên 8 CV ×
+   6 job: toàn bộ 28 cặp nằm trong dải 0.402–0.720). Ngưỡng này gần như không loại
+   được gì. Thứ F1 làm đúng là thứ tự: cả 7 ứng viên đều có job đúng ngành xếp hạng
+   nhất. Chi tiết và hướng sửa ở `docs/ROADMAP.md`.

@@ -182,7 +182,9 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
   đã biết, không phải lỗi của bước nạp seed — xem ghi chú D2 trong `docs/ROADMAP.md`.
 - Mở một hồ sơ bất kỳ, bấm **"Xem CV gốc"** — phải tải được file PDF. Nếu lỗi, nghĩa
   là bước 4 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
-- Đăng nhập `bui.ngoc.mai@demo.local`: danh sách **gợi ý việc làm RỖNG** (đúng thiết
-  kế — xem walkthrough), nhưng **có dữ liệu gợi ý cải thiện CV**.
+- Đăng nhập `bui.ngoc.mai@demo.local`: nhận **3 gợi ý việc làm** (Marketing, Sales,
+  QA Engineer) dù không có job ngành Nhân sự nào — ngưỡng `MIN_SIMILARITY_SCORE = 0.40`
+  không loại được các cặp không liên quan, xem ghi chú trong `docs/ROADMAP.md`. Ứng
+  viên này cũng có dữ liệu gợi ý cải thiện CV.
 - Đăng nhập `le.van.duc@demo.local`, trang hồ sơ: thấy **2 phiên bản CV**, một bản
   đánh dấu là chính; mục Đơn ứng tuyển có **1 đơn "Đã rút đơn"**.

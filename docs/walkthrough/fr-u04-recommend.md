@@ -310,6 +310,10 @@ tả đầy đủ), `OpenAI text-embedding-3-small` thật:
   đúng nội dung mô tả job, **không phải lỗi chọn ngưỡng** — một CV thiên nghiên cứu AI thật sự sẽ
   cho similarity cao hơn với đúng job này.
 
+**Cập nhật 29/08/2026:** cỡ mẫu 2 CV × 7 job này quá nhỏ để thấy sàn tương đồng thật.
+Đo lại trên 8 CV × 6 job cho thấy toàn bộ 28 cặp nằm trong dải 0.402–0.720, ngưỡng 0.40
+gần như không loại được gì. Chi tiết và hướng sửa ở docs/ROADMAP.md.
+
 **(f) Không trả `similarityScore`/`matchScore` cho ứng viên**
 
 - Endpoint `GET /api/candidates/job-recommendations` trả `List<JobSummaryResponse>` — DTO tái dùng
@@ -379,7 +383,7 @@ sau này có yêu cầu pháp lý chặt hơn về xử lý dữ liệu cá nhâ
 
 | FR / quy ước | Ràng buộc | Thực thi ở đâu |
 |---|---|---|
-| FR-U04, `docs/PHASES.md` F1 | Ứng viên ngành IT không nhận gợi ý việc kế toán/marketing/sales | `MIN_SIMILARITY_SCORE = 0.40` (mục 4e) + test `refreshOne_candidateITResume_doesNotRecommendAccountingJob` + xác nhận bằng test tay (mục 6) |
+| FR-U04, `docs/PHASES.md` F1 | Ứng viên ngành IT nhận gợi ý IT ở các hạng đầu (đã kiểm chứng 7/7 ứng viên trên dữ liệu demo đầy đủ). LƯU Ý: ngưỡng tuyệt đối 0.40 không loại được hết job khác ngành — xem ghi chú 29/08/2026 trong docs/ROADMAP.md. | `MIN_SIMILARITY_SCORE = 0.40` (mục 4e) + test `refreshOne_candidateITResume_doesNotRecommendAccountingJob` + xác nhận bằng test tay (mục 6) |
 | `docs/PHASES.md` F1 | Truy vấn dùng index vector, không quét toàn bảng một cách vô điều kiện | Truy vấn hai bước, vector là tham số cố định (mục 4d) — đã xác nhận planner CÓ THỂ chọn `idx_job_emb_vec` bằng `EXPLAIN ANALYZE` thật |
 | `docs/PHASES.md` F1 "AI hay làm sai" | Không sinh embedding mỗi lần load trang | Endpoint (`JobRecommendationCandidateService`) chỉ đọc `job_recommendations` đã cache, không gọi `EmbeddingModel`/truy vấn similarity nào lúc phục vụ request (mục 4f, mục 3 luồng 4) |
 | `docs/PHASES.md` F1 "AI hay làm sai" | Không dùng số chiều khác 1536 mà không sửa schema | `EmbeddingService`/`EmbeddingTextFormat` validate `vector.length == EXPECTED_DIMENSIONS (1536)`, throw `INVALID_DIMENSION` nếu sai |
@@ -407,6 +411,9 @@ embedding thật (`OpenAI text-embedding-3-small`):
 - TEST1 (CV IT đã embed): thấy đúng 3 job Công nghệ thông tin theo thứ tự similarity giảm dần.
   KHÔNG thấy kế toán, marketing, tele sale, thực tập sinh AI — dù cả bốn đều có trong danh sách
   việc làm công khai. Đây là tiêu chí nghiệm thu chính của `docs/PHASES.md` F1.
+  **Cập nhật 29/08/2026:** đo lại trên dữ liệu demo đầy đủ (8 CV × 6 job) cho thấy kết
+  quả này không tổng quát hoá được — ứng viên IT vẫn nhận job Marketing ở hạng cuối
+  (0.423–0.430). Xếp hạng vẫn đúng, ngưỡng thì không loại được. Xem docs/ROADMAP.md.
 - TEST3 (chưa có CV): thấy đúng câu hướng dẫn "Chưa có gợi ý việc làm phù hợp. Hãy tải CV lên...",
   không phải thông báo lỗi.
 - Không có số phần trăm hay điểm nào trên card — đúng quyết định không trả `similarityScore`.

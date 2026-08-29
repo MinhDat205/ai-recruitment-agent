@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { PublicLayout } from '../components/layout/PublicLayout'
+import { CandidateLayout } from '../components/layout/CandidateLayout'
 import { useMyProfileQuery, useSaveProfileMutation } from '../features/candidateProfile/queries'
 import type { CandidateProfileRequest } from '../features/candidateProfile/types'
 import { ResumeList } from '../features/resumes/ResumeList'
@@ -93,7 +93,7 @@ export function CandidateProfilePage() {
   const saveSuccessVisible = showSaveSuccess && !isDirty
 
   return (
-    <PublicLayout>
+    <CandidateLayout>
       <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-8 md:px-6">
         <form onSubmit={onSubmit} noValidate>
           <Card>
@@ -170,6 +170,6 @@ export function CandidateProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </PublicLayout>
+    </CandidateLayout>
   )
 }

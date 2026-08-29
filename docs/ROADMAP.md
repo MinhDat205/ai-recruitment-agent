@@ -114,6 +114,69 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     Không có cột "Hạng" ở danh sách ứng viên toàn công ty — FR-H05 chỉ định nghĩa xếp hạng trong
     phạm vi một chiến dịch. Chi tiết đầy đủ + các quyết định gây tranh luận ở walkthrough
     `fr-h08-dashboard.md` mục 4.
+- [x] `fix/candidate-empty-states` — phân biệt bốn trạng thái rỗng của khối gợi ý việc
+  làm (chưa có CV / đang phân tích / phân tích thất bại / đã phân tích nhưng không job
+  nào đạt `MIN_SIMILARITY_SCORE = 0.40`). Trước đó gộp tất cả thành một thông báo "Hãy
+  tải CV lên", khiến ca demo ngưỡng lọc của FR-U04 (Bùi Ngọc Mai nhận danh sách rỗng
+  đúng thiết kế) trông như hệ thống chưa chạy. Không gắn mã FR.
+  - Nợ kỹ thuật: frontend suy ra "CV đã sẵn sàng cho gợi ý việc làm" từ
+    `parseStatus = DONE`, trong khi điều kiện thật của F1 là
+    `resume_parsed_data.embedding IS NOT NULL`. Hai điều kiện lệch nhau trong khoảng
+    giữa lúc D1 parse xong và nhịp poll kế tiếp của `ResumeEmbeddingScheduler`. Trong
+    cửa sổ đó, ứng viên có CV `DONE` nhưng chưa có embedding sẽ thấy thông báo "chưa
+    có vị trí nào đủ phù hợp" thay vì "đang phân tích" — sai thông điệp, không sai
+    chức năng. Cách sửa dứt điểm: thêm field `hasEmbedding` vào `ResumeResponse`; hoãn
+    vì phải đụng backend và chạy lại toàn bộ test suite, ngoài phạm vi một nhánh sửa
+    hiển thị.
+- [x] `feat/candidate-dashboard-ui` — thiết kế lại trang bảng tin ứng viên: thanh nav
+  ngang dùng chung cho toàn khu vực ứng viên (`CandidateLayout`, áp cho cả 4 route
+  `/candidate`, `/candidate/profile`, `/candidate/applications`,
+  `/candidate/notifications` — trước đó 3 trang sau dùng `PublicLayout`, mỗi trang một
+  kiểu điều hướng khác nhau), ba thẻ tóm tắt (CV chính, đơn ứng tuyển, gợi ý phù hợp),
+  và lối tắt sang F2 (gợi ý cải thiện CV) — trước đó chưa có lối vào F2 từ bảng tin
+  (bảng CV trong trang Hồ sơ đã có sẵn nút Gợi ý cải thiện CV). Không gắn mã FR, không
+  tạo endpoint backend mới, không sửa `backend/src`.
+  - Nợ kỹ thuật: khối gợi ý việc làm không hiển thị độ tương đồng vì `GET
+    /candidates/job-recommendations` trả `JobSummaryResponse` — cùng DTO với danh sách
+    job công khai, không có field điểm. `JobRecommendation.similarityScore` chỉ tồn
+    tại trong entity nội bộ, chưa từng serialize ra ngoài. Hệ quả: ứng viên không phân
+    biệt được vị trí phù hợp cao với phù hợp vừa, và phần tính toán của F1/FR-U04
+    không hiển thị được ra giao diện. Cách sửa: thêm DTO riêng cho gợi ý việc làm có
+    kèm `similarityScore`; hoãn vì phải đụng backend và chạy lại test suite, ngoài
+    phạm vi một nhánh sửa giao diện. Nếu làm sau này: badge PHẢI dùng một màu trung
+    tính duy nhất, không tô màu theo ngưỡng, không gán nhãn phân loại.
+  - Nợ kỹ thuật: khối gợi ý việc làm không có trang "xem đầy đủ" để dẫn tới — `GET
+    /candidates/job-recommendations` đã trả về toàn bộ gợi ý đã cache (không phân
+    trang), giới hạn duy nhất nằm ở lúc *ghi* cache
+    (`JobRecommendationCacheService.TOP_N = 10`), nên danh sách hiển thị trên bảng tin
+    đã là đầy đủ. Link cạnh tiêu đề khối vì vậy trỏ về danh sách việc làm công khai
+    (`/`) với nhãn nói rõ đích đến ("Tìm thêm việc làm khác") thay vì nhãn "Xem tất cả"
+    (sẽ gây hiểu lầm đây là cùng một danh sách gợi ý đầy đủ hơn, trong khi thực chất là
+    một danh sách khác — mọi job đang mở, không lọc theo ngưỡng tương đồng).
+  - Phát hiện khi kiểm thử giao diện với dữ liệu demo đầy đủ (29/08/2026) —
+    **`MIN_SIMILARITY_SCORE = 0.40` (F1/FR-U04) không lọc được như thiết kế.** Đo trên
+    8 CV × 6 job thật (`OpenAI text-embedding-3-small`): toàn bộ 28 cặp có gợi ý nằm
+    trong dải hẹp 0.402–0.720, và những cặp hoàn toàn không liên quan vẫn vượt ngưỡng
+    — CV Nhân sự với job QA Engineer 0.432, CV DevOps với job Marketing 0.423. Ngưỡng
+    0.40 ban đầu chốt từ cỡ mẫu 2 CV × 7 job, quá nhỏ để thấy được sàn tương đồng.
+
+    Nguyên nhân: `text-embedding-3-small` trên văn bản tiếng Việt cùng thể loại (CV
+    đối chiếu mô tả công việc) luôn cho nền tương đồng quanh 0.40 vì chung ngôn ngữ
+    và chung cấu trúc văn bản, không phải vì chung nội dung chuyên môn. Sàn thực tế
+    là ~0.40 chứ không phải 0, nên một ngưỡng tuyệt đối đặt tại đó gần như không loại
+    được gì.
+
+    **Điều VẪN đúng và là kết quả chính của F1:** xếp hạng chính xác 7/7 ứng viên —
+    mỗi người đều có job đúng ngành đứng đầu danh sách (Java 0.600, DevOps 0.636,
+    QA 0.720, Kế toán 0.555, Marketing 0.614, Sales 0.605). Thứ tự tương đồng phản
+    ánh đúng chuyên môn; chỉ có phép cắt theo ngưỡng tuyệt đối là không hiệu quả.
+
+    Chưa sửa. Không nâng ngưỡng lên 0.50 — đó là số chọn cho vừa ý ca demo, không phải
+    đo đạc, và sẽ làm bảng tin của hầu hết ứng viên gần như trống (Kế toán/Marketing/
+    Sales mỗi người chỉ còn 1 gợi ý). Hướng đúng: lọc theo khoảng cách tương đối so với
+    điểm cao nhất của chính ứng viên đó (ví dụ giữ các job trong biên độ 0.10 dưới đỉnh)
+    thay vì một hằng số tuyệt đối dùng chung cho mọi CV. Hoãn vì phải đụng backend,
+    chạy lại test suite và sinh lại toàn bộ cache `job_recommendations`.
 
 **Xong khi:** đơn đã rút vẫn được đếm đúng trong thống kê.
 

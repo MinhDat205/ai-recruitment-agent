@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { PublicLayout } from '../components/layout/PublicLayout'
+import { CandidateLayout } from '../components/layout/CandidateLayout'
 import { ApplicationHistoryTimeline } from '../features/applications/ApplicationHistoryTimeline'
 import { ApplicationStatusBadge } from '../features/applications/ApplicationStatusBadge'
 import { useMyApplicationsQuery, useWithdrawApplicationMutation } from '../features/applications/queries'
@@ -130,7 +130,7 @@ export function CandidateApplicationsPage() {
   }
 
   return (
-    <PublicLayout>
+    <CandidateLayout>
       <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-8 md:px-6">
         <Card>
           <CardHeader>
@@ -240,6 +240,6 @@ export function CandidateApplicationsPage() {
           {invitationTarget && <InterviewInvitationDetailDialog applicationId={invitationTarget.id} />}
         </DialogContent>
       </Dialog>
-    </PublicLayout>
+    </CandidateLayout>
   )
 }
