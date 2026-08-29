@@ -177,6 +177,12 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     điểm cao nhất của chính ứng viên đó (ví dụ giữ các job trong biên độ 0.10 dưới đỉnh)
     thay vì một hằng số tuyệt đối dùng chung cho mọi CV. Hoãn vì phải đụng backend,
     chạy lại test suite và sinh lại toàn bộ cache `job_recommendations`.
+  - **Cập nhật (30/08/2026, nhánh `feat/candidates-scoring-action`): route `/candidate` đổi ý
+    nghĩa** — không còn render Bảng tin, mà render `CandidateJobListPage.tsx` (nội dung Việc làm,
+    mirror `PublicJobListPage.tsx` nhưng bọc `CandidateLayout`) — đây cũng là trang candidate thấy
+    đầu tiên sau đăng nhập (`LoginForm.tsx`/`ProtectedRoute.tsx` redirect role CANDIDATE tới
+    `/candidate`). Bảng tin dời sang `/candidate/dashboard`, nội dung giữ nguyên như mô tả ở trên,
+    vẫn là một tab trong `CandidateLayout` (`NAV_ITEMS`), giờ đứng thứ 2 sau "Việc làm".
 
 **Xong khi:** đơn đã rút vẫn được đếm đúng trong thống kê.
 
