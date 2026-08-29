@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -63,7 +64,13 @@ function toParams(draft: FilterDraft): CandidateSearchParams {
 // (HR se hieu nham la loi he thong). hasBlockingError gop CA HAI dieu kien thanh MOT diem chan duy
 // nhat cho nut Ap dung - khong phai gop chung mot thong bao (moi loi van hien rieng, ro nguyen
 // nhan).
-export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSearchParams) => void }) {
+export function CandidatesFilterBar({
+  onApply,
+  extraActions,
+}: {
+  onApply: (params: CandidateSearchParams) => void
+  extraActions?: ReactNode
+}) {
   const [draft, setDraft] = useState<FilterDraft>(EMPTY_DRAFT)
   const { data: jobsPage } = useHrJobsQuery({ size: JOB_DROPDOWN_SIZE })
   const { data: criteriaNames } = useCriteriaNamesQuery()
@@ -210,13 +217,16 @@ export function CandidatesFilterBar({ onApply }: { onApply: (params: CandidateSe
         <p className="text-xs text-danger">Tổng điểm từ không được lớn hơn tổng điểm đến.</p>
       )}
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={handleReset}>
-          Xóa bộ lọc
-        </Button>
-        <Button type="button" onClick={handleApply} disabled={hasBlockingError}>
-          Áp dụng
-        </Button>
+      <div className="flex items-center justify-between gap-2">
+        {extraActions}
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={handleReset}>
+            Xóa bộ lọc
+          </Button>
+          <Button type="button" onClick={handleApply} disabled={hasBlockingError}>
+            Áp dụng
+          </Button>
+        </div>
       </div>
     </div>
   )

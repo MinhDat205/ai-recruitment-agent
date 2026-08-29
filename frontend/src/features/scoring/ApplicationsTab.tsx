@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import { useState } from 'react'
 import { Download, FileText, RotateCw } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -10,11 +9,13 @@ import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTit
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
 import type { ApplicationStatus } from '../applications/types'
 import { InterviewInvitationDialog } from '../interviewinvitation/InterviewInvitationDialog'
+import { extractErrorMessage } from '../../lib/httpError'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
 import { downloadApplicationResumeRequest } from './api'
 import { CriterionScoreBreakdown } from './CriterionScoreBreakdown'
 import { ExplanationReport } from './ExplanationReport'
 import { useChangeApplicationStatusMutation, useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
+import { scoringDisabledReason } from './scoringRules'
 import { ScoringRunStatusBadge } from './ScoringRunStatusBadge'
 import type { ApplicationHrListItem, ApplicationSortOption } from './types'
 
@@ -40,38 +41,6 @@ function formatTotalScore(totalScore: number | null): string {
 
 function formatRank(rank: number | null): string {
   return rank === null ? EMPTY_VALUE_PLACEHOLDER : String(rank)
-}
-
-function extractErrorMessage(err: unknown, fallback: string): string {
-  if (isAxiosError(err)) {
-    const data = err.response?.data as { message?: unknown } | undefined
-    if (data && typeof data.message === 'string' && data.message.length > 0) {
-      return data.message
-    }
-  }
-  return fallback
-}
-
-// Dieu kien disable nut "Cham diem ho so" (Dot 5, yeu cau bat buoc): CV chua parse xong, HOAC don
-// dang co lot cham chua hoan tat (finishedAt con null VA status la PENDING/RUNNING - dung dieu kien
-// tien quyet #5 cua backend, ScoringRunService.requireNoRunInProgress).
-//
-// TRUONG HOP FAILED (da xac nhan lai theo yeu cau): finishedAt LUON khac null khi status=FAILED
-// (backend set ca hai cung luc trong ScoringRunStateService.markFailed) - nen dieu kien
-// `latestScoringRunFinishedAt === null` o duoi da tu dong sai (false) cho FAILED, `runInProgress`
-// = false, ham nay tra ve undefined (KHONG disable). Day CHINH LA duong phuc hoi duy nhat cua HR
-// khi mot lot cham that bai - khong chan nham la loi nghiem trong, da rieng kiem lai va confirm.
-function scoringDisabledReason(application: ApplicationHrListItem): string | undefined {
-  if (application.resumeParseStatus !== 'DONE') {
-    return 'CV của ứng viên chưa được AI trích xuất xong, vui lòng chờ xử lý xong rồi thử lại.'
-  }
-  const runInProgress =
-    application.latestScoringRunFinishedAt === null &&
-    (application.latestScoringRunStatus === 'PENDING' || application.latestScoringRunStatus === 'RUNNING')
-  if (runInProgress) {
-    return 'Đơn này đang có một lượt chấm điểm chưa hoàn tất, vui lòng chờ lượt trước kết thúc.'
-  }
-  return undefined
 }
 
 // Dieu kien disable nut "Xem CV goc" (Dot 5b, yeu cau bat buoc) - CHI kiem CV da parse xong hay

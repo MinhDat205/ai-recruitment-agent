@@ -16,6 +16,8 @@ export interface CandidateSearchItem {
   status: ApplicationStatus
   latestScoringRunId: string | null
   totalScore: number | null
+  latestScoringRunStatus: ScoringRunStatus | null
+  latestScoringRunFinishedAt: string | null
 }
 
 // Khop PageResponse<ApplicationSearchItemResponse> (backend, common/dto). Cung hinh dang voi

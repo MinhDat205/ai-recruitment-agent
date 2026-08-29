@@ -32,4 +32,8 @@ public interface CandidateSearchRow {
     UUID getLatestScoringRunId();
 
     BigDecimal getTotalScore();
+
+    String getLatestScoringRunStatus();
+
+    Instant getLatestScoringRunFinishedAt();
 }

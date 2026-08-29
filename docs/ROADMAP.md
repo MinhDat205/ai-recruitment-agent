@@ -461,6 +461,21 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
       Hướng dẫn đầy đủ: `db/seed/README.md`.
 - PublicHeader không có menu mobile — nav ẩn hẳn dưới 640px (hidden sm:flex), trên điện thoại
   không có đường vào danh sách việc làm. Có sẵn từ A2, phát hiện khi làm fix/ui-nav-job-edit-layout.
+- [x] `feat/candidates-scoring-action` — nút "Chấm điểm hồ sơ" ở `/hr/candidates` (F3). Gap-fill
+  tiện dụng cho FR-H08, **không gắn mã FR mới** — tái dùng đúng endpoint `POST
+  /api/hr/applications/{id}/scoring-runs` và logic disable đã có ở `ApplicationsTab.tsx` (D2),
+  trích ra dùng chung (`features/scoring/scoringRules.ts`).
+  - `ApplicationSearchItemResponse`: `latestScoringRunId`/`latestScoringRunStatus`/
+    `latestScoringRunFinishedAt` lấy từ lượt chấm **mới nhất bất kể trạng thái** (LATERAL
+    `latest_run` mới thêm), `totalScore` vẫn lấy từ lượt **DONE mới nhất** (LATERAL `latest_done`
+    có sẵn) — hai nguồn khác nhau, **cố ý** (mirror đúng khuôn `LatestScoringRunView`/
+    `LatestDoneScoringRunView` đã có ở D3/D4, `ApplicationOwnerService`). Riêng
+    `searchCandidatesByCriterion`: `latestScoringRunId` trước đây là lượt **chứa tiêu chí đang
+    lọc** (luôn DONE), nay là lượt **mới nhất bất kể tiêu chí** — đổi ngữ nghĩa có chủ đích, đã xác
+    nhận không có nơi nào trong frontend đọc field này trước khi đổi.
+  - Trang này **cố ý KHÔNG poll tự động** (khác `ApplicationsTab.tsx` của D2) — chỉ có nút "Tải
+    lại" thủ công (`CandidatesFilterBar` nhận prop `extraActions`), vì đây là danh sách toàn công
+    ty có phân trang, poll 5s sẽ nặng hơn nhiều so với phạm vi một job.
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
 ---

@@ -7,6 +7,7 @@ import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.jobapplication.dto.ApplicationSearchItemResponse;
 import com.recruitment.resume.ParseStatus;
+import com.recruitment.scoring.ScoringRunStatus;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.user.User;
@@ -124,7 +125,9 @@ public class ApplicationSearchService {
                 // CandidateSearchRow ve gioi han projection cua native query.
                 ApplicationStatus.valueOf(row.getStatus()),
                 row.getLatestScoringRunId(),
-                row.getTotalScore());
+                row.getTotalScore(),
+                row.getLatestScoringRunStatus() == null ? null : ScoringRunStatus.valueOf(row.getLatestScoringRunStatus()),
+                row.getLatestScoringRunFinishedAt());
     }
 
     // Mau y het JobOwnerService/ApplicationOwnerService/DashboardService.requireOwnCompany.

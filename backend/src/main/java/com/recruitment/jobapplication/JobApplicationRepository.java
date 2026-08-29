@@ -113,7 +113,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
                     """
                     SELECT ja.id AS id, ja.job_id AS jobId, j.title AS jobTitle, ja.candidate_id AS candidateId,
                            ja.resume_id AS resumeId, ja.applied_at AS appliedAt, ja.status AS status,
-                           latest_done.id AS latestScoringRunId, latest_done.total_score AS totalScore
+                           latest_run.id AS latestScoringRunId, latest_done.total_score AS totalScore,
+                           latest_run.status AS latestScoringRunStatus, latest_run.finished_at AS latestScoringRunFinishedAt
                     FROM job_applications ja
                     JOIN jobs j ON j.id = ja.job_id
                     LEFT JOIN LATERAL (
@@ -121,6 +122,11 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
                         WHERE sr.application_id = ja.id AND sr.status = 'DONE'
                         ORDER BY sr.created_at DESC, sr.id DESC LIMIT 1
                     ) latest_done ON true
+                    LEFT JOIN LATERAL (
+                        SELECT sr2.id, sr2.status, sr2.finished_at FROM scoring_runs sr2
+                        WHERE sr2.application_id = ja.id
+                        ORDER BY sr2.created_at DESC, sr2.id DESC LIMIT 1
+                    ) latest_run ON true
                     WHERE j.company_id = :companyId AND j.deleted_at IS NULL
                       AND (CAST(:jobId AS uuid) IS NULL OR ja.job_id = CAST(:jobId AS uuid))
                       AND (CAST(:status AS varchar) IS NULL OR ja.status = CAST(:status AS varchar))
@@ -172,11 +178,17 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
                     """
                     SELECT ja.id AS id, ja.job_id AS jobId, j.title AS jobTitle, ja.candidate_id AS candidateId,
                            ja.resume_id AS resumeId, ja.applied_at AS appliedAt, ja.status AS status,
-                           sr.id AS latestScoringRunId, sr.total_score AS totalScore
+                           latest_run.id AS latestScoringRunId, sr.total_score AS totalScore,
+                           latest_run.status AS latestScoringRunStatus, latest_run.finished_at AS latestScoringRunFinishedAt
                     FROM criterion_scores cs
                     JOIN scoring_runs sr ON sr.id = cs.scoring_run_id AND sr.status = 'DONE'
                     JOIN job_applications ja ON ja.id = sr.application_id
                     JOIN jobs j ON j.id = ja.job_id
+                    LEFT JOIN LATERAL (
+                        SELECT sr3.id, sr3.status, sr3.finished_at FROM scoring_runs sr3
+                        WHERE sr3.application_id = ja.id
+                        ORDER BY sr3.created_at DESC, sr3.id DESC LIMIT 1
+                    ) latest_run ON true
                     WHERE cs.criterion_name_snapshot = :criterionName
                       AND cs.score >= :minCriterionScore
                       AND j.company_id = :companyId AND j.deleted_at IS NULL

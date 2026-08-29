@@ -1,9 +1,12 @@
+import { RotateCw } from 'lucide-react'
 import { useState } from 'react'
+import { Button } from '../components/ui/button'
 import { HrLayout } from '../components/layout/HrLayout'
 import { CandidatesFilterBar } from '../features/candidates/CandidatesFilterBar'
 import { CandidatesTable } from '../features/candidates/CandidatesTable'
-import { useCandidatesQuery } from '../features/candidates/queries'
+import { useCandidatesQuery, useCreateScoringRunMutation } from '../features/candidates/queries'
 import type { CandidateSearchParams } from '../features/candidates/types'
+import { extractErrorMessage } from '../lib/httpError'
 import { Pagination } from '../features/jobs/Pagination'
 
 const PAGE_SIZE = 10
@@ -12,7 +15,8 @@ export function HrCandidatesPage() {
   const [filters, setFilters] = useState<CandidateSearchParams>({})
   const [page, setPage] = useState(0)
 
-  const { data, isLoading, isError } = useCandidatesQuery({ ...filters, page, size: PAGE_SIZE })
+  const { data, isLoading, isError, isFetching, refetch } = useCandidatesQuery({ ...filters, page, size: PAGE_SIZE })
+  const createScoringRunMutation = useCreateScoringRunMutation()
 
   function handleApplyFilters(next: CandidateSearchParams) {
     setFilters(next)
@@ -22,7 +26,15 @@ export function HrCandidatesPage() {
   return (
     <HrLayout title="Ứng viên">
       <div className="flex flex-col gap-4">
-        <CandidatesFilterBar onApply={handleApplyFilters} />
+        <CandidatesFilterBar
+          onApply={handleApplyFilters}
+          extraActions={
+            <Button type="button" variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+              <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
+              Tải lại
+            </Button>
+          }
+        />
 
         {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
 
@@ -30,7 +42,17 @@ export function HrCandidatesPage() {
 
         {!isLoading && !isError && data && (
           <>
-            <CandidatesTable items={data.items} />
+            {createScoringRunMutation.isError && (
+              <p className="text-sm text-danger">
+                {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
+              </p>
+            )}
+
+            <CandidatesTable
+              items={data.items}
+              onScore={(applicationId) => createScoringRunMutation.mutate(applicationId)}
+              scoringApplicationId={createScoringRunMutation.isPending ? createScoringRunMutation.variables : undefined}
+            />
             <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />
           </>
         )}

@@ -2,6 +2,7 @@ package com.recruitment.jobapplication.dto;
 
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.resume.ParseStatus;
+import com.recruitment.scoring.ScoringRunStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -15,6 +16,15 @@ import java.util.UUID;
 //
 // totalScore la BigDecimal, co the null khi don chua co luot DONE nao - KHONG suy dien gia tri
 // thay the, cung quy uoc voi ApplicationHrListItemResponse cua D3/D4.
+//
+// latestScoringRunId/latestScoringRunStatus/latestScoringRunFinishedAt lay tu LUOT CHAM MOI NHAT
+// BAT KE TRANG THAI (LATERAL latest_run trong JobApplicationRepository.searchCandidates/
+// searchCandidatesByCriterion). totalScore lay tu LUOT DONE MOI NHAT (LATERAL/JOIN rieng, loc
+// status='DONE') - HAI NGUON KHAC NHAU, co the la HAI LUOT KHAC NHAU cua cung mot don (vd: da co
+// luot DONE cu cho diem, roi HR bam cham lai -> luot moi dang PENDING/RUNNING: latestScoringRunId
+// tro toi luot moi do, con totalScore van la diem cua luot DONE cu). KHONG duoc gia dinh
+// latestScoringRunId va totalScore cung thuoc mot luot - mau dung da co san o ApplicationOwnerService
+// (D3/D4): LatestScoringRunView (tien do) tach rieng LatestDoneScoringRunView (diem).
 public record ApplicationSearchItemResponse(
         UUID id,
         UUID jobId,
@@ -24,4 +34,6 @@ public record ApplicationSearchItemResponse(
         Instant appliedAt,
         ApplicationStatus status,
         UUID latestScoringRunId,
-        BigDecimal totalScore) {}
+        BigDecimal totalScore,
+        ScoringRunStatus latestScoringRunStatus,
+        Instant latestScoringRunFinishedAt) {}

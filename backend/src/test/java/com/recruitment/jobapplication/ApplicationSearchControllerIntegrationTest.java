@@ -22,6 +22,8 @@ import com.recruitment.scoring.RubricSnapshot;
 import com.recruitment.scoring.ScoringRun;
 import com.recruitment.scoring.ScoringRunRepository;
 import com.recruitment.scoring.ScoringRunStatus;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -70,6 +72,9 @@ class ApplicationSearchControllerIntegrationTest {
 
     @Autowired
     private JobApplicationRepository jobApplicationRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
@@ -285,6 +290,42 @@ class ApplicationSearchControllerIntegrationTest {
         criterionScoreRepository.saveAndFlush(criterionScoreEntity);
     }
 
+    // Doc gia tri KHONG boc trong dau nhay kep (so hoac null) - dung cho totalScore/
+    // latestScoringRunFinishedAt (BigDecimal/Instant, co the null). extractJsonField co san chi
+    // doc duoc gia tri dang chuoi.
+    private String extractJsonRawField(String json, String field) {
+        Matcher matcher = Pattern.compile("\"" + field + "\":([^,}]+)").matcher(json);
+        if (!matcher.find()) {
+            throw new IllegalStateException("Khong tim thay field '" + field + "' trong: " + json);
+        }
+        return matcher.group(1);
+    }
+
+    // Ghi thang xuong DB mot luot cham dang RUNNING (chua xong, finished_at con null) - mo phong D2
+    // dang cham dang, khong chay LLM that. rubric_snapshot/total_score deu nullable o schema (V1) -
+    // luot dang chay khong can co, khac han createDoneScoringRun.
+    private UUID createRunningScoringRun(UUID applicationId) {
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.RUNNING);
+        run.setStartedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(run);
+        return run.getId();
+    }
+
+    // Lui created_at cua mot luot cham ve qua khu - can thiet vi ca lop test nay @Transactional cap
+    // class (CLAUDE.md muc 3c: now()/CURRENT_TIMESTAMP transaction-scoped, moi ban ghi tao trong
+    // CUNG mot test nhan CUNG mot created_at, khong the dua vao thu tu insert de suy ra thu tu
+    // created_at). Mau y het ScoringRunHrControllerIntegrationTest (Dot 5, D2).
+    private void backdateScoringRunCreatedAt(UUID scoringRunId, String interval) {
+        entityManager
+                .createNativeQuery("UPDATE scoring_runs SET created_at = created_at - INTERVAL '" + interval
+                        + "' WHERE id = ?1")
+                .setParameter(1, scoringRunId)
+                .executeUpdate();
+        entityManager.clear();
+    }
+
     private String createApplication(String candidatePrefix, String candidateName, String jobId) throws Exception {
         String candidateToken = registerAndLoginCandidate(candidatePrefix, candidateName);
         String resumeId = uploadResume(candidateToken);
@@ -459,6 +500,58 @@ class ApplicationSearchControllerIntegrationTest {
         String body = result.getResponse().getContentAsString();
         assertThat(body).contains("\"Docker\"");
         assertThat(body).contains("\"Kinh nghiem Java\"");
+    }
+
+    // Chung minh LATERAL latest_run (moi, khong loc status) tra dung status/finishedAt cua luot
+    // dang chay, TRONG KHI totalScore (LATERAL latest_done rieng, loc status='DONE') van null vi
+    // chua co luot DONE nao - hai LATERAL doc lap, khong the gop lam mot nhu chi thi ban dau (xem
+    // "Phat hien quan trong" trong plan/javadoc ApplicationSearchItemResponse).
+    @Test
+    void searchCandidates_latestRunIsRunningWithoutAnyDoneRun_statusRunningButTotalScoreNull() throws Exception {
+        String hrToken = registerAndLoginHr("hr-running-only");
+        createCompany(hrToken, uniqueName("Cong ty Running Only"));
+        String jobId = createOpenJob(hrToken, uniqueName("Job Running Only"));
+        String applicationId = createApplication("cand-running-only", "Ung Vien Dang Cham", jobId);
+
+        createRunningScoringRun(UUID.fromString(applicationId));
+
+        MvcResult result = searchCandidates(hrToken, "");
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("\"candidateName\":\"Ung Vien Dang Cham\"");
+        assertThat(extractJsonField(body, "latestScoringRunStatus")).isEqualTo("RUNNING");
+        assertThat(extractJsonRawField(body, "totalScore")).isEqualTo("null");
+        assertThat(extractJsonRawField(body, "latestScoringRunFinishedAt")).isEqualTo("null");
+    }
+
+    // Ca then chot: mot don co CA luot DONE cu (nguon totalScore) LAN luot RUNNING moi hon (nguon
+    // status/finishedAt) - hai gia tri PHAI lay tu HAI luot khac nhau, khong duoc gia dinh cung mot
+    // luot. Backdate luot DONE ve qua khu de dam bao thu tu created_at xac dinh (xem
+    // backdateScoringRunCreatedAt).
+    @Test
+    void searchCandidates_doneRunOlderThanNewerRunningRun_totalScoreFromDoneRunStatusFromNewerRun() throws Exception {
+        String hrToken = registerAndLoginHr("hr-done-then-running");
+        createCompany(hrToken, uniqueName("Cong ty Done Then Running"));
+        String jobId = createOpenJob(hrToken, uniqueName("Job Done Then Running"));
+        String applicationId = createApplication("cand-done-then-running", "Ung Vien Cham Lai", jobId);
+
+        createDoneScoringRun(
+                UUID.fromString(applicationId), new BigDecimal("50.000"), "Tieu chi", new BigDecimal("4.00"));
+        UUID doneRunId = scoringRunRepository
+                .findByApplicationIdOrderByCreatedAtDesc(UUID.fromString(applicationId))
+                .get(0)
+                .getId();
+        backdateScoringRunCreatedAt(doneRunId, "1 minute");
+
+        createRunningScoringRun(UUID.fromString(applicationId));
+
+        MvcResult result = searchCandidates(hrToken, "");
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("\"candidateName\":\"Ung Vien Cham Lai\"");
+        assertThat(extractJsonRawField(body, "totalScore")).isEqualTo("50.000");
+        assertThat(extractJsonField(body, "latestScoringRunStatus")).isEqualTo("RUNNING");
+        assertThat(extractJsonRawField(body, "latestScoringRunFinishedAt")).isEqualTo("null");
     }
 
     // ---- Case am ----

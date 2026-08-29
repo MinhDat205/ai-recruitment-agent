@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { formatScore } from '../../lib/score'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
+import { scoringDisabledReason } from '../scoring/scoringRules'
 import { ScoringRunAuditPanel } from './ScoringRunAuditPanel'
 import type { CandidateSearchItem } from './types'
 
@@ -22,7 +23,15 @@ function formatAppliedAt(iso: string): string {
 // danh sach nay xuyen nhieu job nen khong hien rank (quyet dinh #2 trong plan Dot 3, ap dung lai
 // o day).
 
-export function CandidatesTable({ items }: { items: CandidateSearchItem[] }) {
+export function CandidatesTable({
+  items,
+  onScore,
+  scoringApplicationId,
+}: {
+  items: CandidateSearchItem[]
+  onScore: (applicationId: string) => void
+  scoringApplicationId: string | undefined
+}) {
   const [auditTarget, setAuditTarget] = useState<CandidateSearchItem | null>(null)
 
   if (items.length === 0) {
@@ -62,10 +71,22 @@ export function CandidatesTable({ items }: { items: CandidateSearchItem[] }) {
                 </TableCell>
                 <TableCell className="text-right text-ink">{formatScore(item.totalScore)}</TableCell>
                 <TableCell className="text-right">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setAuditTarget(item)}>
-                    <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                    Lịch sử đánh giá
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setAuditTarget(item)}>
+                      <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                      Lịch sử đánh giá
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={Boolean(scoringDisabledReason(item)) || scoringApplicationId === item.id}
+                      title={scoringDisabledReason(item)}
+                      onClick={() => onScore(item.id)}
+                    >
+                      Chấm điểm hồ sơ
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
