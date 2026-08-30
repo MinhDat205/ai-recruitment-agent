@@ -482,6 +482,25 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
   - Trang này **cố ý KHÔNG poll tự động** (khác `ApplicationsTab.tsx` của D2) — chỉ có nút "Tải
     lại" thủ công (`CandidatesFilterBar` nhận prop `extraActions`), vì đây là danh sách toàn công
     ty có phân trang, poll 5s sẽ nặng hơn nhiều so với phạm vi một job.
+- [x] `docs/srs-update` — cập nhật `docs/SRS.md` cho khớp thực tế hệ thống, đối chiếu toàn
+  bộ 18 mã FR (FR-C01→C04, FR-H01→H08, FR-U01→U06) với code thật trong `backend/src`/
+  `frontend/src`, không chỉ tài liệu (30/08/2026).
+  - Xác nhận lại bằng code trong lần rà soát này: `ApplicationService.apply()`
+    (`backend/src/main/java/com/recruitment/jobapplication/ApplicationService.java:50-87`)
+    không kiểm tra `resume.getParseStatus()` trước khi cho nộp đơn — ứng viên vẫn nộp
+    được đơn dù CV đang `PENDING`/`PROCESSING`/`FAILED`. Frontend đã lọc CV `FAILED` khỏi
+    form chọn từ `chore/hardening` Đợt 6, nhưng backend không chặn cứng; một client khác
+    gọi thẳng API vẫn tạo được đơn với CV chưa/không parse xong. Không phải phát hiện
+    mới (đã ghi trong `chore/hardening` phần "Phát hiện khi kiểm thử Phase D bằng key
+    thật (19/08/2026)"), chỉ bổ sung bằng chứng file/dòng cụ thể.
+  - Rà soát SRS (30/08/2026) phát hiện: ứng viên KHÔNG nhận thông báo khi hồ sơ được AI
+    chấm điểm xong. Sự kiện `SCORING_FINISHED` chỉ có listener gửi cho HR
+    (`NotificationEventListener`), không có nhánh gửi cho ứng viên. SRS gốc hứa "ứng
+    viên nhận thông báo khi hồ sơ được đánh giá hoặc đổi trạng thái" — vế đầu chưa bao
+    giờ được triển khai. Đặc tả đã cập nhật cho khớp thực tế. Cân nhắc khi mở rộng: báo
+    cho ứng viên rằng hồ sơ đã được đánh giá mà không kèm điểm số hay nhận xét (điểm và
+    rubric là thông tin nội bộ của HR, không được lộ cho ứng viên theo nguyên tắc ở
+    FR-U05) — nếu làm, nội dung thông báo phải trung tính, không suy ra được kết quả.
 - [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
 
 ---
