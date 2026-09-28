@@ -6,7 +6,13 @@
 ## 1. Bối cảnh
 
 Nền tảng tuyển dụng có AI hỗ trợ, 2 loại tài khoản: **HR** và **Ứng viên (Candidate)**.
-Đặc tả gốc: `docs/SRS.md` — mọi thay đổi hành vi phải bám theo mã yêu cầu (FR-C / FR-H / FR-U).
+Mọi thay đổi hành vi phải bám theo mã yêu cầu (FR-C / FR-H / FR-U). Hai nguồn đặc tả:
+- `docs/SRS.md`: tóm tắt toàn hệ thống (39 mã) + đặc tả đầy đủ của 18 FR đã hoàn thành.
+- `docs/features/<CHUNG|HR|UV>/<mã>/REQUIREMENT.md` (đặc tả chức năng) và `UI.md` (đặc tả giao
+  diện): nguồn sự thật của 21 FR bổ sung.
+
+Thứ tự ưu tiên khi mâu thuẫn: REQUIREMENT.md/UI.md đã duyệt > SRS.md > ROADMAP.md/walkthrough.
+Gặp mâu thuẫn thì báo ra, không tự chọn bên nào.
 
 ## 2. Nguyên tắc bất di bất dịch (KHÔNG được vi phạm)
 
@@ -21,6 +27,8 @@ Nền tảng tuyển dụng có AI hỗ trợ, 2 loại tài khoản: **HR** và
 - Rút đơn = đổi trạng thái (soft state), KHÔNG hard delete (FR-U06).
 - Vòng đời đơn ứng tuyển đúng 5 trạng thái: `PENDING` → `INTERVIEW_INVITED` → `HIRED` | `REJECTED`;
   và `WITHDRAWN` có thể xảy ra bất kỳ lúc nào trước kết quả cuối.
+- Chức năng bổ sung còn phải tuân thủ mục "Nguyên tắc bổ sung cho các chức năng mới" trong
+  `docs/SRS.md`.
 
 ## 2b. Ngữ nghĩa `scoring_runs.finished_at` (D3 cần biết)
 
@@ -52,9 +60,10 @@ Monorepo: `backend/` (Spring Boot) + `frontend/` (React) + 1 PostgreSQL. Không 
 - Test: JUnit 5 + Testcontainers (Postgres thật, không H2)
 
 Chia package theo TÍNH NĂNG, không theo tầng: `auth/`, `user/`, `company/`, `job/`,
-`interviewtemplate/`, `rubric/`, `resume/`, `jobapplication/`, `scoring/`, `storage/`, `common/`,
-`ai/client/`, `ai/criterion/`. Mỗi mã FR nằm gọn trong một package (`ai/explanation/` v.v. sẽ thêm
-khi tới D4/F1/F2 — chưa tồn tại, đừng tạo trước).
+`interviewtemplate/`, `interviewinvitation/`, `rubric/`, `resume/`, `jobapplication/`,
+`jobrecommendation/`, `scoring/`, `dashboard/`, `notification/`, `ratelimit/`, `storage/`,
+`common/`, `ai/client/`, `ai/criterion/`, `ai/explanation/`, `ai/cvimprovement/`, `ai/embedding/`.
+Mỗi mã FR nằm gọn trong một package; package mới chỉ tạo khi FR thật sự cần.
 
 ## 3b. Bẫy đã trả giá — đọc trước khi động vào Spring AI
 
@@ -101,6 +110,17 @@ Trong test có `@Transactional` ở cấp class, mọi bản ghi tạo trong cù
 
 Đầy đủ (mẫu code, câu SQL claim thật): `fr-implement/SKILL.md` mục "Job nền và transaction"; comment
 trong `ResumeParsingStateService.java`/`ScoringRunStateService.java`.
+
+## 3d. Thành phần dùng chung cho chức năng bổ sung
+
+| Mã | Trách nhiệm | Xây lần đầu ở | Dùng bởi |
+|---|---|---|---|
+| K1 | Bộ gom ngữ cảnh CV theo vai trò: gom CV đã trích xuất, JD, rubric, kết quả chấm, dữ liệu đơn thành ngữ cảnh gửi AI, lọc theo vai trò người gọi. Phía ứng viên không bao giờ nhận điểm, rubric, giải thích AI hay ghi chú HR; chặn bằng code, không bằng lời dặn trong prompt | FR-C07 | C07, C08, H13, H15 |
+| K2 | Bộ kiểm tra trích dẫn nguyên văn: tách từ phần kiểm evidence trong `CriterionScoringService` (FR-H04) thành thành phần dùng chung; FR-H04 chuyển sang dùng nó, hành vi không đổi, toàn bộ test cũ vẫn pass | FR-C08 | FR-H04, C08, H13 |
+| K3 | Gọi AI đồng bộ có giới hạn (xem ngoại lệ ở §7) | FR-C07 | C07, C08, H11, H13, H15, U12, U13 |
+| K4 | Siêu dữ liệu kết quả AI được lưu: model, phiên bản prompt, thời điểm sinh | FR-H11 | H11, H13, H15 |
+
+Không cài lại riêng trong từng FR. FR cần thành phần mà thành phần đó chưa có thì dừng lại hỏi.
 
 ## 4. Quy ước code
 
@@ -163,11 +183,26 @@ trò của `mvn test` với backend, chạy sau mỗi lần sửa code frontend,
 - Trước khi sửa file có sẵn, đọc file đó trước — không đoán.
 - Khi cần signature của thư viện, đọc jar/source thật (`javap`, file `.pom`) và **trích dẫn bằng
   chứng** trong báo cáo. Không viết theo trí nhớ.
-- Nếu yêu cầu của tôi mâu thuẫn với `docs/SRS.md`, hoặc tôi nói sai về code hiện có, hãy nói ra
-  thay vì im lặng làm theo.
+- Nếu yêu cầu của tôi mâu thuẫn với `docs/SRS.md` hoặc REQUIREMENT.md/UI.md đã duyệt, hoặc tôi nói
+  sai về code hiện có, hãy nói ra thay vì im lặng làm theo.
 - Sau khi code xong, tự chạy lint/test và tự sửa lỗi trước khi báo hoàn thành.
 - Test phải có **cả case dương và case âm**, và test biên khi có ngưỡng số
   (ngưỡng−1, đúng ngưỡng, ngưỡng+1).
+
+### Quy trình cho chức năng bổ sung
+
+- Chỉ bắt đầu code một FR bổ sung khi CẢ REQUIREMENT.md và UI.md của FR đó có dòng trạng thái
+  `ĐÃ DUYỆT <ngày>`. Trạng thái khác thì dừng và báo.
+- Vòng đời trạng thái: `CHƯA ĐẶC TẢ` → `ĐÃ DUYỆT <ngày>` → `ĐÃ HOÀN THÀNH <ngày>`. Claude không bao
+  giờ tự đặt `ĐÃ DUYỆT`; việc duyệt do tôi làm. Ở đợt cuối của FR, Claude đổi sang
+  `ĐÃ HOÀN THÀNH <ngày>`, đồng thời đổi cột Trạng thái ở mục 0 của SRS.md và tick ROADMAP.md.
+- Plan Mode (đợt đầu) phải đối chiếu REQUIREMENT.md với code thật. Lệch thì dừng và báo; không tự
+  "sửa cho khớp" ở phía nào.
+- Khi code buộc phải khác đặc tả đã duyệt: dừng, đề xuất sửa REQUIREMENT.md/UI.md, chờ duyệt lại
+  rồi mới code tiếp. Walkthrough chỉ ghi lại việc đã xảy ra, không thay đặc tả.
+- REQUIREMENT.md bắt buộc có các mục: Mục đích · Luồng người dùng · Quy tắc nghiệp vụ · Dữ liệu &
+  quyền truy cập · AI (nếu có) · Ngoài phạm vi · Xong khi (tiêu chí kiểm thử được) · AI hay làm sai.
+  Mẫu UI.md: xem `docs/UI_GUIDE.md` mục "Mẫu UI.md".
 
 ## 7. Ranh giới không được vượt
 
@@ -177,46 +212,23 @@ trò của `mvn test` với backend, chạy sau mỗi lần sửa code frontend,
 - Không đổi `ddl-auto` sang `update`. Mọi thay đổi schema đi qua một file Flyway mới.
 - Không xoá cột `weight_snapshot` / `rubric_snapshot` dù trông có vẻ trùng dữ liệu — chúng giữ lịch
   sử audit.
-- Không gọi LLM đồng bộ trong request của người dùng — luôn qua job nền.
+- Không gọi LLM/embedding đồng bộ trong request của người dùng — luôn qua job nền. Ngoại lệ DUY
+  NHẤT (K3), chỉ khi đặc tả đã duyệt của FR yêu cầu: FR-C07, FR-C08, FR-H11, FR-H13, FR-H15 (tóm
+  tắt), FR-U12 (gợi ý diễn đạt), FR-U13 (tách câu truy vấn + embedding câu truy vấn). Điều kiện bắt
+  buộc: có thời gian chờ tối đa; thử lại tối đa 1 lần; rate limit theo userId; không mở transaction
+  trong lúc chờ LLM; lỗi trả mã lỗi chuẩn hoá kèm câu tiếng Việt có dấu, không lưu kết quả lỗi; test
+  vẫn mock ChatModel/EmbeddingModel. FR ngoài danh sách muốn gọi đồng bộ thì dừng lại hỏi.
 - Test KHÔNG được gọi API LLM thật. Mock ở tầng `ChatModel` với default-answer throw để test nào
   quên stub thì đỏ ngay, thay vì âm thầm gọi mạng.
 - Không commit `.env`, không commit thư mục `uploads/`.
 
 ## 8. Giao diện
 
-Tham chiếu phong cách: `docs/UI_GUIDE.md`. Phong cách chung là job board Việt Nam
-(kiểu VietnamWorks / CareerViet / TopCV): sáng, nhiều thẻ (card), thông tin dày, xanh dương làm màu
-chủ đạo.
+`docs/UI_GUIDE.md` là nguồn duy nhất về giao diện: token, quy tắc Material Design 3, bản đồ màn
+hình, mẫu UI.md.
 
 **Chỉ mô phỏng quy ước bố cục và hệ màu — KHÔNG sao chép logo, tên thương hiệu, hay CSS của bất kỳ
 trang nào.** Dự án có tên và nhận diện riêng.
-
-Token bắt buộc dùng (khai trong khối `@theme` của `frontend/src/index.css`, KHÔNG hardcode mã màu
-trong component):
-
-| Token (biến CSS) | Class Tailwind | Giá trị | Dùng cho |
-|---|---|---|---|
-| `--color-brand` | `bg-brand`, `text-brand` | `#0078C9` | Màu chính: header, link, nút chính |
-| `--color-brand-dark` | `hover:bg-brand-dark` | `#1E5C8B` | Hover, trạng thái active |
-| `--color-accent` | `bg-accent` | `#1AC639` | Nút "Ứng tuyển", badge "Mới" |
-| `--color-warning` | `text-warning`, `bg-warning` | `#FF5B00` | Hạn nộp gần, tin gấp |
-| `--color-danger` | `text-danger`, `bg-danger` | `#E11B3E` | Từ chối, lỗi |
-| `--color-ink` | `text-ink` | `#1F2937` | Chữ chính |
-| `--color-ink-muted` | `text-ink-muted` | `#6B7280` | Chữ phụ, meta |
-| `--color-line` | `border-line` | `#E7E7E9` | Viền thẻ, đường phân cách |
-| `--color-surface` | `bg-surface` | `#FFFFFF` | Nền thẻ |
-| `--color-canvas` | `bg-canvas` | `#F0F0F0` | Nền trang |
-
-`index.css` còn một lớp alias riêng cho component shadcn (`--border`, `--foreground`,
-`--background`...) ánh xạ sang các token trên — chỉ dùng nội bộ trong `components/ui/`, không phải
-token để gõ tay ở tầng tính năng.
-
-- Container tối đa 1200px, lưới 12 cột, bo góc thẻ 8px, badge 4px.
-- Icon dùng `lucide-react`. Không dùng emoji trong UI.
-- Card việc làm: logo vuông 80px bên trái; tiêu đề tối đa 2 dòng (`line-clamp-2`); dưới là tên công
-  ty, mức lương (icon tiền), địa điểm (icon ghim), danh sách tag; góc phải là hạn nộp.
-- Trang ứng viên = layout công khai (header + hero tìm kiếm + các section thẻ + footer nhiều cột).
-- Trang HR = layout quản trị: sidebar trái cố định, bảng dữ liệu dày, không dùng hero.
 
 Ràng buộc riêng của dự án này:
 - Màn hình chấm điểm KHÔNG được hiển thị nhãn Đạt/Không đạt hay màu đỏ-vàng-xanh gợi ý phán quyết.

@@ -1,7 +1,10 @@
 # Roadmap — tiến độ triển khai
 
-Bảng theo dõi tiến độ. **Chi tiết từng nhánh xem `docs/PHASES.md`** (phạm vi, tiêu chí nghiệm thu,
-lỗi AI hay mắc). **Quy trình làm việc xem `docs/WORKFLOW.md`.**
+Bảng theo dõi tiến độ. Đặc tả 18 FR đã hoàn thành ở `docs/SRS.md`; đặc tả từng FR bổ sung ở
+`docs/features/<nhóm>/<mã>/`; quyết định thiết kế của mỗi nhánh ở `docs/walkthrough/`; quy trình
+làm việc ở `CLAUDE.md` §6.
+
+`docs/PHASES.md` đã gỡ ngày 29/09/2026; các chỗ nhắc tới `PHASES.md` bên dưới là ghi chép lịch sử.
 
 Nguyên tắc: **1 mã FR = 1 nhánh = 1 phiên Claude Code.** Xong nhánh nào chạy được nhánh đó rồi
 mới sang nhánh kế. Không nhảy sang phần AI khi phần CRUD nền chưa chạy — AI không có dữ liệu vào
@@ -505,10 +508,83 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
 
 ---
 
+## Giai đoạn 2 — Chức năng bổ sung
+
+Quy trình mỗi FR: viết REQUIREMENT.md → viết UI.md → tôi duyệt (`ĐÃ DUYỆT`) → code theo
+`CLAUDE.md` §6 → đợt cuối: đổi trạng thái `ĐÃ HOÀN THÀNH` ở REQUIREMENT.md và SRS.md, tick dòng
+tương ứng ở đây.
+
+**Chuẩn bị**
+- [x] `docs/features-structure` — khung đặc tả 21 FR, cập nhật SRS.md (đợt 1); cập nhật CLAUDE.md,
+  ROADMAP.md, UI_GUIDE.md (đợt 2)
+- [ ] `docs/skills-update` — cập nhật skill `fr-implement`, `srs-guard`, `walkthrough` theo quy
+  trình mới (đợt 3)
+- [ ] `chore/ui-md3-foundation` — khai token vai trò MD3 (tiền tố `m3-`) ánh xạ sang token hiện có
+  theo UI_GUIDE.md; chọn sắc xanh cho nút Ứng tuyển đạt ≥4.5:1 với chữ trắng; không đổi giao diện
+  màn hình cũ. BẮT BUỘC xong trước FR đầu tiên có giao diện.
+
+**Phase 2.1 — Nền dữ liệu & gợi ý việc làm**
+- [ ] `feat/fr-c05-catalog` — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu
+- [ ] `feat/fr-u07-job-filter` — FR-U07 · Bộ lọc tìm việc nâng cao
+- [ ] `feat/fr-u14-career-profile` — FR-U14 · Hồ sơ nghề nghiệp và mong muốn công việc
+- [ ] `feat/fr-u15-profile-recommend` — FR-U15 · Gợi ý việc làm theo hồ sơ
+
+**Xong khi:** tin/hồ sơ thiếu dữ liệu chuẩn hoá vẫn hiện kèm nhãn, không bị loại âm thầm; ứng viên
+chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
+
+**Phase 2.2 — Hồ sơ đơn & trao đổi**
+- [ ] `feat/fr-h09-application-detail` — FR-H09 · Trang hồ sơ đơn ứng tuyển
+- [ ] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển
+- [ ] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển
+- [ ] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn
+
+**Xong khi:** gọi API đơn/cuộc trao đổi không thuộc về mình bị chặn (kiểm bằng curl, không qua
+UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa điểm/rubric.
+
+**Phase 2.3 — Sàng lọc & tạo tin**
+- [ ] `feat/fr-h10-screening` — FR-H10 · Câu hỏi sàng lọc theo Job
+- [ ] `feat/fr-u09-screening-answer` — FR-U09 · Trả lời sàng lọc và đồng ý lưu hồ sơ
+- [ ] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng
+
+**Xong khi:** câu trả lời sàng lọc không làm đổi điểm hay thứ hạng; tin tạo bằng AI luôn ở DRAFT;
+trọng số rubric gợi ý để trống.
+
+**Phase 2.4 — Lịch phỏng vấn**
+- [ ] `feat/fr-h12-multi-slot` — FR-H12 · Giấy mời nhiều khung giờ
+- [ ] `feat/fr-u10-pick-slot` — FR-U10 · Chọn khung giờ phỏng vấn
+
+**Xong khi:** đơn chuyển INTERVIEW_INVITED ngay khi gửi giấy mời, không phụ thuộc việc chọn giờ;
+giấy mời đã gửi không đổi khi sửa mẫu.
+
+**Phase 2.5 — AI hỗ trợ đánh giá & kho ứng viên**
+- [ ] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn
+- [ ] `feat/fr-h13-interview-questions` — FR-H13 · Câu hỏi phỏng vấn theo CV
+- [ ] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên
+- [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
+
+**Xong khi:** mọi trích dẫn hiển thị đều đã qua K2; FR-H04 chuyển sang dùng K2 mà toàn bộ test cũ
+vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
+
+**Phase 2.6 — Tiện ích ứng viên & ẩn danh**
+- [ ] `feat/fr-u11-stats` — FR-U11 · Thống kê ứng tuyển cá nhân
+- [ ] `feat/fr-u12-cv-builder` — FR-U12 · Tạo CV (CV builder)
+- [ ] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên
+- [ ] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh
+
+**Xong khi:** bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu
+ứng viên nhập.
+
+**Làm sau** (không theo thứ tự trên, chỉ làm khi tôi yêu cầu):
+- [ ] `refactor/ui-md3-legacy` — áp UI_GUIDE.md mới cho màn hình cũ: badge trạng thái trung tính,
+  nút Ứng tuyển đạt tương phản, menu mobile cho PublicHeader, PublicJobDetailPage giữ điều hướng
+  khi ứng viên đã đăng nhập (nếu FR-U07 chưa sửa).
+
+---
+
 ## Ba nhánh cần review kỹ nhất
 
-Đây là chỗ AI sẽ tự "tối ưu" theo hướng vi phạm nguyên tắc SRS. Đọc mục "AI hay làm sai"
-trong `docs/PHASES.md` **trước** khi bắt đầu ba nhánh này:
+Bảng dưới đây là lịch sử của Phase D–E (đã hoàn thành, không đổi). Với FR bổ sung, xem mục
+"AI hay làm sai" trong `REQUIREMENT.md` của FR đó.
 
 | Nhánh | AI sẽ muốn làm | Vì sao sai |
 |---|---|---|
