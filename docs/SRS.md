@@ -100,7 +100,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H09 | Trang hồ sơ đơn ứng tuyển | Một màn hình gom CV, điểm, giải thích, sàng lọc, câu hỏi PV, trao đổi, hỏi đáp CV và các nút quyết định | HR | FR-H04, FR-H05, FR-H06, FR-H07 |
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR đặt câu hỏi ngắn/lựa chọn/có-không cho Job; không tự loại, không đưa vào chấm điểm | HR | FR-H02 |
 | FR-H11 | AI tạo tin tuyển dụng | Từ mô tả tự do sinh bản nháp Job, gợi ý tiêu chí rubric và câu hỏi sàng lọc; trọng số do HR nhập | HR | FR-H02, FR-H03, FR-C05, FR-H10 |
-| FR-H12 | Giấy mời nhiều khung giờ | Giấy mời có 1–5 khung giờ để ứng viên chọn; thêm thao tác gửi lại giấy mời | HR | FR-H07, FR-C03, FR-U10 |
+| FR-H12 | Giấy mời nhiều khung giờ | Giấy mời có 1–5 khung giờ để ứng viên chọn; thêm thao tác gửi lại giấy mời | HR | FR-H07, FR-C03 |
 | FR-H13 | Câu hỏi phỏng vấn theo CV | AI sinh câu hỏi theo từng tiêu chí rubric, kèm lý do và đoạn CV liên quan; HR sửa và lưu | HR | FR-H09 |
 | FR-H14 | So sánh 2–3 ứng viên | Bảng song song điểm, tiêu chí, kinh nghiệm, kỹ năng của các đơn cùng Job; không đánh dấu người thắng | HR | FR-H05, FR-H06, FR-H09 |
 | FR-H15 | Kho ứng viên | Lưu đơn đã được ứng viên đồng ý vào các kho, kèm ghi chú, AI tóm tắt và bộ lọc chuyên môn | HR | FR-H09, FR-C05, FR-U09 |

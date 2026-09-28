@@ -13,7 +13,9 @@ description: Quy trình triển khai một mã yêu cầu chức năng (FR-C, FR
 1. `docs/SRS.md` — tìm đúng mã FR ở Mục 1/2/3. Đây là nguồn sự thật.
 
 **FR bổ sung** (FR-C05–C08, FR-H09–H16, FR-U07–U15):
-1. `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
+1. `docs/features/README.md` — vị trí của FR trong thứ tự thực hiện, FR trước/sau nó, phạm vi
+   không được lấn sang.
+2. `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
    **CỔNG CHẶN**: nếu MỘT TRONG HAI file không có dòng trạng thái `ĐÃ DUYỆT <ngày>` — DỪNG NGAY,
    báo trạng thái hiện tại của cả hai file, KHÔNG lập kế hoạch tiếp.
 

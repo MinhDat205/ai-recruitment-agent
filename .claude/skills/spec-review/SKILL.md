@@ -46,7 +46,9 @@ dùng; skill này chỉ chuẩn bị dữ liệu để người dùng duyệt đ
 7. **Mâu thuẫn giữa các FR**: đọc `REQUIREMENT.md` của các FR khác đã `ĐÃ DUYỆT`/`ĐÃ HOÀN THÀNH`
    có liên quan (theo cột "Dùng bởi"/"Xây lần đầu" ở CLAUDE.md §3d, hoặc theo phụ thuộc ngược ở
    `docs/SRS.md`) — có mô tả nào trái ngược với FR đang soát không (ví dụ hai FR cùng mô tả khác
-   nhau về cùng một hành vi/route/schema).
+   nhau về cùng một hành vi/route/schema). Đối chiếu thêm với mô tả định hướng trong
+   `docs/features/README.md` (thứ tự thực hiện, phụ thuộc, mô tả từng FR ở mục 4) — lệch thì báo
+   ra, không tự sửa README.md hay REQUIREMENT.md cho khớp.
 
 ## Mẫu báo cáo
 
