@@ -203,6 +203,7 @@ trò của `mvn test` với backend, chạy sau mỗi lần sửa code frontend,
 - REQUIREMENT.md bắt buộc có các mục: Mục đích · Luồng người dùng · Quy tắc nghiệp vụ · Dữ liệu &
   quyền truy cập · AI (nếu có) · Ngoài phạm vi · Xong khi (tiêu chí kiểm thử được) · AI hay làm sai.
   Mẫu UI.md: xem `docs/UI_GUIDE.md` mục "Mẫu UI.md".
+- Trước khi duyệt đặc tả một FR bổ sung, chạy skill `spec-review`.
 
 ## 7. Ranh giới không được vượt
 

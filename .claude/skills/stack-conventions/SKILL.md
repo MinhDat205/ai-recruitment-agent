@@ -40,8 +40,10 @@ thật trong project trước khi viết, đừng suy ra từ "Jackson 3 nên m�
 
 ## JPA
 
-- `ddl-auto: validate`. Entity phải khớp chính xác schema trong `V1__init_schema.sql`.
-  App không khởi động được nếu lệch — đây là cơ chế bảo vệ, không phải lỗi cần né.
+- `ddl-auto: validate`. Entity phải khớp chính xác schema **tổng hợp từ toàn bộ file migration**
+  trong `backend/src/main/resources/db/migration/` (không chỉ `V1__init_schema.sql` — mỗi FR bổ
+  sung có thể đã thêm bảng/cột ở migration sau đó). App không khởi động được nếu lệch — đây là cơ
+  chế bảo vệ, không phải lỗi cần né.
 - `open-in-view: false`. Không lazy load ngoài transaction. Dùng `JOIN FETCH` hoặc DTO projection.
 - Kiểu cột đặc biệt trong schema này:
   - `JSONB` → map bằng `@JdbcTypeCode(SqlTypes.JSON)`
@@ -57,7 +59,8 @@ thật trong project trước khi viết, đừng suy ra từ "Jackson 3 nên m�
   Không hardcode chuỗi prompt giữa business logic.
 - Output LLM **luôn** phải validate theo schema. Dùng `BeanOutputConverter` + Bean Validation.
   Parse fail → retry một lần → ghi trạng thái `FAILED`, không để ngoại lệ làm sập luồng.
-- Ghi lại `model` và `prompt_version` vào DB cho mọi lần gọi — phục vụ audit ở FR-H08.
+- Ghi lại `model` và `prompt_version` vào DB cho mọi lần gọi — phục vụ audit ở FR-H08, và là siêu
+  dữ liệu bắt buộc K4 (CLAUDE.md §3d) cho mọi kết quả AI của FR bổ sung.
 - Dùng `.call().responseEntity(converter)`, **không phải** `.entity(converter)` — `entity()` vứt
   mất `ChatResponse`, mà cột `model`/`token_usage` (NOT NULL ở `resume_parsed_data`) cần đọc từ đó.
 - `BeanOutputConverter` dùng constructor 1 tham số `BeanOutputConverter(Class<T>)`. Overload 2
@@ -89,41 +92,78 @@ spring:
 không khởi động được, hoặc vỡ ngay khi có bean thứ hai tiêu thụ `ChatClient.Builder`. Lỗi này chỉ
 lộ ra khi chạy thật cả bộ test, không đoán trước được bằng đọc code.
 
-## Chạy nền
+## Chạy nền và gọi LLM đồng bộ
 
-Không có Redis, không có message queue, không dùng `@Async` (không xuất hiện trong code thật —
-xác nhận bằng `rg "@Async" backend/src/main/java`, 0 kết quả). Job nền chạy theo mô hình:
-bảng trạng thái (`resumes.parse_status`, `scoring_runs.status`) + `@Scheduled` poller, khớp đúng
-`ResumeParsingScheduler` (D1) và `ScoringRunScheduler` (D2) — cả hai chỉ dùng `@Scheduled`.
+Không có Redis, không có message queue, không dùng `@Async`. Job nền chạy theo mô hình: bảng
+trạng thái + `@Scheduled` poller (xem `resume/ResumeParsingScheduler`, `scoring/ScoringRunScheduler`
+và các `*Scheduler` khác trong tree ở dưới — tất cả chỉ dùng `@Scheduled`).
 
-Không gọi LLM đồng bộ trong request của người dùng — thời gian phản hồi LLM tính bằng chục giây.
+Quy tắc gọi LLM/embedding đồng bộ trong request: xem CLAUDE.md §7 — chỉ được phép cho FR trong
+danh sách ngoại lệ K3, với 6 điều kiện bắt buộc (không chép lại ở đây). Khi cần đặt số cho
+timeout/số lần retry của một lời gọi đồng bộ như vậy: **xác minh bằng `javap` trên jar Spring
+AI/Anthropic SDK/OpenAI SDK thật trong `~/.m2`** để biết đúng tham số/exception SDK trả về (ví dụ
+phân loại lỗi tạm thời vs vĩnh viễn), trích bằng chứng trong báo cáo — không đặt số hay đoán tên
+tham số theo trí nhớ.
 
 ## Cấu trúc package
 
-Chia theo **tính năng**, không theo tầng. Cây thật hiện tại (sau D2, `com.recruitment.*`):
+Chia theo **tính năng**, không theo tầng. Cây thật hiện tại (`com.recruitment.*`):
 
 ```
 com.recruitment/
-├── auth/  user/  company/  job/  interviewtemplate/  rubric/
-├── resume/  jobapplication/  scoring/  storage/  common/
+├── auth/  user/  company/  job/  jobapplication/  jobrecommendation/
+├── interviewtemplate/  interviewinvitation/  rubric/  resume/
+├── scoring/  dashboard/  notification/  ratelimit/  storage/  common/
 └── ai/
-    ├── client/     — cấu hình ChatClient/ChatModel (AnthropicChatModelConfig, *ChatClientConfig)
-    └── criterion/  — chấm từng tiêu chí rubric (FR-H04, D2)
+    ├── client/       — cấu hình ChatClient/ChatModel/EmbeddingModel (AnthropicChatModelConfig, *ChatClientConfig, OpenAiEmbeddingClientConfig)
+    ├── criterion/     — chấm từng tiêu chí rubric (FR-H04)
+    ├── explanation/   — sinh báo cáo giải thích điểm (FR-H06)
+    ├── cvimprovement/ — gọi LLM cho gợi ý cải thiện CV (FR-U05)
+    └── embedding/     — gọi EmbeddingModel (dùng chung cho FR-U04 và trích xuất CV)
 ```
 
-Lưu ý dễ đoán sai:
-- **Việc trích xuất CV → JSON (FR-C04, D1) nằm trong package `resume/`**
-  (`ResumeParsingOrchestrator`, `ResumeParsingService`, `ResumeParsedPayload`...), **không phải**
-  một subpackage `ai/parsing/` như sơ đồ dự kiến ban đầu — logic đó gắn với tính năng "hồ sơ CV"
-  hơn là tách riêng theo "AI". Đừng tạo `ai/parsing/` khi động vào D1.
-- `ai/prompt/` không phải package Java — prompt là resource file ở
-  `backend/src/main/resources/ai/prompt/*.st` (xem mục Spring AI 2.0 ở trên).
-- `ai/explanation/` (D4), `ai/recommendation/` (F1), `ai/improvement/` (F2) **chưa tồn tại** — đó
-  là dự kiến cho các nhánh chưa làm, không phải cây thật. Khi làm tới, cân nhắc lại việc tách
-  subpackage riêng dưới `ai/` hay gộp vào package tính năng (như `resume/` đã làm), tuỳ mức độ gắn
-  kết với logic nghiệp vụ xung quanh — không mặc định phải tách.
+Lưu ý dễ đoán sai — **nguyên tắc chung**: orchestrator/entity/scheduler gắn với một nghiệp vụ cụ
+thể đặt ở package TÍNH NĂNG đó, KHÔNG đặt dưới `ai/`; chỉ tầng gọi LLM/embedding thuần (không mang
+logic nghiệp vụ) mới nằm trong `ai/*`. Hai ví dụ đã có:
+- **Trích xuất CV → JSON (FR-C04) nằm trong package `resume/`** (`ResumeParsingOrchestrator`,
+  `ResumeParsingService`, `ResumeParsedPayload`...), không phải một subpackage `ai/parsing/`.
+- **Gợi ý cải thiện CV (FR-U05)**: orchestrator/entity (`resume/CvImprovementOrchestrator`,
+  `resume/CvImprovementRequest`, `resume/CvImprovementScheduler`...) nằm trong `resume/`; chỉ phần
+  gọi LLM thuần (`CvImprovementService`) nằm trong `ai/cvimprovement/`.
+- **Gợi ý việc làm (FR-U04)** không có `ai/recommendation/` — toàn bộ nằm trong package tính năng
+  riêng `jobrecommendation/` ở cấp gốc (không dưới `ai/`), chỉ gọi `ai/embedding/EmbeddingService`
+  khi cần vector hoá.
+
+`ai/prompt/` không phải package Java — prompt là resource file ở
+`backend/src/main/resources/ai/prompt/*.st` (xem mục Spring AI 2.0 ở trên).
 
 Không tạo `controllers/`, `services/`, `repositories/` ở cấp gốc.
+
+## Bẫy đã gặp ở Boot 4.1 / Hibernate 7
+
+- **MockMvc autoconfigure đổi package**: `@AutoConfigureMockMvc` import từ
+  `org.springframework.boot.webmvc.test.autoconfigure` (Boot 4), không phải
+  `org.springframework.boot.test.autoconfigure.web.servlet` (Boot 3). Không có `TestRestTemplate`
+  trong dự án — mọi integration test gọi HTTP qua `MockMvc`.
+- **Native query projection interface + cột enum**: khai getter kiểu `String` (ví dụ
+  `ApplicationSummaryView.getStatus()`, `StatusCountView.getStatus()`, `CandidateSearchRow.getStatus()`),
+  KHÔNG khai kiểu enum trực tiếp — Spring Data không tự convert `String` sang enum cho native
+  query projection, khai enum ném `ConverterNotFoundException` lúc chạy. Tầng service tự
+  `ApplicationStatus.valueOf(...)` sau khi đọc projection (xem `ApplicationSearchService`,
+  `ApplicationService`).
+- **`created_at`/`updated_at` do DB sinh, không do Java gán**: khai
+  `@Generated(event = EventType.INSERT)` (hoặc `{EventType.INSERT, EventType.UPDATE}` cho
+  `updated_at`) kèm `@Column(insertable = false, updatable = false)` — mẫu dùng nhất quán ở mọi
+  entity (`Job`, `JobApplication`, `ScoringRun`...). Thiếu `insertable/updatable = false` sẽ để
+  Hibernate cố gán giá trị Java, đè mất default/trigger của Postgres.
+- **Filter tự ghi thẳng `HttpServletResponse` phải gọi `flushBuffer()`** ngay sau khi ghi body
+  (xem `RateLimitFilter`) — nếu không, `ErrorPageFilter` (bọc ngoài chain Spring Security) thấy
+  response chưa commit, tự điều hướng sang xử lý lỗi mặc định và ghi đè mất body: client nhận
+  đúng status code nhưng body rỗng dù server đã log là đã ghi.
+- **`UUID.compareTo()` của Java KHÔNG cùng ngữ nghĩa với `ORDER BY id` của Postgres** trên cột
+  `uuid` (Java so hai `long` có dấu; Postgres so 16 byte không dấu) — không dùng để dự đoán hay
+  tái tạo thứ tự một truy vấn `ORDER BY id`. Muốn biết thứ tự thật, đọc lại từ chính
+  repository/truy vấn đó (tiền lệ đã sửa: `ScoringRunAuditService`).
 
 ## Test
 
@@ -132,13 +172,17 @@ Không tạo `controllers/`, `services/`, `repositories/` ở cấp gốc.
   Schema có JSONB, trigger, partial unique index... H2 không mô phỏng đúng được.
 - Mock LLM ở tầng `ChatModel` (không bọc interface riêng), default-answer **throw** cho mọi method
   chưa được stub tường minh (mẫu `LlmTestConfiguration`, package `resume`, dùng lại được cho mọi
-  test khác cần mock LLM — kể cả ở `ai/criterion`) — test nào quên `Mockito.doReturn(...).when(...)`
-  thì đỏ ngay, thay vì âm thầm gọi Anthropic thật qua `ANTHROPIC_API_KEY` giả trong
-  `application-test.yml`.
-- Job nền (`@Scheduled`) tắt qua `@ConditionalOnProperty` đọc từ `application-test.yml`
-  (`app.resume-parsing.enabled: false`, `app.scoring.enabled: false`) — tránh scheduler tự tick
-  gây nhiễu các `@SpringBootTest` khác đang dùng chung context cache. Test gọi thẳng
-  `orchestrator.processOne(id)`, không chờ scheduler tick.
+  test khác cần mock LLM) — test nào quên `Mockito.doReturn(...).when(...)` thì đỏ ngay, thay vì
+  âm thầm gọi Anthropic thật qua `ANTHROPIC_API_KEY` giả trong `application-test.yml`.
+- Job nền (`@Scheduled`) tắt qua `@ConditionalOnProperty` đọc từ `application-test.yml`. Cờ thật
+  hiện có: `app.resume-parsing.enabled`, `app.scoring.enabled`, `app.aggregation.enabled`,
+  `app.explanation.enabled`, `app.notification.enabled`, `app.cv-improvement.enabled`,
+  `app.job-embedding.enabled`, `app.resume-embedding.enabled`, `app.job-recommendation.enabled`,
+  `app.rate-limit.enabled` — tất cả `false` trong test. Test gọi thẳng `orchestrator.processOne(id)`
+  (hoặc tương đương), không chờ scheduler tick.
+- **FR mới có `@Scheduled` → bắt buộc thêm cờ tắt tương ứng vào `application-test.yml`**, cùng
+  khuôn với danh sách trên — thiếu cờ sẽ để scheduler mới tự tick trong `@SpringBootTest` khác
+  đang dùng chung context cache, gây nhiễu test không liên quan.
 
 ## Frontend
 
@@ -150,3 +194,8 @@ Không tạo `controllers/`, `services/`, `repositories/` ở cấp gốc.
   Không hardcode `http://localhost:8080` trong code.
 - Style: Tailwind v4 với token khai báo ở `@theme` trong `frontend/src/index.css`.
   Không tạo `tailwind.config.js`.
+- **3 bẫy token hay dính, xem chi tiết `docs/UI_GUIDE.md` mục 1b**: (1) token mới phải khai trong
+  khối `@theme` GỐC, không khai trong `@theme inline` (khối shadcn sinh ra, nằm sau nên đè mất);
+  (2) Tailwind v4 tham chiếu biến bằng ngoặc tròn `rounded-(--radius-card)`, không phải ngoặc
+  vuông; (3) `--accent` ở `:root` dùng chung với nhiều component shadcn (ví dụ `select.tsx` có
+  `focus:bg-accent`) — không sửa trực tiếp để đổi màu một nút riêng lẻ.

@@ -50,12 +50,13 @@ Reset sạch database khi migration hỏng: `docker compose down -v && docker co
 ├── backend/            Spring Boot, chia package theo tính năng
 ├── frontend/           React + Vite
 ├── docs/
-│   ├── SRS.md          Đặc tả yêu cầu chức năng — nguồn sự thật
+│   ├── SRS.md          Tổng quan hệ thống (39 mã FR) + đặc tả đầy đủ 18 FR đã hoàn thành
+│   ├── features/       Đặc tả từng FR bổ sung (<nhóm>/<mã>/REQUIREMENT.md + UI.md)
 │   ├── ROADMAP.md      Kế hoạch chia phase theo mã FR
 │   ├── TECH_STACK.md   Lý do chọn từng công nghệ
-│   ├── UI_GUIDE.md     Design token và quy ước giao diện
-│   ├── SETUP.md        Hướng dẫn khởi tạo từ đầu
-│   └── decisions/      Ghi lại các quyết định kiến trúc (ADR)
+│   ├── UI_GUIDE.md     Design token, quy tắc Material Design 3, bản đồ màn hình
+│   ├── walkthrough/    Tài liệu giải thích luồng + quyết định thiết kế của từng nhánh
+│   └── prompts/        Ghi chú/đề bài gốc dùng khi soạn yêu cầu cho Claude
 ├── CLAUDE.md           Ngữ cảnh cho công cụ AI hỗ trợ code
 └── docker-compose.yml
 ```

@@ -42,4 +42,5 @@ backend/src/main/resources/uploads/
 Thumbs.db
 desktop.ini
 
-.claude/
+.claude/*
+!.claude/skills/

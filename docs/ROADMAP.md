@@ -517,8 +517,8 @@ tương ứng ở đây.
 **Chuẩn bị**
 - [x] `docs/features-structure` — khung đặc tả 21 FR, cập nhật SRS.md (đợt 1); cập nhật CLAUDE.md,
   ROADMAP.md, UI_GUIDE.md (đợt 2)
-- [ ] `docs/skills-update` — cập nhật skill `fr-implement`, `srs-guard`, `walkthrough` theo quy
-  trình mới (đợt 3)
+- [x] `docs/skills-update` — cập nhật skill `fr-implement`, `srs-guard`, `walkthrough` theo quy
+  trình mới (đợt 3; thêm skill `spec-review`)
 - [ ] `chore/ui-md3-foundation` — khai token vai trò MD3 (tiền tố `m3-`) ánh xạ sang token hiện có
   theo UI_GUIDE.md; chọn sắc xanh cho nút Ứng tuyển đạt ≥4.5:1 với chữ trắng; không đổi giao diện
   màn hình cũ. BẮT BUỘC xong trước FR đầu tiên có giao diện.
