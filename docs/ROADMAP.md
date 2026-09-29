@@ -522,6 +522,7 @@ tương ứng ở đây.
 - [ ] `chore/ui-md3-foundation` — khai token vai trò MD3 (tiền tố `m3-`) ánh xạ sang token hiện có
   theo UI_GUIDE.md; chọn sắc xanh cho nút Ứng tuyển đạt ≥4.5:1 với chữ trắng; không đổi giao diện
   màn hình cũ. BẮT BUỘC xong trước FR đầu tiên có giao diện.
+- [ ] `fix/hr-company-onboarding` — HR chưa có hồ sơ công ty được chuyển tới /hr/company thay vì gặp trang lỗi (không gắn mã FR).
 
 **Phase 2.1 — Nền dữ liệu & gợi ý việc làm**
 - [ ] `feat/fr-c05-catalog` — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu
@@ -532,7 +533,22 @@ tương ứng ở đây.
 **Xong khi:** tin/hồ sơ thiếu dữ liệu chuẩn hoá vẫn hiện kèm nhãn, không bị loại âm thầm; ứng viên
 chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
 
+**Phase 2.1b — Đồng bộ giao diện cũ theo MD3 (BẮT BUỘC trước Phase 2.2)**
+- [ ] `refactor/ui-md3-legacy` — áp UI_GUIDE.md (token `m3-*`, mục 2 điều hướng, mục 3 component, mục 4 ràng buộc) cho mọi màn hình cũ CHƯA được FR ở Phase 2.1 làm lại. Không đổi hành vi, không sửa backend. Chia đợt theo khu vực: (1) layout, (2) công khai + ứng viên, (3) HR, (4) badge + soát tổng. Danh sách việc:
+  - Layout: PublicHeader thêm menu mobile (< sm hiện không có đường vào danh sách việc làm); HrLayout theo navigation drawer ≥ lg / rail < lg; CandidateLayout menu sheet < md.
+  - PublicJobDetailPage giữ điều hướng ứng viên khi đã đăng nhập (nếu FR-U07 chưa sửa); PublicCompanyProfilePage.
+  - Nút Ứng tuyển (`ApplyButton.tsx`, hiện `bg-accent` + chữ trắng 2.29:1) → `bg-m3-tertiary`; JobApplyPage/JobApplyForm.
+  - Card việc làm (nếu FR-U07 chưa làm lại): lương `#008C45` chỉ 4.34:1; hạn nộp chưa ở góc phải card; ô logo trống khi công ty chưa có logo (hiện chữ viết tắt hoặc icon `Building2`).
+  - Badge trạng thái đơn (`ApplicationStatusBadge`): bỏ xanh lá "Trúng tuyển" / đỏ "Bị từ chối", chuyển sang bảng màu trung tính; áp cho mọi nơi hiển thị trạng thái.
+  - HR: HrHomePage, HrJobListPage, HrCandidatesPage, HrJobEditPage (4 tab, gồm ApplicationsTab và báo cáo giải thích), CompanyProfilePage, HrNotificationsPage.
+  - Ứng viên: CandidateApplicationsPage + dòng thời gian lịch sử, CandidateProfilePage (phần FR-U14 chưa đụng), danh sách CV, CvImprovementSuggestionsPage, CandidateNotificationsPage.
+  - LoginPage, RegisterPage.
+  - Màn hình nào đã được FR ở Phase 2.1 làm lại hoàn toàn theo MD3 thì ghi "đã làm ở FR-xxx" và bỏ qua.
+
+**Xong khi:** mọi route "Hiện có" trong UI_GUIDE mục 7 dùng token `m3-*` (không còn `bg-brand`/`text-ink`/`bg-accent`... trong code tầng tính năng, kiểm bằng rg); chữ trên nền màu đạt ≥ 4.5:1 (có bảng số đo); badge trạng thái không dùng cặp xanh/đỏ; `mvnw test` + `npm run build` + `npm run lint` sạch, `git diff --stat main -- backend` rỗng; soát bằng mắt từng route ở cả khổ desktop và điện thoại. Sau khi xong: cập nhật UI_GUIDE mục 0 — bỏ câu "màn hình cũ giữ nguyên tới nhánh refactor/ui-md3-legacy", token cũ chỉ còn để tương thích.
+
 **Phase 2.2 — Hồ sơ đơn & trao đổi**
+> Chỉ bắt đầu khi `refactor/ui-md3-legacy` (Phase 2.1b) đã tick.
 - [ ] `feat/fr-h09-application-detail` — FR-H09 · Trang hồ sơ đơn ứng tuyển
 - [ ] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển
 - [ ] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển
@@ -573,11 +589,6 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 
 **Xong khi:** bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu
 ứng viên nhập.
-
-**Làm sau** (không theo thứ tự trên, chỉ làm khi tôi yêu cầu):
-- [ ] `refactor/ui-md3-legacy` — áp UI_GUIDE.md mới cho màn hình cũ: badge trạng thái trung tính,
-  nút Ứng tuyển đạt tương phản, menu mobile cho PublicHeader, PublicJobDetailPage giữ điều hướng
-  khi ứng viên đã đăng nhập (nếu FR-U07 chưa sửa).
 
 ---
 

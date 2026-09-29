@@ -48,6 +48,8 @@ Làm tuần tự từ trên xuống. Mỗi FR chỉ bắt đầu khi mọi mục
 | 3 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | `feat/fr-u14-career-profile` | FR-U01, FR-C05, FR-U04 |
 | 4 | FR-U15 | Gợi ý việc làm theo hồ sơ (mở rộng FR-U04) | `feat/fr-u15-profile-recommend` | FR-U14, FR-U07, FR-C05, FR-U04 |
 
+**Mốc 2.1b (bắt buộc trước Phase 2.2):** `refactor/ui-md3-legacy` — đồng bộ giao diện cũ theo MD3, chi tiết ở docs/ROADMAP.md.
+
 **Xong phase khi:** Tin/hồ sơ thiếu dữ liệu chuẩn hoá vẫn hiện kèm nhãn, không bị loại âm thầm; ứng viên chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
 
 ### Phase 2.2 — Hồ sơ đơn & trao đổi
