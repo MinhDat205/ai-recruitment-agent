@@ -10,9 +10,11 @@ Người đọc là sinh viên chưa từng đọc codebase này.
 
 ## Nơi lưu
 
-`docs/walkthrough/<tên-nhánh-không-có-tiền-tố>.md`
+`docs/walkthrough/<tên-file>.md`, tên file suy từ tên nhánh:
 
-Ví dụ nhánh `feat/fr-c01-auth` → `docs/walkthrough/fr-c01-auth.md`
+- Nhánh `feat/`: bỏ tiền tố — `feat/fr-c01-auth` → `docs/walkthrough/fr-c01-auth.md`
+- Nhánh `chore/` và `fix/`: giữ tiền tố, đổi `/` thành `-` — `chore/hardening` →
+  `docs/walkthrough/chore-hardening.md`
 
 Lấy tên nhánh bằng `git branch --show-current`.
 

@@ -37,6 +37,57 @@
   --radius-badge:       4px;
 
   --font-sans: "Be Vietnam Pro", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Token vai tro MD3 cho man hinh FR bo sung — xem UI_GUIDE muc 1c-1g.
+     Chi man hinh moi dung; man hinh cu giu token brand/ink/line... */
+  --color-m3-primary:                #0078C9;
+  --color-m3-on-primary:             #FFFFFF;
+  --color-m3-primary-container:      #E6F2FA;
+  --color-m3-on-primary-container:   #1E5C8B;
+  --color-m3-tertiary:               #007A3D;
+  --color-m3-on-tertiary:            #FFFFFF;
+  --color-m3-error:                  #E11B3E;
+  --color-m3-surface:                #FFFFFF;
+  --color-m3-surface-container:      #F0F0F0;
+  --color-m3-surface-container-high: #EEF2F7;
+  --color-m3-on-surface:             #1F2937;
+  --color-m3-on-surface-variant:     #6B7280;
+  --color-m3-outline-variant:        #E7E7E9;
+
+  --text-m3-headline-sm:              24px;
+  --text-m3-headline-sm--line-height: 32px;
+  --text-m3-headline-sm--font-weight: 600;
+  --text-m3-title-lg:                 20px;
+  --text-m3-title-lg--line-height:    28px;
+  --text-m3-title-lg--font-weight:    600;
+  --text-m3-title-md:                 16px;
+  --text-m3-title-md--line-height:    24px;
+  --text-m3-title-md--font-weight:    500;
+  --text-m3-body-lg:                  16px;
+  --text-m3-body-lg--line-height:     24px;
+  --text-m3-body-lg--font-weight:     400;
+  --text-m3-body-md:                  14px;
+  --text-m3-body-md--line-height:     20px;
+  --text-m3-body-md--font-weight:     400;
+  --text-m3-body-sm:                  13px;
+  --text-m3-body-sm--line-height:     18px;
+  --text-m3-body-sm--font-weight:     400;
+  --text-m3-label-lg:                 14px;
+  --text-m3-label-lg--line-height:    20px;
+  --text-m3-label-lg--font-weight:    500;
+  --text-m3-label-md:                 12px;
+  --text-m3-label-md--line-height:    16px;
+  --text-m3-label-md--font-weight:    500;
+
+  --radius-m3-xs:     4px;
+  --radius-m3-sm:     8px;
+  --radius-m3-button: 6px;
+  --radius-m3-md:     12px;
+  --radius-m3-lg:     16px;
+
+  /* Chep nguyen van --shadow-sm / --shadow-md tu tailwindcss 4.3.3 theme.css */
+  --shadow-m3-1: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-m3-3: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 html {
