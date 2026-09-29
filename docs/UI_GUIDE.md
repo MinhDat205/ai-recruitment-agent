@@ -16,14 +16,18 @@ Bắt buộc cho mọi màn hình của 21 FR bổ sung. Màn hình cũ giữ ng
 `refactor/ui-md3-legacy`; khi làm FR mới, không tự sửa màn hình cũ trừ khi REQUIREMENT.md/UI.md
 đã duyệt yêu cầu.
 
+Màn hình mới chỉ dùng token `m3-*` cho màu, chữ, bo góc, độ nổi; token cũ (`brand`, `ink`...) giữ
+cho màn hình cũ.
+
 ---
 
 ## 1. Token
 
 ### 1a. Token hiện có
 
-Khai báo một lần trong khối `@theme` GỐC của `frontend/src/index.css` (dòng 7-40), mọi component
-dùng qua biến — không hardcode hex. Bảng dưới chép đúng từng dòng của khối đó:
+Khai báo một lần trong khối `@theme` GỐC của `frontend/src/index.css` (khối `@theme` đầu tiên,
+không có từ khoá `inline`), mọi component dùng qua biến — không hardcode hex. Bảng dưới chép đúng
+từng token cũ của khối đó:
 
 | Token (biến CSS) | Class Tailwind | Giá trị | Dùng cho |
 |---|---|---|---|
@@ -53,59 +57,68 @@ dùng qua biến — không hardcode hex. Bảng dưới chép đúng từng dò
 | `--radius-badge` | `rounded-(--radius-badge)` | `4px` | Bo góc badge, tag |
 | `--font-sans` | (mặc định `font-sans`) | `"Be Vietnam Pro", "Inter", system-ui, ...` | Font toàn app |
 
-25 dòng, khớp chính xác khối `@theme` gốc (12 màu cơ bản + 10 màu trạng thái đơn + 2 bán kính bo
-góc + 1 font). Dùng trong component: `bg-brand`, `text-ink-muted`, `border-line`,
+25 token cũ khớp khối `@theme` gốc (12 màu cơ bản + 10 màu trạng thái đơn + 2 bán kính bo góc +
+1 font); token `m3-*` xem mục 1c. Dùng trong component: `bg-brand`, `text-ink-muted`, `border-line`,
 `rounded-(--radius-card)`.
 
 ### 1b. Bẫy
 
-- **Token mới phải khai trong khối `@theme` GỐC (dòng 7-40), không khai trong `@theme inline`**
-  (khối shadcn sinh ra, dòng 67-107) — `@theme inline` nằm SAU nên đè mọi biến trùng tên (đã dính:
+- **Token mới phải khai trong khối `@theme` GỐC (khối `@theme` đầu tiên, không có từ khoá
+  `inline`), không khai trong khối `@theme inline` của shadcn** — `@theme inline` nằm SAU nên đè
+  mọi biến trùng tên (đã dính:
   `--font-sans`, `--color-accent`).
 - **Tailwind v4 tham chiếu biến bằng ngoặc TRÒN**: `rounded-(--radius-card)`, KHÔNG phải
   `rounded-[--radius-card]` (cú pháp v3, sinh CSS không hợp lệ, âm thầm mất tác dụng).
-- **`--accent` ở `:root` (dòng 122 `index.css`) đồng thời là màu tô dùng chung của component
-  shadcn**, không riêng cho nút "Ứng tuyển" — ví dụ `components/ui/select.tsx:113` có
-  `focus:bg-accent focus:text-accent-foreground`. Muốn đổi màu nút "Ứng tuyển" phải dùng token
+- **`--accent` trong `:root` của `index.css` đồng thời là màu tô dùng chung của component
+  shadcn**, không riêng cho nút "Ứng tuyển" — ví dụ `components/ui/select.tsx` (dùng focus:bg-accent). Muốn đổi màu nút "Ứng tuyển" phải dùng token
   riêng `m3-tertiary` (mục 1c), KHÔNG sửa `--accent` — sửa `--accent` sẽ làm mọi dropdown/menu
   shadcn dùng `focus:bg-accent` đổi màu theo, không chỉ riêng nút Ứng tuyển.
 
-### 1c. Token vai trò MD3 (đích — khai ở `chore/ui-md3-foundation`)
+### 1c. Token vai trò MD3 (đã khai — `chore/ui-md3-foundation`)
 
-Chưa tồn tại trong `index.css` hiện tại. BẮT BUỘC dùng tiền tố `m3-` vì shadcn đã chiếm
-`--color-primary/secondary/accent/muted/destructive`. Bảng ánh xạ:
+Khai ở cuối khối `@theme` GỐC của `frontend/src/index.css`, sau `--font-sans`. BẮT BUỘC dùng
+tiền tố `m3-` vì shadcn đã chiếm `--color-primary/secondary/accent/muted/destructive`. Class
+`bg-`/`text-`/`border-` dùng được cho mọi màu; bảng chỉ ghi class điển hình.
 
-| Token MD3 | Giá trị / ánh xạ |
-|---|---|
-| `m3-primary` | `#0078C9` (brand) |
-| `m3-on-primary` | `#FFFFFF` |
-| `m3-primary-container` | `#E6F2FA` (brand-light) |
-| `m3-on-primary-container` | `#1E5C8B` (brand-dark) |
-| `m3-tertiary` | sắc xanh cho hành động Ứng tuyển (phải đạt ≥4.5:1 với chữ trắng; `#1AC639` và `#008C45` đều không đạt — xem mục 6, kết quả V2) |
-| `m3-error` | `#E11B3E` |
-| `m3-surface` | `#FFFFFF` |
-| `m3-surface-container` | `#F0F0F0` (canvas) |
-| `m3-surface-container-high` | sắc xám nhạt dùng cho khối nội dung AI |
-| `m3-on-surface` | `#1F2937` |
-| `m3-on-surface-variant` | `#6B7280` |
-| `m3-outline-variant` | `#E7E7E9` |
+| Token MD3 (biến CSS `--color-…`) | Class Tailwind | Giá trị / ánh xạ |
+|---|---|---|
+| `m3-primary` | `bg-m3-primary`, `text-m3-primary` | `#0078C9` (brand) |
+| `m3-on-primary` | `text-m3-on-primary` | `#FFFFFF` — trên `m3-primary` đạt 4.64:1 |
+| `m3-primary-container` | `bg-m3-primary-container` | `#E6F2FA` (brand-light) |
+| `m3-on-primary-container` | `text-m3-on-primary-container` | `#1E5C8B` (brand-dark) — trên `m3-primary-container` đạt 6.23:1 |
+| `m3-tertiary` | `bg-m3-tertiary` | `#007A3D` — nút Ứng tuyển ở màn hình mới; chữ trắng đạt **5.45:1** (mục 6) |
+| `m3-on-tertiary` | `text-m3-on-tertiary` | `#FFFFFF` |
+| `m3-error` | `text-m3-error`, `bg-m3-error` | `#E11B3E` — trên `m3-surface` đạt 4.74:1 |
+| `m3-surface` | `bg-m3-surface` | `#FFFFFF` |
+| `m3-surface-container` | `bg-m3-surface-container` | `#F0F0F0` (canvas) |
+| `m3-surface-container-high` | `bg-m3-surface-container-high` | `#EEF2F7` — khối nội dung AI (mục 4); `m3-on-surface` trên nền này đạt **13.06:1** |
+| `m3-on-surface` | `text-m3-on-surface` | `#1F2937` — trên `m3-surface` đạt 14.68:1 |
+| `m3-on-surface-variant` | `text-m3-on-surface-variant` | `#6B7280` — chỉ đặt trên `m3-surface` (4.83:1), xem mục 6 |
+| `m3-outline-variant` | `border-m3-outline-variant` | `#E7E7E9` — chỉ để phân khối, xem mục 6 |
 
 Không thêm màu thương hiệu mới.
 
+**Class `m3-*` chỉ xuất hiện trong CSS build khi có component dùng tới.** Tailwind 4.3.3 tự loại
+biến theme không dùng (chỉ giữ biến có cờ used/static), nên lúc chưa có màn hình nào dùng,
+`grep m3- dist/assets/*.css` ra 0 — đó không phải lỗi thiếu token. Không thêm `@theme static` để
+"ép" chúng xuất hiện.
+
 ### 1d. Thang chữ
 
-Giữ các cỡ hiện có, gán tên vai trò MD3:
+Giữ các cỡ hiện có, gán tên vai trò MD3. Mỗi class sinh cả `font-size`, `line-height` và
+`font-weight` (khai bằng khoá con `--text-m3-…--line-height` / `--font-weight`); không cần thêm
+`font-medium`/`leading-*`.
 
-| Vai trò MD3 | Cỡ/line-height | Trọng lượng | Dùng cho |
-|---|---|---|---|
-| Headline Small | 24/32 | 600 | Tiêu đề trang |
-| Title Large | 20/28 | 600 | Tiêu đề section |
-| Title Medium | 16/24 | 500 | Tiêu đề card |
-| Body Large | 16/24 | 400 | Nội dung dài (mô tả job) |
-| Body Medium | 14/20 | 400 | Nội dung thường |
-| Body Small | 13/18 | 400 | Meta (lệch MD3 12/16 có chủ đích để tiếng Việt có dấu dễ đọc) |
-| Label Large | 14/20 | 500 | Nút |
-| Label Medium | 12/16 | 500 | Chip, badge |
+| Vai trò MD3 | Class Tailwind | Cỡ/line-height (px) | Trọng lượng | Dùng cho |
+|---|---|---|---|---|
+| Headline Small | `text-m3-headline-sm` | 24/32 | 600 | Tiêu đề trang |
+| Title Large | `text-m3-title-lg` | 20/28 | 600 | Tiêu đề section |
+| Title Medium | `text-m3-title-md` | 16/24 | 500 | Tiêu đề card |
+| Body Large | `text-m3-body-lg` | 16/24 | 400 | Nội dung dài (mô tả job) |
+| Body Medium | `text-m3-body-md` | 14/20 | 400 | Nội dung thường |
+| Body Small | `text-m3-body-sm` | 13/18 | 400 | Meta (lệch MD3 12/16 có chủ đích để tiếng Việt có dấu dễ đọc) |
+| Label Large | `text-m3-label-lg` | 14/20 | 500 | Nút |
+| Label Medium | `text-m3-label-md` | 12/16 | 500 | Chip, badge |
 
 Font giữ Be Vietnam Pro/Inter (không dùng Roboto). Chỉ dùng hai trọng lượng: 400 và 500/600.
 
@@ -113,11 +126,13 @@ Font giữ Be Vietnam Pro/Inter (không dùng Roboto). Chỉ dùng hai trọng l
 
 Giữ giá trị hiện có, ánh xạ vào thang MD3:
 
-- Extra-small `4px` — badge, tag, chip
-- Small `8px` — card
-- `6px` cho nút (giữ hiện trạng, không đổi sang dạng pill)
-- Medium `12px` — dialog, menu
-- Large `16px` — sheet
+| Mức | Class Tailwind | Giá trị | Dùng cho |
+|---|---|---|---|
+| Extra-small | `rounded-m3-xs` | `4px` | Badge, tag, chip |
+| Small | `rounded-m3-sm` | `8px` | Card |
+| (nút) | `rounded-m3-button` | `6px` | Nút (giữ hiện trạng, không đổi sang dạng pill) |
+| Medium | `rounded-m3-md` | `12px` | Dialog, menu |
+| Large | `rounded-m3-lg` | `16px` | Sheet |
 
 ### 1f. Khoảng cách
 
@@ -125,9 +140,14 @@ Lưới 4px; chỉ dùng 4 / 8 / 12 / 16 / 24 / 32 / 48.
 
 ### 1g. Độ nổi
 
-- Level 0 = phẳng + viền `outline-variant`
-- Level 1 = `shadow-sm` (card khi hover)
-- Level 3 = `shadow-md` (dialog, menu, sheet)
+| Mức | Class Tailwind | Giá trị | Dùng cho |
+|---|---|---|---|
+| Level 0 | `border border-m3-outline-variant` (không shadow) | phẳng + viền | Mặc định |
+| Level 1 | `shadow-m3-1` | bằng `shadow-sm` của Tailwind 4.3.3 | Card khi hover |
+| Level 3 | `shadow-m3-3` | bằng `shadow-md` của Tailwind 4.3.3 | Dialog, menu, sheet |
+
+Khoảng cách (1f) và trạng thái tương tác (1h) KHÔNG có token riêng: khoảng cách dùng thang mặc
+định của Tailwind (bước 4px), trạng thái tương tác dùng opacity modifier (`hover:bg-m3-primary/8`).
 
 ### 1h. Trạng thái tương tác
 
@@ -206,6 +226,10 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 lời hỏi đáp CV, gợi ý diễn đạt): luôn có nhãn "Do AI tạo" + icon (lucide `Sparkles`), nằm trong
 khối `m3-surface-container-high`, và chỉ có hiệu lực sau khi người dùng bấm (Dùng bản nháp / Lưu /
 Bỏ qua). Không có luồng tự gửi.
+- Khối AI = `bg-m3-surface-container-high` + viền `border border-m3-outline-variant` (bắt buộc: nền
+  này so với nền trắng chỉ 1.12:1, thiếu viền thì không thấy khối).
+- Chữ trong khối chỉ dùng `text-m3-on-surface` (13.06:1). KHÔNG dùng màu chữ phụ
+  (`m3-on-surface-variant` chỉ đạt 4.30:1 trên nền này).
 
 **Trích dẫn từ CV** (C08, H13) dùng đúng kiểu hiển thị evidence của FR-H06 (mục "Màn hình giải
 thích điểm" ở trên).
@@ -242,8 +266,15 @@ thanh màu, không nhãn "phù hợp".
   dùng làm màu nền badge với chữ trắng, không dùng làm màu chữ.
 - **Kết quả đo (V2)**: chữ trắng trên `--color-accent` (`#1AC639`) đạt **2.29:1**; trên
   `--color-accent-dark` (`#008C45`) đạt **4.34:1**. **Cả hai đều dưới 4.5:1** — nút "Ứng tuyển"
-  hiện tại (`ApplyButton.tsx`, `bg-accent` + chữ trắng) không đạt tiếp cận. Xử lý bằng token
-  `m3-tertiary` (mục 1c) khi làm `chore/ui-md3-foundation`.
+  hiện tại (`ApplyButton.tsx`, `bg-accent` + chữ trắng) không đạt tiếp cận. Màn hình mới dùng token
+  `m3-tertiary` `#007A3D` (mục 1c): chữ trắng đạt **5.45:1**. Nút ở màn hình cũ đổi ở
+  `refactor/ui-md3-legacy`.
+- **Chữ phụ:** `m3-on-surface-variant` chỉ đặt trên `m3-surface` (thẻ trắng, 4.83:1). Trên
+  `m3-surface-container` (4.24:1) và `m3-surface-container-high` (4.30:1) dùng `m3-on-surface`.
+- **Viền:** `m3-outline-variant` so với nền trắng chỉ 1.23:1 — chỉ dùng để phân khối, KHÔNG dùng làm
+  viền cho thành phần điều khiển (ô nhập, checkbox). Thành phần điều khiển cần viền ≥ 3:1 (WCAG
+  1.4.11); màu cụ thể xác định khi FR đầu tiên cần tới.
+- Số đo trên tính theo công thức relative luminance của WCAG 2.1.
 - Mọi icon-only button phải có `aria-label`.
 - Không truyền đạt thông tin chỉ bằng màu — badge trạng thái luôn kèm chữ.
 
