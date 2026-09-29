@@ -3,7 +3,18 @@ import { isAxiosError } from 'axios'
 import { createCompanyRequest, getMyCompanyRequest, updateCompanyRequest, uploadLogoRequest } from './ownerApi'
 import type { CompanyOwnerRequest } from './ownerTypes'
 
-const MY_COMPANY_QUERY_KEY = ['hr-company', 'me']
+export const MY_COMPANY_QUERY_KEY = ['hr-company', 'me']
+
+// GET /api/hr/companies/me tra 404 + { error: 'COMPANY_NOT_FOUND' } khi HR chua tao cong ty
+// (CompanyOwnerService.getMine). Kiem ca status LAN ma loi - 404 khac (vd sai duong dan) khong
+// duoc hieu nham thanh "chua co cong ty".
+export function isCompanyNotCreatedError(error: unknown): boolean {
+  if (!isAxiosError(error) || error.response?.status !== 404) {
+    return false
+  }
+  const data = error.response.data as { error?: unknown } | undefined
+  return data?.error === 'COMPANY_NOT_FOUND'
+}
 
 export function useMyCompanyQuery() {
   return useQuery({

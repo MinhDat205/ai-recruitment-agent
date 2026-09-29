@@ -1,6 +1,7 @@
-import { Navigate, BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Navigate, BrowserRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { RequireCompany } from './features/companies/RequireCompany'
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CandidateJobListPage } from './pages/CandidateJobListPage'
@@ -87,51 +88,29 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Moi route /hr/* MOI mac dinh dat trong nhom nay (can ho so cong ty). Chi route nao
+              chac chan dung duoc khi HR chua co cong ty moi dat ngoai nhom, nhu /hr/company va
+              /hr/notifications ben duoi. */}
           <Route
-            path="/hr"
             element={
               <ProtectedRoute allowedRoles={['HR']}>
-                <HrHomePage />
+                <RequireCompany>
+                  <Outlet />
+                </RequireCompany>
               </ProtectedRoute>
             }
-          />
+          >
+            <Route path="/hr" element={<HrHomePage />} />
+            <Route path="/hr/candidates" element={<HrCandidatesPage />} />
+            <Route path="/hr/jobs" element={<HrJobListPage />} />
+            <Route path="/hr/jobs/new" element={<HrJobCreatePage />} />
+            <Route path="/hr/jobs/:id/edit" element={<HrJobEditPage />} />
+          </Route>
           <Route
             path="/hr/company"
             element={
               <ProtectedRoute allowedRoles={['HR']}>
                 <CompanyProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/candidates"
-            element={
-              <ProtectedRoute allowedRoles={['HR']}>
-                <HrCandidatesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/jobs"
-            element={
-              <ProtectedRoute allowedRoles={['HR']}>
-                <HrJobListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/jobs/new"
-            element={
-              <ProtectedRoute allowedRoles={['HR']}>
-                <HrJobCreatePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hr/jobs/:id/edit"
-            element={
-              <ProtectedRoute allowedRoles={['HR']}>
-                <HrJobEditPage />
               </ProtectedRoute>
             }
           />
