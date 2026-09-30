@@ -106,19 +106,28 @@ class ResumeReparseEndpointTest {
     }
 
     private UUID createResume(UUID candidateId, ParseStatus status) {
+        return createResume(candidateId, status, true);
+    }
+
+    // uq_resume_primary_per_candidate: moi ung vien chi mot CV chinh - CV thu hai tro di phai isPrimary=false.
+    private UUID createResume(UUID candidateId, ParseStatus status, boolean primary) {
         Resume resume = new Resume();
         resume.setCandidateId(candidateId);
         resume.setFileUrl("resumes/" + UUID.randomUUID() + ".pdf");
         resume.setFileName("cv.pdf");
         resume.setFileType(ResumeFileType.PDF);
         resume.setFileSize(1024L);
-        resume.setPrimary(true);
+        resume.setPrimary(primary);
         resume.setParseStatus(status);
         return resumeRepository.save(resume).getId();
     }
 
     private UUID createParsedResume(UUID candidateId, String promptVersion) {
-        UUID resumeId = createResume(candidateId, ParseStatus.DONE);
+        return createParsedResume(candidateId, promptVersion, true);
+    }
+
+    private UUID createParsedResume(UUID candidateId, String promptVersion, boolean primary) {
+        UUID resumeId = createResume(candidateId, ParseStatus.DONE, primary);
         ResumeParsedData data = new ResumeParsedData();
         data.setResumeId(resumeId);
         data.setRawText("CV goc gia lap");
@@ -321,8 +330,8 @@ class ResumeReparseEndpointTest {
     void listMine_includesSchemaVersionAndLatestReparse() throws Exception {
         Auth candidate = registerAndLogin("candidate", "reparse-list");
         UUID v1Resume = createParsedResume(candidate.userId(), "resume-parse-v1");
-        UUID v2Resume = createParsedResume(candidate.userId(), ResumeParsingService.PROMPT_VERSION);
-        UUID pendingResume = createResume(candidate.userId(), ParseStatus.PENDING);
+        UUID v2Resume = createParsedResume(candidate.userId(), ResumeParsingService.PROMPT_VERSION, false);
+        UUID pendingResume = createResume(candidate.userId(), ParseStatus.PENDING, false);
         ResumeReparseRequest failed = createRequest(v1Resume, ResumeReparseRequestStatus.FAILED);
         failed.setErrorMessage(ResumeParsingErrorCode.LLM_INVALID_JSON.formatted());
         reparseRequestRepository.saveAndFlush(failed);

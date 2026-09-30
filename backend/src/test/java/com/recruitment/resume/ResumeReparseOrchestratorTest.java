@@ -48,6 +48,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -324,8 +325,13 @@ class ResumeReparseOrchestratorTest {
 
         assertThat(parseStatusDuringLlm.get()).isEqualTo("DONE");
         assertThat(requestStatusDuringLlm.get()).isEqualTo("RUNNING");
-        // Dau vao LLM la raw_text DA LUU (khong doc file - file khong ton tai).
-        assertThat(sentPrompt.get().getUserMessage().getText()).isEqualTo(RAW_TEXT);
+        // Dau vao LLM la raw_text DA LUU (khong doc file - file khong ton tai). ChatClient.responseEntity(converter)
+        // cua Spring AI 2.0 tu noi huong dan dinh dang JSON cua BeanOutputConverter vao CUOI user message -
+        // ngoai phan do, user message phai dung bang raw_text, khong them/bot gi.
+        String userText = sentPrompt.get().getUserMessage().getText();
+        assertThat(userText).startsWith(RAW_TEXT);
+        assertThat(userText.substring(RAW_TEXT.length()).strip())
+                .isEqualTo(new BeanOutputConverter<>(ResumeParsedPayload.class).getFormat().strip());
 
         ResumeParsedData after = reloadParsed(seeded.parsedDataId());
         assertThat(after.getId()).isEqualTo(seeded.parsedDataId());
