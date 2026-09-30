@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatDeadline } from '@/lib/date'
+import { jobCategoryText, jobLocationText } from './catalogDisplay'
 import type { JobSummary } from './types'
 
 function formatSalary(job: JobSummary): string | null {
@@ -17,6 +18,8 @@ function formatSalary(job: JobSummary): string | null {
 
 export function JobCard({ job }: { job: JobSummary }) {
   const salary = formatSalary(job)
+  const locationText = jobLocationText(job)
+  const categoryText = jobCategoryText(job)
 
   return (
     <Link
@@ -36,15 +39,17 @@ export function JobCard({ job }: { job: JobSummary }) {
         {salary && <p className="text-sm font-medium text-accent-dark">{salary}</p>}
         <p className="text-xs text-ink-muted">Hạn nộp: {formatDeadline(job.deadline)}</p>
 
+        {/* FR-C05 R-J7: nhan cua ma -> gia tri cu -> "Lam tu xa". Thieu han thi AN chip (ngoai le da
+            duyet, UI.md muc 4d); khong hien nhan "Chua chuan hoa" o phia cong khai. */}
         <div className="mt-1 flex flex-wrap gap-2">
-          {job.location && (
+          {locationText && (
             <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
-              {job.location}
+              {locationText}
             </span>
           )}
-          {job.category && (
+          {categoryText && (
             <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
-              {job.category}
+              {categoryText}
             </span>
           )}
         </div>

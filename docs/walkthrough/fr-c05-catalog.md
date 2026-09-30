@@ -50,6 +50,45 @@
 - **Seed**: `dev-seed.sql` và `seed-demo-structural.sql` ghi `category_code`/`location_code`, cột cũ
   để NULL; `reset-demo-db.sql` TRUNCATE thêm `resume_reparse_requests`.
 
+### Đợt 3 — frontend phía Job
+
+File: `index.css` (token `m3-outline`), `docs/UI_GUIDE.md` (mục 1c, 6, 7); mới `features/catalog/`
+(`types`, `api`, `queries`, `normalize`, `CatalogCombobox`), `features/jobs/catalogDisplay.ts`,
+`CatalogField.tsx`, `JobLocationCell.tsx`, `UnnormalizedBadge.tsx`; sửa `features/jobs/types.ts`,
+`ownerTypes.ts`, `JobCard.tsx`, `pages/HrJobCreatePage.tsx`, `HrJobEditPage.tsx`, `HrJobListPage.tsx`,
+`PublicJobDetailPage.tsx`. Không đụng `HeroSearch.tsx`, không sửa backend.
+
+- **Kiểu dữ liệu bỏ hẳn `category`/`location`** ở `JobSummary`, `JobDetail`, `JobOwnerResponse` và
+  `JobOwnerRequest` → `tsc -b` là chốt chặn chỗ sót (build sạch). `JobSearchParams.location/category`
+  giữ nguyên: đó là ô tìm kiếm tự do của FR-C02, không phải field của Job.
+- **Payload gửi `null` tường minh** cho `categoryCode`/`locationCode` khi chưa chọn (không `""`, không bỏ
+  field) — form giữ giá trị `string | null`, zod `z.string().nullable()`.
+- **`CatalogCombobox`**: nút trigger `role="combobox"` + popover (Radix, `popover.tsx`) chứa ô tìm kiếm và
+  `role="listbox"`; bàn phím ↑/↓/Enter trên ô tìm (`aria-activedescendant`), Esc do Radix đóng và trả
+  focus về trigger; ↓ trên trigger mở popover. "Bỏ chọn" là dòng cuối của listbox (điều hướng được bằng
+  phím, luôn có mặt kể cả khi không có mục khớp). Chọn bằng `mousedown` để giữ focus ở ô tìm.
+  Không cho nhập tự do. Popover rộng bằng ô qua `--radix-popover-trigger-width`.
+- **Lọc chỉ trên nhãn** (bỏ dấu, không phân biệt hoa/thường, `normalizeForSearch`). API không trả bí danh
+  nên gõ "HCM" hay tên tỉnh cũ ("Bình Dương") KHÔNG ra kết quả trong combobox — đúng phạm vi UI.md mục 5
+  ("tìm trên nhãn"); ghi nhận để U07 cân nhắc nếu cần.
+- **Nhãn ô dùng `Label` shadcn cũ** (giữ đồng bộ với các ô cũ trong form); phần mới (combobox, dòng gợi ý,
+  dòng "Giá trị cũ", nhãn "Chưa chuẩn hoá", khung cảnh báo) dùng token `m3-*` theo ngoại lệ UI.md mục 1.
+- **Dòng "Giá trị cũ"** hiện khi Job có `legacy*` VÀ ô trong form đang trống; HR chọn mã (chưa lưu) thì
+  dòng ẩn. Không tự chọn mã đoán từ giá trị cũ.
+- **Khung cảnh báo 4b** tính từ dữ liệu ĐÃ LƯU (`job.status === 'OPEN' && !isCatalogComplete(job)`), không
+  từ giá trị đang sửa; không gắn `role="status"` (nội dung tĩnh, tránh bị đọc như thông báo động).
+- **Cột Địa điểm HR**: "Chưa có dữ liệu" thay cho "—" cũ (UI_GUIDE mục 4 "Dữ liệu thiếu").
+- **Trang chi tiết công khai** chỉ đổi chip tỉnh/thành (trang này vốn không hiện ngành nghề) — không thêm
+  chip mới.
+- **Lỗi 409 "Mở tin"/"Mở lại"**: không sửa `JobRowActions` — cả hai nút đi qua cùng
+  `useChangeHrJobStatusMutation`, lỗi hiện bằng `extractErrorMessage` đọc `data.message` của
+  `ErrorResponse` backend.
+- **UI_GUIDE mục 7**: gắn FR-C05 cho `/`, `/jobs/:id`, `/candidate`, `/candidate/dashboard`, `/hr/jobs`,
+  `/hr/jobs/new`, `/hr/jobs/:id/edit`; `/candidate/profile` gắn ở đợt làm phần CV.
+- Kiểm tra: `npm run build` + `npm run lint` sạch; đã grep CSS build xác nhận các class mới
+  (`border-m3-outline`, `w-(--radix-popover-trigger-width)`, `bg-m3-primary/8`, `opacity-38`...) có sinh ra.
+  Chưa soát tay giao diện (dồn về đợt 6).
+
 ## 7. Nợ kỹ thuật (ghi chú theo đợt — đợt cuối đưa vào ROADMAP)
 
 - **Test chập chờn, có từ trước C05:**

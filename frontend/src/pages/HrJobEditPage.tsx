@@ -11,7 +11,11 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { AlertTriangle } from 'lucide-react'
 import { HrLayout } from '../components/layout/HrLayout'
+import { useCatalogsQuery } from '../features/catalog/queries'
+import { CATEGORY_HELPER_TEXT, LOCATION_HELPER_TEXT, isCatalogComplete } from '../features/jobs/catalogDisplay'
+import { CatalogField } from '../features/jobs/CatalogField'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
 import { RubricTab } from '../features/rubric/RubricTab'
 import { ApplicationsTab } from '../features/scoring/ApplicationsTab'
@@ -53,8 +57,9 @@ const jobInfoSchema = z
     title: z.string().trim().min(1, 'Vui lòng nhập tiêu đề').max(200, 'Tối đa 200 ký tự'),
     description: z.string().trim().min(1, 'Vui lòng nhập mô tả công việc'),
     requirements: z.string().optional(),
-    category: z.string().max(120, 'Tối đa 120 ký tự').optional(),
-    location: z.string().max(150, 'Tối đa 150 ký tự').optional(),
+    // FR-C05: ma danh muc, null = chua chon.
+    categoryCode: z.string().nullable(),
+    locationCode: z.string().nullable(),
     employmentType: z.string().optional(),
     workMode: z.string().optional(),
     salaryMin: z.string().optional(),
@@ -78,8 +83,9 @@ function toJobPayload(values: JobInfoFormValues): JobOwnerRequest {
     title: values.title.trim(),
     description: values.description.trim(),
     requirements: toUndef(values.requirements),
-    category: toUndef(values.category),
-    location: toUndef(values.location),
+    // Gui null tuong minh khi chua chon - KHONG gui "" (backend tra 400 INVALID_CATALOG_CODE).
+    categoryCode: values.categoryCode,
+    locationCode: values.locationCode,
     employmentType: toUndef(values.employmentType),
     workMode: toUndef(values.workMode),
     salaryMin: toNumber(values.salaryMin),
@@ -92,6 +98,7 @@ function toJobPayload(values: JobInfoFormValues): JobOwnerRequest {
 function JobInfoTab({ jobId }: { jobId: string }) {
   const { data: job, isLoading, isError } = useHrJobQuery(jobId)
   const updateMutation = useUpdateHrJobMutation(jobId)
+  const catalogsQuery = useCatalogsQuery()
   const [showSuccess, setShowSuccess] = useState(false)
 
   const {
@@ -116,8 +123,8 @@ function JobInfoTab({ jobId }: { jobId: string }) {
       title: '',
       description: '',
       requirements: '',
-      category: '',
-      location: '',
+      categoryCode: null,
+      locationCode: null,
       employmentType: '',
       workMode: '',
       salaryMin: '',
@@ -130,8 +137,8 @@ function JobInfoTab({ jobId }: { jobId: string }) {
           title: job.title,
           description: job.description,
           requirements: job.requirements ?? '',
-          category: job.category ?? '',
-          location: job.location ?? '',
+          categoryCode: job.categoryCode,
+          locationCode: job.locationCode,
           employmentType: job.employmentType ?? '',
           workMode: job.workMode ?? '',
           salaryMin: job.salaryMin != null ? String(job.salaryMin) : '',
@@ -168,6 +175,19 @@ function JobInfoTab({ jobId }: { jobId: string }) {
   return (
     <form onSubmit={onSubmit} noValidate>
       <CardContent className="flex flex-col gap-4 pt-4">
+        {/* FR-C05 UI.md 4b / R-J6: tin dang mo nhung chua thoa R-J3 (du lieu cu truoc danh muc). Tinh tu
+            du lieu DA LUU, khong tu gia tri dang sua trong form. */}
+        {job.status === 'OPEN' && !isCatalogComplete(job) && (
+          <div
+            className="flex items-start gap-3 rounded-m3-sm border border-m3-outline-variant bg-m3-surface-container-high p-3 text-m3-body-md text-m3-on-surface"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-m3-on-surface" aria-hidden="true" />
+            <p>
+              Tin đang mở nhưng ngành nghề hoặc tỉnh/thành chưa chọn từ danh mục. Tin vẫn hiển thị bình thường; ứng
+              viên lọc theo danh mục có thể không thấy tin này. Chọn lại rồi lưu.
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-sm text-ink-muted">
           <span>Trạng thái hiện tại:</span>
           <JobStatusBadge status={job.status} />
@@ -192,14 +212,46 @@ function JobInfoTab({ jobId }: { jobId: string }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit-category">Danh mục</Label>
-            <Input id="edit-category" {...register('category')} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit-location">Địa điểm</Label>
-            <Input id="edit-location" {...register('location')} />
-          </div>
+          <Controller
+            control={control}
+            name="categoryCode"
+            render={({ field }) => (
+              <CatalogField
+                id="edit-category"
+                label="Ngành nghề"
+                helperText={CATEGORY_HELPER_TEXT}
+                placeholder="Chọn ngành nghề"
+                searchPlaceholder="Tìm ngành nghề..."
+                value={field.value}
+                onChange={field.onChange}
+                items={catalogsQuery.data?.industries}
+                isLoading={catalogsQuery.isLoading}
+                isError={catalogsQuery.isError}
+                onRetry={() => catalogsQuery.refetch()}
+                legacyValue={job.legacyCategory}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="locationCode"
+            render={({ field }) => (
+              <CatalogField
+                id="edit-location"
+                label="Tỉnh/thành"
+                helperText={LOCATION_HELPER_TEXT}
+                placeholder="Chọn tỉnh/thành"
+                searchPlaceholder="Tìm tỉnh/thành..."
+                value={field.value}
+                onChange={field.onChange}
+                items={catalogsQuery.data?.provinces}
+                isLoading={catalogsQuery.isLoading}
+                isError={catalogsQuery.isError}
+                onRetry={() => catalogsQuery.refetch()}
+                legacyValue={job.legacyLocation}
+              />
+            )}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

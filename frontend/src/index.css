@@ -53,6 +53,9 @@
   --color-m3-on-surface:             #1F2937;
   --color-m3-on-surface-variant:     #6B7280;
   --color-m3-outline-variant:        #E7E7E9;
+  /* Vien thanh phan dieu khien (o nhap, combobox) - WCAG 1.4.11 can >= 3:1; #6B7280 dat 4.83:1 tren
+     nen trang. Cung gia tri m3-on-surface-variant, khong them mau moi (FR-C05, UI_GUIDE muc 6). */
+  --color-m3-outline:                #6B7280;
 
   --text-m3-headline-sm:              24px;
   --text-m3-headline-sm--line-height: 32px;
