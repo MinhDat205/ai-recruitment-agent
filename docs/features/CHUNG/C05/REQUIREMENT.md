@@ -92,7 +92,7 @@ H13, H14, H15:
 | `TUYEN_QUANG` | Tuyên Quang | Hà Giang |
 | `VINH_LONG` | Vĩnh Long | Bến Tre, Trà Vinh |
 
-  34 nhãn + 29 tên cũ ở cột phải = 63 tên tỉnh/thành cũ (Thừa Thiên Huế thay cho "Huế"). Bảng đã
+  33 nhãn giữ nguyên tên + 30 tên cũ ở cột phải (29 tỉnh đã nhập vào tỉnh khác và Thừa Thiên Huế) = 63 tên tỉnh/thành cũ. Bảng đã
   đối chiếu với Nghị quyết 202/2025/QH15; ghi nguồn này trong comment migration.
 - **R-P5.** Bí danh cách viết thường gặp (ngoài 29 tên cũ), đã rà theo R-M4 (không bí danh thừa):
   `HO_CHI_MINH` ← "HCM", "TPHCM", "Sài Gòn", "Saigon", "Ho Chi Minh City", "Bà Rịa Vũng Tàu",
