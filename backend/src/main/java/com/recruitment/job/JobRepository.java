@@ -13,6 +13,9 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
 
     // CAST(:param AS text) bat buoc o ca hai ve: Postgres khong tu suy duoc kieu tham so
     // khi ve con lai la NULL (ERROR: could not determine data type of parameter).
+    // FR-C05 R-J8: location/category khop nhan cua ma HOAC gia tri cu (ke ca Job da co ma - vd Job cu
+    // ghi "Binh Duong" nay mang HO_CHI_MINH van tim ra bang "Binh Duong"). EXISTS thay vi JOIN de giu
+    // SELECT * chi co cot cua jobs (map thang vao entity Job). Bo loc theo MA la viec cua FR-U07.
     @Query(
             value =
                     """
@@ -20,8 +23,14 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                     WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
                       AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
                       AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
-                      AND (CAST(:locationPattern AS text) IS NULL OR j.location ILIKE CAST(:locationPattern AS text))
-                      AND (CAST(:categoryPattern AS text) IS NULL OR j.category ILIKE CAST(:categoryPattern AS text))
+                      AND (CAST(:locationPattern AS text) IS NULL
+                           OR j.location ILIKE CAST(:locationPattern AS text)
+                           OR EXISTS (SELECT 1 FROM catalog_provinces cp WHERE cp.code = j.location_code
+                                      AND cp.label ILIKE CAST(:locationPattern AS text)))
+                      AND (CAST(:categoryPattern AS text) IS NULL
+                           OR j.category ILIKE CAST(:categoryPattern AS text)
+                           OR EXISTS (SELECT 1 FROM catalog_industries ci WHERE ci.code = j.category_code
+                                      AND ci.label ILIKE CAST(:categoryPattern AS text)))
                     ORDER BY j.created_at DESC
                     """,
             countQuery =
@@ -30,8 +39,14 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                     WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
                       AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
                       AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
-                      AND (CAST(:locationPattern AS text) IS NULL OR j.location ILIKE CAST(:locationPattern AS text))
-                      AND (CAST(:categoryPattern AS text) IS NULL OR j.category ILIKE CAST(:categoryPattern AS text))
+                      AND (CAST(:locationPattern AS text) IS NULL
+                           OR j.location ILIKE CAST(:locationPattern AS text)
+                           OR EXISTS (SELECT 1 FROM catalog_provinces cp WHERE cp.code = j.location_code
+                                      AND cp.label ILIKE CAST(:locationPattern AS text)))
+                      AND (CAST(:categoryPattern AS text) IS NULL
+                           OR j.category ILIKE CAST(:categoryPattern AS text)
+                           OR EXISTS (SELECT 1 FROM catalog_industries ci WHERE ci.code = j.category_code
+                                      AND ci.label ILIKE CAST(:categoryPattern AS text)))
                     """,
             nativeQuery = true)
     Page<Job> searchPublicJobs(

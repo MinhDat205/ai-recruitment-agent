@@ -2,6 +2,7 @@ package com.recruitment.job;
 
 import com.recruitment.ai.embedding.EmbeddingResult;
 import com.recruitment.ai.embedding.EmbeddingService;
+import com.recruitment.catalog.CatalogRegistry;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,12 +27,17 @@ public class JobEmbeddingOrchestrator {
     private final JobRepository jobRepository;
     private final EmbeddingService embeddingService;
     private final JobEmbeddingStateService stateService;
+    private final CatalogRegistry catalogRegistry;
 
     public JobEmbeddingOrchestrator(
-            JobRepository jobRepository, EmbeddingService embeddingService, JobEmbeddingStateService stateService) {
+            JobRepository jobRepository,
+            EmbeddingService embeddingService,
+            JobEmbeddingStateService stateService,
+            CatalogRegistry catalogRegistry) {
         this.jobRepository = jobRepository;
         this.embeddingService = embeddingService;
         this.stateService = stateService;
+        this.catalogRegistry = catalogRegistry;
     }
 
     // Kiem tra lai status == OPEN NGAY TRUOC khi embed (khong chi dua vao dieu kien SELECT cua
@@ -45,7 +51,7 @@ public class JobEmbeddingOrchestrator {
             return;
         }
 
-        String text = buildEmbeddingText(job);
+        String text = buildEmbeddingText(job, JobCatalogFields.categoryText(job, catalogRegistry));
         EmbeddingResult result;
         try {
             result = embeddingService.embed(text);
@@ -69,7 +75,10 @@ public class JobEmbeddingOrchestrator {
     // day - khong tin tuyet doi rang buoc tang API, tranh NPE neu co duong ghi du lieu nao khac bo
     // qua validation. category KHONG @NotBlank, nullable that su o DB - bo qua hoan toan khoi van
     // ban neu null/blank, khong chen dong rong vo nghia.
-    static String buildEmbeddingText(Job job) {
+    //
+    // FR-C05 R-J9: categoryText do noi goi truyen vao = nhan cua category_code, khong co ma thi gia tri
+    // cu (JobCatalogFields.categoryText) - ham nay giu static, khong tu tra danh muc.
+    static String buildEmbeddingText(Job job, String categoryText) {
         StringBuilder text = new StringBuilder();
 
         String title = nullToEmpty(job.getTitle()).trim();
@@ -77,7 +86,7 @@ public class JobEmbeddingOrchestrator {
             text.append(title).append('\n');
         }
 
-        String category = nullToEmpty(job.getCategory()).trim();
+        String category = nullToEmpty(categoryText).trim();
         if (!category.isEmpty()) {
             text.append(category).append('\n');
         }

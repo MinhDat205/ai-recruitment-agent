@@ -135,7 +135,7 @@ class InterviewInvitationControllerIntegrationTest {
         String body =
                 """
                 {
-                  "job": {"title":"%s","description":"Mo ta cong viec"},
+                  "job": {"title":"%s","description":"Mo ta cong viec","categoryCode":"IT_SOFTWARE","locationCode":"HA_NOI"},
                   "interviewTemplate": {
                     "subject":"Thu moi phong van - {{jobTitle}}",
                     "body":"Kinh chao {{candidateName}}, ban duoc moi phong van tai {{companyName}}.",

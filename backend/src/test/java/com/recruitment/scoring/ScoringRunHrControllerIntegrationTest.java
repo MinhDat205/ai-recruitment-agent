@@ -141,7 +141,7 @@ class ScoringRunHrControllerIntegrationTest {
         String body =
                 """
                 {
-                  "job": {"title":"%s","description":"Mo ta cong viec"},
+                  "job": {"title":"%s","description":"Mo ta cong viec","categoryCode":"IT_SOFTWARE","locationCode":"HA_NOI"},
                   "interviewTemplate": {
                     "subject":"Thu moi phong van vi tri %s",
                     "body":"Kinh chao ung vien, chung toi moi ban tham gia phong van.",

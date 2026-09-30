@@ -110,25 +110,26 @@ class JobEmbeddingPipelineIntegrationTest {
         return new EmbeddingResponse(List.of(embedding), new EmbeddingResponseMetadata(model, new DefaultUsage(10, 0)));
     }
 
-    private UUID createOpenJob(String title, String description, String category) {
+    private UUID createOpenJob(String title, String description, String categoryCode) {
         Job job = new Job();
         job.setCompanyId(companyId);
         job.setCreatedBy(hrId);
         job.setTitle(title);
         job.setDescription(description);
-        job.setCategory(category);
+        job.setCategoryCode(categoryCode);
+        job.setLocationCode("HA_NOI");
         job.setStatus(JobStatus.OPEN);
         job.setRecruitmentCycle(1);
         return jobRepository.save(job).getId();
     }
 
-    private JobRequest sameRequestExcept(Job job, String title, String description, String category) {
+    private JobRequest sameRequestExcept(Job job, String title, String description, String categoryCode) {
         return new JobRequest(
                 title,
                 description,
                 job.getRequirements(),
-                category,
-                job.getLocation(),
+                categoryCode,
+                job.getLocationCode(),
                 job.getEmploymentType(),
                 job.getWorkMode(),
                 job.getSalaryMin(),
@@ -154,7 +155,7 @@ class JobEmbeddingPipelineIntegrationTest {
 
     @Test
     void pollJobsNeedingEmbedding_openJobWithoutEmbedding_createsEmbedding() {
-        UUID jobId = createOpenJob("Java Developer", "Phat trien he thong backend", "Cong nghe thong tin");
+        UUID jobId = createOpenJob("Java Developer", "Phat trien he thong backend", "IT_SOFTWARE");
 
         pollOnce();
 
@@ -163,13 +164,13 @@ class JobEmbeddingPipelineIntegrationTest {
 
     @Test
     void update_descriptionChanged_deletesEmbeddingSoNextPollRegenerates() {
-        UUID jobId = createOpenJob("Java Developer", "Mo ta cu", "Cong nghe thong tin");
+        UUID jobId = createOpenJob("Java Developer", "Mo ta cu", "IT_SOFTWARE");
         pollOnce();
         assertThat(hasEmbedding(jobId)).isTrue();
 
         Job job = jobRepository.findById(jobId).orElseThrow();
         jobOwnerService.update(
-                hrId, jobId, sameRequestExcept(job, job.getTitle(), "Mo ta MOI hoan toan khac", job.getCategory()));
+                hrId, jobId, sameRequestExcept(job, job.getTitle(), "Mo ta MOI hoan toan khac", job.getCategoryCode()));
 
         assertThat(hasEmbedding(jobId)).isFalse();
 
@@ -179,13 +180,13 @@ class JobEmbeddingPipelineIntegrationTest {
 
     @Test
     void update_categoryChanged_deletesEmbeddingSoNextPollRegenerates() {
-        UUID jobId = createOpenJob("Java Developer", "Mo ta khong doi", "Cong nghe thong tin");
+        UUID jobId = createOpenJob("Java Developer", "Mo ta khong doi", "IT_SOFTWARE");
         pollOnce();
         assertThat(hasEmbedding(jobId)).isTrue();
 
         Job job = jobRepository.findById(jobId).orElseThrow();
         jobOwnerService.update(
-                hrId, jobId, sameRequestExcept(job, job.getTitle(), job.getDescription(), "Ke toan - Tai chinh"));
+                hrId, jobId, sameRequestExcept(job, job.getTitle(), job.getDescription(), "ACCOUNTING_AUDIT"));
 
         assertThat(hasEmbedding(jobId)).isFalse();
 
@@ -195,7 +196,7 @@ class JobEmbeddingPipelineIntegrationTest {
 
     @Test
     void update_unrelatedFieldChanged_doesNotDeleteEmbedding() {
-        UUID jobId = createOpenJob("Java Developer", "Mo ta khong doi", "Cong nghe thong tin");
+        UUID jobId = createOpenJob("Java Developer", "Mo ta khong doi", "IT_SOFTWARE");
         pollOnce();
         assertThat(hasEmbedding(jobId)).isTrue();
 
@@ -204,8 +205,8 @@ class JobEmbeddingPipelineIntegrationTest {
                 job.getTitle(),
                 job.getDescription(),
                 job.getRequirements(),
-                job.getCategory(),
-                "Da Nang",
+                job.getCategoryCode(),
+                "DA_NANG",
                 job.getEmploymentType(),
                 job.getWorkMode(),
                 job.getSalaryMin(),

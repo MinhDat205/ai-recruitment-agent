@@ -89,7 +89,7 @@ TRUNCATE TABLE
     -- Doanh nghiep & tin tuyen dung
     companies, jobs, interview_templates, rubrics, rubric_criteria,
     -- CV & du lieu AI trich xuat
-    resumes, resume_parsed_data, job_embeddings,
+    resumes, resume_parsed_data, job_embeddings, resume_reparse_requests,
     -- Don ung tuyen & pipeline HR
     job_applications, application_status_history, interview_invitations,
     -- Cham diem AI

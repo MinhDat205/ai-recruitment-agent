@@ -124,7 +124,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Job 1: Senior Java Backend Developer
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -135,7 +135,7 @@ INSERT INTO jobs (
     'Tham gia phát triển và bảo trì hệ thống backend phục vụ nhiều triệu người dùng, '
     || 'làm việc trực tiếp với đội sản phẩm để thiết kế API và tối ưu hiệu năng.',
     'Tối thiểu 3 năm kinh nghiệm Java. Thành thạo Spring Boot, PostgreSQL, thiết kế REST API.',
-    'Công nghệ thông tin', 'TP. Hồ Chí Minh', 'FULL_TIME', 'HYBRID',
+    'IT_SOFTWARE', 'HO_CHI_MINH', 'FULL_TIME', 'HYBRID',
     30000000.00, 50000000.00, 'VND',
     'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
 )
@@ -144,7 +144,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Job 2: Kỹ sư Kiểm thử phần mềm (QA Engineer)
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -155,7 +155,7 @@ INSERT INTO jobs (
     'Xây dựng và thực thi test case cho các tính năng mới, phối hợp với đội phát triển '
     || 'để đảm bảo chất lượng sản phẩm trước khi phát hành.',
     'Có kinh nghiệm kiểm thử thủ công và tự động (Selenium/Cypress). Hiểu quy trình Agile/Scrum.',
-    'Công nghệ thông tin', 'TP. Hồ Chí Minh', 'FULL_TIME', 'ONSITE',
+    'IT_SOFTWARE', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     15000000.00, 25000000.00, 'VND',
     'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
 )
@@ -164,7 +164,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Job 3: Kỹ sư DevOps
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -176,7 +176,7 @@ INSERT INTO jobs (
     || 'trên môi trường cloud.',
     'Thành thạo Docker, Kubernetes, kinh nghiệm với CI/CD (GitLab CI/Jenkins). '
     || 'Ưu tiên có chứng chỉ cloud.',
-    'Công nghệ thông tin', 'Hà Nội', 'FULL_TIME', 'REMOTE',
+    'IT_SOFTWARE', 'HA_NOI', 'FULL_TIME', 'REMOTE',
     25000000.00, 40000000.00, 'VND',
     'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
 )
@@ -185,7 +185,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Job 4: Kế toán tổng hợp
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -197,7 +197,7 @@ INSERT INTO jobs (
     || 'với kiểm toán độc lập cuối năm.',
     'Tốt nghiệp chuyên ngành Kế toán/Kiểm toán. Thành thạo phần mềm MISA, nắm vững '
     || 'chuẩn mực kế toán Việt Nam (VAS).',
-    'Kế toán - Kiểm toán', 'TP. Hồ Chí Minh', 'FULL_TIME', 'ONSITE',
+    'ACCOUNTING_AUDIT', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     12000000.00, 18000000.00, 'VND',
     'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
 )
@@ -206,7 +206,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Job 5: Chuyên viên Marketing
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -217,7 +217,7 @@ INSERT INTO jobs (
     'Lên kế hoạch và triển khai chiến dịch marketing đa kênh, quản lý nội dung '
     || 'mạng xã hội và đo lường hiệu quả chiến dịch.',
     'Có kinh nghiệm digital marketing, thành thạo công cụ quảng cáo Facebook/Google Ads.',
-    'Marketing - Truyền thông', 'TP. Hồ Chí Minh', 'FULL_TIME', 'HYBRID',
+    'MARKETING_COMMUNICATIONS', 'HO_CHI_MINH', 'FULL_TIME', 'HYBRID',
     12000000.00, 20000000.00, 'VND',
     'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
 )
@@ -226,7 +226,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Job 6: Nhân viên kinh doanh qua điện thoại
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -238,7 +238,7 @@ INSERT INTO jobs (
     || 'đạt chỉ tiêu doanh số hàng tháng.',
     'Ưu tiên có kinh nghiệm telesales/chăm sóc khách hàng. Giọng nói rõ ràng, '
     || 'chịu được áp lực doanh số.',
-    'Kinh doanh - Bán hàng', 'TP. Hồ Chí Minh', 'FULL_TIME', 'ONSITE',
+    'SALES', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     8000000.00, 15000000.00, 'VND',
     'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
 )

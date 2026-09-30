@@ -110,6 +110,9 @@ class ScoringRunStateServiceTest {
         job.setCreatedBy(hr.getId());
         job.setTitle("Backend Developer");
         job.setDescription("Mo ta cong viec");
+        // FR-C05 R-J3: co ma danh muc de changeStatus -> OPEN chi con phu thuoc dieu kien rubric.
+        job.setCategoryCode("IT_SOFTWARE");
+        job.setLocationCode("HA_NOI");
         job.setStatus(JobStatus.DRAFT);
         job.setRecruitmentCycle(1);
         job = jobRepository.save(job);

@@ -54,7 +54,7 @@ ON CONFLICT (id) DO NOTHING;
 -- (1) OPEN - co day du truong, dung de kiem trang chi tiet
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -66,8 +66,8 @@ INSERT INTO jobs (
     || 'Làm việc trực tiếp với đội sản phẩm để phân tích yêu cầu và thiết kế API.',
     'Tối thiểu 4 năm kinh nghiệm Java. Thành thạo Spring Boot, PostgreSQL. '
     || 'Có kinh nghiệm thiết kế REST API và tối ưu truy vấn cơ sở dữ liệu.',
-    'Công nghệ thông tin',
-    'TP. Hồ Chí Minh',
+    'IT_SOFTWARE',
+    'HO_CHI_MINH',
     'FULL_TIME',
     'ONSITE',
     30000000.00, 45000000.00, 'VND',
@@ -81,7 +81,7 @@ ON CONFLICT (id) DO NOTHING;
 -- (2) OPEN - khac dia diem va work_mode, dung de kiem bo loc
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -92,8 +92,8 @@ INSERT INTO jobs (
     'Xây dựng giao diện cho nền tảng thương mại điện tử nội bộ. '
     || 'Phối hợp với đội thiết kế để chuyển bản vẽ thành giao diện chạy được.',
     'Hai năm kinh nghiệm React trở lên. Nắm vững TypeScript và Tailwind CSS.',
-    'Công nghệ thông tin',
-    'Hà Nội',
+    'IT_SOFTWARE',
+    'HA_NOI',
     'FULL_TIME',
     'HYBRID',
     18000000.00, 28000000.00, 'VND',
@@ -108,7 +108,7 @@ ON CONFLICT (id) DO NOTHING;
 --     Dung de kiem giao dien xu ly gia tri NULL ma khong vo
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
     status, recruitment_cycle, deadline, published_at, deleted_at
 ) VALUES (
@@ -119,8 +119,8 @@ INSERT INTO jobs (
     'Chương trình thực tập 6 tháng, có người hướng dẫn. '
     || 'Tham gia các dự án xử lý ngôn ngữ tự nhiên của công ty.',
     NULL,
-    'Trí tuệ nhân tạo',
-    'TP. Hồ Chí Minh',
+    'IT_SOFTWARE',
+    'HO_CHI_MINH',
     'INTERNSHIP',
     'REMOTE',
     NULL, NULL, 'VND',
@@ -134,7 +134,7 @@ ON CONFLICT (id) DO NOTHING;
 -- (4) DRAFT - PHAI bi an khoi API cong khai
 INSERT INTO jobs (
     id, company_id, created_by, title, description,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     status, recruitment_cycle, published_at, deleted_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000004',
@@ -142,8 +142,8 @@ INSERT INTO jobs (
     'e453c9a9-bc5f-4577-bc30-557b4f403a75',
     'BAN NHAP - Kỹ sư DevOps',
     'Tin này đang ở trạng thái DRAFT. Nếu bạn nhìn thấy nó ở trang công khai thì bộ lọc đã sai.',
-    'Công nghệ thông tin',
-    'Đà Nẵng',
+    'IT_SOFTWARE',
+    'DA_NANG',
     'FULL_TIME',
     'ONSITE',
     'DRAFT', 1,
@@ -155,7 +155,7 @@ ON CONFLICT (id) DO NOTHING;
 -- (5) PAUSED - PHAI bi an
 INSERT INTO jobs (
     id, company_id, created_by, title, description,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     status, recruitment_cycle, published_at, deleted_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000005',
@@ -163,8 +163,8 @@ INSERT INTO jobs (
     'e453c9a9-bc5f-4577-bc30-557b4f403a75',
     'TAM DUNG - Chuyên viên Kiểm thử phần mềm',
     'Tin này đang ở trạng thái PAUSED. Nếu bạn nhìn thấy nó ở trang công khai thì bộ lọc đã sai.',
-    'Công nghệ thông tin',
-    'TP. Hồ Chí Minh',
+    'IT_SOFTWARE',
+    'HO_CHI_MINH',
     'FULL_TIME',
     'ONSITE',
     'PAUSED', 1,
@@ -176,7 +176,7 @@ ON CONFLICT (id) DO NOTHING;
 -- (6) CLOSED - PHAI bi an
 INSERT INTO jobs (
     id, company_id, created_by, title, description,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     status, recruitment_cycle, published_at, deleted_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000006',
@@ -184,8 +184,8 @@ INSERT INTO jobs (
     'e453c9a9-bc5f-4577-bc30-557b4f403a75',
     'DA DONG - Trưởng nhóm Phân tích nghiệp vụ',
     'Tin này đang ở trạng thái CLOSED. Nếu bạn nhìn thấy nó ở trang công khai thì bộ lọc đã sai.',
-    'Công nghệ thông tin',
-    'Hà Nội',
+    'IT_SOFTWARE',
+    'HA_NOI',
     'FULL_TIME',
     'HYBRID',
     'CLOSED', 1,
@@ -198,7 +198,7 @@ ON CONFLICT (id) DO NOTHING;
 --     Day la truong hop de lot nhat: status hop le, chi khac o deleted_at.
 INSERT INTO jobs (
     id, company_id, created_by, title, description,
-    category, location, employment_type, work_mode,
+    category_code, location_code, employment_type, work_mode,
     status, recruitment_cycle, published_at, deleted_at
 ) VALUES (
     '10000000-0000-0000-0000-000000000007',
@@ -207,8 +207,8 @@ INSERT INTO jobs (
     'DA XOA MEM - Kỹ sư Dữ liệu',
     'Tin này có status OPEN nhưng deleted_at khác NULL. '
     || 'Nếu bạn nhìn thấy nó ở trang công khai thì query thiếu điều kiện deleted_at IS NULL.',
-    'Công nghệ thông tin',
-    'TP. Hồ Chí Minh',
+    'IT_SOFTWARE',
+    'HO_CHI_MINH',
     'FULL_TIME',
     'REMOTE',
     'OPEN', 1,

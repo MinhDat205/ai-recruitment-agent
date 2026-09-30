@@ -182,10 +182,13 @@ H13, H14, H15:
     Job OPEN cũ vốn chưa thoả R-J3 vẫn lưu được các sửa đổi khác (R-J6).
   - Test phải liệt kê đủ các đường trên; thêm đường mới vào OPEN sau này phải đi qua cùng một hàm
     kiểm.
-- **R-J5. Lỗi**: HTTP 409, mã `JOB_CATALOG_INCOMPLETE`, thông điệp: "Cần chọn ngành nghề và
-  tỉnh/thành từ danh mục trước khi mở tin tuyển dụng." (thiếu tỉnh với REMOTE thì không nhắc tỉnh).
-  Mã gửi lên không có trong danh mục → HTTP 400, "Ngành nghề không có trong danh mục." / "Tỉnh/thành
-  không có trong danh mục."
+- **R-J5. Lỗi**: HTTP 409, mã `JOB_CATALOG_INCOMPLETE`, thông điệp theo ngữ cảnh:
+  - Chuyển sang OPEN: "Cần chọn ngành nghề và tỉnh/thành từ danh mục trước khi mở tin tuyển dụng."
+    (REMOTE: "Cần chọn ngành nghề từ danh mục trước khi mở tin tuyển dụng.")
+  - `update` Job đang OPEN làm mất điều kiện R-J3: "Tin đang mở phải giữ ngành nghề và tỉnh/thành từ
+    danh mục." (REMOTE: "Tin đang mở phải giữ ngành nghề từ danh mục.")
+  Mã gửi lên không có trong danh mục → HTTP 400, mã `INVALID_CATALOG_CODE`, "Ngành nghề không có
+  trong danh mục." / "Tỉnh/thành không có trong danh mục."
 - **R-J6. Job cũ đang OPEN** mà chưa chuẩn hoá: giữ OPEN, không tự đóng/tạm dừng; HR thấy cảnh báo
   (UI.md). Nếu HR tạm dừng rồi mở lại → bị R-J3 chặn.
 - **R-J7. Hiển thị**: có mã → nhãn của mã; chưa chuẩn hoá → giá trị cũ nguyên văn; không có tỉnh và
@@ -339,7 +342,7 @@ H13, H14, H15:
   thuần của R-M5, đọc danh mục qua JDBC của `Context`.
 
 **API**
-- `GET /api/catalogs` — công khai, không cần đăng nhập: `{ industries: [{code, label}], provinces:
+- `GET /api/public/catalogs` — công khai, không cần đăng nhập: `{ industries: [{code, label}], provinces:
   [{code, label}] }` theo `sort_order`. Không trả bí danh.
 - Job (HR, `/api/hr/jobs`): request thay `category`/`location` bằng `categoryCode`/`locationCode`.
   Response (HR và công khai) có `categoryCode`, `categoryLabel`, `locationCode`, `locationLabel`, và
@@ -423,7 +426,7 @@ Tất cả lệnh sạch: `cd backend && ./mvnw test` (full suite), `cd frontend
    cầu → DB chặn một; thành công → `raw_text` byte-by-byte không đổi, `embedding` NULL,
    `parse_status` DONE suốt quá trình; thất bại → `data` v1 giữ nguyên; **`criterion_scores` (điểm,
    evidence) và `score_explanations` của lượt chấm cũ không đổi**.
-8. **RBAC**: HR gọi `reparse` → 403; khách gọi `GET /api/catalogs` → 200.
+8. **RBAC**: HR gọi `reparse` → 403; khách gọi `GET /api/public/catalogs` → 200.
 9. **Bổ sung theo spec-review**:
    - R-J9: đổi `category_code` qua `update` → dòng `job_embeddings` của Job bị xoá (cơ chế hiện có
      `JobOwnerService.update` → `jobEmbeddingRepository.deleteByJobId`) để scheduler embed lại; không
@@ -432,7 +435,7 @@ Tất cả lệnh sạch: `cd backend && ./mvnw test` (full suite), `cd frontend
      tháng kinh nghiệm (khẳng định bằng chuỗi cụ thể, ví dụ không có `IT_SOFTWARE`, `HO_CHI_MINH`).
    - R-C4: sau `markDone` và sau trích xuất lại, `industry_code` luôn bằng `data.industryCode`, kể
      cả khi AI trả mã lạ (cả hai null).
-   - `GET /api/catalogs`: đủ 34 tỉnh và 24 ngành, đúng thứ tự `sort_order`, JSON không có trường bí
+   - `GET /api/public/catalogs`: đủ 34 tỉnh và 24 ngành, đúng thứ tự `sort_order`, JSON không có trường bí
      danh.
    - `legacyCategory`/`legacyLocation`: khác null khi Job chưa chuẩn hoá; null khi đã có mã; null
      khi thiếu hẳn.

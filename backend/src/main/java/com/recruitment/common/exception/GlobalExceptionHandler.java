@@ -115,6 +115,18 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RUBRIC_INCOMPLETE", ex.getMessage()));
     }
 
+    @ExceptionHandler(JobCatalogIncompleteException.class)
+    public ResponseEntity<ErrorResponse> handleJobCatalogIncomplete(JobCatalogIncompleteException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("JOB_CATALOG_INCOMPLETE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCatalogCodeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCatalogCode(InvalidCatalogCodeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CATALOG_CODE", ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidJobDeadlineException.class)
     public ResponseEntity<ErrorResponse> handleInvalidJobDeadline(InvalidJobDeadlineException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

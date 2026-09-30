@@ -232,6 +232,64 @@ class JobPublicIntegrationTest {
         assertThat(body).doesNotContain("Job Sales " + unique);
     }
 
+    // FR-C05 R-J8 / muc 7.4: tim "Ho Chi Minh" ra ca Job da chuan hoa (nhan "TP. Ho Chi Minh") lan Job
+    // chua chuan hoa (gia tri cu), khong ra Job tinh khac.
+    @Test
+    void list_filtersByLocation_matchesCatalogLabelOrLegacyValue() throws Exception {
+        User hr = createHrUser();
+        Company company = createCompany(hr.getId());
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        Job normalized = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "Job Code HCM " + unique, null,
+                null);
+        normalized.setLocationCode("HO_CHI_MINH");
+        jobRepository.save(normalized);
+        createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "Job Legacy HCM " + unique,
+                "Quận 1, Hồ Chí Minh", null);
+        Job otherProvince = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "Job Code HN " + unique,
+                null, null);
+        otherProvince.setLocationCode("HA_NOI");
+        jobRepository.save(otherProvince);
+
+        MvcResult result = mockMvc.perform(get("/api/public/jobs")
+                        .param("location", "Hồ Chí Minh")
+                        .param("keyword", unique)
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String body = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(body).contains("Job Code HCM " + unique);
+        assertThat(body).contains("Job Legacy HCM " + unique);
+        assertThat(body).doesNotContain("Job Code HN " + unique);
+        assertThat(extractJsonNumber(body, "totalElements")).isEqualTo(2);
+        assertThat(body).contains("\"locationLabel\":\"TP. Hồ Chí Minh\"");
+        assertThat(body).contains("\"legacyLocation\":\"Quận 1, Hồ Chí Minh\"");
+    }
+
+    @Test
+    void list_filtersByCategory_matchesCatalogLabel() throws Exception {
+        User hr = createHrUser();
+        Company company = createCompany(hr.getId());
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        Job normalized = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "Job Code IT " + unique, null,
+                null);
+        normalized.setCategoryCode("IT_SOFTWARE");
+        jobRepository.save(normalized);
+        Job sales = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "Job Code Sales " + unique, null,
+                null);
+        sales.setCategoryCode("SALES");
+        jobRepository.save(sales);
+
+        MvcResult result = mockMvc.perform(get("/api/public/jobs")
+                        .param("category", "Phần mềm")
+                        .param("keyword", unique)
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String body = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(body).contains("Job Code IT " + unique);
+        assertThat(body).doesNotContain("Job Code Sales " + unique);
+    }
+
     @Test
     void detail_openJob_returnsCompanyInfo_withoutCreatedByOrOwnerId() throws Exception {
         User hr = createHrUser();

@@ -159,7 +159,7 @@ Tổng quan nghề nghiệp
 - **Combobox danh mục** (mới): dựng từ `components/ui/popover.tsx` + `Input` tìm kiếm + danh sách
   `role="listbox"`. KHÔNG thêm thư viện mới (dự án chưa có `command`/cmdk). Tìm kiếm phía client
   trên nhãn, không phân biệt hoa/thường và dấu (cùng quy tắc R-M1). Có mục "Bỏ chọn". Dùng chung
-  một component cho cả hai danh mục; dữ liệu từ `GET /api/catalogs` (TanStack Query, `staleTime`
+  một component cho cả hai danh mục; dữ liệu từ `GET /api/public/catalogs` (TanStack Query, `staleTime`
   dài vì danh mục cố định).
   - Trigger: cao 40px (48px khi compact), `rounded-m3-xs`, `text-m3-body-md`, `text-m3-on-surface`,
     `border border-m3-outline` (token mới, mục 9).
@@ -205,7 +205,8 @@ Tổng quan nghề nghiệp
 | Giá trị cũ | "Giá trị cũ: \"{text}\"" + "Chọn lại từ danh mục trước khi mở tin." |
 | Nhãn trạng thái dữ liệu | "Chưa chuẩn hoá" |
 | Cảnh báo Job đang mở | như khung 4b |
-| Lỗi 409 mở tin | "Cần chọn ngành nghề và tỉnh/thành từ danh mục trước khi mở tin tuyển dụng." (thông điệp từ backend) |
+| Lỗi 409 mở tin | "Cần chọn ngành nghề và tỉnh/thành từ danh mục trước khi mở tin tuyển dụng." / REMOTE: "Cần chọn ngành nghề từ danh mục trước khi mở tin tuyển dụng." (thông điệp từ backend) |
+| Lỗi 409 khi lưu tin đang mở | "Tin đang mở phải giữ ngành nghề và tỉnh/thành từ danh mục." / REMOTE: "Tin đang mở phải giữ ngành nghề từ danh mục." (thông điệp từ backend, hiện ở form sửa tin) |
 | Job REMOTE không tỉnh | "Làm từ xa" |
 | Thiếu dữ liệu | "Chưa có dữ liệu" |
 | CV v1 | "Dữ liệu trích xuất theo phiên bản cũ." |
