@@ -22,7 +22,14 @@ public record ResumeParsedPayload(
         List<Experience> experience,
         List<String> skills,
         List<Certification> certifications,
-        List<Project> projects) {
+        List<Project> projects,
+        // FR-C05 schema v2 (resume-parse-v2, R-C2). Ban ghi v1 khong co ba field nay trong JSON -> doc
+        // vao la null. currentTitle/locationText la chuoi NGUYEN VAN trong CV; industryCode la ma AI
+        // chon tu danh sach trong prompt - backend KHONG tin, luon di qua ResumeParsedDataEnricher
+        // (R-C3) truoc khi luu. KHONG them truong nhan than nao (R-C5).
+        String currentTitle,
+        String industryCode,
+        String locationText) {
 
     // Compact constructor: khoi CV khong co (vd ung vien khong co certifications) khien LLM tra ve
     // field null hoac vang mat trong JSON - Jackson truyen thang null vao constructor thay vi list
@@ -34,6 +41,13 @@ public record ResumeParsedPayload(
         skills = skills == null ? List.of() : skills;
         certifications = certifications == null ? List.of() : certifications;
         projects = projects == null ? List.of() : projects;
+    }
+
+    // R-C3: ban sao voi industryCode da qua kiem cua backend - giu nguyen moi field khac.
+    public ResumeParsedPayload withIndustryCode(String sanitizedIndustryCode) {
+        return new ResumeParsedPayload(
+                contact, education, experience, skills, certifications, projects,
+                currentTitle, sanitizedIndustryCode, locationText);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -175,4 +175,42 @@ class RateLimitFilterTest {
             throws Exception {
         filter.doFilter(request, response, new MockFilterChain());
     }
+
+    // FR-C05 R-R3 - trich xuat lai CV thuoc nhom llm-action theo userId: vuot han muc -> 429, va dung
+    // CHUNG bucket voi cac endpoint ton LLM khac cua cung user.
+    @Test
+    void doFilter_resumeReparseEndpoint_rateLimitedByUserId() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 2, 2);
+        authenticateAs("33333333-3333-3333-3333-333333333333");
+        String path = "/api/candidates/resumes/44444444-4444-4444-4444-444444444444/reparse";
+        for (int i = 0; i < 2; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", path), response);
+            assertThat(response.getStatus()).as("request thu %d phai qua duoc", i + 1).isEqualTo(200);
+        }
+
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", path), rejected);
+
+        assertThat(rejected.getStatus()).isEqualTo(429);
+        assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+    }
+
+    @Test
+    void doFilter_resumeReparseSharesBucketWithOtherLlmActions() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1);
+        authenticateAs("55555555-5555-5555-5555-555555555555");
+        doFilter(
+                filter,
+                new MockHttpServletRequest("POST", "/api/candidates/resumes/66666666-6666-6666-6666-666666666666/improvement-suggestions"),
+                new MockHttpServletResponse());
+
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(
+                filter,
+                new MockHttpServletRequest("POST", "/api/candidates/resumes/66666666-6666-6666-6666-666666666666/reparse"),
+                rejected);
+
+        assertThat(rejected.getStatus()).isEqualTo(429);
+    }
 }

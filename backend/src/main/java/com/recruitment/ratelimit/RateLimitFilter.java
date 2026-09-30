@@ -46,6 +46,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String RESUME_UPLOAD_PATH = "/api/candidates/resumes";
     private static final String SCORING_RUN_CREATE_PATTERN = "/api/hr/applications/*/scoring-runs";
     private static final String CV_IMPROVEMENT_PATTERN = "/api/candidates/resumes/*/improvement-suggestions";
+    // FR-C05 R-R3 - trich xuat lai CV (@PostMapping("/{id}/reparse") cua ResumeCandidateController): moi
+    // yeu cau thanh cong = 1 luot goi LLM o job nen, cung nhom llm-action theo userId.
+    private static final String RESUME_REPARSE_PATTERN = "/api/candidates/resumes/*/reparse";
 
     private final RateLimitBucketStore bucketStore;
     private final long authCapacity;
@@ -123,7 +126,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.flushBuffer();
     }
 
-    // Chi ap dung cho DUNG 3+2 endpoint da duyet (POST). Moi request khac (bao gom GET toi cung
+    // Chi ap dung cho DUNG 4+2 endpoint da duyet (POST). Moi request khac (bao gom GET toi cung
     // duong dan, hoac POST toi duong dan khac) tra null - khong bi rate limit.
     private RateLimitTarget classify(HttpServletRequest request) {
         if (!"POST".equals(request.getMethod())) {
@@ -137,7 +140,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (RESUME_UPLOAD_PATH.equals(path)
                 || PATH_MATCHER.match(SCORING_RUN_CREATE_PATTERN, path)
-                || PATH_MATCHER.match(CV_IMPROVEMENT_PATTERN, path)) {
+                || PATH_MATCHER.match(CV_IMPROVEMENT_PATTERN, path)
+                || PATH_MATCHER.match(RESUME_REPARSE_PATTERN, path)) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
                 // Chua xac thuc (thieu/sai token) - de FilterSecurityInterceptor (chay SAU filter

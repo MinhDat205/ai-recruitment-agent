@@ -158,6 +158,19 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RESUME_RETRY_NOT_ALLOWED", ex.getMessage()));
     }
 
+    // FR-C05 R-R2 - hai ly do 409 cua trich xuat lai, ma loi rieng de frontend phan biet neu can.
+    @ExceptionHandler(ResumeReparseNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleResumeReparseNotAllowed(ResumeReparseNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RESUME_REPARSE_NOT_ALLOWED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ResumeReparseInProgressException.class)
+    public ResponseEntity<ErrorResponse> handleResumeReparseInProgress(ResumeReparseInProgressException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RESUME_REPARSE_IN_PROGRESS", ex.getMessage()));
+    }
+
     @ExceptionHandler(ApplicationNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleApplicationNotFound(ApplicationNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

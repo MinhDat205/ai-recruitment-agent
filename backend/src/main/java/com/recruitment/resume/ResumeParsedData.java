@@ -49,7 +49,31 @@ public class ResumeParsedData {
     @Column(name = "token_usage")
     private Integer tokenUsage;
 
+    // parsed_at do DB sinh luc INSERT; trich xuat lai (FR-C05 R-R5) cap nhat bang native UPDATE
+    // (ResumeParsedDataRepository.touchAfterReparse), khong qua entity.
     @Generated(event = EventType.INSERT)
     @Column(name = "parsed_at", insertable = false, updatable = false)
     private Instant parsedAt;
+
+    // FR-C05 R-C4 - cot truy van, luon bang data.industryCode sau khi qua kiem (ResumeParsedDataEnricher).
+    @Column(name = "industry_code")
+    private String industryCode;
+
+    @Column(name = "region_code")
+    private String regionCode;
+
+    // FR-C05 R-E7 - ca bon NULL = chua tinh (job nen ResumeExperienceScheduler se tinh); months NULL
+    // khi da tinh ma khong co muc nao duoc tinh (KHONG luu 0). Rang buoc chot o DB:
+    // chk_parsed_experience_state, chk_parsed_experience_months (V8).
+    @Column(name = "experience_months")
+    private Integer experienceMonths;
+
+    @Column(name = "experience_entries_counted")
+    private Integer experienceEntriesCounted;
+
+    @Column(name = "experience_entries_skipped")
+    private Integer experienceEntriesSkipped;
+
+    @Column(name = "experience_computed_at")
+    private Instant experienceComputedAt;
 }

@@ -57,9 +57,10 @@ public class ResumeEmbeddingOrchestrator {
         }
 
         // Tai dung NGUYEN VAN CvImprovementOrchestrator.buildResumeText (F2, cung package resume,
-        // package-private) - khong viet ham dung text moi. Ham nay render day du 22 truong cua
-        // ResumeParsedPayload theo dung thu tu uu tien (contact -> hoc van -> kinh nghiem -> ky nang
-        // -> chung chi -> du an) va tu cat o 10_000 ky tu (MAX_RESUME_TEXT_CHARS, da co san).
+        // package-private) - khong viet ham dung text moi. Ham nay render day du cac truong noi dung cua
+        // ResumeParsedPayload theo dung thu tu uu tien (contact -> chuc danh hien tai (FR-C05 R-C6) -> hoc
+        // van -> kinh nghiem -> ky nang -> chung chi -> du an) va tu cat o 10_000 ky tu
+        // (MAX_RESUME_TEXT_CHARS, da co san).
         String text = CvImprovementOrchestrator.buildResumeText(data.getData());
 
         EmbeddingResult result;

@@ -64,6 +64,13 @@ public class ResumeCandidateController {
         return resumeService.retry(UUID.fromString(authentication.getName()), id);
     }
 
+    // FR-C05 R-R1 - 202: yeu cau da vao hang doi, job nen xu ly sau. Rate limit o RateLimitFilter.
+    @PostMapping("/{id}/reparse")
+    public ResponseEntity<ResumeResponse> requestReparse(Authentication authentication, @PathVariable UUID id) {
+        ResumeResponse response = resumeService.requestReparse(UUID.fromString(authentication.getName()), id);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(Authentication authentication, @PathVariable UUID id) {
         ResumeDownload download = resumeService.downloadMine(UUID.fromString(authentication.getName()), id);

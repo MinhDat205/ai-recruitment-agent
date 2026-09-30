@@ -21,14 +21,17 @@ public class ResumeParsingStateService {
     private final ResumeRepository resumeRepository;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
     private final LlmRetryPolicy retryPolicy;
+    private final ResumeParsedDataEnricher enricher;
 
     public ResumeParsingStateService(
             ResumeRepository resumeRepository,
             ResumeParsedDataRepository resumeParsedDataRepository,
-            LlmRetryPolicy retryPolicy) {
+            LlmRetryPolicy retryPolicy,
+            ResumeParsedDataEnricher enricher) {
         this.resumeRepository = resumeRepository;
         this.resumeParsedDataRepository = resumeParsedDataRepository;
         this.retryPolicy = retryPolicy;
+        this.enricher = enricher;
     }
 
     @Transactional
@@ -39,6 +42,8 @@ public class ResumeParsingStateService {
     // Hai cau ghi (resumes + resume_parsed_data) phai cung thanh cong hoac cung rollback - neu chi
     // ghi duoc resumes.parse_status=DONE ma insert resume_parsed_data loi (vd vi pham UNIQUE do
     // race), trang thai se noi doi la DONE nhung khong co data.
+    // FR-C05: payload AI tra ve di qua ResumeParsedDataEnricher (R-C3 kiem ma nganh, khop khu vuc) va
+    // so thang kinh nghiem duoc tinh ngay trong transaction nay (R-E9a).
     @Transactional
     public void markDone(
             UUID resumeId,
@@ -54,7 +59,7 @@ public class ResumeParsingStateService {
         ResumeParsedData data = new ResumeParsedData();
         data.setResumeId(resumeId);
         data.setRawText(rawText);
-        data.setData(payload);
+        enricher.applyExtraction(data, payload);
         data.setModel(model);
         data.setPromptVersion(promptVersion);
         data.setTokenUsage(tokenUsage);

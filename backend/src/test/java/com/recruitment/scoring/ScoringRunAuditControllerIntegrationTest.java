@@ -217,7 +217,7 @@ class ScoringRunAuditControllerIntegrationTest {
                 List.of(),
                 List.of("Java"),
                 List.of(),
-                List.of()));
+                List.of(), null, null, null));
         data.setModel("claude-sonnet-4-6");
         data.setPromptVersion("resume-parse-v1");
         resumeParsedDataRepository.save(data);

@@ -165,6 +165,14 @@ public class CvImprovementOrchestrator {
             text.append('\n');
         }
 
+        // FR-C05 R-C6 - currentTitle la noi dung NGUYEN VAN tu CV (schema v2) nen dua vao van ban (F1 embed,
+        // F2 goi y dung chung ham nay). KHONG dua industryCode/region_code/so thang kinh nghiem: do la du
+        // lieu backend suy ra, khong phai loi trong CV. R-C6 chi them currentTitle - locationText giu ngoai
+        // van ban nay theo dung pham vi dac ta.
+        if (!nullToEmpty(payload.currentTitle()).isEmpty()) {
+            text.append("Chuc danh hien tai: ").append(payload.currentTitle()).append('\n');
+        }
+
         if (!payload.education().isEmpty()) {
             text.append("Hoc van:\n");
             for (ResumeParsedPayload.Education edu : payload.education()) {

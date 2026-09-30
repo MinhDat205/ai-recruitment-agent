@@ -5,7 +5,11 @@ import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
+import com.recruitment.catalog.CatalogEntry;
+import com.recruitment.catalog.CatalogRegistry;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -30,22 +34,30 @@ public class ResumeParsingService {
 
     private static final String TRUNCATION_MARKER = "\n\n[...phan giua CV da duoc luoc bot do do dai...]\n\n";
 
-    // Gan lien ten file prompt (resume-parse-v1.st) - khai MOT CHO DUY NHAT, dung ca khi load
+    // Gan lien ten file prompt (resume-parse-v2.st) - khai MOT CHO DUY NHAT, dung ca khi load
     // resource ben duoi lan khi tra ve trong ResumeParsingResult de tang goi (Luot 4) ghi cot
-    // resume_parsed_data.prompt_version - khong rai chuoi "v1" o noi khac.
-    static final String PROMPT_VERSION = "resume-parse-v1";
+    // resume_parsed_data.prompt_version - khong rai chuoi phien ban o noi khac. FR-C05 (R-C1): v2 dung
+    // cho CV tai len moi va cho trich xuat lai; file v1 giu lai lam lich su (ban ghi cu van mang
+    // "resume-parse-v1", xem ResumeSchemaVersions).
+    static final String PROMPT_VERSION = "resume-parse-v2";
+
+    // R-C2: AI khong duoc tra OTHER - "khong chac thi null" thay cho "nganh khac".
+    static final String EXCLUDED_INDUSTRY_CODE = "OTHER";
 
     private final ChatClient chatClient;
     private final Resource promptResource;
     private final String configuredModel;
+    private final CatalogRegistry catalogRegistry;
 
     public ResumeParsingService(
             ChatClient resumeParsingChatClient,
             @Value("classpath:ai/prompt/" + PROMPT_VERSION + ".st") Resource promptResource,
-            @Value("${spring.ai.anthropic.chat.options.model:claude-sonnet-4-6}") String configuredModel) {
+            @Value("${spring.ai.anthropic.chat.options.model:claude-sonnet-4-6}") String configuredModel,
+            CatalogRegistry catalogRegistry) {
         this.chatClient = resumeParsingChatClient;
         this.promptResource = promptResource;
         this.configuredModel = configuredModel;
+        this.catalogRegistry = catalogRegistry;
     }
 
     // Goi LLM de trich xuat du lieu co cau truc tu rawText, retry DUNG 1 lan khi loi la JSON
@@ -137,10 +149,22 @@ public class ResumeParsingService {
             String promptText, BeanOutputConverter<ResumeParsedPayload> converter) {
         return chatClient
                 .prompt()
-                .system(spec -> spec.text(promptResource).param("format", converter.getFormat()))
+                .system(spec -> spec.text(promptResource)
+                        .param("industries", formatIndustries(catalogRegistry.industries()))
+                        .param("format", converter.getFormat()))
                 .user(promptText)
                 .call()
                 .responseEntity(converter);
+    }
+
+    // Danh sach ma-nhan nganh nghe dua vao prompt (R-C2, muc 5): lay tu danh muc V8 qua CatalogRegistry,
+    // KHONG hardcode trong Java hay trong file .st - danh muc doi qua migration thi prompt doi theo.
+    // Bo OTHER. Moi dong "  - MA: Nhan" (thut le de nam trong muc industryCode cua prompt).
+    static String formatIndustries(List<CatalogEntry> industries) {
+        return industries.stream()
+                .filter(entry -> !EXCLUDED_INDUSTRY_CODE.equals(entry.code()))
+                .map(entry -> "  - " + entry.code() + ": " + entry.label())
+                .collect(Collectors.joining("\n"));
     }
 
     // Cot resume_parsed_data.model la NOT NULL nhung SDK khong dam bao luon dien

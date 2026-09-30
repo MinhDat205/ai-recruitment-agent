@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.http.Headers;
 import com.anthropic.errors.NotFoundException;
+import com.recruitment.catalog.CatalogEntry;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,7 @@ import org.junit.jupiter.api.Test;
 // cac dependency that (xem ResumeParsingServiceIntegrationTest cho cac test can Spring context).
 class ResumeParsingServiceTest {
 
-    private final ResumeParsingService service = new ResumeParsingService(null, null, null);
+    private final ResumeParsingService service = new ResumeParsingService(null, null, null, null);
 
     @Test
     void truncateForPrompt_shortText_staysUnchanged() {
@@ -90,5 +92,22 @@ class ResumeParsingServiceTest {
         Integer status = ResumeParsingService.extractStatusCode(notFound);
 
         assertThat(status).isEqualTo(404);
+    }
+
+    // FR-C05 R-C2 - danh sach ma-nhan nganh lay tu danh muc, bo OTHER, giu thu tu.
+    @Test
+    void formatIndustries_excludesOtherAndKeepsOrder() {
+        String text = ResumeParsingService.formatIndustries(List.of(
+                new CatalogEntry("IT_SOFTWARE", "Công nghệ thông tin - Phần mềm", List.of()),
+                new CatalogEntry("OTHER", "Ngành khác", List.of()),
+                new CatalogEntry("SALES", "Kinh doanh - Bán hàng", List.of())));
+
+        assertThat(text).isEqualTo(
+                "  - IT_SOFTWARE: Công nghệ thông tin - Phần mềm\n  - SALES: Kinh doanh - Bán hàng");
+    }
+
+    @Test
+    void promptVersion_isV2() {
+        assertThat(ResumeParsingService.PROMPT_VERSION).isEqualTo("resume-parse-v2");
     }
 }

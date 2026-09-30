@@ -89,6 +89,94 @@ File: `index.css` (token `m3-outline`), `docs/UI_GUIDE.md` (mục 1c, 6, 7); m�
   (`border-m3-outline`, `w-(--radix-popover-trigger-width)`, `bg-m3-primary/8`, `opacity-38`...) có sinh ra.
   Chưa soát tay giao diện (dồn về đợt 6).
 
+### Đợt 4 — backend CV: schema v2, số tháng kinh nghiệm, trích xuất lại
+
+File (backend, không migration mới, không sửa frontend):
+- Mới: `resources/ai/prompt/resume-parse-v2.st`; `common/ClockConfig.java`;
+  `common/exception/ResumeReparseNotAllowedException.java`, `ResumeReparseInProgressException.java`;
+  `resume/ExperienceCalculator.java`, `ResumeParsedDataEnricher.java`, `ResumeSchemaVersions.java`,
+  `ResumeExperienceStateService.java`, `ResumeExperienceScheduler.java`, `ResumeReparseRequest.java`,
+  `ResumeReparseRequestStatus.java`, `ResumeReparseRequestRepository.java`, `ResumeReparseStateService.java`,
+  `ResumeReparseOrchestrator.java`, `ResumeReparseScheduler.java`, `dto/ResumeReparseStatusResponse.java`.
+- Sửa: `ResumeParsedPayload` (+3 field), `ResumeParsedData` (+6 cột), `ResumeParsedDataRepository`,
+  `ResumeParsingService` (v2 + danh sách ngành), `ResumeParsingStateService.markDone`, `ResumeService`,
+  `ResumeCandidateController`, `dto/ResumeResponse`, `dto/ResumeParsedDataResponse`,
+  `CvImprovementOrchestrator.buildResumeText`, `ResumeEmbeddingOrchestrator` (chỉ comment),
+  `RateLimitFilter`, `GlobalExceptionHandler`, `application.yml`, `application-test.yml`.
+- Không đụng: `ScoringRunOrchestrator`, `criterion_scores`, `score_explanations`, cách D2 đọc `raw_text`,
+  luồng tải lên (ngoài prompt v2 + `markDone` gọi enricher).
+
+Quyết định:
+- **Ba field mới đặt cuối `ResumeParsedPayload`** (`currentTitle`, `industryCode`, `locationText`). 16 chỗ
+  `new ResumeParsedPayload(...)` trong 13 file test cũ thêm `null, null, null` — không thêm constructor phụ
+  6 tham số (tránh constructor thứ hai trên record mà Jackson/BeanOutputConverter dùng để sinh schema).
+- **Prompt v2 = toàn bộ v1 + một khối luật cho ba field.** Danh sách ngành truyền qua tham số
+  `{industries}`, dựng ở `ResumeParsingService.formatIndustries` từ `CatalogRegistry.industries()` (bỏ
+  `OTHER`, giữ `sort_order`) — không hardcode mã trong Java hay `.st`. `currentTitle` chỉ lấy từ vị trí CV
+  đánh dấu đang làm; không có thì null (không lấy vị trí gần nhất, không lấy dòng tiêu đề CV).
+- **Một hàm ghi dùng chung** `ResumeParsedDataEnricher.applyExtraction`: kiểm mã ngành (lạ/`OTHER` → null ở
+  CẢ JSON lẫn cột), khớp `locationText` → `region_code` qua `CatalogRegistry.matchProvince` (trượt → null,
+  giữ chuỗi gốc), tính kinh nghiệm. Gọi từ `ResumeParsingStateService.markDone` (tải lên) và
+  `ResumeReparseStateService.markDone` (trích xuất lại) — cả hai trong transaction ghi.
+- **`Clock` là bean** (`common/ClockConfig`, `Clock.systemUTC()`); múi giờ `Asia/Ho_Chi_Minh` áp ở
+  `ExperienceCalculator.referenceMonth`, không phụ thuộc múi giờ của đồng hồ. Test đơn vị dùng `Clock.fixed`
+  ở 15/09/2026 (refMonth 09/2026); test tích hợp chỉ dùng khoảng thời gian hoàn toàn trong quá khứ nên không
+  cần thay bean `Clock` (tránh thêm một Spring context).
+- **R-E3 đọc đúng các dạng liệt kê, không nới:** tháng một chữ số chỉ ở dạng có `/` (`M/YYYY`, `thang M/YYYY`,
+  `thang M nam YYYY`); `MM-YYYY`, `MM.YYYY`, `YYYY-MM`, `YYYY/MM`, `DD/MM/YYYY`, `DD-MM-YYYY` cần đủ 2 chữ số;
+  tên tháng tiếng Anh là 3 chữ viết tắt hoặc tên đầy đủ, không dấu chấm (`Sept`, `Jan.` → không đọc được).
+  Khớp toàn chuỗi, không tìm chuỗi con.
+- **Job nền kinh nghiệm không có cột trạng thái**: "claim" là chính câu ghi
+  `UPDATE ... WHERE id = :id AND experience_computed_at IS NULL` (`writeExperienceIfPending`) — rowcount 0
+  khi trích xuất lại hoặc vòng quét khác đã ghi trước, nên kết quả tính từ data cũ không đè được data mới.
+  Cấu hình `app.resume-experience.*` (30 giây, lô 50); tắt trong test.
+- **Ghi trích xuất lại = entity + một câu native**: `data`/`model`/`prompt_version`/`token_usage`/mã/kinh
+  nghiệm ghi qua entity (`saveAndFlush`), còn `parsed_at = now()` và `embedding = NULL` qua
+  `touchAfterReparse` vì `parsed_at` là cột DB sinh lúc INSERT (không updatable qua entity) và `embedding`
+  không map. Hibernate UPDATE toàn bộ cột nên `raw_text` được ghi lại đúng giá trị đã đọc — test so byte.
+- **Thêm stale-claim reaper cho trích xuất lại** (`ResumeReparseScheduler.reapStaleClaims`, mẫu
+  `ResumeParsingScheduler`), không có trong đề bài đợt: JVM khởi động lại giữa chừng để yêu cầu kẹt ở
+  RUNNING thì partial unique index chặn ứng viên gửi yêu cầu mới vĩnh viễn. Dùng chung ngân sách
+  `attempt_count`/`LLM_RETRY_EXHAUSTED`, mã `STALE_CLAIM_TIMEOUT`.
+- **Hai mã lỗi 409 riêng**: `RESUME_REPARSE_NOT_ALLOWED` ("CV này đã có dữ liệu trích xuất mới nhất." — dùng
+  cho cả CV v2 lẫn CV chưa DONE, đúng nguyên văn R-R2) và `RESUME_REPARSE_IN_PROGRESS`. Race vượt bước kiểm:
+  service bắt vi phạm `uq_resume_reparse_request_active` và ném lại cùng 409; vi phạm khác ném nguyên.
+- **Endpoint trích xuất lại nằm ở `ResumeService`** (cạnh `retry`), trả 202 + `ResumeResponse`. Danh sách CV
+  lấy `schemaVersion` và yêu cầu gần nhất bằng 2 câu cho cả danh sách (`findPromptVersionsByResumeIds`,
+  `findLatestByResumeIds` với `DISTINCT ON`), không truy vấn từng CV.
+- **API `/parsed`**: `industry`/`location` lấy từ CỘT đã qua kiểm (không đọc lại mã AI trong JSON);
+  `referenceMonth` dạng `"YYYY-MM"`; `years` là BigDecimal 1 chữ số thập phân; `experience` null khi chưa
+  tính. Giữ field `data` cũ. Không thêm endpoint nào cho HR.
+- **`buildResumeText`** thêm dòng `Chuc danh hien tai: ...` sau thông tin liên hệ khi có; không thêm mã ngành,
+  mã khu vực, số tháng, và không thêm `locationText` (ngoài phạm vi R-C6). Đây là bản duy nhất — F1
+  (`ResumeEmbeddingOrchestrator`) gọi lại chính hàm này, không có bản sao thứ hai.
+- `RateLimitFilter`: thêm `/api/candidates/resumes/*/reparse` vào nhóm `llm-action` theo userId.
+
+Test đã viết, **chỉ biên dịch (`mvnw -q test-compile` sạch), CHƯA CHẠY** — đợt 6 chạy full suite:
+- `ExperienceCalculatorTest` (mới, thuần): 20 ca R-E10 (ca 16 tham số hoá 13 dạng), ca âm đọc mốc, từ "đang
+  làm" ở `startDate`, 8 biến thể từ "đang làm", biên làm tròn, múi giờ refMonth, phần tử null — mục 7.6.
+- `ResumeParsedDataEnricherTest` (mới, thuần, `Clock.fixed`): mã lạ/`OTHER`/nhãn thay mã → null ở JSON và
+  cột; "Bình Dương" → `HO_CHI_MINH`; không khớp → mã null, chuỗi giữ nguyên; kinh nghiệm theo đồng hồ inject;
+  không đọc được → null không 0 — mục 7.5.
+- `ResumeParsingStateServiceTest` (+5): R-C4 sau `markDone` (mã lạ, `OTHER`), danh mục thật V8, khu vực không
+  khớp, kinh nghiệm ghi cùng `markDone` — mục 7.9 R-C4.
+- `ResumeExperienceBackfillIntegrationTest` (mới, 7): bản ghi v1 chèn bằng SQL đọc qua Hibernate với field
+  mới null; job nền tính và không gọi `ChatModel`/`EmbeddingModel`; null không lưu thành 0; danh sách rỗng;
+  không ghi đè bản ghi đã tính; UPDATE có điều kiện trả 0; vòng quét scheduler — mục 7.5, 7.6.
+- `ResumeReparseEndpointTest` (mới, 15): 202 + PENDING + parse_status DONE + không gọi AI; FAILED trước không
+  chặn; 404 CV người khác; 409 CV v2, CV PENDING, CV FAILED, yêu cầu PENDING, RUNNING; race → DB chặn bằng
+  partial unique index; HR → 403; không token → 401; danh sách CV có `schemaVersion`/`reparse`; `/parsed`
+  v1 chưa tính, v2 đầy đủ nhãn + năm, đã tính nhưng months null — mục 7.7, 7.8.
+- `ResumeReparseOrchestratorTest` (mới, 11): thành công → UPDATE tại chỗ (cùng id, 1 dòng), `raw_text` byte
+  không đổi, embedding NULL, parse_status DONE trong lúc gọi LLM, đầu vào LLM đúng `raw_text` đã lưu (file
+  không tồn tại), md5 `criterion_scores`/`score_explanations` không đổi; R-C4 sau trích xuất lại; prompt có
+  danh sách ngành không có `OTHER`; JSON hỏng → FAILED, md5 cả dòng `resume_parsed_data` không đổi; lỗi LLM
+  → chỉ mã chuẩn hoá; claim; backoff (biên max−2, max−1); reaper — mục 7.7.
+- `CvImprovementOrchestratorTest` (+2): R-C6 có `currentTitle`, không `IT_SOFTWARE`/`HO_CHI_MINH`; v1 không
+  có dòng chức danh — mục 7.9 R-C6.
+- `RateLimitFilterTest` (+2), `ResumeParsingServiceTest` (+2: `formatIndustries`, phiên bản v2),
+  `ResumeParsePromptTest` (+2: luật prompt v2, file v1 còn).
+
 ## 7. Nợ kỹ thuật (ghi chú theo đợt — đợt cuối đưa vào ROADMAP)
 
 - **Test chập chờn, có từ trước C05:**
