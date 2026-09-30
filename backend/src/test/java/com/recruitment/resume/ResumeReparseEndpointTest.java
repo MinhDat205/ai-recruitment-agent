@@ -225,7 +225,10 @@ class ResumeReparseEndpointTest {
         MvcResult result = postReparse(candidate, resumeId);
 
         assertThat(result.getResponse().getStatus()).isEqualTo(409);
-        assertThat(body(result).get("error").asString()).isEqualTo("RESUME_REPARSE_NOT_ALLOWED");
+        JsonNode json = body(result);
+        assertThat(json.get("error").asString()).isEqualTo("RESUME_REPARSE_NOT_ALLOWED");
+        assertThat(json.get("message").asString())
+                .isEqualTo("CV chưa phân tích xong, chưa thể cập nhật dữ liệu trích xuất.");
         assertThat(countRequests(resumeId)).isZero();
     }
 
@@ -237,6 +240,10 @@ class ResumeReparseEndpointTest {
         MvcResult result = postReparse(candidate, resumeId);
 
         assertThat(result.getResponse().getStatus()).isEqualTo(409);
+        JsonNode json = body(result);
+        assertThat(json.get("error").asString()).isEqualTo("RESUME_REPARSE_NOT_ALLOWED");
+        assertThat(json.get("message").asString())
+                .isEqualTo("CV chưa phân tích xong, chưa thể cập nhật dữ liệu trích xuất.");
         assertThat(countRequests(resumeId)).isZero();
     }
 

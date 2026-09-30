@@ -139,7 +139,8 @@ Quyết định:
   RUNNING thì partial unique index chặn ứng viên gửi yêu cầu mới vĩnh viễn. Dùng chung ngân sách
   `attempt_count`/`LLM_RETRY_EXHAUSTED`, mã `STALE_CLAIM_TIMEOUT`.
 - **Hai mã lỗi 409 riêng**: `RESUME_REPARSE_NOT_ALLOWED` ("CV này đã có dữ liệu trích xuất mới nhất." — dùng
-  cho cả CV v2 lẫn CV chưa DONE, đúng nguyên văn R-R2) và `RESUME_REPARSE_IN_PROGRESS`. Race vượt bước kiểm:
+  cho cả CV v2 lẫn CV chưa DONE, đúng nguyên văn R-R2 lúc đó; **đợt 5 tách câu cho CV chưa DONE**, xem dưới)
+  và `RESUME_REPARSE_IN_PROGRESS`. Race vượt bước kiểm:
   service bắt vi phạm `uq_resume_reparse_request_active` và ném lại cùng 409; vi phạm khác ném nguyên.
 - **Endpoint trích xuất lại nằm ở `ResumeService`** (cạnh `retry`), trả 202 + `ResumeResponse`. Danh sách CV
   lấy `schemaVersion` và yêu cầu gần nhất bằng 2 câu cho cả danh sách (`findPromptVersionsByResumeIds`,
@@ -177,6 +178,57 @@ Test đã viết, **chỉ biên dịch (`mvnw -q test-compile` sạch), CHƯA CH
 - `RateLimitFilterTest` (+2), `ResumeParsingServiceTest` (+2: `formatIndustries`, phiên bản v2),
   `ResumeParsePromptTest` (+2: luật prompt v2, file v1 còn).
 
+### Đợt 5 — frontend CV + hai chỉnh sửa từ review đợt 4
+
+File:
+- Backend: `common/exception/ResumeReparseNotAllowedException.java` (hai factory `notParsedYet()` /
+  `alreadyLatest()`), `resume/ResumeService.java`, test `ResumeReparseEndpointTest.java` (assert câu mới cho CV
+  PENDING và CV FAILED).
+- Đặc tả (giữ ĐÃ DUYỆT): `REQUIREMENT.md` R-R2 tách câu 409 cho CV chưa DONE; `UI.md` mục 7 thêm dòng "Lỗi 409
+  gửi yêu cầu trích xuất lại" (ba câu backend).
+- Frontend: sửa `features/resumes/types.ts`, `api.ts`, `queries.ts`, `ResumeList.tsx`,
+  `ResumeParsedDataDialog.tsx`, `index.css` (keyframe); mới `features/resumes/LinearProgress.tsx`,
+  `ResumeReparseStatus.tsx`, `resumeReparse.ts`, `CareerOverviewSection.tsx`.
+- `docs/UI_GUIDE.md`: mục 7 gắn FR-C05 cho `/candidate/profile`; mục 1h thêm dòng về
+  `animate-m3-linear-progress`.
+
+Quyết định:
+- **409 CV chưa DONE** (PENDING/PROCESSING/FAILED, và ca phòng thủ DONE mà thiếu dòng dữ liệu): cùng mã
+  `RESUME_REPARSE_NOT_ALLOWED`, câu "CV chưa phân tích xong, chưa thể cập nhật dữ liệu trích xuất."; CV đã v2 giữ
+  "CV này đã có dữ liệu trích xuất mới nhất.".
+- **Poll dùng chung `refetchInterval` sẵn có**: `hasResumeStillPolling` thêm điều kiện `isReparseActive`
+  (reparse PENDING/RUNNING). Không có ngưỡng "kẹt quá lâu" cho trích xuất lại như D1 — backend có reaper đưa
+  yêu cầu kẹt về PENDING rồi FAILED sau số lần thử tối đa, nên poll luôn dừng.
+- **Phát hiện "vừa xong"** bằng cách so danh sách mới với danh sách lần trước ngay trong render (mẫu "điều
+  chỉnh state khi dữ liệu đổi" của React; eslint-plugin-react-hooks 7 không cho setState trong effect): CV
+  từng PENDING/RUNNING nay DONE → vùng `aria-live` của dòng đọc "Đã cập nhật dữ liệu trích xuất." (`sr-only`,
+  người nhìn thấy nút và dòng "phiên bản cũ" biến mất). Đồng thời invalidate cache `/parsed` của CV đó
+  (effect, không setState) để lần mở dialog sau lấy bản v2.
+- **Vùng `aria-live` luôn có mặt** trong ô trạng thái của mọi CV DONE (kể cả khi rỗng) để thay đổi nội dung
+  được đọc; chứa câu thất bại của yêu cầu, lỗi khi gửi (409/429, `text-m3-error`) và câu thành công.
+- **Lỗi 409/429 "dưới dòng CV"** đặt trong ô trạng thái của chính dòng đó (dưới badge), không thêm hàng bảng
+  phụ. Lỗi chung cũ của danh sách (`error`, tải xuống/thử lại) giữ nguyên chỗ.
+- **Câu thất bại hiện nguyên `errorMessage` backend** (dạng `MÃ: mô tả`), nhất quán với cách `parseError` đang
+  hiện ở cùng ô; không cắt tiền tố mã. `errorMessage` null → câu không có phần lỗi.
+- **Nút dùng `Button variant="outline" size="sm"` sẵn có** (cùng kiểu các nút cạnh bên, UI.md mục 5), icon
+  `RefreshCw`. Nhãn: "Cập nhật dữ liệu trích xuất" / "Đang cập nhật…" (đang chạy hoặc đang gửi) / "Thử cập nhật
+  lại" (FAILED). Không đổi bố cục cột hành động (không thêm `flex-wrap`) — giữ cách bảng hiện tại co lại.
+- **Linear progress** là component nhỏ trong `features/resumes/` (chưa đưa lên `components/` vì mới một nơi
+  dùng; K3 sau này có thể nâng lên). Keyframe mới `m3-linear-progress` khai trong `@theme` của `index.css`,
+  kèm `motion-reduce:animate-none`; ghi vào UI_GUIDE mục 1h.
+- **Hiển thị số năm**: `years.toFixed(1).replace('.', ',')`. Backend trả BigDecimal 1 chữ số thập phân nhưng
+  `JSON.parse` làm mất số 0 cuối (`2.0` → `2`); `toFixed(1)` chỉ khôi phục số 0 đó, không làm tròn lại, không
+  chia tháng.
+- **Tổng quan nghề nghiệp**: `dl`; < sm nhãn trên giá trị, ≥ sm lưới `10rem | 1fr`. Tiêu đề `text-m3-label-lg`
+  (14px/500, bằng cỡ tiêu đề các mục cũ `text-sm font-medium`). "Chưa có dữ liệu" và "Đang tính…" màu
+  `m3-on-surface-variant`, là chữ. Ngành/khu vực lấy `label` backend trả; không nhãn "Do AI tạo", không nền
+  khối AI.
+- Không đụng các mục cũ của dialog (Thông tin liên hệ…); chúng vẫn dùng token cũ theo ngoại lệ UI.md mục 1.
+
+Kiểm tra: `mvnw -q test-compile` sạch; `npm run build` + `npm run lint` sạch (chỉ cảnh báo chunk > 500 kB có
+từ trước); grep CSS build thấy `animate-m3-linear-progress`, `@keyframes m3-linear-progress`, `motion-reduce`,
+`bg-m3-primary-container`, `text-m3-error`, `sm:grid-cols-[10rem_1fr]`. Chưa chạy test, chưa soát tay (đợt 6).
+
 ## 7. Nợ kỹ thuật (ghi chú theo đợt — đợt cuối đưa vào ROADMAP)
 
 - **Test chập chờn, có từ trước C05:**
@@ -187,3 +239,10 @@ Test đã viết, **chỉ biên dịch (`mvnw -q test-compile` sạch), CHƯA CH
   trôi qua, claim thành công, test đỏ (`expected: PENDING but was: RUNNING`, dòng 411). Gặp ở đợt 1
   (545 test, 1 đỏ); chạy riêng class xanh 6/6; chạy lại full suite xanh 545/545. Không sửa trong C05
   (ngoài phạm vi, không đụng `scoring/`).
+- **Race embedding CV với trích xuất lại (phát hiện ở review đợt 4, chưa sửa):** `ResumeEmbeddingScheduler`
+  không claim. Kịch bản: scheduler đọc văn bản v1 khi `embedding` đang NULL → trích xuất lại commit data v2 và
+  đặt `embedding = NULL` → scheduler ghi embedding tính từ văn bản v1 đè lên. Kết quả: embedding lệch dữ liệu
+  vĩnh viễn (không còn NULL nên không được tính lại). Xác suất thấp (cần trùng cửa sổ vài giây của lời gọi
+  embedding), cùng họ nợ "không claim" của F1. Cách chữa: ghi embedding có điều kiện theo `parsed_at` đã đọc
+  (`UPDATE ... WHERE id = :id AND parsed_at = :parsedAtRead`) — `touchAfterReparse` đã đổi `parsed_at` nên câu
+  ghi muộn sẽ trượt.

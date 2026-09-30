@@ -155,6 +155,9 @@ Khoảng cách (1f) và trạng thái tương tác (1h) KHÔNG có token riêng:
 Hover lớp phủ 8%, focus 10% + outline 2px brand (đang có), pressed 10%, disabled chữ 38% / nền
 12%. Vùng chạm tối thiểu 48×48px trên màn hình < sm.
 
+Chuyển động: linear progress không xác định dùng `animate-m3-linear-progress` (khai ở FR-C05, trong
+`@theme` của `index.css`), luôn kèm `motion-reduce:animate-none`.
+
 ---
 
 ## 2. Layout & điều hướng
@@ -304,7 +307,7 @@ thêm lúc code.
 |---|---|---|---|
 | `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
 | `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U11 (thống kê), FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
-| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc) |
+| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |

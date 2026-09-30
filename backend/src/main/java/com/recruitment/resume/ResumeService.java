@@ -163,12 +163,12 @@ public class ResumeService {
                         .findByIdAndCandidateId(resumeId, candidateId)
                         .orElseThrow(() -> new ResumeNotFoundException(resumeId));
         if (resume.getParseStatus() != ParseStatus.DONE) {
-            throw new ResumeReparseNotAllowedException();
+            throw ResumeReparseNotAllowedException.notParsedYet();
         }
         ResumeParsedData data =
-                resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow(ResumeReparseNotAllowedException::new);
+                resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow(ResumeReparseNotAllowedException::notParsedYet);
         if (!ResumeSchemaVersions.isV1(data.getPromptVersion())) {
-            throw new ResumeReparseNotAllowedException();
+            throw ResumeReparseNotAllowedException.alreadyLatest();
         }
         if (resumeReparseRequestRepository.existsByResumeIdAndStatusIn(
                 resumeId, List.of(ResumeReparseRequestStatus.PENDING, ResumeReparseRequestStatus.RUNNING))) {

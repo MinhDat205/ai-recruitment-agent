@@ -304,7 +304,8 @@ H13, H14, H15:
   Không có đường chạy lệnh cho vận hành. Mỗi lần = 1 lượt gọi LLM (+ 1 lượt embedding nếu là CV
   chính, R-R5).
 - **R-R2. Điều kiện**: CV của mình (không thì 404, cùng mẫu `downloadMine`); `parse_status = DONE`
-  và `prompt_version = 'resume-parse-v1'` (không thì 409 "CV này đã có dữ liệu trích xuất mới nhất.");
+  (không thì 409 "CV chưa phân tích xong, chưa thể cập nhật dữ liệu trích xuất.");
+  `prompt_version = 'resume-parse-v1'` (không thì 409 "CV này đã có dữ liệu trích xuất mới nhất.");
   không có yêu cầu đang PENDING/RUNNING (409 "CV đang được cập nhật dữ liệu trích xuất.").
 - **R-R3. Rate limit**: thêm đường dẫn vào nhóm `llm-action` theo userId sẵn có của `RateLimitFilter`
   (`RateLimitFilter.java:46-48, 138-140`).

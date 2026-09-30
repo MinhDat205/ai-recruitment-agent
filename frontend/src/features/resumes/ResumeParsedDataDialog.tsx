@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { CareerOverviewSection } from './CareerOverviewSection'
 import { useResumeParsedDataQuery } from './queries'
 import type {
   ResumeParsedCertification,
@@ -197,6 +198,7 @@ export function ResumeParsedDataDialog({ resumeId, fileName, open, onOpenChange 
 
         {!isLoading && data && (
           <div className="flex flex-col gap-4">
+            <CareerOverviewSection data={data} />
             <Section title="Thông tin liên hệ">
               <ContactSection contact={data.data.contact} />
             </Section>

@@ -212,6 +212,7 @@ Tổng quan nghề nghiệp
 | CV v1 | "Dữ liệu trích xuất theo phiên bản cũ." |
 | Nút | "Cập nhật dữ liệu trích xuất" / "Đang cập nhật…" / "Thử cập nhật lại" |
 | Lỗi trích xuất lại | "Cập nhật dữ liệu trích xuất thất bại: {errorMessage}. Dữ liệu cũ vẫn được giữ." |
+| Lỗi 409 gửi yêu cầu trích xuất lại | "CV chưa phân tích xong, chưa thể cập nhật dữ liệu trích xuất." / "CV này đã có dữ liệu trích xuất mới nhất." / "CV đang được cập nhật dữ liệu trích xuất." (thông điệp từ backend, hiện dưới dòng CV) |
 | Thành công (chỉ qua `aria-live`, mục 9) | "Đã cập nhật dữ liệu trích xuất." |
 | Mục dialog | "Tổng quan nghề nghiệp"; "Chức danh hiện tại", "Ngành nghề", "Khu vực", "Kinh nghiệm" |
 | Ghi chú v1 trong dialog | "Dữ liệu trích xuất theo phiên bản cũ — cập nhật ở danh sách CV để có đủ các mục dưới đây." |

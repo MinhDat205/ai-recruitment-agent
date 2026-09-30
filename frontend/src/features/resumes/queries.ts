@@ -3,6 +3,7 @@ import {
   getCvImprovementRequest,
   getParsedResumeRequest,
   listResumesRequest,
+  reparseResumeRequest,
   requestCvImprovementRequest,
   retryResumeRequest,
   setPrimaryResumeRequest,
@@ -41,9 +42,19 @@ export function isResumeStalled(resume: Resume): boolean {
 // khong con keo refetchInterval chay nua (nguoi dung dung nut "Kiem tra lai" de tu refetch thu
 // cong khi can), nhung CV khac trong cung danh sach van con moi/dang xu ly binh thuong thi van
 // phai tiep tuc poll cho rieng no.
+//
+// FR-C05: CV co yeu cau trich xuat lai PENDING/RUNNING cung keo poll (UI.md muc 6) - dung chung MOT
+// refetchInterval nay, khong tao co che poll thu hai. Khong co nguong "ket qua lau" cho trich xuat lai:
+// backend co reaper tra yeu cau ket ve PENDING roi FAILED sau so lan thu toi da, nen poll luon dung lai.
+export function isReparseActive(resume: Resume): boolean {
+  return resume.reparse?.status === 'PENDING' || resume.reparse?.status === 'RUNNING'
+}
+
 function hasResumeStillPolling(resumes: Resume[] | undefined): boolean {
   return (resumes ?? []).some(
-    (resume) => (resume.parseStatus === 'PENDING' || resume.parseStatus === 'PROCESSING') && !isResumeStalled(resume),
+    (resume) =>
+      ((resume.parseStatus === 'PENDING' || resume.parseStatus === 'PROCESSING') && !isResumeStalled(resume)) ||
+      isReparseActive(resume),
   )
 }
 
@@ -56,9 +67,13 @@ export function useResumesQuery() {
   })
 }
 
+export function resumeParsedDataQueryKey(resumeId: string) {
+  return ['resumes', resumeId, 'parsed']
+}
+
 export function useResumeParsedDataQuery(resumeId: string, enabled: boolean) {
   return useQuery<ResumeParsedDataResponse | null>({
-    queryKey: ['resumes', resumeId, 'parsed'],
+    queryKey: resumeParsedDataQueryKey(resumeId),
     queryFn: () => getParsedResumeRequest(resumeId),
     enabled,
   })
@@ -79,6 +94,18 @@ export function useSetPrimaryResumeMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => setPrimaryResumeRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESUMES_QUERY_KEY })
+    },
+  })
+}
+
+// FR-C05 - gui yeu cau trich xuat lai. Invalidate danh sach de refetchInterval (hasResumeStillPolling)
+// bat lai poll cho toi khi yeu cau xong.
+export function useReparseResumeMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => reparseResumeRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RESUMES_QUERY_KEY })
     },

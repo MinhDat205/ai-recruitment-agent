@@ -24,6 +24,12 @@ export async function setPrimaryResumeRequest(id: string): Promise<Resume> {
   return response.data
 }
 
+// FR-C05 R-R1 - 202 + CV (reparse = PENDING). 409/429 tra ErrorResponse {error, message}.
+export async function reparseResumeRequest(id: string): Promise<Resume> {
+  const response = await http.post<Resume>(`/candidates/resumes/${id}/reparse`)
+  return response.data
+}
+
 export async function retryResumeRequest(id: string): Promise<Resume> {
   const response = await http.patch<Resume>(`/candidates/resumes/${id}/retry`)
   return response.data
