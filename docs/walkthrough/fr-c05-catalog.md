@@ -194,11 +194,21 @@ tìm kiếm), `ExperienceCalculatorTest`, `ResumeParsedDataEnricherTest`, `Resum
 (`criterion_scores` 57 dòng `1511c04a…`, `score_explanations` 12 dòng `446f958b…`, `raw_text` 9 CV
 `87e0d96f…`); nạp lại từ dump mới: 9/9 v2, 9/9 đã tính kinh nghiệm, 9/9 có `region_code`, 0 Job thiếu mã.
 
-**Soát tay giao diện (mục 7.10): chưa làm** — người dùng tự soát sau commit tài liệu đợt 6, theo checklist
-trong báo cáo đợt 6. Kết quả bổ sung vào đây sau.
+**Soát tay giao diện (mục 7.10): Đạt toàn bộ** — người dùng tự soát sau commit `6a2f831`, trên dữ liệu
+demo v2, ở cả desktop lẫn khổ 375px, theo checklist 5 bước trong báo cáo đợt 6:
+1. Combobox ở `/hr/jobs/new` (`hr@demo.local`): ↑/↓, Enter, Esc trả focus về ô; gõ "ho chi minh" (không dấu)
+   ra "TP. Hồ Chí Minh"; "Không có mục phù hợp." và "Bỏ chọn"; 375px hai ô xếp dọc, mục cao 48px.
+2. Dòng "Giá trị cũ" + nhãn "Chưa chuẩn hoá" ở danh sách và form sửa của một Job được đặt về chưa chuẩn hoá
+   bằng SQL; chọn mã (chưa lưu) thì dòng ẩn.
+3. "Mở tin" (DRAFT) thiếu mã → đúng thông điệp 409 dưới nhóm nút.
+4. "Mở lại" (PAUSED, HYBRID) sau khi bỏ tỉnh/thành → đúng thông điệp 409.
+5. CV lùi về v1 bằng SQL (`cv-nhan-su.pdf`): nút "Cập nhật dữ liệu trích xuất" + dòng "phiên bản cũ"; bấm →
+   "Đang cập nhật…" + thanh tiến trình; xong thì nút và dòng tự biến mất; dialog "Tổng quan nghề nghiệp" đủ
+   chức danh, ngành, khu vực, số năm dấu phẩy và câu "Tính trên…" (một lượt gọi Anthropic thật).
+Sau soát tay, demo được nạp lại theo `db/seed/README.md` mục 1 (bước 2, 4, 5 đã sửa DB).
 
 **Chưa test:** race embedding khi trích xuất lại (mục 7); hành vi khi danh mục đổi sau này (ngoài phạm vi);
-giao diện ở 375px và bàn phím combobox (chờ soát tay).
+trình đọc màn hình thật đọc vùng `aria-live` (chỉ kiểm cấu trúc DOM, không chạy NVDA/VoiceOver).
 
 | "Xong khi" (REQUIREMENT mục 7) | Nghiệm thu | Kết quả |
 |---|---|---|
@@ -211,7 +221,7 @@ giao diện ở 375px và bàn phím combobox (chờ soát tay).
 | 7. Trích xuất lại | `ResumeReparseEndpointTest`, `ResumeReparseOrchestratorTest` + chạy thật md5 | Đạt |
 | 8. RBAC | `ResumeReparseEndpointTest.reparse_hrUser_returns403`, `CatalogPublicControllerIntegrationTest` | Đạt |
 | 9. Bổ sung spec-review | `JobEmbeddingPipelineIntegrationTest.update_categoryChanged_…`/`update_unrelatedFieldChanged_…` (R-J9), `CvImprovementOrchestratorTest` (R-C6), `ResumeParsingStateServiceTest` + `ResumeReparseOrchestratorTest` (R-C4), `CatalogPublicControllerIntegrationTest` (34/24, thứ tự, không bí danh), `JobCatalogGuardIntegrationTest.response_*` (legacy*) | Đạt |
-| 10. Soát tay | Checklist báo cáo đợt 6 | **Chưa** |
+| 10. Soát tay | Người dùng soát theo checklist 5 bước (desktop + 375px), sau commit `6a2f831` | Đạt |
 | 11. Seed demo | Nạp lại từ dump mới (đợt 6) | Đạt |
 | 12. srs-guard | Đợt 6: 1 vi phạm nguyên tắc 13 ở prompt v2, đã sửa (`f12fcd6`) | Đạt |
 
