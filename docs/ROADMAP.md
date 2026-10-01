@@ -523,7 +523,7 @@ tương ứng ở đây.
   theo UI_GUIDE.md; chọn sắc xanh cho nút Ứng tuyển đạt ≥4.5:1 với chữ trắng; không đổi giao diện
   màn hình cũ. BẮT BUỘC xong trước FR đầu tiên có giao diện. Đã chốt `m3-tertiary` = `#007A3D`
   (5.45:1 với chữ trắng); CSS build trước/sau giống hệt.
-- [ ] `fix/hr-company-onboarding` — HR chưa có hồ sơ công ty được chuyển tới /hr/company thay vì gặp trang lỗi (không gắn mã FR).
+- [x] `fix/hr-company-onboarding` — HR chưa có hồ sơ công ty được chuyển tới /hr/company thay vì gặp trang lỗi (không gắn mã FR).
 
 **Phase 2.1 — Nền dữ liệu & gợi ý việc làm**
 - [ ] `feat/fr-c05-catalog` — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu

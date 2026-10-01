@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
 import { useEffect, useState, type ChangeEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { Link, useLocation } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +11,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { HrLayout } from '../components/layout/HrLayout'
-import { useMyCompanyQuery, useSaveCompanyMutation, useUploadLogoMutation } from '../features/companies/ownerQueries'
+import {
+  MY_COMPANY_QUERY_KEY,
+  isCompanyNotCreatedError,
+  useMyCompanyQuery,
+  useSaveCompanyMutation,
+  useUploadLogoMutation,
+} from '../features/companies/ownerQueries'
 import type { CompanyOwnerRequest } from '../features/companies/ownerTypes'
 
 const companySchema = z.object({
@@ -66,8 +74,13 @@ function toPayload(values: CompanyFormValues): CompanyOwnerRequest {
 
 export function CompanyProfilePage() {
   const { data: company, isLoading, isError, error } = useMyCompanyQuery()
-  const notFound = isError && isAxiosError(error) && error.response?.status === 404
+  const notFound = isError && isCompanyNotCreatedError(error)
   const otherError = isError && !notFound
+  const location = useLocation()
+  const queryClient = useQueryClient()
+  // needCompany do RequireCompany gan khi chuyen huong tu trang HR can cong ty toi day.
+  const needCompany = (location.state as { needCompany?: boolean } | null)?.needCompany === true
+  const showNeedCompanyBanner = !company && (notFound || needCompany)
 
   const saveMutation = useSaveCompanyMutation(company?.id)
   const uploadLogoMutation = useUploadLogoMutation(company?.id)
@@ -111,6 +124,12 @@ export function CompanyProfilePage() {
     const kind = company ? 'update' : 'create'
     try {
       await saveMutation.mutateAsync(toPayload(values))
+      if (kind === 'create') {
+        // O lai trang (KHONG chuyen sang /hr): nut "Doi logo" chi mo khi da co cong ty, HR moi
+        // can tai logo ngay sau khi tao. Cache da co cong ty moi (setQueryData trong mutation)
+        // nen banner tu an va RequireCompany cho qua; invalidate de dong bo lai voi backend.
+        void queryClient.invalidateQueries({ queryKey: MY_COMPANY_QUERY_KEY })
+      }
       setSaveKind(kind)
       setShowSaveSuccess(true)
     } catch {
@@ -154,6 +173,11 @@ export function CompanyProfilePage() {
 
   return (
     <HrLayout title="Hồ sơ công ty">
+      {showNeedCompanyBanner && (
+        <p className="mx-auto mb-4 max-w-2xl rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
+          Bạn cần tạo hồ sơ công ty trước khi đăng tin và quản lý ứng viên.
+        </p>
+      )}
       <form onSubmit={onSubmit} noValidate>
         <Card className="mx-auto max-w-2xl">
           <CardHeader>
@@ -254,6 +278,13 @@ export function CompanyProfilePage() {
               <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
                 {saveKind === 'create' ? 'Đã tạo hồ sơ công ty' : 'Đã lưu thay đổi'}
               </p>
+            )}
+            {/* Khong gan vao saveSuccessVisible (tu an sau vai giay): HR con tai logo xong moi
+                sang Dashboard. An khi lan luu sau la cap nhat (saveKind doi sang 'update'). */}
+            {saveKind === 'create' && (
+              <Button asChild variant="outline">
+                <Link to="/hr">Tới Dashboard</Link>
+              </Button>
             )}
           </CardFooter>
         </Card>
