@@ -64,6 +64,13 @@ class ResumeParsePromptTest {
         assertThat(prompt).contains("copied verbatim");
         assertThat(prompt).contains("If you are not sure");
         assertThat(prompt).contains("do not convert an old");
+        // locationText chi lay phan tinh/thanh, nguyen van (bo quan/huyen/phuong/duong) - de bo khop R-M3
+        // nhan ra ma ma KHONG phai noi long bo khop (khong tach dau phay). Vi du tinh cu giu nguyen ten cu.
+        assertThat(prompt).contains("Copy ONLY the province or city part of the address, verbatim");
+        assertThat(prompt).contains("leave out the district, ward");
+        assertThat(prompt).contains("\"Quận 7, TP. Hồ Chí Minh\" -> \"TP. Hồ Chí Minh\"");
+        assertThat(prompt).contains("\"Thủ Dầu Một, Bình Dương\" -> \"Bình Dương\"");
+        assertThat(prompt).contains("does not clearly name a province or");
         // Khong hardcode ma nganh trong file .st - danh sach truyen vao qua {industries}.
         assertThat(prompt).doesNotContain("IT_SOFTWARE").doesNotContain("OTHER");
         // R-C5: cam them truong nhan than.

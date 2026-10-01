@@ -50,10 +50,15 @@ Rules for the three single fields:
   explicitly states where the candidate lives or wants to work (for example in the address line or
   a "desired location" line). Copy the place name exactly as written - do not convert an old
   province name to a new one, do not translate it, and do not add or remove administrative prefixes.
+  Copy ONLY the province or city part of the address, verbatim - leave out the district, ward,
+  street, and house number. Examples: "Quận 7, TP. Hồ Chí Minh" -> "TP. Hồ Chí Minh";
+  "Quận Ninh Kiều, Cần Thơ" -> "Cần Thơ"; "Thủ Dầu Một, Bình Dương" -> "Bình Dương" (keep the old
+  province name exactly as the resume writes it). If the address does not clearly name a province or
+  city (for example it only names a district), return null.
   Do not infer a location from the name of a school, a company, or a past workplace. If the text
   does not state it, return null.
 
-Do not add any other personal fields (such as age, gender, date of birth, photo, marital status,
-nationality, or religion) - they are not part of the output schema.
+Do not add any other personal fields - output only the fields defined in the schema below, and do
+not infer or describe any personal characteristic of the candidate that the schema does not ask for.
 
 {format}
