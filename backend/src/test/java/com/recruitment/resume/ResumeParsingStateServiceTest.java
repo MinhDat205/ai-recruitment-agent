@@ -76,7 +76,7 @@ class ResumeParsingStateServiceTest {
                 List.of(),
                 List.of("Java"),
                 List.of(),
-                List.of());
+                List.of(), null, null, null);
     }
 
     @Test
@@ -436,5 +436,91 @@ class ResumeParsingStateServiceTest {
 
         Resume reloaded = resumeRepository.findById(resumeId).orElseThrow();
         assertThat(reloaded.getParseStatus()).isEqualTo(ParseStatus.DONE);
+    }
+
+    // ---- FR-C05: markDone qua ResumeParsedDataEnricher (R-C3, R-C4, R-E9a) ----
+
+    private ResumeParsedPayload v2Payload(String industryCode, String locationText) {
+        return new ResumeParsedPayload(
+                new ResumeParsedPayload.Contact("Nguyen Van A", "a@example.com", null, null, null),
+                List.of(),
+                List.of(new ResumeParsedPayload.Experience("Cong ty ABC", "Backend", "01/2020", "06/2020", "API")),
+                List.of("Java"),
+                List.of(),
+                List.of(),
+                "Backend Developer",
+                industryCode,
+                locationText);
+    }
+
+    // R-C4: AI tra ma la -> cot industry_code va data.industryCode deu null (bat bien cot = JSON).
+    @Test
+    void markDone_unknownIndustryCodeFromAi_columnAndJsonBothNull() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+
+        stateService.markDone(
+                resumeId, "raw", v2Payload("MA_KHONG_TON_TAI", null), "claude-sonnet-4-6", "resume-parse-v2", 100);
+
+        entityManager.clear();
+        ResumeParsedData saved = resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow();
+        assertThat(saved.getIndustryCode()).isNull();
+        assertThat(saved.getData().industryCode()).isNull();
+    }
+
+    @Test
+    void markDone_otherIndustryCodeFromAi_columnAndJsonBothNull() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+
+        stateService.markDone(resumeId, "raw", v2Payload("OTHER", null), "claude-sonnet-4-6", "resume-parse-v2", 100);
+
+        entityManager.clear();
+        ResumeParsedData saved = resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow();
+        assertThat(saved.getIndustryCode()).isNull();
+        assertThat(saved.getData().industryCode()).isNull();
+    }
+
+    // Du lieu danh muc that cua V8: IT_SOFTWARE hop le; "Bình Dương" (ten tinh cu) -> HO_CHI_MINH.
+    @Test
+    void markDone_validCodeAndOldProvinceName_columnsSetAndTextKept() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+
+        stateService.markDone(
+                resumeId, "raw", v2Payload("IT_SOFTWARE", "Bình Dương"), "claude-sonnet-4-6", "resume-parse-v2", 100);
+
+        entityManager.clear();
+        ResumeParsedData saved = resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow();
+        assertThat(saved.getIndustryCode()).isEqualTo("IT_SOFTWARE").isEqualTo(saved.getData().industryCode());
+        assertThat(saved.getRegionCode()).isEqualTo("HO_CHI_MINH");
+        assertThat(saved.getData().locationText()).isEqualTo("Bình Dương");
+        assertThat(saved.getData().currentTitle()).isEqualTo("Backend Developer");
+    }
+
+    @Test
+    void markDone_unmatchedLocation_regionNullTextKept() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+
+        stateService.markDone(
+                resumeId, "raw", v2Payload(null, "Quận 1, Hồ Chí Minh"), "claude-sonnet-4-6", "resume-parse-v2", 100);
+
+        entityManager.clear();
+        ResumeParsedData saved = resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow();
+        assertThat(saved.getRegionCode()).isNull();
+        assertThat(saved.getData().locationText()).isEqualTo("Quận 1, Hồ Chí Minh");
+    }
+
+    // R-E9a: so thang kinh nghiem ghi CUNG lan ghi markDone (khong cho job nen). Khoang 01/2020-06/2020
+    // nam tron trong qua khu nen khong phu thuoc thoi diem chay test.
+    @Test
+    void markDone_computesExperienceInSameWrite() {
+        UUID resumeId = createResume(ParseStatus.PROCESSING);
+
+        stateService.markDone(resumeId, "raw", v2Payload("IT_SOFTWARE", null), "claude-sonnet-4-6", "resume-parse-v2", 100);
+
+        entityManager.clear();
+        ResumeParsedData saved = resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow();
+        assertThat(saved.getExperienceMonths()).isEqualTo(6);
+        assertThat(saved.getExperienceEntriesCounted()).isEqualTo(1);
+        assertThat(saved.getExperienceEntriesSkipped()).isZero();
+        assertThat(saved.getExperienceComputedAt()).isNotNull();
     }
 }

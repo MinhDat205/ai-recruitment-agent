@@ -53,4 +53,43 @@ class ResumeParsePromptTest {
         // vo nghia vi output khong con parse duoc theo ResumeParsedPayload.
         assertThat(prompt).contains("{format}");
     }
+
+    // FR-C05 R-C1, R-C2, R-C5 va muc 5: prompt v2 giu luat v1 (test tren) va them rang buoc cho ba truong moi.
+    @Test
+    void promptV2_containsNewFieldRules() throws IOException {
+        String prompt = readPrompt(ResumeParsingService.PROMPT_VERSION);
+
+        assertThat(prompt).contains("{industries}");
+        assertThat(prompt).contains("currentTitle").contains("industryCode").contains("locationText");
+        assertThat(prompt).contains("copied verbatim");
+        assertThat(prompt).contains("If you are not sure");
+        assertThat(prompt).contains("do not convert an old");
+        // locationText chi lay phan tinh/thanh, nguyen van (bo quan/huyen/phuong/duong) - de bo khop R-M3
+        // nhan ra ma ma KHONG phai noi long bo khop (khong tach dau phay). Vi du tinh cu giu nguyen ten cu.
+        assertThat(prompt).contains("Copy ONLY the province or city part of the address, verbatim");
+        assertThat(prompt).contains("leave out the district, ward");
+        assertThat(prompt).contains("\"Quận 7, TP. Hồ Chí Minh\" -> \"TP. Hồ Chí Minh\"");
+        assertThat(prompt).contains("\"Thủ Dầu Một, Bình Dương\" -> \"Bình Dương\"");
+        assertThat(prompt).contains("does not clearly name a province or");
+        // Khong hardcode ma nganh trong file .st - danh sach truyen vao qua {industries}.
+        assertThat(prompt).doesNotContain("IT_SOFTWARE").doesNotContain("OTHER");
+        // R-C5: cam them truong nhan than.
+        assertThat(prompt).contains("Do not add any other personal fields");
+    }
+
+    // R-C1: giu file v1 lam lich su.
+    @Test
+    void promptV1_fileStillPresent() throws IOException {
+        assertThat(readPrompt(ResumeSchemaVersions.V1_PROMPT_VERSION)).contains("{format}");
+    }
+
+    private String readPrompt(String version) throws IOException {
+        String resourcePath = "/ai/prompt/" + version + ".st";
+        try (InputStream in = getClass().getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                throw new IllegalStateException("Khong tim thay file prompt tren classpath: " + resourcePath);
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
 }

@@ -6,6 +6,10 @@ app:
     local-path: ${java.io.tmpdir}/ai-recruitment-agent-test-uploads
   resume-parsing:
     enabled: false
+  resume-reparse:
+    enabled: false
+  resume-experience:
+    enabled: false
   scoring:
     enabled: false
   aggregation:

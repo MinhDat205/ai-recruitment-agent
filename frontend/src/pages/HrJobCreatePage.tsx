@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useState } from 'react'
 import { HrLayout } from '../components/layout/HrLayout'
+import { useCatalogsQuery } from '../features/catalog/queries'
+import { CATEGORY_HELPER_TEXT, LOCATION_HELPER_TEXT } from '../features/jobs/catalogDisplay'
+import { CatalogField } from '../features/jobs/CatalogField'
 import { EMPLOYMENT_TYPE_LABELS, EMPLOYMENT_TYPE_OPTIONS, WORK_MODE_LABELS, WORK_MODE_OPTIONS } from '../features/jobs/jobLabels'
 import { useCreateHrJobMutation } from '../features/jobs/ownerQueries'
 import type { JobCreateOwnerRequest } from '../features/jobs/ownerTypes'
@@ -30,8 +33,9 @@ const createJobSchema = z
     title: z.string().trim().min(1, 'Vui lòng nhập tiêu đề').max(200, 'Tối đa 200 ký tự'),
     description: z.string().trim().min(1, 'Vui lòng nhập mô tả công việc'),
     requirements: z.string().optional(),
-    category: z.string().max(120, 'Tối đa 120 ký tự').optional(),
-    location: z.string().max(150, 'Tối đa 150 ký tự').optional(),
+    // FR-C05: ma danh muc, null = chua chon. Tuy chon o DRAFT; bat buoc khi mo tin do backend kiem (R-J3).
+    categoryCode: z.string().nullable(),
+    locationCode: z.string().nullable(),
     employmentType: z.string().optional(),
     workMode: z.string().optional(),
     salaryMin: z.string().optional(),
@@ -63,8 +67,8 @@ const EMPTY_VALUES: CreateJobFormValues = {
   title: '',
   description: '',
   requirements: '',
-  category: '',
-  location: '',
+  categoryCode: null,
+  locationCode: null,
   employmentType: '',
   workMode: '',
   salaryMin: '',
@@ -81,7 +85,7 @@ const EMPTY_VALUES: CreateJobFormValues = {
 const STEPS: { title: string; fields: (keyof CreateJobFormValues)[] }[] = [
   {
     title: 'Thông tin cơ bản',
-    fields: ['title', 'description', 'requirements', 'category', 'location', 'employmentType', 'workMode'],
+    fields: ['title', 'description', 'requirements', 'categoryCode', 'locationCode', 'employmentType', 'workMode'],
   },
   { title: 'Lương & thời hạn', fields: ['salaryMin', 'salaryMax', 'salaryCurrency', 'deadline'] },
   { title: 'Mẫu giấy mời phỏng vấn', fields: ['subject', 'body', 'senderName', 'senderTitle', 'address'] },
@@ -113,8 +117,9 @@ function toPayload(values: CreateJobFormValues): JobCreateOwnerRequest {
       title: values.title.trim(),
       description: values.description.trim(),
       requirements: toUndef(values.requirements),
-      category: toUndef(values.category),
-      location: toUndef(values.location),
+      // Gui null tuong minh khi chua chon - KHONG gui "" (backend tra 400 INVALID_CATALOG_CODE).
+      categoryCode: values.categoryCode,
+      locationCode: values.locationCode,
       employmentType: toUndef(values.employmentType),
       workMode: toUndef(values.workMode),
       salaryMin: toNumber(values.salaryMin),
@@ -135,6 +140,7 @@ function toPayload(values: CreateJobFormValues): JobCreateOwnerRequest {
 export function HrJobCreatePage() {
   const navigate = useNavigate()
   const createMutation = useCreateHrJobMutation()
+  const catalogsQuery = useCatalogsQuery()
   const [step, setStep] = useState(0)
 
   const {
@@ -241,14 +247,44 @@ export function HrJobCreatePage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="job-category">Danh mục</Label>
-                    <Input id="job-category" {...register('category')} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="job-location">Địa điểm</Label>
-                    <Input id="job-location" {...register('location')} />
-                  </div>
+                  <Controller
+                    control={control}
+                    name="categoryCode"
+                    render={({ field }) => (
+                      <CatalogField
+                        id="job-category"
+                        label="Ngành nghề"
+                        helperText={CATEGORY_HELPER_TEXT}
+                        placeholder="Chọn ngành nghề"
+                        searchPlaceholder="Tìm ngành nghề..."
+                        value={field.value}
+                        onChange={field.onChange}
+                        items={catalogsQuery.data?.industries}
+                        isLoading={catalogsQuery.isLoading}
+                        isError={catalogsQuery.isError}
+                        onRetry={() => catalogsQuery.refetch()}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="locationCode"
+                    render={({ field }) => (
+                      <CatalogField
+                        id="job-location"
+                        label="Tỉnh/thành"
+                        helperText={LOCATION_HELPER_TEXT}
+                        placeholder="Chọn tỉnh/thành"
+                        searchPlaceholder="Tìm tỉnh/thành..."
+                        value={field.value}
+                        onChange={field.onChange}
+                        items={catalogsQuery.data?.provinces}
+                        isLoading={catalogsQuery.isLoading}
+                        isError={catalogsQuery.isError}
+                        onRetry={() => catalogsQuery.refetch()}
+                      />
+                    )}
+                  />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">

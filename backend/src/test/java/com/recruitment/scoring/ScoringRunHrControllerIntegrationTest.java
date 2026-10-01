@@ -141,7 +141,7 @@ class ScoringRunHrControllerIntegrationTest {
         String body =
                 """
                 {
-                  "job": {"title":"%s","description":"Mo ta cong viec"},
+                  "job": {"title":"%s","description":"Mo ta cong viec","categoryCode":"IT_SOFTWARE","locationCode":"HA_NOI"},
                   "interviewTemplate": {
                     "subject":"Thu moi phong van vi tri %s",
                     "body":"Kinh chao ung vien, chung toi moi ban tham gia phong van.",
@@ -222,7 +222,7 @@ class ScoringRunHrControllerIntegrationTest {
                 List.of(),
                 List.of("Java", "Docker"),
                 List.of(),
-                List.of()));
+                List.of(), null, null, null));
         data.setModel("claude-sonnet-4-6");
         data.setPromptVersion("resume-parse-v1");
         resumeParsedDataRepository.save(data);

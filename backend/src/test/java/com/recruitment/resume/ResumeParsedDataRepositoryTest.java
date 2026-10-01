@@ -75,7 +75,10 @@ class ResumeParsedDataRepositoryTest {
                 List.of("Java", "Spring Boot"),
                 List.of(new ResumeParsedPayload.Certification("AWS Certified Developer", "Amazon", "2023")),
                 List.of(new ResumeParsedPayload.Project(
-                        "He thong tuyen dung", "Xay dung backend cham diem CV", List.of("Java", "PostgreSQL"))));
+                        "He thong tuyen dung", "Xay dung backend cham diem CV", List.of("Java", "PostgreSQL"))),
+                null,
+                null,
+                null);
     }
 
     private ResumeParsedData newRow(UUID resumeId, String rawText) {
@@ -126,7 +129,10 @@ class ResumeParsedDataRepositoryTest {
                 List.of(),
                 List.of("Excel"),
                 null, // certifications - LLM khong tim thay muc nay trong CV
-                null); // projects - LLM khong tim thay muc nay trong CV
+                null, // projects - LLM khong tim thay muc nay trong CV
+                null,
+                null,
+                null);
 
         // Compact constructor phai chan null NGAY luc khoi tao, truoc khi cham vao DB.
         assertThat(payloadWithNulls.certifications()).isNotNull().isEmpty();
@@ -156,7 +162,7 @@ class ResumeParsedDataRepositoryTest {
                 List.of(),
                 List.of("Excel"),
                 List.of(),
-                List.of());
+                List.of(), null, null, null);
 
         assertThat(payloadWithNullContact.contact()).isNull();
 

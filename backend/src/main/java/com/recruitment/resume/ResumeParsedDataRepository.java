@@ -1,5 +1,7 @@
 package com.recruitment.resume;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,4 +58,49 @@ public interface ResumeParsedDataRepository extends JpaRepository<ResumeParsedDa
                     "SELECT embedding::text FROM resume_parsed_data WHERE resume_id = :resumeId AND embedding IS NOT NULL",
             nativeQuery = true)
     Optional<String> findEmbeddingTextByResumeId(@Param("resumeId") UUID resumeId);
+
+    // FR-C05 - phien ban schema (prompt_version) cua nhieu CV trong mot cau, cho API danh sach CV.
+    interface PromptVersionView {
+        UUID getResumeId();
+
+        String getPromptVersion();
+    }
+
+    @Query("SELECT d.resumeId AS resumeId, d.promptVersion AS promptVersion FROM ResumeParsedData d "
+            + "WHERE d.resumeId IN :resumeIds")
+    List<PromptVersionView> findPromptVersionsByResumeIds(@Param("resumeIds") Collection<UUID> resumeIds);
+
+    // FR-C05 R-R5 - phan con lai cua lan ghi trich xuat lai ma entity khong ghi duoc: parsed_at (cot
+    // DB sinh, khong updatable qua entity) va embedding (khong map, xem ResumeParsedData). embedding =
+    // NULL de ResumeEmbeddingScheduler tinh lai cho CV chinh (R-R6). raw_text KHONG nam trong cau nay.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+            value = "UPDATE resume_parsed_data SET parsed_at = now(), embedding = NULL WHERE id = :id",
+            nativeQuery = true)
+    int touchAfterReparse(@Param("id") UUID id);
+
+    // FR-C05 R-E9b - ban ghi chua tinh kinh nghiem (toan bo CV v1 co san). Dung
+    // idx_parsed_data_experience_pending (V8); id la khoa cuoi.
+    @Query(
+            value = "SELECT id FROM resume_parsed_data WHERE experience_computed_at IS NULL "
+                    + "ORDER BY parsed_at, id",
+            nativeQuery = true)
+    List<UUID> findIdsNeedingExperience(Pageable pageable);
+
+    // Ghi ket qua kinh nghiem CHI KHI ban ghi van chua duoc tinh - UPDATE co dieu kien vua la buoc ghi
+    // vua la claim (CLAUDE.md muc 3c): neu trich xuat lai (hoac mot vong quet khac) da ghi truoc thi
+    // rowcount 0, khong de ket qua tinh tu du lieu cu de len.
+    @Modifying(clearAutomatically = true)
+    @Query(
+            value = "UPDATE resume_parsed_data SET experience_months = :months, "
+                    + "experience_entries_counted = :counted, experience_entries_skipped = :skipped, "
+                    + "experience_computed_at = :computedAt "
+                    + "WHERE id = :id AND experience_computed_at IS NULL",
+            nativeQuery = true)
+    int writeExperienceIfPending(
+            @Param("id") UUID id,
+            @Param("months") Integer months,
+            @Param("counted") int counted,
+            @Param("skipped") int skipped,
+            @Param("computedAt") Instant computedAt);
 }

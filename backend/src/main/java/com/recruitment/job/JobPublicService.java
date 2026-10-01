@@ -1,5 +1,6 @@
 package com.recruitment.job;
 
+import com.recruitment.catalog.CatalogRegistry;
 import com.recruitment.common.dto.PageResponse;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
@@ -25,10 +26,13 @@ public class JobPublicService {
 
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
+    private final CatalogRegistry catalogRegistry;
 
-    public JobPublicService(JobRepository jobRepository, CompanyRepository companyRepository) {
+    public JobPublicService(
+            JobRepository jobRepository, CompanyRepository companyRepository, CatalogRegistry catalogRegistry) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
+        this.catalogRegistry = catalogRegistry;
     }
 
     public PageResponse<JobSummaryResponse> search(
@@ -96,11 +100,16 @@ public class JobPublicService {
     }
 
     private JobSummaryResponse toSummary(Job j, Company c) {
+        JobCatalogFields catalog = JobCatalogFields.of(j, catalogRegistry);
         return new JobSummaryResponse(
                 j.getId(),
                 j.getTitle(),
-                j.getCategory(),
-                j.getLocation(),
+                catalog.categoryCode(),
+                catalog.categoryLabel(),
+                catalog.locationCode(),
+                catalog.locationLabel(),
+                catalog.legacyCategory(),
+                catalog.legacyLocation(),
                 j.getEmploymentType(),
                 j.getWorkMode(),
                 j.getSalaryMin(),
@@ -112,13 +121,18 @@ public class JobPublicService {
     }
 
     private JobDetailResponse toDetail(Job j, Company c) {
+        JobCatalogFields catalog = JobCatalogFields.of(j, catalogRegistry);
         return new JobDetailResponse(
                 j.getId(),
                 j.getTitle(),
                 j.getDescription(),
                 j.getRequirements(),
-                j.getCategory(),
-                j.getLocation(),
+                catalog.categoryCode(),
+                catalog.categoryLabel(),
+                catalog.locationCode(),
+                catalog.locationLabel(),
+                catalog.legacyCategory(),
+                catalog.legacyLocation(),
                 j.getEmploymentType(),
                 j.getWorkMode(),
                 j.getSalaryMin(),

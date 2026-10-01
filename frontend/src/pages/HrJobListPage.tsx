@@ -4,6 +4,7 @@ import { HrLayout } from '../components/layout/HrLayout'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { JobLocationCell } from '../features/jobs/JobLocationCell'
 import { JobRowActions } from '../features/jobs/JobRowActions'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
 import { EMPLOYMENT_TYPE_LABELS, JOB_STATUS_LABELS, JOB_STATUS_OPTIONS } from '../features/jobs/jobLabels'
@@ -106,7 +107,9 @@ export function HrJobListPage() {
                     <TableCell>
                       <JobStatusBadge status={job.status} />
                     </TableCell>
-                    <TableCell className="text-ink-muted">{job.location ?? '—'}</TableCell>
+                    <TableCell className="text-ink-muted">
+                      <JobLocationCell job={job} />
+                    </TableCell>
                     <TableCell className="text-ink-muted">
                       {job.employmentType ? (EMPLOYMENT_TYPE_LABELS[job.employmentType] ?? job.employmentType) : '—'}
                     </TableCell>

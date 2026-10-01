@@ -1,13 +1,24 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { Download, FileSearch, FileText, RotateCw, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { Download, FileSearch, FileText, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { downloadResumeRequest } from './api'
 import { ParseStatusBadge } from './ParseStatusBadge'
-import { isResumeStalled, useResumesQuery, useRetryResumeMutation, useSetPrimaryResumeMutation } from './queries'
+import {
+  isReparseActive,
+  isResumeStalled,
+  resumeParsedDataQueryKey,
+  useReparseResumeMutation,
+  useResumesQuery,
+  useRetryResumeMutation,
+  useSetPrimaryResumeMutation,
+} from './queries'
 import { ResumeParsedDataDialog } from './ResumeParsedDataDialog'
+import { ResumeReparseStatus } from './ResumeReparseStatus'
+import { canReparse, REPARSE_TEXT } from './resumeReparse'
 import type { Resume } from './types'
 
 function formatFileSize(bytes: number | null): string {
@@ -43,15 +54,59 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback
 }
 
+// Id cac CV co yeu cau trich xuat lai dang PENDING/RUNNING o lan tai truoc va nay da DONE.
+function newlyCompletedReparseIds(previous: Resume[] | undefined, current: Resume[] | undefined): string[] {
+  const wasActive = new Set((previous ?? []).filter(isReparseActive).map((resume) => resume.id))
+  return (current ?? [])
+    .filter((resume) => wasActive.has(resume.id) && resume.reparse?.status === 'DONE')
+    .map((resume) => resume.id)
+}
+
 export function ResumeList() {
   const { data: resumes, isLoading, refetch, isFetching } = useResumesQuery()
   const setPrimaryMutation = useSetPrimaryResumeMutation()
   const retryMutation = useRetryResumeMutation()
+  const reparseMutation = useReparseResumeMutation()
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [viewingResume, setViewingResume] = useState<{ id: string; fileName: string } | null>(null)
+  const [reparsingId, setReparsingId] = useState<string | null>(null)
+  const [reparseError, setReparseError] = useState<{ id: string; message: string } | null>(null)
+  // FR-C05 - phat hien trich xuat lai vua xong bang cach so sanh voi danh sach lan truoc (mau "dieu chinh
+  // state khi du lieu doi" cua React, khong dung effect de setState). Danh sach tu cap nhat qua
+  // refetchInterval san co (queries.ts), khong co co che poll rieng.
+  const [previousResumes, setPreviousResumes] = useState<Resume[] | undefined>(resumes)
+  const [completedReparseIds, setCompletedReparseIds] = useState<string[]>([])
+  if (resumes !== previousResumes) {
+    const completed = newlyCompletedReparseIds(previousResumes, resumes)
+    setPreviousResumes(resumes)
+    if (completed.length > 0) {
+      setCompletedReparseIds((ids) => [...ids, ...completed.filter((id) => !ids.includes(id))])
+    }
+  }
+
+  // Du lieu trich xuat cua CV vua cap nhat da doi - bo cache dialog de lan mo sau tai ban moi.
+  useEffect(() => {
+    for (const id of completedReparseIds) {
+      queryClient.invalidateQueries({ queryKey: resumeParsedDataQueryKey(id) })
+    }
+  }, [completedReparseIds, queryClient])
+
+  async function handleReparse(resumeId: string) {
+    setReparseError(null)
+    setReparsingId(resumeId)
+    try {
+      await reparseMutation.mutateAsync(resumeId)
+    } catch (err) {
+      // 409/429: hien nguyen thong diep backend duoi dong CV (UI.md muc 6).
+      setReparseError({ id: resumeId, message: extractErrorMessage(err, REPARSE_TEXT.requestFallbackError) })
+    } finally {
+      setReparsingId(null)
+    }
+  }
 
   async function handleRetry(resumeId: string) {
     setError(null)
@@ -139,6 +194,11 @@ export function ResumeList() {
                       </button>
                     </div>
                   )}
+                  <ResumeReparseStatus
+                    resume={resume}
+                    justCompleted={completedReparseIds.includes(resume.id)}
+                    requestError={reparseError?.id === resume.id ? reparseError.message : null}
+                  />
                 </div>
               </TableCell>
               <TableCell className="text-ink-muted">{formatUploadedAt(resume.uploadedAt)}</TableCell>
@@ -166,6 +226,22 @@ export function ResumeList() {
                     >
                       <RotateCw className="h-4 w-4" aria-hidden="true" />
                       Phân tích lại
+                    </Button>
+                  )}
+                  {canReparse(resume) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isReparseActive(resume) || reparsingId === resume.id}
+                      onClick={() => handleReparse(resume.id)}
+                    >
+                      <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                      {isReparseActive(resume) || reparsingId === resume.id
+                        ? REPARSE_TEXT.buttonRunning
+                        : resume.reparse?.status === 'FAILED'
+                          ? REPARSE_TEXT.buttonRetry
+                          : REPARSE_TEXT.button}
                     </Button>
                   )}
                   {resume.parseStatus === 'DONE' && (

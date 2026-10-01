@@ -159,7 +159,7 @@ class CvImprovementOrchestratorTest {
                 List.of(),
                 List.of("Java", "Spring Boot"),
                 List.of(),
-                List.of()));
+                List.of(), null, null, null));
         parsedData.setModel("claude-sonnet-4-6");
         parsedData.setPromptVersion("resume-parse-v1");
         resumeParsedDataRepository.save(parsedData);
@@ -294,7 +294,10 @@ class CvImprovementOrchestratorTest {
                 List.of("Java"),
                 List.of(new ResumeParsedPayload.Certification("AWS Certified Developer", "Amazon", "03/2022")),
                 List.of(new ResumeParsedPayload.Project(
-                        "He thong dat ve", "Xay dung backend dat ve xe", List.of("Spring Boot", "PostgreSQL"))));
+                        "He thong dat ve", "Xay dung backend dat ve xe", List.of("Spring Boot", "PostgreSQL"))),
+                null,
+                null,
+                null);
 
         String text = CvImprovementOrchestrator.buildResumeText(payload);
 
@@ -431,5 +434,49 @@ class CvImprovementOrchestratorTest {
         criterionScore.setReasoning(reasoning);
         criterionScore.setEvidence(List.of(new EvidenceEntry("doan trich gia lap", "experience")));
         criterionScoreRepository.saveAndFlush(criterionScore);
+    }
+
+    // ---- FR-C05 R-C6: van ban CV (F1 embed + F2 goi y dung chung ham nay) ----
+
+    @Test
+    void buildResumeText_v2Payload_includesCurrentTitleButNoDerivedCodesOrMonths() {
+        ResumeParsedPayload payload = new ResumeParsedPayload(
+                new ResumeParsedPayload.Contact("Nguyen Van A", "a@example.com", null, null, null),
+                List.of(),
+                List.of(new ResumeParsedPayload.Experience(
+                        "Cong ty ABC", "Backend Developer", "07/2020", "Hien tai", "Phat trien API")),
+                List.of("Java"),
+                List.of(),
+                List.of(),
+                "Senior Java Developer",
+                "IT_SOFTWARE",
+                "Bình Dương");
+
+        String text = CvImprovementOrchestrator.buildResumeText(payload);
+
+        assertThat(text).contains("Senior Java Developer");
+        // Du lieu backend suy ra, khong phai loi trong CV: ma nganh, ma khu vuc, so thang/nam kinh nghiem.
+        assertThat(text).doesNotContain("IT_SOFTWARE");
+        assertThat(text).doesNotContain("HO_CHI_MINH");
+        assertThat(text).doesNotContain("thang kinh nghiem").doesNotContain("nam kinh nghiem");
+    }
+
+    @Test
+    void buildResumeText_v1PayloadWithoutCurrentTitle_rendersNoTitleLine() {
+        ResumeParsedPayload payload = new ResumeParsedPayload(
+                new ResumeParsedPayload.Contact("Nguyen Van A", "a@example.com", null, null, null),
+                List.of(),
+                List.of(),
+                List.of("Java"),
+                List.of(),
+                List.of(),
+                null,
+                null,
+                null);
+
+        String text = CvImprovementOrchestrator.buildResumeText(payload);
+
+        assertThat(text).doesNotContain("Chuc danh hien tai");
+        assertThat(text).doesNotContain("null");
     }
 }

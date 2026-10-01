@@ -1,17 +1,26 @@
 package com.recruitment.resume;
 
+import com.recruitment.catalog.CatalogRegistry;
+import com.recruitment.catalog.dto.CatalogResponse;
 import com.recruitment.common.exception.InvalidResumeFileException;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.common.exception.ResumeParsedDataNotFoundException;
+import com.recruitment.common.exception.ResumeReparseInProgressException;
+import com.recruitment.common.exception.ResumeReparseNotAllowedException;
 import com.recruitment.common.exception.ResumeRetryNotAllowedException;
 import com.recruitment.resume.dto.ResumeParsedDataResponse;
+import com.recruitment.resume.dto.ResumeReparseStatusResponse;
 import com.recruitment.resume.dto.ResumeResponse;
 import com.recruitment.storage.StorageService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,22 +39,26 @@ public class ResumeService {
     private final ResumeParsedDataRepository resumeParsedDataRepository;
     private final StorageService storageService;
     private final ResumeParsingStateService resumeParsingStateService;
+    private final ResumeReparseRequestRepository resumeReparseRequestRepository;
+    private final CatalogRegistry catalogRegistry;
 
     public ResumeService(
             ResumeRepository resumeRepository,
             ResumeParsedDataRepository resumeParsedDataRepository,
             StorageService storageService,
-            ResumeParsingStateService resumeParsingStateService) {
+            ResumeParsingStateService resumeParsingStateService,
+            ResumeReparseRequestRepository resumeReparseRequestRepository,
+            CatalogRegistry catalogRegistry) {
         this.resumeRepository = resumeRepository;
         this.resumeParsedDataRepository = resumeParsedDataRepository;
         this.storageService = storageService;
         this.resumeParsingStateService = resumeParsingStateService;
+        this.resumeReparseRequestRepository = resumeReparseRequestRepository;
+        this.catalogRegistry = catalogRegistry;
     }
 
     public List<ResumeResponse> listMine(UUID candidateId) {
-        return resumeRepository.findByCandidateIdOrderByUploadedAtDesc(candidateId).stream()
-                .map(ResumeService::toResponse)
-                .toList();
+        return toResponses(resumeRepository.findByCandidateIdOrderByUploadedAtDesc(candidateId));
     }
 
     @Transactional
@@ -135,7 +148,48 @@ public class ResumeService {
         ResumeParsedData data = resumeParsedDataRepository
                 .findByResumeId(resumeId)
                 .orElseThrow(() -> new ResumeParsedDataNotFoundException(resumeId));
-        return new ResumeParsedDataResponse(data.getResumeId(), data.getData(), data.getParsedAt());
+        return toParsedDataResponse(data);
+    }
+
+    // FR-C05 R-R1..R-R3 - ung vien yeu cau trich xuat lai CV schema cu cua chinh minh. Chi TAO yeu cau
+    // PENDING; job nen (ResumeReparseScheduler) moi goi LLM - khong co loi goi LLM dong bo nao o day.
+    // Rate limit theo userId nam o RateLimitFilter (nhom llm-action). Thu tu kiem theo R-R2:
+    // 404 (khong phai CV cua minh, mau downloadMine) -> 409 chua DONE hoac khong phai v1 -> 409 dang co
+    // yeu cau PENDING/RUNNING. resumes.parse_status KHONG doi (giu DONE).
+    @Transactional
+    public ResumeResponse requestReparse(UUID candidateId, UUID resumeId) {
+        Resume resume =
+                resumeRepository
+                        .findByIdAndCandidateId(resumeId, candidateId)
+                        .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        if (resume.getParseStatus() != ParseStatus.DONE) {
+            throw ResumeReparseNotAllowedException.notParsedYet();
+        }
+        ResumeParsedData data =
+                resumeParsedDataRepository.findByResumeId(resumeId).orElseThrow(ResumeReparseNotAllowedException::notParsedYet);
+        if (!ResumeSchemaVersions.isV1(data.getPromptVersion())) {
+            throw ResumeReparseNotAllowedException.alreadyLatest();
+        }
+        if (resumeReparseRequestRepository.existsByResumeIdAndStatusIn(
+                resumeId, List.of(ResumeReparseRequestStatus.PENDING, ResumeReparseRequestStatus.RUNNING))) {
+            throw new ResumeReparseInProgressException();
+        }
+
+        ResumeReparseRequest request = new ResumeReparseRequest();
+        request.setResumeId(resumeId);
+        request.setStatus(ResumeReparseRequestStatus.PENDING);
+        try {
+            resumeReparseRequestRepository.saveAndFlush(request);
+        } catch (DataIntegrityViolationException e) {
+            // Race hai yeu cau cung luc (bam dup, hai tab): uq_resume_reparse_request_active (V8) chan
+            // mot - tra cung 409 nhu nhanh kiem truoc. Vi pham khac khong phai loi nay -> nem lai.
+            String message = e.getMostSpecificCause().getMessage();
+            if (message != null && message.contains("uq_resume_reparse_request_active")) {
+                throw new ResumeReparseInProgressException();
+            }
+            throw e;
+        }
+        return toResponse(resume);
     }
 
     // Muc 3b con sot cua ke hoach Dot 3/4 (chore/hardening) - duong thu lai THU CONG cho candidate
@@ -161,6 +215,38 @@ public class ResumeService {
             throw new ResumeRetryNotAllowedException();
         }
         return toResponse(resumeRepository.findById(resumeId).orElseThrow());
+    }
+
+    private ResumeParsedDataResponse toParsedDataResponse(ResumeParsedData data) {
+        ResumeParsedPayload payload = data.getData();
+        return new ResumeParsedDataResponse(
+                data.getResumeId(),
+                payload,
+                data.getParsedAt(),
+                ResumeSchemaVersions.of(data.getPromptVersion()),
+                payload.currentTitle(),
+                catalogItem(data.getIndustryCode(), catalogRegistry.industryLabel(data.getIndustryCode())),
+                catalogItem(data.getRegionCode(), catalogRegistry.provinceLabel(data.getRegionCode())),
+                payload.locationText(),
+                toExperience(data));
+    }
+
+    private static CatalogResponse.Item catalogItem(String code, String label) {
+        return code == null || label == null ? null : new CatalogResponse.Item(code, label);
+    }
+
+    // null khi chua tinh (job nen chua toi). years do backend quy doi (R-E8).
+    private static ResumeParsedDataResponse.Experience toExperience(ResumeParsedData data) {
+        if (data.getExperienceComputedAt() == null) {
+            return null;
+        }
+        Integer months = data.getExperienceMonths();
+        return new ResumeParsedDataResponse.Experience(
+                months,
+                months == null ? null : ExperienceCalculator.toYears(months),
+                data.getExperienceEntriesCounted(),
+                data.getExperienceEntriesSkipped(),
+                ExperienceCalculator.referenceMonth(data.getExperienceComputedAt()).toString());
     }
 
     private static Optional<ResumeFileType> detectFileType(byte[] content) {
@@ -198,7 +284,32 @@ public class ResumeService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static ResumeResponse toResponse(Resume r) {
+    private ResumeResponse toResponse(Resume resume) {
+        return toResponses(List.of(resume)).get(0);
+    }
+
+    // FR-C05 - schemaVersion va yeu cau trich xuat lai gan nhat: hai cau truy van cho CA danh sach, khong
+    // truy van tung CV.
+    private List<ResumeResponse> toResponses(List<Resume> resumes) {
+        if (resumes.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> ids = resumes.stream().map(Resume::getId).toList();
+        Map<UUID, String> promptVersions = resumeParsedDataRepository.findPromptVersionsByResumeIds(ids).stream()
+                .collect(Collectors.toMap(
+                        ResumeParsedDataRepository.PromptVersionView::getResumeId,
+                        ResumeParsedDataRepository.PromptVersionView::getPromptVersion));
+        Map<UUID, ResumeReparseRequest> latestReparse = resumeReparseRequestRepository.findLatestByResumeIds(ids).stream()
+                .collect(Collectors.toMap(ResumeReparseRequest::getResumeId, Function.identity()));
+        return resumes.stream()
+                .map(r -> toResponse(r, promptVersions.get(r.getId()), latestReparse.get(r.getId())))
+                .toList();
+    }
+
+    private static ResumeResponse toResponse(Resume r, String promptVersion, ResumeReparseRequest reparse) {
+        Integer schemaVersion = r.getParseStatus() == ParseStatus.DONE ? ResumeSchemaVersions.of(promptVersion) : null;
+        ResumeReparseStatusResponse reparseStatus =
+                reparse == null ? null : new ResumeReparseStatusResponse(reparse.getStatus(), reparse.getErrorMessage());
         return new ResumeResponse(
                 r.getId(),
                 r.getFileName(),
@@ -208,6 +319,8 @@ public class ResumeService {
                 r.isPrimary(),
                 r.getParseStatus(),
                 r.getParseError(),
-                r.getUploadedAt());
+                r.getUploadedAt(),
+                schemaVersion,
+                reparseStatus);
     }
 }

@@ -120,7 +120,7 @@ class JobRecommendationCacheServiceTest {
                 List.of(),
                 List.of("Java"),
                 List.of(),
-                List.of());
+                List.of(), null, null, null);
     }
 
     private UUID candidateWithEmbeddedPrimaryResume() {

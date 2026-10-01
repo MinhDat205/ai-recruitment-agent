@@ -109,7 +109,7 @@ class ResumeEmbeddingOrchestratorTest {
                         "Cong ty ABC", "Backend Developer", "07/2022", "Hien tai", "Phat trien API noi bo")),
                 List.of("Java", "Spring Boot"),
                 List.of(),
-                List.of());
+                List.of(), null, null, null);
     }
 
     private UUID createParsedData(UUID resumeId) {

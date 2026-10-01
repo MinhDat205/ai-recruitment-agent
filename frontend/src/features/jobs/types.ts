@@ -7,8 +7,12 @@ export interface CompanyRef {
 export interface JobSummary {
   id: string
   title: string
-  category: string | null
-  location: string | null
+  categoryCode: string | null
+  categoryLabel: string | null
+  locationCode: string | null
+  locationLabel: string | null
+  legacyCategory: string | null
+  legacyLocation: string | null
   employmentType: string | null
   workMode: string | null
   salaryMin: number | null
@@ -24,8 +28,12 @@ export interface JobDetail {
   title: string
   description: string
   requirements: string | null
-  category: string | null
-  location: string | null
+  categoryCode: string | null
+  categoryLabel: string | null
+  locationCode: string | null
+  locationLabel: string | null
+  legacyCategory: string | null
+  legacyLocation: string | null
   employmentType: string | null
   workMode: string | null
   salaryMin: number | null

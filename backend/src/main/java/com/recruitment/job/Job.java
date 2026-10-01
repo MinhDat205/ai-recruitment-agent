@@ -44,9 +44,17 @@ public class Job {
 
     private String requirements;
 
+    // FR-C05 R-J1: gia tri CU nguyen van (truoc danh muc). API khong ghi hai cot nay nua - chi doc de
+    // hien thi Job "chua chuan hoa" (code null + cot cu khac null) va tim kiem C02.
     private String category;
 
     private String location;
+
+    @Column(name = "category_code")
+    private String categoryCode;
+
+    @Column(name = "location_code")
+    private String locationCode;
 
     @Column(name = "employment_type")
     private String employmentType;

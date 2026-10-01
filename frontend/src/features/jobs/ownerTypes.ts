@@ -6,8 +6,12 @@ export interface JobOwnerResponse {
   title: string
   description: string
   requirements: string | null
-  category: string | null
-  location: string | null
+  categoryCode: string | null
+  categoryLabel: string | null
+  locationCode: string | null
+  locationLabel: string | null
+  legacyCategory: string | null
+  legacyLocation: string | null
   employmentType: string | null
   workMode: string | null
   salaryMin: number | null
@@ -29,8 +33,9 @@ export interface JobOwnerRequest {
   title: string
   description: string
   requirements?: string
-  category?: string
-  location?: string
+  // FR-C05: gui null khi bo chon, KHONG gui "" (backend tra 400 INVALID_CATALOG_CODE voi chuoi rong).
+  categoryCode?: string | null
+  locationCode?: string | null
   employmentType?: string
   workMode?: string
   salaryMin?: number

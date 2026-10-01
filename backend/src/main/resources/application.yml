@@ -72,6 +72,14 @@ app:
   resume-parsing:
     poll-interval-ms: 5000
     batch-size: 10
+  # FR-C05 - trich xuat lai CV schema cu (R-R5) va tinh bu so thang kinh nghiem cho CV v1 (R-E9b, khong
+  # goi LLM nen lo lon hon, chu ky thua hon).
+  resume-reparse:
+    poll-interval-ms: 5000
+    batch-size: 10
+  resume-experience:
+    poll-interval-ms: 30000
+    batch-size: 50
   scoring:
     poll-interval-ms: 5000
     batch-size: 10

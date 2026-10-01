@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { PublicLayout } from '../components/layout/PublicLayout'
 import { ApplyButton } from '../features/jobs/ApplyButton'
+import { jobLocationText } from '../features/jobs/catalogDisplay'
 import { useJobDetailQuery } from '../features/jobs/queries'
 import { formatDeadline } from '../lib/date'
 
@@ -49,6 +50,7 @@ export function PublicJobDetailPage() {
   }
 
   const salary = formatSalary(job)
+  const locationText = jobLocationText(job)
 
   return (
     <PublicLayout>
@@ -57,9 +59,10 @@ export function PublicJobDetailPage() {
           <h1 className="text-2xl font-semibold text-ink">{job.title}</h1>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {job.location && (
+            {/* FR-C05 R-J7: nhan cua ma -> gia tri cu -> "Lam tu xa"; thieu han thi an chip (UI.md 4d). */}
+            {locationText && (
               <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
-                {job.location}
+                {locationText}
               </span>
             )}
             {job.employmentType && (

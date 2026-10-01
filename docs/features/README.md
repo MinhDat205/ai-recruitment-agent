@@ -112,7 +112,7 @@ Làm tuần tự từ trên xuống. Mỗi FR chỉ bắt đầu khi mọi mục
 - **Đặc tả chi tiết:** `docs/features/CHUNG/C05/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-H02, FR-C04
 - **Mở rộng chức năng hiện có:** FR-H02 (ngành nghề/địa điểm chọn theo danh mục), FR-C04 (schema trích xuất phiên bản 2)
-- **Màn hình (UI_GUIDE mục 7):** Không có màn hình riêng. Dùng ở form tạo/sửa Job (`/hr/jobs/new`, `/hr/jobs/:id/edit`) và bộ lọc của U07, H15.
+- **Màn hình (UI_GUIDE mục 7):** Không có màn hình riêng. Mở rộng màn hình cũ: form tạo/sửa Job (`/hr/jobs/new`, `/hr/jobs/:id/edit`), danh sách Job HR (`/hr/jobs`), thẻ việc làm `JobCard` (`/`, `/candidate`, khối gợi ý ở `/candidate/dashboard`), chi tiết tin (`/jobs/:id`), danh sách CV và dialog "Dữ liệu đã trích xuất" (`/candidate/profile`). Danh mục được dùng tiếp ở bộ lọc của U07, H15.
 
 **Mục đích**
 
@@ -126,13 +126,13 @@ HR chọn ngành nghề và tỉnh/thành từ danh sách khi tạo/sửa Job, t
 
 - Danh mục ngành nghề và tỉnh/thành cố định, nạp bằng migration.
 - Chuyển dữ liệu jobs.category và jobs.location cũ sang mã danh mục. Giá trị không khớp được giữ nguyên văn và đánh dấu "chưa chuẩn hoá".
-- Mở rộng schema trích xuất CV (phiên bản 2): thêm chức danh hiện tại, ngành nghề và khu vực theo mã danh mục.
-- Backend tự tính tổng số năm kinh nghiệm từ các mốc thời gian ở mục kinh nghiệm: xử lý "Hiện tại/Present", gộp các khoảng trùng nhau, bỏ qua mốc không đọc được. Kết quả lưu thành trường riêng.
+- Mở rộng schema trích xuất CV (phiên bản 2): thêm chức danh hiện tại (giữ nguyên văn, không quy về mã), ngành nghề và khu vực theo mã danh mục.
+- Backend tự tính tổng số năm kinh nghiệm từ các mốc thời gian ở mục kinh nghiệm: xử lý "Hiện tại/Present", gộp các khoảng trùng nhau, bỏ qua mốc không đọc được. Kết quả lưu thành trường riêng. Tính cho cả CV đã trích xuất theo schema cũ (job nền, không gọi AI).
 - Cung cấp cách trích xuất lại cho CV đã trích xuất theo schema cũ.
 
 **AI**
 
-Chỉ tham gia ở bước trích xuất CV (FR-C04): gán ngành nghề, chức danh, khu vực vào mã danh mục; không chắc chắn thì để trống. AI không tính số năm kinh nghiệm.
+Chỉ tham gia ở bước trích xuất CV (FR-C04): gán ngành nghề vào mã danh mục; trích nguyên văn chức danh hiện tại và địa danh khu vực (backend ánh xạ địa danh sang mã); không chắc chắn thì để trống. AI không tính số năm kinh nghiệm.
 
 **Kết quả**
 
@@ -140,7 +140,7 @@ Job và CV đã trích xuất có ngành nghề, khu vực theo danh mục; CV c
 
 **Lưu ý**
 
-CV trích xuất theo schema cũ vẫn đọc được; các trường mới để trống và hiển thị "chưa có dữ liệu" cho tới khi trích xuất lại. Không suy ra thông tin nhân thân từ CV.
+CV trích xuất theo schema cũ vẫn đọc được; chức danh, ngành nghề, khu vực để trống và hiển thị "chưa có dữ liệu" cho tới khi trích xuất lại (số năm kinh nghiệm vẫn được tính ngay). Không suy ra thông tin nhân thân từ CV.
 
 **Phạm vi**
 

@@ -95,6 +95,7 @@ tiền tố `m3-` vì shadcn đã chiếm `--color-primary/secondary/accent/mute
 | `m3-on-surface` | `text-m3-on-surface` | `#1F2937` — trên `m3-surface` đạt 14.68:1 |
 | `m3-on-surface-variant` | `text-m3-on-surface-variant` | `#6B7280` — chỉ đặt trên `m3-surface` (4.83:1), xem mục 6 |
 | `m3-outline-variant` | `border-m3-outline-variant` | `#E7E7E9` — chỉ để phân khối, xem mục 6 |
+| `m3-outline` | `border-m3-outline` | `#6B7280` — viền thành phần điều khiển (ô nhập, combobox); trên `m3-surface` đạt 4.83:1 ≥ 3:1. Cùng giá trị `m3-on-surface-variant`, không thêm màu mới (khai ở FR-C05) |
 
 Không thêm màu thương hiệu mới.
 
@@ -153,6 +154,9 @@ Khoảng cách (1f) và trạng thái tương tác (1h) KHÔNG có token riêng:
 
 Hover lớp phủ 8%, focus 10% + outline 2px brand (đang có), pressed 10%, disabled chữ 38% / nền
 12%. Vùng chạm tối thiểu 48×48px trên màn hình < sm.
+
+Chuyển động: linear progress không xác định dùng `animate-m3-linear-progress` (khai ở FR-C05, trong
+`@theme` của `index.css`), luôn kèm `motion-reduce:animate-none`.
 
 ---
 
@@ -273,7 +277,8 @@ thanh màu, không nhãn "phù hợp".
   `m3-surface-container` (4.24:1) và `m3-surface-container-high` (4.30:1) dùng `m3-on-surface`.
 - **Viền:** `m3-outline-variant` so với nền trắng chỉ 1.23:1 — chỉ dùng để phân khối, KHÔNG dùng làm
   viền cho thành phần điều khiển (ô nhập, checkbox). Thành phần điều khiển cần viền ≥ 3:1 (WCAG
-  1.4.11); màu cụ thể xác định khi FR đầu tiên cần tới.
+  1.4.11): dùng `m3-outline` (`#6B7280`, 4.83:1 trên nền trắng — chốt ở FR-C05). Ô nhập cũ (shadcn
+  `border-input`) chưa đổi, lệch tạm với ô mới cho tới `refactor/ui-md3-legacy`.
 - Số đo trên tính theo công thức relative luminance của WCAG 2.1.
 - Mọi icon-only button phải có `aria-label`.
 - Không truyền đạt thông tin chỉ bằng màu — badge trạng thái luôn kèm chữ.
@@ -290,8 +295,8 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/` | Việc làm | Hiện có | FR-C02 |
-| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02 |
+| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm) |
+| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành) |
 | `/companies/:id` | Hồ sơ doanh nghiệp | Hiện có | FR-C02, FR-H01 |
 | `/login` | Đăng nhập | Hiện có | FR-C01 |
 | `/register` | Đăng ký (xong → ★`/candidate/onboarding`) | Hiện có | FR-C01, ★FR-U14 |
@@ -300,9 +305,9 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn) |
-| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U11 (thống kê), FR-U15 (gợi ý) |
-| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc) |
+| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
+| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U11 (thống kê), FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
+| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |
@@ -318,9 +323,9 @@ thêm lúc code.
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
 | `/hr` | "Dashboard" | Hiện có | FR-H08 |
-| `/hr/jobs` | "Tin tuyển dụng" | Hiện có | FR-H02 |
-| `/hr/jobs/new` | Tạo tin (nút "Tạo tin bằng AI") | Hiện có | FR-H02, ★FR-H11 |
-| `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, ★FR-H14 |
+| `/hr/jobs` | "Tin tuyển dụng" | Hiện có | FR-H02, FR-C05 (cột Địa điểm) |
+| `/hr/jobs/new` | Tạo tin (nút "Tạo tin bằng AI") | Hiện có | FR-H02, ★FR-H11, FR-C05 (ô ngành nghề, tỉnh/thành) |
+| `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, ★FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá) |
 | ★`/hr/jobs/:id/compare` | So sánh ứng viên | ★Mới | FR-H14 |
 | `/hr/candidates` | "Ứng viên" | Hiện có | FR-H08 |
 | ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab CV & điểm, Giải thích, Sàng lọc, Câu hỏi phỏng vấn, Trao đổi, Hỏi đáp CV, Lịch sử; thao tác: quyết định, giấy mời nhiều khung giờ, Thêm vào kho | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07, FR-H13, FR-C06, FR-C08, FR-H12, FR-H15 |
