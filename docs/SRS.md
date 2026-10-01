@@ -22,7 +22,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-C02 | Duyệt Thông tin Công khai | HR, Ứng viên | Đã hoàn thành | Mục 1 bên dưới |
 | FR-C03 | Hệ thống Thông báo (Notification) | HR, Ứng viên | Đã hoàn thành | Mục 1 bên dưới |
 | FR-C04 | AI Resume Parsing (Trích xuất CV) | Hệ thống | Đã hoàn thành | Mục 1 bên dưới |
-| FR-C05 | Danh mục dùng chung và chuẩn hoá dữ liệu | Hệ thống | Đã duyệt | [features/CHUNG/C05/REQUIREMENT.md](features/CHUNG/C05/REQUIREMENT.md) |
+| FR-C05 | Danh mục dùng chung và chuẩn hoá dữ liệu | Hệ thống | Đã hoàn thành | [features/CHUNG/C05/REQUIREMENT.md](features/CHUNG/C05/REQUIREMENT.md) |
 | FR-C06 | Nhắn tin theo đơn ứng tuyển | HR, Ứng viên | Chưa đặc tả | [features/CHUNG/C06/REQUIREMENT.md](features/CHUNG/C06/REQUIREMENT.md) |
 | FR-C07 | AI soạn nháp tin nhắn | HR, Ứng viên | Chưa đặc tả | [features/CHUNG/C07/REQUIREMENT.md](features/CHUNG/C07/REQUIREMENT.md) |
 | FR-C08 | Hỏi đáp CV có trích dẫn | HR, Ứng viên | Chưa đặc tả | [features/CHUNG/C08/REQUIREMENT.md](features/CHUNG/C08/REQUIREMENT.md) |

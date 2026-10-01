@@ -2,7 +2,7 @@
 
 ## 1. Trạng thái
 
-ĐÃ DUYỆT (30/09/2026). Đặc tả chức năng: `REQUIREMENT.md` cùng thư mục.
+ĐÃ HOÀN THÀNH (01/10/2026). Duyệt: 30/09/2026. Đặc tả chức năng: `REQUIREMENT.md` cùng thư mục.
 
 **Ngoại lệ phạm vi MD3 (đã chốt).** C05 sửa 5 màn hình cũ. Chỉ **thành phần mới hoặc thành phần bị
 thay** (combobox danh mục, nhãn "Chưa chuẩn hoá", khung cảnh báo, mục "Tổng quan nghề nghiệp", nút

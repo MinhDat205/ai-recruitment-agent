@@ -1,6 +1,6 @@
 # FR-C05 — Danh mục dùng chung và chuẩn hoá dữ liệu
 
-> Trạng thái: ĐÃ DUYỆT (30/09/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (01/10/2026). Duyệt: 30/09/2026. Walkthrough: `docs/walkthrough/fr-c05-catalog.md`.
 
 - Nhóm: Chung
 - Tóm tắt: Danh mục ngành nghề, tỉnh/thành cố định; chuẩn hoá Job và CV; backend tự tính số năm kinh nghiệm

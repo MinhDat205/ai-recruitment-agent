@@ -227,5 +227,34 @@ if ($resumeEmbParts[0] -eq '0' -or $resumeEmbParts[1] -ne '1536' -or $resumeEmbP
 }
 
 Write-Host ''
+Write-Host '=== KIEM CHUNG FR-C05 (schema CV v2, kinh nghiem, danh muc Job) ==='
+# pg_dump --column-inserts tu dua cac cot moi cua V8 (industry_code, region_code, experience_*) vao
+# INSERT - khong can khai rieng. resume_reparse_requests CO Y khong nam trong $TableOrder: do la hang
+# doi van hanh, khong phai output AI (REQUIREMENT FR-C05 muc 4, buoc 4).
+if ($TableOrder -contains 'resume_reparse_requests') {
+    throw "resume_reparse_requests KHONG duoc nam trong dump (hang doi van hanh, khong phai output AI). DUNG LAI."
+}
+
+$c05Raw = docker compose exec -T postgres psql -U recruitment -d recruitment -t -A -c "SELECT count(*), count(*) FILTER (WHERE prompt_version = 'resume-parse-v2'), count(*) FILTER (WHERE experience_computed_at IS NOT NULL) FROM resume_parsed_data;"
+if ($LASTEXITCODE -ne 0) {
+    throw "Loi khi truy van kiem chung FR-C05 tren resume_parsed_data. DUNG LAI."
+}
+$c05Parts = ($c05Raw | Select-Object -First 1).ToString().Trim().Split('|')
+Write-Host "resume_parsed_data        - tong=$($c05Parts[0]) v2=$($c05Parts[1]) da_tinh_kinh_nghiem=$($c05Parts[2])"
+if ($c05Parts[0] -ne $c05Parts[1]) {
+    throw "Con ban ghi resume_parsed_data chua o resume-parse-v2 ($($c05Parts[1])/$($c05Parts[0])). Goi reparse cho moi CV truoc khi xuat. DUNG LAI."
+}
+if ($c05Parts[0] -ne $c05Parts[2]) {
+    throw "Con ban ghi chua tinh so thang kinh nghiem ($($c05Parts[2])/$($c05Parts[0])). Cho job nen ResumeExperienceScheduler chay xong. DUNG LAI."
+}
+
+$jobRaw = docker compose exec -T postgres psql -U recruitment -d recruitment -t -A -c "SELECT count(*) FROM jobs WHERE deleted_at IS NULL AND category_code IS NULL;"
+$jobMissing = ($jobRaw | Select-Object -First 1).ToString().Trim()
+Write-Host "jobs thieu category_code  - $jobMissing"
+if ($jobMissing -ne '0') {
+    throw "Con $jobMissing job chua co category_code (REQUIREMENT FR-C05 muc 7.11). DUNG LAI."
+}
+
+Write-Host ''
 Write-Host "Xong. File SQL: $OutputSqlPath"
 Write-Host "Thu muc PDF: $ResumesOutDir ($copiedCount file, khop DB)"

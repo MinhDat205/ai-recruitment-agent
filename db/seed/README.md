@@ -77,7 +77,7 @@ ghi trùng. Chạy lần thứ hai trên cùng một DB sẽ báo lỗi vi phạ
 Muốn nạp lại: chạy lại **từ bước 1** (`reset-demo-db.sql`) để dọn sạch trước, không
 chạy riêng lẻ `seed-demo-ai-output.sql` lần hai.
 
-File này nặng **~518 KB** — đây là dữ liệu AI **thật**, sinh ra bằng cách chạy toàn
+File này nặng **~493 KB** — đây là dữ liệu AI **thật**, sinh ra bằng cách chạy toàn
 bộ pipeline (Anthropic parse CV, OpenAI embedding, Anthropic chấm điểm + giải thích)
 **một lần duy nhất** qua UI thật, rồi xuất ra và commit thẳng vào repo. Mục đích:
 người clone repo về có ngay dữ liệu demo đầy đủ mà **không phải tự gọi lại API trả
@@ -135,6 +135,11 @@ Ngọc Mai (Nhân sự) **cố ý không nộp đơn nào** — xem lý do ở w
 
 **8 đơn ứng tuyển đang hoạt động + 1 đơn đã rút** (`WITHDRAWN`).
 
+**FR-C05 (01/10/2026):** dump được xuất lại sau khi gọi "Cập nhật dữ liệu trích xuất" thật cho cả 9
+CV (Anthropic + OpenAI thật): `resume_parsed_data` nay là `resume-parse-v2`, có `industry_code`,
+`region_code` và số tháng kinh nghiệm. `raw_text`, `criterion_scores`, `score_explanations` giống hệt bản
+trước (so md5 trước/sau). `resume_reparse_requests` (hàng đợi vận hành) KHÔNG nằm trong dump.
+
 Số dòng từng bảng sau khi nạp đủ 2 tầng (đã kiểm chứng bằng `export-ai-output.ps1`,
 không phải số ước lượng):
 
@@ -143,7 +148,7 @@ không phải số ước lượng):
 | `resumes` | 9 |
 | `resume_parsed_data` | 9 |
 | `job_embeddings` | 6 |
-| `job_recommendations` | 28 |
+| `job_recommendations` | 0 (xem ghi chú dưới) |
 | `job_applications` | 9 |
 | `application_status_history` | 10 |
 | `scoring_runs` | 15 |
@@ -153,13 +158,21 @@ không phải số ước lượng):
 | `cv_improvement_requests` | 2 |
 | `cv_improvement_suggestions` | 2 |
 | `notifications` | 22 |
-| **Tổng số dòng `INSERT INTO`** | **181** |
+| **Tổng số dòng `INSERT INTO`** | **153** |
 
 Kiểm chứng kỹ thuật khi export: 9 file PDF khớp đúng 9 dòng `file_url` trong DB;
-vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (9 dòng) đều đúng
-1536 chiều, không bị cắt ngắn.
+vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (8 dòng) đều đúng
+1536 chiều, không bị cắt ngắn; 9/9 CV là `resume-parse-v2` và đã tính kinh nghiệm; 0 job thiếu
+`category_code`.
 
-**Ghi chú hai con số dễ gây thắc mắc:**
+**Ghi chú các con số dễ gây thắc mắc:**
+- `job_recommendations = 0`: 6 job trong `seed-demo-structural.sql` ở trạng thái `DRAFT`, còn
+  `JobRecommendationCacheScheduler` cứ 5 giây xoá-rồi-chèn lại gợi ý cho mọi ứng viên có embedding CV
+  chính và chỉ khớp job `OPEN` — nên khi backend đang chạy, gợi ý luôn về 0 (đã tái hiện với dump cũ 28
+  dòng). Có từ `chore/seed-demo`, không do FR-C05; xem nợ kỹ thuật FR-C05 trong `docs/ROADMAP.md`. Muốn
+  thấy gợi ý: đăng nhập HR, mở tin (6 job đã có ngành nghề/tỉnh thành nên qua được guard mở tin).
+- `resume_parsed_data.embedding` = 8/9: trích xuất lại đặt embedding về NULL và F1 chỉ embed **CV chính**;
+  bản CV cũ (không chính) của Lê Văn Đức không được embed lại — đúng thiết kế.
 - `score_explanation_attempts = 0` là **bình thường**, không phải thiếu sót — bảng
   này chỉ ghi khi một lượt sinh giải thích (D4) thất bại và cần theo dõi số lần thử
   lại; không có lượt nào thất bại thì bảng này rỗng là đúng.
@@ -182,9 +195,15 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
   đã biết, không phải lỗi của bước nạp seed — xem ghi chú D2 trong `docs/ROADMAP.md`.
 - Mở một hồ sơ bất kỳ, bấm **"Xem CV gốc"** — phải tải được file PDF. Nếu lỗi, nghĩa
   là bước 4 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
-- Đăng nhập `bui.ngoc.mai@demo.local`: nhận **3 gợi ý việc làm** (Marketing, Sales,
-  QA Engineer) dù không có job ngành Nhân sự nào — ngưỡng `MIN_SIMILARITY_SCORE = 0.40`
-  không loại được các cặp không liên quan, xem ghi chú trong `docs/ROADMAP.md`. Ứng
-  viên này cũng có dữ liệu gợi ý cải thiện CV.
+- Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm
+  **rỗng** cho tới khi HR mở tin (xem ghi chú `job_recommendations = 0` ở mục 6); trước FR-C05 bản ghi
+  này mô tả 3 gợi ý, nhưng các gợi ý đó vốn đã bị scheduler xoá ngay khi backend chạy.
 - Đăng nhập `le.van.duc@demo.local`, trang hồ sơ: thấy **2 phiên bản CV**, một bản
   đánh dấu là chính; mục Đơn ứng tuyển có **1 đơn "Đã rút đơn"**.
+- FR-C05 — kiểm bằng SQL sau khi nạp:
+  `SELECT count(*) FILTER (WHERE prompt_version = 'resume-parse-v2'), count(experience_computed_at),
+  count(region_code) FROM resume_parsed_data;` → **9 | 9 | 9**;
+  `SELECT count(*) FROM jobs WHERE deleted_at IS NULL AND category_code IS NULL;` → **0**.
+- FR-C05 — mở "Xem dữ liệu đã trích xuất" của một CV bất kỳ: mục **Tổng quan nghề nghiệp** có chức danh,
+  ngành nghề, khu vực (vd Trần Minh Hoàng: Backend Engineer · Công nghệ thông tin - Phần mềm · TP. Hồ Chí
+  Minh · 6,3 năm). Không CV nào còn nút "Cập nhật dữ liệu trích xuất" (đã là v2).

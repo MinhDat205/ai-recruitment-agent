@@ -526,7 +526,27 @@ tương ứng ở đây.
 - [x] `fix/hr-company-onboarding` — HR chưa có hồ sơ công ty được chuyển tới /hr/company thay vì gặp trang lỗi (không gắn mã FR).
 
 **Phase 2.1 — Nền dữ liệu & gợi ý việc làm**
-- [ ] `feat/fr-c05-catalog` — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu
+- [x] `feat/fr-c05-catalog` — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu — **HOÀN THÀNH**
+  (01/10/2026, 6 đợt code, xem `docs/walkthrough/fr-c05-catalog.md`). 34 tỉnh/thành + 24 ngành, Job lưu mã
+  + guard mở tin, V9 chuyển Job cũ, CV schema v2 + số tháng kinh nghiệm + trích xuất lại; dump AI output
+  demo xuất lại bằng `resume-parse-v2` (md5 `criterion_scores`/`score_explanations` trước = sau).
+  Nợ kỹ thuật:
+  - Test chập chờn có từ trước: `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
+    phụ thuộc thời gian thực (backoff test 50ms), đỏ khi máy chậm. Không sửa trong C05 (không đụng `scoring/`).
+  - `toPattern` của tìm kiếm C02 không thoát `%`/`_` (giữ cách hiện có).
+  - Race embedding CV khi trích xuất lại: `ResumeEmbeddingScheduler` không claim, có thể ghi embedding của
+    văn bản v1 đè lên sau khi trích xuất lại đặt NULL → lệch vĩnh viễn. Chữa: ghi có điều kiện theo
+    `parsed_at` đã đọc.
+  - Combobox danh mục chỉ lọc theo nhãn, không theo bí danh ("HCM", tên tỉnh cũ không ra) — để FR-U07 cân nhắc.
+  - `V9__normalize_job_catalog_codes` là Java migration không checksum → bất biến, không sửa sau khi áp.
+  - Prompt v2 có thể vẫn trả `locationText` kèm quận/huyện với CV ngoài bộ demo → mã khu vực null, hiện
+    "(chưa khớp danh mục)"; không nới bộ khớp.
+  - Hướng dẫn định dạng JSON xuất hiện hai lần trong prompt trích xuất (tham số `{format}` + Spring AI 2.0 tự
+    nối vào user message) — có từ D1.
+  - Seed demo: 6 job ở DRAFT nên `JobRecommendationCacheScheduler` xoá sạch `job_recommendations` khi backend
+    chạy (có từ `chore/seed-demo`, đã tái hiện bằng dump cũ 28 dòng → 0); dump mới có 0 dòng. Chữa ở nhánh
+    seed: cho job demo OPEN trong `seed-demo-structural.sql`.
+  - `LLM_ERROR` không phân biệt "thiếu cấu hình khoá API" với lỗi gọi API — phải đọc log.
 - [ ] `feat/fr-u07-job-filter` — FR-U07 · Bộ lọc tìm việc nâng cao
 - [ ] `feat/fr-u14-career-profile` — FR-U14 · Hồ sơ nghề nghiệp và mong muốn công việc
 - [ ] `feat/fr-u15-profile-recommend` — FR-U15 · Gợi ý việc làm theo hồ sơ

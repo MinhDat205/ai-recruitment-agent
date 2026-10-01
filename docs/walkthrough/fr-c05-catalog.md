@@ -1,248 +1,254 @@
 # Walkthrough — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu
 
-> BẢN NHÁP — ghi chú tích luỹ qua từng đợt. Đợt cuối viết đầy đủ 8 mục bằng skill `walkthrough`.
+Nhánh `feat/fr-c05-catalog` (tách từ `fix/hr-company-onboarding`). Đặc tả:
+`docs/features/CHUNG/C05/REQUIREMENT.md`, `UI.md`. Mọi chỗ sửa đặc tả trong lúc code đều do người dùng chỉ
+đạo trong phiên và giữ dòng `ĐÃ DUYỆT (30/09/2026)` — xem mục 8.
 
-## 4. Quyết định thiết kế (ghi chú theo đợt)
+## 1. Mục tiêu
 
-### Đợt 1 — danh mục, bộ khớp, chuyển dữ liệu Job cũ
+Trước C05, ngành nghề và địa điểm của tin tuyển dụng là chuỗi HR gõ tự do ("TP.HCM", "Hồ Chí Minh", "Quận 1,
+HCM"…), nên không lọc, không đối chiếu được. C05 đưa vào hai danh mục cố định do hệ thống quản lý — 34
+tỉnh/thành sau sáp nhập 01/07/2025 và 24 ngành nghề — rồi:
+- bắt tin tuyển dụng lưu **mã** danh mục thay cho chuỗi, và chỉ được mở tin khi đã chọn đủ;
+- chuyển một lần các tin cũ sang mã bằng một bộ khớp chuỗi duy nhất (không đoán gần đúng);
+- mở rộng trích xuất CV (phiên bản 2) để có chức danh hiện tại, ngành, khu vực; backend tự tính số tháng
+  kinh nghiệm theo thuật toán xác định, AI không tính;
+- cho ứng viên tự "cập nhật dữ liệu trích xuất" cho CV cũ mà không đụng tới văn bản gốc của CV, nên mọi
+  điểm số và trích dẫn đã chấm trước đó vẫn kiểm chứng được.
 
-- **V9 tắt trigger `trg_jobs_updated_at` trong lúc chuyển mã** (`V9__normalize_job_catalog_codes.java`).
-  `jobs.updated_at` được trả cho HR (`JobOwnerResponse.updatedAt`); nếu để trigger chạy, mọi Job cũ
-  sẽ hiện như "vừa cập nhật" dù HR không sửa gì. Lệnh tắt và bật lại nằm trong cùng transaction của
-  migration (Flyway bọc Java migration trong transaction vì `canExecuteInTransaction()` = `true`;
-  `ALTER TABLE` của Postgres có transaction), nên V9 lỗi thì rollback cả lệnh tắt trigger. Kiểm bằng
-  `JobCatalogMigrationTest.v9DoesNotTouchUpdatedAt` và `updatedAtTriggerIsReenabledAfterV9`.
-- **V9 là bất biến.** Java migration không có checksum (`BaseJavaMigration.getChecksum()` trả
-  `null`, xác nhận bằng bytecode `flyway-core-12.4.0`; `flyway_schema_history.checksum` của version 9
-  là `NULL`, kiểm ở `JobCatalogMigrationTest.v9IsAppliedAsJavaMigration`). Flyway không phát hiện được
-  nếu class bị sửa sau khi đã áp — không sửa V9; cần đổi dữ liệu thì viết migration mới.
+Các FR sau (U07 bộ lọc việc làm, H15 kho ứng viên) sẽ lọc trên các mã này.
 
-### Đợt 2 — phía Job ở backend, API danh mục, seed
+## 2. Các file đã tạo/sửa
 
-- **Danh mục nạp một lần vào bộ nhớ** (`CatalogRegistry`, bean ở `CatalogConfig`): đọc bảng V8 bằng
-  chính `CatalogJdbcLoader` mà V9 dùng, gắn `@DependsOnDatabaseInitialization` để dựng sau Flyway.
-  Tra nhãn, kiểm mã, bộ khớp đều dùng registry này — không query DB mỗi request.
-- **API danh mục ở `GET /api/public/catalogs`** (đổi từ `/api/catalogs` trong đặc tả để theo quy ước
-  `/api/public/**` của `SecurityConfig`; REQUIREMENT mục 4, 7 và UI.md mục 5 đã sửa theo, giữ ĐÃ DUYỆT).
-- **Lỗi theo khuôn exception + `GlobalExceptionHandler` + `ErrorResponse`**, không dùng
-  `FormattedErrorCode` (interface đó chỉ cho mã lỗi ghi xuống cột lỗi của job nền):
-  `JobCatalogIncompleteException` → 409 `JOB_CATALOG_INCOMPLETE`, `InvalidCatalogCodeException` → 400
-  `INVALID_CATALOG_CODE`. 409 có hai câu: mở tin, và sửa tin đang mở (bổ sung vào R-J5, UI.md mục 7).
-- **Guard một hàm** `JobOwnerService.isCatalogComplete`: gọi ở `changeStatus` (mọi lần sang OPEN, sau
-  bước kiểm rubric) và ở `update` (Job đang OPEN: chặn khi trước thoả mà sau không thoả).
-- **Kiểm mã đặt ở đầu `applyRequest`**, trước mọi setter, để lỗi 400 không để lại entity sửa nửa chừng.
-- **Response Job bỏ `category`/`location`**, thay bằng 6 field `categoryCode, categoryLabel,
-  locationCode, locationLabel, legacyCategory, legacyLocation` (tính ở một chỗ: `JobCatalogFields`).
-- **Tìm kiếm C02** khớp `ILIKE` với nhãn của mã (qua `EXISTS`, giữ `SELECT *` để map entity) hoặc giá
-  trị cũ, kể cả Job đã có mã. Pattern giữ nguyên cách hiện có (`"%" + raw.trim() + "%"`, không thoát
-  `%`/`_`) — không thêm cách mới trong C05.
-- **Frontend tạm không lưu được ngành nghề/tỉnh thành cho tới đợt 3**: form cũ vẫn gửi
-  `category`/`location`. Spring Boot 4.1 TẮT `FAIL_ON_UNKNOWN_PROPERTIES` (bytecode
-  `JacksonAutoConfiguration$AbstractMapperBuilderCustomizer` gọi `disable(FAIL_ON_UNKNOWN_PROPERTIES)`),
-  nên hai field đó bị bỏ qua lặng lẽ: HR vẫn lưu được tin (không có ngành/tỉnh), nhưng không mở được
-  tin mới cho tới khi form gửi mã (đợt 3). Không đổi cấu hình Jackson. Chấp nhận vì nhánh chưa merge.
-  Hệ quả phụ trong cùng khoảng đợt 2–3: lưu form sửa của một Job **DRAFT/PAUSED/CLOSED** đang có mã sẽ
-  ghi `null` đè lên mã (form không gửi `categoryCode`/`locationCode`); Job **OPEN** thì bị guard chặn 409.
-  Seed demo tạo 6 job DRAFT có mã — nếu thử sửa bằng form cũ trước đợt 3 thì phải nạp lại seed.
-- **Ghi chú cho đợt 3 (frontend):** `JobRequest.categoryCode`/`locationCode` chỉ có `@Size(max = 40)`,
-  không coi chuỗi rỗng là "không chọn" — gửi `""` sẽ bị 400 `INVALID_CATALOG_CODE` vì `""` không có
-  trong danh mục. Mục "Bỏ chọn" của combobox phải gửi `null`, không gửi `""`.
-- **Seed**: `dev-seed.sql` và `seed-demo-structural.sql` ghi `category_code`/`location_code`, cột cũ
-  để NULL; `reset-demo-db.sql` TRUNCATE thêm `resume_reparse_requests`.
+**Backend — danh mục và Job**
 
-### Đợt 3 — frontend phía Job
+| File | Vai trò |
+|---|---|
+| `db/migration/V8__catalogs.sql` | Bảng danh mục + bí danh, cột mã trên `jobs`, cột ngành/khu vực/kinh nghiệm trên `resume_parsed_data`, bảng `resume_reparse_requests` |
+| `db/migration/V9__normalize_job_catalog_codes.java` | Java migration: chuyển Job cũ sang mã bằng bộ khớp Java |
+| `catalog/CatalogTextNormalizer`, `CatalogMatcher`, `CatalogEntry`, `CatalogJdbcLoader` | Bộ chuẩn hoá + bộ khớp thuần Java (không Spring), đọc danh mục qua JDBC |
+| `catalog/CatalogRegistry`, `CatalogConfig` | Danh mục nạp một lần vào bộ nhớ lúc khởi động |
+| `catalog/CatalogPublicController`, `dto/CatalogResponse` | `GET /api/public/catalogs` |
+| `job/JobOwnerService`, `JobCatalogFields`, `JobPublicService`, `JobRepository`, DTO Job | Lưu mã, guard mở tin, 6 field hiển thị, tìm kiếm theo nhãn hoặc giá trị cũ |
+| `common/exception/JobCatalogIncompleteException`, `InvalidCatalogCodeException` | Lỗi 409/400 của Job |
 
-File: `index.css` (token `m3-outline`), `docs/UI_GUIDE.md` (mục 1c, 6, 7); mới `features/catalog/`
-(`types`, `api`, `queries`, `normalize`, `CatalogCombobox`), `features/jobs/catalogDisplay.ts`,
-`CatalogField.tsx`, `JobLocationCell.tsx`, `UnnormalizedBadge.tsx`; sửa `features/jobs/types.ts`,
-`ownerTypes.ts`, `JobCard.tsx`, `pages/HrJobCreatePage.tsx`, `HrJobEditPage.tsx`, `HrJobListPage.tsx`,
-`PublicJobDetailPage.tsx`. Không đụng `HeroSearch.tsx`, không sửa backend.
+**Backend — CV**
 
-- **Kiểu dữ liệu bỏ hẳn `category`/`location`** ở `JobSummary`, `JobDetail`, `JobOwnerResponse` và
-  `JobOwnerRequest` → `tsc -b` là chốt chặn chỗ sót (build sạch). `JobSearchParams.location/category`
-  giữ nguyên: đó là ô tìm kiếm tự do của FR-C02, không phải field của Job.
-- **Payload gửi `null` tường minh** cho `categoryCode`/`locationCode` khi chưa chọn (không `""`, không bỏ
-  field) — form giữ giá trị `string | null`, zod `z.string().nullable()`.
-- **`CatalogCombobox`**: nút trigger `role="combobox"` + popover (Radix, `popover.tsx`) chứa ô tìm kiếm và
-  `role="listbox"`; bàn phím ↑/↓/Enter trên ô tìm (`aria-activedescendant`), Esc do Radix đóng và trả
-  focus về trigger; ↓ trên trigger mở popover. "Bỏ chọn" là dòng cuối của listbox (điều hướng được bằng
-  phím, luôn có mặt kể cả khi không có mục khớp). Chọn bằng `mousedown` để giữ focus ở ô tìm.
-  Không cho nhập tự do. Popover rộng bằng ô qua `--radix-popover-trigger-width`.
-- **Lọc chỉ trên nhãn** (bỏ dấu, không phân biệt hoa/thường, `normalizeForSearch`). API không trả bí danh
-  nên gõ "HCM" hay tên tỉnh cũ ("Bình Dương") KHÔNG ra kết quả trong combobox — đúng phạm vi UI.md mục 5
-  ("tìm trên nhãn"); ghi nhận để U07 cân nhắc nếu cần.
-- **Nhãn ô dùng `Label` shadcn cũ** (giữ đồng bộ với các ô cũ trong form); phần mới (combobox, dòng gợi ý,
-  dòng "Giá trị cũ", nhãn "Chưa chuẩn hoá", khung cảnh báo) dùng token `m3-*` theo ngoại lệ UI.md mục 1.
-- **Dòng "Giá trị cũ"** hiện khi Job có `legacy*` VÀ ô trong form đang trống; HR chọn mã (chưa lưu) thì
-  dòng ẩn. Không tự chọn mã đoán từ giá trị cũ.
-- **Khung cảnh báo 4b** tính từ dữ liệu ĐÃ LƯU (`job.status === 'OPEN' && !isCatalogComplete(job)`), không
-  từ giá trị đang sửa; không gắn `role="status"` (nội dung tĩnh, tránh bị đọc như thông báo động).
-- **Cột Địa điểm HR**: "Chưa có dữ liệu" thay cho "—" cũ (UI_GUIDE mục 4 "Dữ liệu thiếu").
-- **Trang chi tiết công khai** chỉ đổi chip tỉnh/thành (trang này vốn không hiện ngành nghề) — không thêm
-  chip mới.
-- **Lỗi 409 "Mở tin"/"Mở lại"**: không sửa `JobRowActions` — cả hai nút đi qua cùng
-  `useChangeHrJobStatusMutation`, lỗi hiện bằng `extractErrorMessage` đọc `data.message` của
-  `ErrorResponse` backend.
-- **UI_GUIDE mục 7**: gắn FR-C05 cho `/`, `/jobs/:id`, `/candidate`, `/candidate/dashboard`, `/hr/jobs`,
-  `/hr/jobs/new`, `/hr/jobs/:id/edit`; `/candidate/profile` gắn ở đợt làm phần CV.
-- Kiểm tra: `npm run build` + `npm run lint` sạch; đã grep CSS build xác nhận các class mới
-  (`border-m3-outline`, `w-(--radix-popover-trigger-width)`, `bg-m3-primary/8`, `opacity-38`...) có sinh ra.
-  Chưa soát tay giao diện (dồn về đợt 6).
+| File | Vai trò |
+|---|---|
+| `ai/prompt/resume-parse-v2.st`, `resume/ResumeParsingService` | Prompt v2 (danh sách ngành truyền vào từ danh mục) |
+| `resume/ResumeParsedPayload`, `ResumeParsedData` | +3 field JSON, +6 cột |
+| `resume/ResumeParsedDataEnricher` | Hàm ghi dùng chung: kiểm mã ngành, khớp khu vực, tính kinh nghiệm |
+| `resume/ExperienceCalculator` | Tính số tháng kinh nghiệm (thuần, BigDecimal) |
+| `resume/ResumeExperienceStateService`, `ResumeExperienceScheduler` | Job nền tính bù kinh nghiệm cho CV v1 |
+| `resume/ResumeReparse*` (Request, Status, Repository, StateService, Orchestrator, Scheduler) | Hàng đợi và worker trích xuất lại |
+| `resume/ResumeService`, `ResumeCandidateController`, DTO CV | `POST .../reparse`, API danh sách và `/parsed` mở rộng |
+| `common/ClockConfig`, `ratelimit/RateLimitFilter` | Đồng hồ inject được; rate limit cho `reparse` |
 
-### Đợt 4 — backend CV: schema v2, số tháng kinh nghiệm, trích xuất lại
+**Frontend**
 
-File (backend, không migration mới, không sửa frontend):
-- Mới: `resources/ai/prompt/resume-parse-v2.st`; `common/ClockConfig.java`;
-  `common/exception/ResumeReparseNotAllowedException.java`, `ResumeReparseInProgressException.java`;
-  `resume/ExperienceCalculator.java`, `ResumeParsedDataEnricher.java`, `ResumeSchemaVersions.java`,
-  `ResumeExperienceStateService.java`, `ResumeExperienceScheduler.java`, `ResumeReparseRequest.java`,
-  `ResumeReparseRequestStatus.java`, `ResumeReparseRequestRepository.java`, `ResumeReparseStateService.java`,
-  `ResumeReparseOrchestrator.java`, `ResumeReparseScheduler.java`, `dto/ResumeReparseStatusResponse.java`.
-- Sửa: `ResumeParsedPayload` (+3 field), `ResumeParsedData` (+6 cột), `ResumeParsedDataRepository`,
-  `ResumeParsingService` (v2 + danh sách ngành), `ResumeParsingStateService.markDone`, `ResumeService`,
-  `ResumeCandidateController`, `dto/ResumeResponse`, `dto/ResumeParsedDataResponse`,
-  `CvImprovementOrchestrator.buildResumeText`, `ResumeEmbeddingOrchestrator` (chỉ comment),
-  `RateLimitFilter`, `GlobalExceptionHandler`, `application.yml`, `application-test.yml`.
-- Không đụng: `ScoringRunOrchestrator`, `criterion_scores`, `score_explanations`, cách D2 đọc `raw_text`,
-  luồng tải lên (ngoài prompt v2 + `markDone` gọi enricher).
+| File | Vai trò |
+|---|---|
+| `features/catalog/*` (`CatalogCombobox`, `queries`, `normalize`…) | Combobox danh mục dùng chung |
+| `features/jobs/CatalogField`, `catalogDisplay`, `JobLocationCell`, `UnnormalizedBadge` | Ô danh mục trong form, quy tắc hiển thị nhãn/giá trị cũ |
+| `pages/HrJobCreatePage`, `HrJobEditPage`, `HrJobListPage`, `PublicJobDetailPage`, `JobCard` | Gửi mã, cảnh báo tin chưa chuẩn hoá, hiển thị nhãn |
+| `features/resumes/ResumeReparseStatus`, `resumeReparse`, `LinearProgress`, `ResumeList` | Nút và trạng thái "Cập nhật dữ liệu trích xuất" |
+| `features/resumes/CareerOverviewSection`, `ResumeParsedDataDialog` | Mục "Tổng quan nghề nghiệp" |
 
-Quyết định:
-- **Ba field mới đặt cuối `ResumeParsedPayload`** (`currentTitle`, `industryCode`, `locationText`). 16 chỗ
-  `new ResumeParsedPayload(...)` trong 13 file test cũ thêm `null, null, null` — không thêm constructor phụ
-  6 tham số (tránh constructor thứ hai trên record mà Jackson/BeanOutputConverter dùng để sinh schema).
-- **Prompt v2 = toàn bộ v1 + một khối luật cho ba field.** Danh sách ngành truyền qua tham số
-  `{industries}`, dựng ở `ResumeParsingService.formatIndustries` từ `CatalogRegistry.industries()` (bỏ
-  `OTHER`, giữ `sort_order`) — không hardcode mã trong Java hay `.st`. `currentTitle` chỉ lấy từ vị trí CV
-  đánh dấu đang làm; không có thì null (không lấy vị trí gần nhất, không lấy dòng tiêu đề CV).
-- **Một hàm ghi dùng chung** `ResumeParsedDataEnricher.applyExtraction`: kiểm mã ngành (lạ/`OTHER` → null ở
-  CẢ JSON lẫn cột), khớp `locationText` → `region_code` qua `CatalogRegistry.matchProvince` (trượt → null,
-  giữ chuỗi gốc), tính kinh nghiệm. Gọi từ `ResumeParsingStateService.markDone` (tải lên) và
-  `ResumeReparseStateService.markDone` (trích xuất lại) — cả hai trong transaction ghi.
-- **`Clock` là bean** (`common/ClockConfig`, `Clock.systemUTC()`); múi giờ `Asia/Ho_Chi_Minh` áp ở
-  `ExperienceCalculator.referenceMonth`, không phụ thuộc múi giờ của đồng hồ. Test đơn vị dùng `Clock.fixed`
-  ở 15/09/2026 (refMonth 09/2026); test tích hợp chỉ dùng khoảng thời gian hoàn toàn trong quá khứ nên không
-  cần thay bean `Clock` (tránh thêm một Spring context).
-- **R-E3 đọc đúng các dạng liệt kê, không nới:** tháng một chữ số chỉ ở dạng có `/` (`M/YYYY`, `thang M/YYYY`,
-  `thang M nam YYYY`); `MM-YYYY`, `MM.YYYY`, `YYYY-MM`, `YYYY/MM`, `DD/MM/YYYY`, `DD-MM-YYYY` cần đủ 2 chữ số;
-  tên tháng tiếng Anh là 3 chữ viết tắt hoặc tên đầy đủ, không dấu chấm (`Sept`, `Jan.` → không đọc được).
-  Khớp toàn chuỗi, không tìm chuỗi con.
-- **Job nền kinh nghiệm không có cột trạng thái**: "claim" là chính câu ghi
-  `UPDATE ... WHERE id = :id AND experience_computed_at IS NULL` (`writeExperienceIfPending`) — rowcount 0
-  khi trích xuất lại hoặc vòng quét khác đã ghi trước, nên kết quả tính từ data cũ không đè được data mới.
-  Cấu hình `app.resume-experience.*` (30 giây, lô 50); tắt trong test.
-- **Ghi trích xuất lại = entity + một câu native**: `data`/`model`/`prompt_version`/`token_usage`/mã/kinh
-  nghiệm ghi qua entity (`saveAndFlush`), còn `parsed_at = now()` và `embedding = NULL` qua
-  `touchAfterReparse` vì `parsed_at` là cột DB sinh lúc INSERT (không updatable qua entity) và `embedding`
-  không map. Hibernate UPDATE toàn bộ cột nên `raw_text` được ghi lại đúng giá trị đã đọc — test so byte.
-- **Thêm stale-claim reaper cho trích xuất lại** (`ResumeReparseScheduler.reapStaleClaims`, mẫu
-  `ResumeParsingScheduler`), không có trong đề bài đợt: JVM khởi động lại giữa chừng để yêu cầu kẹt ở
-  RUNNING thì partial unique index chặn ứng viên gửi yêu cầu mới vĩnh viễn. Dùng chung ngân sách
-  `attempt_count`/`LLM_RETRY_EXHAUSTED`, mã `STALE_CLAIM_TIMEOUT`.
-- **Hai mã lỗi 409 riêng**: `RESUME_REPARSE_NOT_ALLOWED` ("CV này đã có dữ liệu trích xuất mới nhất." — dùng
-  cho cả CV v2 lẫn CV chưa DONE, đúng nguyên văn R-R2 lúc đó; **đợt 5 tách câu cho CV chưa DONE**, xem dưới)
-  và `RESUME_REPARSE_IN_PROGRESS`. Race vượt bước kiểm:
-  service bắt vi phạm `uq_resume_reparse_request_active` và ném lại cùng 409; vi phạm khác ném nguyên.
-- **Endpoint trích xuất lại nằm ở `ResumeService`** (cạnh `retry`), trả 202 + `ResumeResponse`. Danh sách CV
-  lấy `schemaVersion` và yêu cầu gần nhất bằng 2 câu cho cả danh sách (`findPromptVersionsByResumeIds`,
-  `findLatestByResumeIds` với `DISTINCT ON`), không truy vấn từng CV.
-- **API `/parsed`**: `industry`/`location` lấy từ CỘT đã qua kiểm (không đọc lại mã AI trong JSON);
-  `referenceMonth` dạng `"YYYY-MM"`; `years` là BigDecimal 1 chữ số thập phân; `experience` null khi chưa
-  tính. Giữ field `data` cũ. Không thêm endpoint nào cho HR.
-- **`buildResumeText`** thêm dòng `Chuc danh hien tai: ...` sau thông tin liên hệ khi có; không thêm mã ngành,
-  mã khu vực, số tháng, và không thêm `locationText` (ngoài phạm vi R-C6). Đây là bản duy nhất — F1
-  (`ResumeEmbeddingOrchestrator`) gọi lại chính hàm này, không có bản sao thứ hai.
-- `RateLimitFilter`: thêm `/api/candidates/resumes/*/reparse` vào nhóm `llm-action` theo userId.
+**Seed:** `dev-seed.sql`, `seed-demo-structural.sql` (ghi mã), `reset-demo-db.sql`, `export-ai-output.ps1`
+(thêm bước kiểm C05), `seed-demo-ai-output.sql` (xuất lại bằng v2).
 
-Test đã viết, **chỉ biên dịch (`mvnw -q test-compile` sạch), CHƯA CHẠY** — đợt 6 chạy full suite:
-- `ExperienceCalculatorTest` (mới, thuần): 20 ca R-E10 (ca 16 tham số hoá 13 dạng), ca âm đọc mốc, từ "đang
-  làm" ở `startDate`, 8 biến thể từ "đang làm", biên làm tròn, múi giờ refMonth, phần tử null — mục 7.6.
-- `ResumeParsedDataEnricherTest` (mới, thuần, `Clock.fixed`): mã lạ/`OTHER`/nhãn thay mã → null ở JSON và
-  cột; "Bình Dương" → `HO_CHI_MINH`; không khớp → mã null, chuỗi giữ nguyên; kinh nghiệm theo đồng hồ inject;
-  không đọc được → null không 0 — mục 7.5.
-- `ResumeParsingStateServiceTest` (+5): R-C4 sau `markDone` (mã lạ, `OTHER`), danh mục thật V8, khu vực không
-  khớp, kinh nghiệm ghi cùng `markDone` — mục 7.9 R-C4.
-- `ResumeExperienceBackfillIntegrationTest` (mới, 7): bản ghi v1 chèn bằng SQL đọc qua Hibernate với field
-  mới null; job nền tính và không gọi `ChatModel`/`EmbeddingModel`; null không lưu thành 0; danh sách rỗng;
-  không ghi đè bản ghi đã tính; UPDATE có điều kiện trả 0; vòng quét scheduler — mục 7.5, 7.6.
-- `ResumeReparseEndpointTest` (mới, 15): 202 + PENDING + parse_status DONE + không gọi AI; FAILED trước không
-  chặn; 404 CV người khác; 409 CV v2, CV PENDING, CV FAILED, yêu cầu PENDING, RUNNING; race → DB chặn bằng
-  partial unique index; HR → 403; không token → 401; danh sách CV có `schemaVersion`/`reparse`; `/parsed`
-  v1 chưa tính, v2 đầy đủ nhãn + năm, đã tính nhưng months null — mục 7.7, 7.8.
-- `ResumeReparseOrchestratorTest` (mới, 11): thành công → UPDATE tại chỗ (cùng id, 1 dòng), `raw_text` byte
-  không đổi, embedding NULL, parse_status DONE trong lúc gọi LLM, đầu vào LLM đúng `raw_text` đã lưu (file
-  không tồn tại), md5 `criterion_scores`/`score_explanations` không đổi; R-C4 sau trích xuất lại; prompt có
-  danh sách ngành không có `OTHER`; JSON hỏng → FAILED, md5 cả dòng `resume_parsed_data` không đổi; lỗi LLM
-  → chỉ mã chuẩn hoá; claim; backoff (biên max−2, max−1); reaper — mục 7.7.
-- `CvImprovementOrchestratorTest` (+2): R-C6 có `currentTitle`, không `IT_SOFTWARE`/`HO_CHI_MINH`; v1 không
-  có dòng chức danh — mục 7.9 R-C6.
-- `RateLimitFilterTest` (+2), `ResumeParsingServiceTest` (+2: `formatIndustries`, phiên bản v2),
-  `ResumeParsePromptTest` (+2: luật prompt v2, file v1 còn).
+## 3. Luồng chính
 
-### Đợt 5 — frontend CV + hai chỉnh sửa từ review đợt 4
+**3a. HR mở tin.** `HrJobEditPage` gửi `PATCH /api/hr/jobs/{id}/status` → `JobOwnerService.changeStatus`:
+kiểm rubric (có sẵn) → `isCatalogComplete` (có `category_code`; có `location_code` trừ khi `work_mode =
+REMOTE`) → thiếu thì ném `JobCatalogIncompleteException` → `GlobalExceptionHandler` trả 409
+`JOB_CATALOG_INCOMPLETE`; frontend hiện nguyên câu dưới nhóm nút. Sửa tin đang OPEN đi qua
+`JobOwnerService.update`: mã gửi lên được kiểm trước mọi setter (`InvalidCatalogCodeException` → 400), rồi
+nếu tin đang mở mà sau khi sửa mất điều kiện thì 409. Đổi `category_code` xoá dòng `job_embeddings` để
+scheduler embed lại.
 
-File:
-- Backend: `common/exception/ResumeReparseNotAllowedException.java` (hai factory `notParsedYet()` /
-  `alreadyLatest()`), `resume/ResumeService.java`, test `ResumeReparseEndpointTest.java` (assert câu mới cho CV
-  PENDING và CV FAILED).
-- Đặc tả (giữ ĐÃ DUYỆT): `REQUIREMENT.md` R-R2 tách câu 409 cho CV chưa DONE; `UI.md` mục 7 thêm dòng "Lỗi 409
-  gửi yêu cầu trích xuất lại" (ba câu backend).
-- Frontend: sửa `features/resumes/types.ts`, `api.ts`, `queries.ts`, `ResumeList.tsx`,
-  `ResumeParsedDataDialog.tsx`, `index.css` (keyframe); mới `features/resumes/LinearProgress.tsx`,
-  `ResumeReparseStatus.tsx`, `resumeReparse.ts`, `CareerOverviewSection.tsx`.
-- `docs/UI_GUIDE.md`: mục 7 gắn FR-C05 cho `/candidate/profile`; mục 1h thêm dòng về
-  `animate-m3-linear-progress`.
+**3b. Chuyển dữ liệu Job cũ (một lần, V9).** Flyway chạy `V9__normalize_job_catalog_codes` trong một
+transaction: đọc danh mục bằng `CatalogJdbcLoader` → dựng `CatalogMatcher` → với mỗi Job, chuẩn hoá chuỗi cũ
+(bỏ dấu, chữ thường, gạch nối, tiền tố "TP."/"Tỉnh") rồi tra **khớp chính xác** trong nhãn ∪ bí danh → ghi
+`category_code`/`location_code`, không đụng cột cũ. Trigger `updated_at` được tắt/bật lại trong cùng
+transaction.
 
-Quyết định:
-- **409 CV chưa DONE** (PENDING/PROCESSING/FAILED, và ca phòng thủ DONE mà thiếu dòng dữ liệu): cùng mã
-  `RESUME_REPARSE_NOT_ALLOWED`, câu "CV chưa phân tích xong, chưa thể cập nhật dữ liệu trích xuất."; CV đã v2 giữ
-  "CV này đã có dữ liệu trích xuất mới nhất.".
-- **Poll dùng chung `refetchInterval` sẵn có**: `hasResumeStillPolling` thêm điều kiện `isReparseActive`
-  (reparse PENDING/RUNNING). Không có ngưỡng "kẹt quá lâu" cho trích xuất lại như D1 — backend có reaper đưa
-  yêu cầu kẹt về PENDING rồi FAILED sau số lần thử tối đa, nên poll luôn dừng.
-- **Phát hiện "vừa xong"** bằng cách so danh sách mới với danh sách lần trước ngay trong render (mẫu "điều
-  chỉnh state khi dữ liệu đổi" của React; eslint-plugin-react-hooks 7 không cho setState trong effect): CV
-  từng PENDING/RUNNING nay DONE → vùng `aria-live` của dòng đọc "Đã cập nhật dữ liệu trích xuất." (`sr-only`,
-  người nhìn thấy nút và dòng "phiên bản cũ" biến mất). Đồng thời invalidate cache `/parsed` của CV đó
-  (effect, không setState) để lần mở dialog sau lấy bản v2.
-- **Vùng `aria-live` luôn có mặt** trong ô trạng thái của mọi CV DONE (kể cả khi rỗng) để thay đổi nội dung
-  được đọc; chứa câu thất bại của yêu cầu, lỗi khi gửi (409/429, `text-m3-error`) và câu thành công.
-- **Lỗi 409/429 "dưới dòng CV"** đặt trong ô trạng thái của chính dòng đó (dưới badge), không thêm hàng bảng
-  phụ. Lỗi chung cũ của danh sách (`error`, tải xuống/thử lại) giữ nguyên chỗ.
-- **Câu thất bại hiện nguyên `errorMessage` backend** (dạng `MÃ: mô tả`), nhất quán với cách `parseError` đang
-  hiện ở cùng ô; không cắt tiền tố mã. `errorMessage` null → câu không có phần lỗi.
-- **Nút dùng `Button variant="outline" size="sm"` sẵn có** (cùng kiểu các nút cạnh bên, UI.md mục 5), icon
-  `RefreshCw`. Nhãn: "Cập nhật dữ liệu trích xuất" / "Đang cập nhật…" (đang chạy hoặc đang gửi) / "Thử cập nhật
-  lại" (FAILED). Không đổi bố cục cột hành động (không thêm `flex-wrap`) — giữ cách bảng hiện tại co lại.
-- **Linear progress** là component nhỏ trong `features/resumes/` (chưa đưa lên `components/` vì mới một nơi
-  dùng; K3 sau này có thể nâng lên). Keyframe mới `m3-linear-progress` khai trong `@theme` của `index.css`,
-  kèm `motion-reduce:animate-none`; ghi vào UI_GUIDE mục 1h.
-- **Hiển thị số năm**: `years.toFixed(1).replace('.', ',')`. Backend trả BigDecimal 1 chữ số thập phân nhưng
-  `JSON.parse` làm mất số 0 cuối (`2.0` → `2`); `toFixed(1)` chỉ khôi phục số 0 đó, không làm tròn lại, không
-  chia tháng.
-- **Tổng quan nghề nghiệp**: `dl`; < sm nhãn trên giá trị, ≥ sm lưới `10rem | 1fr`. Tiêu đề `text-m3-label-lg`
-  (14px/500, bằng cỡ tiêu đề các mục cũ `text-sm font-medium`). "Chưa có dữ liệu" và "Đang tính…" màu
-  `m3-on-surface-variant`, là chữ. Ngành/khu vực lấy `label` backend trả; không nhãn "Do AI tạo", không nền
-  khối AI.
-- Không đụng các mục cũ của dialog (Thông tin liên hệ…); chúng vẫn dùng token cũ theo ngoại lệ UI.md mục 1.
+**3c. Trích xuất CV (tải lên mới).** Như FR-C04, nhưng `ResumeParsingService` dùng prompt v2, chèn danh sách
+`MÃ: Nhãn` ngành (bỏ `OTHER`) vào tham số `{industries}`. `ResumeParsingStateService.markDone` gọi
+`ResumeParsedDataEnricher.applyExtraction`: mã ngành lạ/`OTHER` → null ở cả JSON và cột `industry_code`;
+`locationText` → `CatalogRegistry.matchProvince` → `region_code` (trượt thì null, giữ chuỗi); tính kinh nghiệm
+với `Clock` inject, cùng transaction.
 
-Kiểm tra: `mvnw -q test-compile` sạch; `npm run build` + `npm run lint` sạch (chỉ cảnh báo chunk > 500 kB có
-từ trước); grep CSS build thấy `animate-m3-linear-progress`, `@keyframes m3-linear-progress`, `motion-reduce`,
-`bg-m3-primary-container`, `text-m3-error`, `sm:grid-cols-[10rem_1fr]`. Chưa chạy test, chưa soát tay (đợt 6).
+**3d. Trích xuất lại CV v1.**
 
-## 7. Nợ kỹ thuật (ghi chú theo đợt — đợt cuối đưa vào ROADMAP)
+```mermaid
+flowchart TD
+  A[Ứng viên bấm Cập nhật dữ liệu trích xuất] --> B[POST /api/candidates/resumes/id/reparse]
+  B --> R{RateLimitFilter llm-action}
+  R -->|vượt| X429[429]
+  R --> C{ResumeService.requestReparse}
+  C -->|không phải CV của mình| X404[404]
+  C -->|chưa DONE| X409a[409 chưa phân tích xong]
+  C -->|đã v2| X409b[409 đã mới nhất]
+  C -->|đang có PENDING/RUNNING| X409c[409 đang cập nhật]
+  C --> D[INSERT resume_reparse_requests PENDING, saveAndFlush] --> E[202 + CV]
+  D -.uq_resume_reparse_request_active.-> X409c
+  E --> F[ResumeReparseScheduler poll] --> G[claim UPDATE có điều kiện]
+  G --> H[đọc raw_text đã lưu] --> I[gọi LLM ngoài transaction]
+  I -->|lỗi tạm thời| J[backoff, quay lại PENDING]
+  I -->|lỗi khác| K[FAILED + mã lỗi, resume_parsed_data không đổi]
+  I -->|thành công| L[ResumeReparseStateService.markDone: UPDATE tại chỗ, embedding NULL, kinh nghiệm tính lại]
+```
 
-- **Test chập chờn, có từ trước C05:**
-  `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_returnsToPendingThenResumesSkippingAlreadyScoredCriteria`
-  phụ thuộc thời gian thực — gọi lại `processOne` "ngay" và kỳ vọng claim bị từ chối vì
-  `next_attempt_at` còn ở tương lai, nhưng backoff trong cấu hình test chỉ 50ms
-  (`application-test.yml`, `app.hardening.llm.backoff-ms`). Khi máy chậm (chạy full suite) quá 50ms
-  trôi qua, claim thành công, test đỏ (`expected: PENDING but was: RUNNING`, dòng 411). Gặp ở đợt 1
-  (545 test, 1 đỏ); chạy riêng class xanh 6/6; chạy lại full suite xanh 545/545. Không sửa trong C05
-  (ngoài phạm vi, không đụng `scoring/`).
-- **Race embedding CV với trích xuất lại (phát hiện ở review đợt 4, chưa sửa):** `ResumeEmbeddingScheduler`
-  không claim. Kịch bản: scheduler đọc văn bản v1 khi `embedding` đang NULL → trích xuất lại commit data v2 và
-  đặt `embedding = NULL` → scheduler ghi embedding tính từ văn bản v1 đè lên. Kết quả: embedding lệch dữ liệu
-  vĩnh viễn (không còn NULL nên không được tính lại). Xác suất thấp (cần trùng cửa sổ vài giây của lời gọi
-  embedding), cùng họ nợ "không claim" của F1. Cách chữa: ghi embedding có điều kiện theo `parsed_at` đã đọc
-  (`UPDATE ... WHERE id = :id AND parsed_at = :parsedAtRead`) — `touchAfterReparse` đã đổi `parsed_at` nên câu
-  ghi muộn sẽ trượt.
+Trong suốt quá trình `resumes.parse_status` giữ DONE. Danh sách CV ở frontend tự hỏi lại bằng
+`refetchInterval` sẵn có khi `reparse` đang PENDING/RUNNING; khi thấy DONE thì nút và dòng "phiên bản cũ" biến
+mất, vùng `aria-live` đọc "Đã cập nhật dữ liệu trích xuất.".
+
+**3e. Tính bù kinh nghiệm.** `ResumeExperienceScheduler` (30 giây, lô 50) lấy các bản ghi
+`experience_computed_at IS NULL` → `ResumeExperienceStateService.computeOne` tính rồi ghi bằng
+`UPDATE ... WHERE experience_computed_at IS NULL`. Không gọi AI.
+
+## 4. Quyết định thiết kế
+
+- **Một bộ khớp duy nhất bằng Java, dùng cho cả migration lẫn lúc chạy.** Khác: viết lại bằng SQL
+  (`unaccent`, `ILIKE`) trong migration. Vì sao: hai bản cài đặt sẽ lệch nhau; vì thế V9 là Java migration
+  và `CatalogMatcher` không phụ thuộc Spring (R-M5).
+- **Khớp chính xác sau chuẩn hoá, không gần đúng, không tách dấu phẩy.** Khác: fuzzy/tách "Quận 1, HCM".
+  Vì sao: đoán sai mã còn tệ hơn để trống — Job chưa chuẩn hoá vẫn hiển thị giá trị cũ, HR chọn lại (R-M3).
+- **V9 không có checksum nên là bất biến.** Flyway không phát hiện được nếu class bị sửa sau khi áp (đã xác
+  nhận bằng bytecode `flyway-core-12.4.0` và test `JobCatalogMigrationTest.v9IsAppliedAsJavaMigration`). Cần
+  đổi dữ liệu thì viết migration mới.
+- **Guard mở tin là một hàm** `JobOwnerService.isCatalogComplete`, gọi ở mọi đường sang OPEN *và* ở `update`
+  khi tin đang mở. Khác: chỉ chặn ở `changeStatus` hoặc ẩn nút ở frontend. Vì sao: R-J3/R-J5 và "không tin UI".
+- **Giữ cột `category`/`location` cũ**, chỉ thêm cột mã; API trả `legacyCategory`/`legacyLocation` khi chưa
+  chuẩn hoá. Vì sao: không mất dữ liệu HR đã gõ; tìm kiếm C02 khớp nhãn **hoặc** giá trị cũ (R-J8).
+- **API danh mục ở `/api/public/catalogs`** (đặc tả ban đầu ghi `/api/catalogs`) để theo quy ước permitAll
+  sẵn có của `SecurityConfig`. Danh mục nạp một lần vào `CatalogRegistry`, không query mỗi request.
+- **Lỗi theo khuôn exception + `ErrorResponse`**, không dùng `FormattedErrorCode` (interface đó chỉ cho cột
+  lỗi của job nền).
+- **Schema CV v2 = cùng bảng, cùng cột `data`; phiên bản lấy từ `prompt_version`.** Khác: cột/bảng mới. Vì
+  sao: R-C1; bản ghi v1 đọc vào vẫn hợp lệ (field mới null nhờ `@JsonIgnoreProperties`).
+- **Backend không tin AI**: mã ngành qua `CatalogRegistry.isIndustry`, khu vực qua bộ khớp; một hàm duy nhất
+  `ResumeParsedDataEnricher.applyExtraction` cho cả tải lên và trích xuất lại, nên bất biến "cột
+  `industry_code` = `data.industryCode`" (R-C4) không thể lệch giữa hai đường.
+- **Prompt v2 — `locationText` chỉ lấy phần tỉnh/thành.** Lần chạy thật đầu tiên (đợt 6) AI trả nguyên cụm
+  "Quận 7, TP. Hồ Chí Minh" nên bộ khớp trượt cả 9 CV demo. Đã chọn siết prompt (ví dụ cụ thể, tên tỉnh cũ giữ
+  nguyên) thay vì nới bộ khớp; sau một lần thử lại, 9/9 CV có `region_code`.
+- **Kinh nghiệm: class thuần, BigDecimal HALF_UP, khớp toàn chuỗi đúng các dạng R-E3.** Khác: `double` +
+  `Math.round`, hoặc đoán tháng cho mốc chỉ có năm. Vì sao: R-E5/R-E8 — ca 0,25 và 0,75 nằm đúng biên làm tròn;
+  không đọc được thì bỏ qua và lưu `NULL`, không lưu 0. Mốc tham chiếu là tháng (giờ Việt Nam) của thời điểm
+  tính, lấy từ bean `Clock`.
+- **Job nền kinh nghiệm không có cột trạng thái — câu ghi có điều kiện chính là claim.** Nếu trích xuất lại đã
+  ghi trước thì rowcount 0, kết quả tính từ data cũ không đè được.
+- **Trích xuất lại: UPDATE tại chỗ, đọc `raw_text` đã lưu, `parse_status` giữ DONE.** Khác: đặt `PENDING`
+  rồi chạy lại toàn bộ D1. Vì sao: CV sẽ biến khỏi form ứng tuyển, chấm điểm bị chặn, và đọc lại file làm
+  `raw_text` đổi → evidence cũ hết kiểm chứng được (R-R5, R-R6). `parsed_at`/`embedding` ghi bằng câu native
+  `touchAfterReparse` vì entity không cập nhật được hai cột này.
+- **Hàng đợi riêng `resume_reparse_requests`** + partial unique index là chốt chặn thật; kiểm trước ở service
+  chỉ để trả 409 sớm. Thêm stale-claim reaper (không có trong đề bài đợt 4) để yêu cầu kẹt RUNNING không khoá
+  CV vĩnh viễn.
+- **Frontend: hiển thị số năm bằng `toFixed(1)` rồi đổi dấu chấm.** `JSON.parse` làm `2.0` thành `2`; đây là
+  định dạng, không phải tính lại.
+- **Frontend: phát hiện "vừa cập nhật xong" bằng so danh sách trong lúc render**, invalidate cache `/parsed`
+  trong `useEffect` (react-hooks 7 cấm setState trong effect).
+- **Test bảo vệ ràng buộc của nhánh khác:** `ResumeReparseOrchestratorTest.processOne_success_updatesInPlace…`
+  so md5 `criterion_scores`/`score_explanations` trước–sau — bảo vệ nguyên tắc evidence của FR-H04/H06 (D2/D4),
+  không được xoá khi refactor C05. `CvImprovementOrchestratorTest.buildResumeText_v2Payload_…` bảo vệ đầu vào
+  embedding của FR-U04 (F1) khỏi bị lẫn mã suy ra.
+
+## 5. Ràng buộc đã thực thi
+
+| Mã | Ràng buộc | Thực thi ở đâu |
+|---|---|---|
+| R-M3/R-M4 | Khớp chính xác; một khoá không trỏ hai mã | `CatalogMatcher.match`, constructor `CatalogMatcher` (ném lỗi); `CatalogSeedConsistencyTest` |
+| R-P2/R-I1 | Mã không đổi, nhãn duy nhất | `catalog_provinces/industries` PK + `label UNIQUE` (V8) |
+| R-J3/R-J5 | Mở tin cần ngành (+ tỉnh trừ REMOTE) | `JobOwnerService.isCatalogComplete` ở `changeStatus` và `update` |
+| R-J4 | Mã phải có trong danh mục | `JobOwnerService.applyRequest` → `InvalidCatalogCodeException`; FK `jobs.category_code/location_code` |
+| R-D1–D3 | Chuyển Job cũ, không ghi đè cột cũ | `V9__normalize_job_catalog_codes` |
+| R-C3/R-C4 | Không tin mã AI; cột = JSON | `ResumeParsedDataEnricher.sanitize/applyExtraction`; FK `industry_code`, `region_code` |
+| R-C5 | Không trường nhân thân | Schema `ResumeParsedPayload`; prompt v2 (srs-guard nguyên tắc 13: 0 kết quả) |
+| R-C6 | Văn bản CV chỉ thêm `currentTitle` | `CvImprovementOrchestrator.buildResumeText` |
+| R-E5–E8 | Thuật toán kinh nghiệm, không lưu 0 | `ExperienceCalculator`; CHECK `chk_parsed_experience_state`, `chk_parsed_experience_months` (V8) |
+| R-R2 | Điều kiện trích xuất lại | `ResumeService.requestReparse` |
+| R-R4 | Một yêu cầu đang chạy mỗi CV | `uq_resume_reparse_request_active` (V8) |
+| R-R3 | Rate limit theo userId | `RateLimitFilter.classify` (`RESUME_REPARSE_PATTERN`) |
+| R-R5/R-R6 | Không đổi `raw_text`, không chạm chấm điểm | `ResumeReparseStateService.markDone`, `ResumeReparseOrchestrator` |
+| CLAUDE.md §3c | Không giữ transaction quanh LLM; claim bằng UPDATE | `ResumeReparseOrchestrator` (không `@Transactional`), `claimForProcessing` |
+| CLAUDE.md §4 | Cột lỗi chỉ lưu mã chuẩn hoá | `ResumeReparseStateService.markFailed(ResumeParsingErrorCode)` |
+
+## 6. Đã kiểm thử gì
+
+**Tự động (đợt 6):** full suite backend **xanh 680/680** (lần chạy cuối, sau mọi commit sửa); `npm run build` + `npm run lint` sạch. Lần chạy đầu
+680 test, 2 đỏ — cả hai do giả định sai trong test mới của đợt 4 (fixture tạo 3 CV chính cho cùng ứng viên;
+Spring AI 2.0 nối hướng dẫn định dạng JSON vào cuối user message). Đã sửa theo hướng chặt hơn, không nới
+(commit `5ec2f0e`). Test chập chờn có từ trước (mục 7) **không đỏ ở cả hai lần chạy** của đợt 6 nên không chạy riêng.
+
+Test chính của C05: `CatalogMatcherTest`, `CatalogSeedConsistencyTest`, `JobCatalogMigrationTest`,
+`JobCatalogGuardIntegrationTest`, `CatalogPublicControllerIntegrationTest`, `JobPublicIntegrationTest` (2 ca
+tìm kiếm), `ExperienceCalculatorTest`, `ResumeParsedDataEnricherTest`, `ResumeExperienceBackfillIntegrationTest`,
+`ResumeReparseEndpointTest`, `ResumeReparseOrchestratorTest`, `ResumeParsePromptTest`, các ca thêm ở
+`ResumeParsingStateServiceTest`, `CvImprovementOrchestratorTest`, `RateLimitFilterTest`, `ResumeParsingServiceTest`.
+
+**Chạy thật với khoá API (đợt 6):** nạp demo, gửi 9 yêu cầu trích xuất lại qua API, cả 9 DONE; md5 trước = sau
+(`criterion_scores` 57 dòng `1511c04a…`, `score_explanations` 12 dòng `446f958b…`, `raw_text` 9 CV
+`87e0d96f…`); nạp lại từ dump mới: 9/9 v2, 9/9 đã tính kinh nghiệm, 9/9 có `region_code`, 0 Job thiếu mã.
+
+**Soát tay giao diện (mục 7.10): chưa làm** — người dùng tự soát sau commit tài liệu đợt 6, theo checklist
+trong báo cáo đợt 6. Kết quả bổ sung vào đây sau.
+
+**Chưa test:** race embedding khi trích xuất lại (mục 7); hành vi khi danh mục đổi sau này (ngoài phạm vi);
+giao diện ở 375px và bàn phím combobox (chờ soát tay).
+
+| "Xong khi" (REQUIREMENT mục 7) | Nghiệm thu | Kết quả |
+|---|---|---|
+| 1. Bộ khớp | `CatalogMatcherTest`, `CatalogSeedConsistencyTest` | Đạt |
+| 2. Migration | `JobCatalogMigrationTest` (Testcontainers, Boot 4.1) | Đạt |
+| 3. Guard OPEN | `JobCatalogGuardIntegrationTest` | Đạt |
+| 4. Tìm kiếm C02 | `JobPublicIntegrationTest` (2 ca nhãn/giá trị cũ) | Đạt |
+| 5. Schema v2 | `ResumeParsedDataEnricherTest`, `ResumeExperienceBackfillIntegrationTest.v1Row_…` | Đạt |
+| 6. Kinh nghiệm | `ExperienceCalculatorTest` (20 ca R-E10), `ResumeExperienceBackfillIntegrationTest` | Đạt |
+| 7. Trích xuất lại | `ResumeReparseEndpointTest`, `ResumeReparseOrchestratorTest` + chạy thật md5 | Đạt |
+| 8. RBAC | `ResumeReparseEndpointTest.reparse_hrUser_returns403`, `CatalogPublicControllerIntegrationTest` | Đạt |
+| 9. Bổ sung spec-review | `JobEmbeddingPipelineIntegrationTest.update_categoryChanged_…`/`update_unrelatedFieldChanged_…` (R-J9), `CvImprovementOrchestratorTest` (R-C6), `ResumeParsingStateServiceTest` + `ResumeReparseOrchestratorTest` (R-C4), `CatalogPublicControllerIntegrationTest` (34/24, thứ tự, không bí danh), `JobCatalogGuardIntegrationTest.response_*` (legacy*) | Đạt |
+| 10. Soát tay | Checklist báo cáo đợt 6 | **Chưa** |
+| 11. Seed demo | Nạp lại từ dump mới (đợt 6) | Đạt |
+| 12. srs-guard | Đợt 6: 1 vi phạm nguyên tắc 13 ở prompt v2, đã sửa (`f12fcd6`) | Đạt |
+
+## 7. Nợ kỹ thuật
+
+- **Test chập chờn có từ trước C05:** `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
+  phụ thuộc thời gian thực (backoff test 50ms); máy chậm thì claim thành công, test đỏ. Không sửa trong C05.
+- **`toPattern` của tìm kiếm C02 không thoát `%` và `_`** — giữ nguyên cách hiện có, không thêm cách mới.
+- **Race embedding CV với trích xuất lại:** `ResumeEmbeddingScheduler` không claim; nếu nó đọc văn bản v1 rồi
+  trích xuất lại commit v2 và đặt `embedding = NULL`, câu ghi muộn của scheduler đè embedding v1 lên và không
+  bao giờ được tính lại. Xác suất thấp, cùng họ nợ "không claim" của F1. Chữa: ghi có điều kiện theo
+  `parsed_at` đã đọc.
+- **Combobox chỉ lọc theo nhãn, không theo bí danh** (API không trả bí danh): gõ "HCM" hay tên tỉnh cũ
+  "Bình Dương" không ra kết quả. Để FR-U07 cân nhắc.
+- **V9 là Java migration không checksum, bất biến** — không sửa class sau khi đã áp.
+- **Prompt v2 vẫn có thể trả `locationText` kèm quận/huyện** với CV khác bộ demo; khi đó mã khu vực null và
+  giao diện hiện "(chưa khớp danh mục)". Không nới bộ khớp.
+- **Hướng dẫn định dạng JSON xuất hiện hai lần trong prompt** (tham số `{format}` ở system và Spring AI 2.0 tự
+  nối vào user message) — có từ D1, không do C05.
+- **Seed demo: 6 job ở DRAFT nên `job_recommendations` luôn về 0 khi backend chạy** — có từ chore/seed-demo,
+  không do C05. Đã kiểm: nạp dump cũ (28 dòng) trong lúc backend chạy thì về 0 ngay, vì
+  `JobRecommendationCacheScheduler` xoá-rồi-chèn mỗi 5 giây và chỉ khớp job OPEN. Dump mới vì thế có 0 dòng.
+  Chữa ở nhánh seed: cho job demo OPEN trong `seed-demo-structural.sql` (đã có mã nên qua được guard R-J3).
+- **Embedding CV không chính mất sau trích xuất lại** (9 → 8 trong dump): đúng thiết kế F1 chỉ embed CV chính.
+- Lời gọi LLM thất bại lần đầu ở đợt 6 vì backend chưa nạp khoá API: mã `LLM_ERROR` đúng thiết kế nhưng không
+  phân biệt "thiếu cấu hình" với lỗi gọi API — người vận hành phải đọc log.
+
+## 8. Lệch so với đặc tả
+
+Tất cả các chỗ dưới đây do người dùng chỉ đạo sửa đặc tả trong phiên; đặc tả giữ dòng `ĐÃ DUYỆT (30/09/2026)`,
+không có dòng duyệt lại riêng.
+
+| Chỗ lệch | Đặc tả đã sửa | Khi nào |
+|---|---|---|
+| Endpoint `/api/catalogs` → `/api/public/catalogs` | REQUIREMENT mục 4, 7; UI.md mục 5 | Đợt 2 (quyết định L2) |
+| Thêm thông điệp 409 khi sửa tin đang mở | REQUIREMENT R-J5; UI.md mục 7 | Đợt 2 |
+| Câu đếm R-P4 | REQUIREMENT R-P4 | Đợt 1 |
+| 409 trích xuất lại: tách câu cho CV chưa DONE | REQUIREMENT R-R2; UI.md mục 7 | Đợt 5 |
+| Siết prompt `locationText` chỉ lấy phần tỉnh/thành | Không đổi đặc tả (nằm trong R-C2) | Đợt 6 |
+| Thêm stale-claim reaper cho trích xuất lại | Không có trong đặc tả; theo khuôn R-R4 "cơ chế sẵn có" | Đợt 4 |
