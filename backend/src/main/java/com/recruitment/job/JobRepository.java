@@ -1,5 +1,7 @@
 package com.recruitment.job;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,49 +13,121 @@ import org.springframework.data.repository.query.Param;
 
 public interface JobRepository extends JpaRepository<Job, UUID> {
 
-    // CAST(:param AS text) bat buoc o ca hai ve: Postgres khong tu suy duoc kieu tham so
-    // khi ve con lai la NULL (ERROR: could not determine data type of parameter).
-    // FR-C05 R-J8: location/category khop nhan cua ma HOAC gia tri cu (ke ca Job da co ma - vd Job cu
-    // ghi "Binh Duong" nay mang HO_CHI_MINH van tim ra bang "Binh Duong"). EXISTS thay vi JOIN de giu
-    // SELECT * chi co cot cua jobs (map thang vao entity Job). Bo loc theo MA la viec cua FR-U07.
+    // FR-U07 R-Q1/R-Q2: dieu kien "cung" (OPEN + chua xoa + con han, cong R-N category/location-code
+    // ma NULL van hien, R-S luong chong lap + Thoa thuan + ngoai te, R-W workMode, R-T postedWithin)
+    // dinh nghia MOT LAN o hang so nay - noi vao ca hai bien the ORDER BY (R-O4) va countQuery (R-Q2:
+    // truy van dem phai dung CUNG dieu kien voi truy van lay du lieu). @Query doi gia tri la
+    // ConstantExpression nen khong the goi phuong thuc Java de "dung chung" - noi chuoi hang so
+    // static final nhu the nay la cach DUY NHAT de dinh nghia MOT LAN trong MA NGUON ma van thoa man
+    // yeu cau cua annotation (van bi lap lai trong .class/annotation da bien dich, nhung khong the
+    // lech nhau vi cung xuat phat tu mot hang so).
+    //
+    // keyword/category/location (R-F1) giu nguyen y het ILIKE truoc khi co U07 - chi KHONG dua vao
+    // PublicJobSearchCriteria (R-Q1) de FR-U15 tai dung dung phan dieu kien cung ma khong mang theo
+    // tim kiem van ban cua U07.
+    //
+    // categoryCode/locationCode (R-N1/R-N2): so bang HOAC ma NULL (tin "chua chuan hoa" khong bi loai
+    // am tham). Luong (R-S2/R-S4/R-S5): chuan hoa salary_currency ve VND khi NULL/rong, so sanh
+    // khong phan biet hoa-thuong va khoang trang; nhom ngoai te (R-S5) khong bi R-S2 so sanh, luon
+    // hien. hideUnlisted (R-S4/R-S6) la dieu kien DOC LAP, chi loai dung nhom Thoa thuan. workMode
+    // (R-W1): :workModesPresent = FALSE bo qua IN-list khi danh sach rong (Postgres khong cho
+    // "IN ()" voi danh sach rong). postedWithin (R-T2): nguong :sinceTimestamp da tinh san o Java
+    // bang Clock, KHONG viet NOW() - INTERVAL trong SQL.
+    //
+    // CAST(:param AS text) bat buoc o ca hai ve: Postgres khong tu suy duoc kieu tham so khi ve con
+    // lai la NULL (ERROR: could not determine data type of parameter).
+    //
+    // FR-C05 R-J8: location/category khop nhan cua ma HOAC gia tri cu (ke ca Job da co ma - vi du
+    // Job cu ghi "Binh Duong" nay mang ma HO_CHI_MINH van tim ra bang "Binh Duong"). EXISTS thay vi
+    // JOIN de giu SELECT * chi co cot cua jobs (map thang vao entity Job). Loc theo MA
+    // (categoryCode/locationCode) nam ngay trong hang so nay (R-N1/R-N2 o tren).
+    String PUBLIC_JOB_FILTER_WHERE =
+            """
+            WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
+              AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
+              AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
+              AND (CAST(:locationPattern AS text) IS NULL
+                   OR j.location ILIKE CAST(:locationPattern AS text)
+                   OR EXISTS (SELECT 1 FROM catalog_provinces cp WHERE cp.code = j.location_code
+                              AND cp.label ILIKE CAST(:locationPattern AS text)))
+              AND (CAST(:categoryPattern AS text) IS NULL
+                   OR j.category ILIKE CAST(:categoryPattern AS text)
+                   OR EXISTS (SELECT 1 FROM catalog_industries ci WHERE ci.code = j.category_code
+                              AND ci.label ILIKE CAST(:categoryPattern AS text)))
+              AND (CAST(:categoryCode AS text) IS NULL OR j.category_code = CAST(:categoryCode AS text)
+                   OR j.category_code IS NULL)
+              AND (CAST(:locationCode AS text) IS NULL OR j.location_code = CAST(:locationCode AS text)
+                   OR j.location_code IS NULL)
+              AND (
+                    (UPPER(TRIM(COALESCE(j.salary_currency, 'VND'))) = 'VND'
+                      AND (CAST(:salaryMinVnd AS numeric) IS NULL OR j.salary_max IS NULL
+                           OR j.salary_max >= CAST(:salaryMinVnd AS numeric))
+                      AND (CAST(:salaryMaxVnd AS numeric) IS NULL OR j.salary_min IS NULL
+                           OR j.salary_min <= CAST(:salaryMaxVnd AS numeric)))
+                    OR UPPER(TRIM(COALESCE(j.salary_currency, 'VND'))) <> 'VND'
+                  )
+              AND NOT (:hideUnlisted = TRUE AND j.salary_min IS NULL AND j.salary_max IS NULL)
+              AND (:workModesPresent = FALSE OR j.work_mode IN :workModeParams)
+              AND (CAST(:sinceTimestamp AS timestamptz) IS NULL
+                   OR COALESCE(j.published_at, j.created_at) >= CAST(:sinceTimestamp AS timestamptz))
+            """;
+
     @Query(
             value =
-                    """
-                    SELECT * FROM jobs j
-                    WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
-                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
-                      AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
-                      AND (CAST(:locationPattern AS text) IS NULL
-                           OR j.location ILIKE CAST(:locationPattern AS text)
-                           OR EXISTS (SELECT 1 FROM catalog_provinces cp WHERE cp.code = j.location_code
-                                      AND cp.label ILIKE CAST(:locationPattern AS text)))
-                      AND (CAST(:categoryPattern AS text) IS NULL
-                           OR j.category ILIKE CAST(:categoryPattern AS text)
-                           OR EXISTS (SELECT 1 FROM catalog_industries ci WHERE ci.code = j.category_code
-                                      AND ci.label ILIKE CAST(:categoryPattern AS text)))
-                    ORDER BY j.created_at DESC
-                    """,
-            countQuery =
-                    """
-                    SELECT count(*) FROM jobs j
-                    WHERE j.status = 'OPEN' AND j.deleted_at IS NULL
-                      AND (j.deadline IS NULL OR j.deadline >= CURRENT_DATE)
-                      AND (CAST(:titlePattern AS text) IS NULL OR j.title ILIKE CAST(:titlePattern AS text))
-                      AND (CAST(:locationPattern AS text) IS NULL
-                           OR j.location ILIKE CAST(:locationPattern AS text)
-                           OR EXISTS (SELECT 1 FROM catalog_provinces cp WHERE cp.code = j.location_code
-                                      AND cp.label ILIKE CAST(:locationPattern AS text)))
-                      AND (CAST(:categoryPattern AS text) IS NULL
-                           OR j.category ILIKE CAST(:categoryPattern AS text)
-                           OR EXISTS (SELECT 1 FROM catalog_industries ci WHERE ci.code = j.category_code
-                                      AND ci.label ILIKE CAST(:categoryPattern AS text)))
-                    """,
+                    "SELECT * FROM jobs j "
+                            + PUBLIC_JOB_FILTER_WHERE
+                            + " ORDER BY COALESCE(j.published_at, j.created_at) DESC, j.id DESC",
+            countQuery = "SELECT count(*) FROM jobs j " + PUBLIC_JOB_FILTER_WHERE,
             nativeQuery = true)
-    Page<Job> searchPublicJobs(
+    Page<Job> searchPublicJobsSortedByNewest(
             @Param("titlePattern") String titlePattern,
             @Param("locationPattern") String locationPattern,
             @Param("categoryPattern") String categoryPattern,
+            @Param("categoryCode") String categoryCode,
+            @Param("locationCode") String locationCode,
+            @Param("salaryMinVnd") BigDecimal salaryMinVnd,
+            @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
+            @Param("hideUnlisted") boolean hideUnlisted,
+            @Param("workModesPresent") boolean workModesPresent,
+            @Param("workModeParams") List<String> workModeParams,
+            @Param("sinceTimestamp") Instant sinceTimestamp,
             Pageable pageable);
+
+    // R-O2: tin Thoa thuan (ca hai cot NULL) co COALESCE(salary_max, salary_min) IS NULL -> NULLS
+    // LAST day xuong cuoi. Tin ngoai te (R-S5) KHONG loai khoi sort - van sap theo dung so luu trong
+    // salary_max/salary_min du don vi tien te khac nhau (no ky thuat, muc 10 REQUIREMENT - khong quy
+    // doi ty gia).
+    @Query(
+            value =
+                    "SELECT * FROM jobs j "
+                            + PUBLIC_JOB_FILTER_WHERE
+                            + " ORDER BY COALESCE(j.salary_max, j.salary_min) DESC NULLS LAST,"
+                            + " COALESCE(j.published_at, j.created_at) DESC, j.id DESC",
+            countQuery = "SELECT count(*) FROM jobs j " + PUBLIC_JOB_FILTER_WHERE,
+            nativeQuery = true)
+    Page<Job> searchPublicJobsSortedBySalaryDesc(
+            @Param("titlePattern") String titlePattern,
+            @Param("locationPattern") String locationPattern,
+            @Param("categoryPattern") String categoryPattern,
+            @Param("categoryCode") String categoryCode,
+            @Param("locationCode") String locationCode,
+            @Param("salaryMinVnd") BigDecimal salaryMinVnd,
+            @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
+            @Param("hideUnlisted") boolean hideUnlisted,
+            @Param("workModesPresent") boolean workModesPresent,
+            @Param("workModeParams") List<String> workModeParams,
+            @Param("sinceTimestamp") Instant sinceTimestamp,
+            Pageable pageable);
+
+    // Dung cho noi can "Job OPEN moi nhat, khong loc gi" (CvImprovementOrchestrator - van ban xu
+    // huong thi truong cho goi y cai thien CV). Uy quyen sang searchPublicJobsSortedByNewest voi moi
+    // dieu kien la "khong loc" - thay the dung cho ban searchPublicJobs(3 String, Pageable) cu truoc
+    // FR-U07 (da xoa: ORDER BY created_at DESC thieu tie-break id, R-O3 phai sua, khong duoc giu lam
+    // "ban thu hai" chi vi mot noi goi con dung).
+    default Page<Job> searchOpenJobsNewest(Pageable pageable) {
+        return searchPublicJobsSortedByNewest(
+                null, null, null, null, null, null, null, false, false, List.of("__NONE__"), null, pageable);
+    }
 
     @Query(
             value =

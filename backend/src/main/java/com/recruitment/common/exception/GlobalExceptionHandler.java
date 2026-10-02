@@ -236,6 +236,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_CANDIDATE_SEARCH_FILTER", ex.getMessage()));
     }
 
+    // FR-U07 R-F5/R-S3 - tham so loc Job cong khai sai (workMode/sort/postedWithin la/salary am hoac
+    // min>max).
+    @ExceptionHandler(InvalidJobFilterException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobFilter(InvalidJobFilterException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_FILTER", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
