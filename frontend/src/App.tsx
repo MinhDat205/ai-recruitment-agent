@@ -1,11 +1,13 @@
 import { Navigate, BrowserRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { RequireCandidateProfileOnboarding } from './features/candidateProfile/RequireCandidateProfileOnboarding'
 import { RequireCompany } from './features/companies/RequireCompany'
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CandidateJobListPage } from './pages/CandidateJobListPage'
 import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
+import { CandidateOnboardingPage } from './pages/CandidateOnboardingPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
 import { CvImprovementSuggestionsPage } from './pages/CvImprovementSuggestionsPage'
@@ -32,35 +34,13 @@ function App() {
           <Route path="/companies/:id" element={<PublicCompanyProfilePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* FR-U14 R-O2 - /candidate/onboarding KHONG bi RequireCandidateProfileOnboarding boc (se
+              tu dieu huong vong lap), nen dat RIENG ngoai nhom /candidate/* ben duoi. */}
           <Route
-            path="/candidate"
+            path="/candidate/onboarding"
             element={
               <ProtectedRoute allowedRoles={['CANDIDATE']}>
-                <CandidateJobListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/candidate/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['CANDIDATE']}>
-                <CandidateHomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/candidate/profile"
-            element={
-              <ProtectedRoute allowedRoles={['CANDIDATE']}>
-                <CandidateProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/candidate/applications"
-            element={
-              <ProtectedRoute allowedRoles={['CANDIDATE']}>
-                <CandidateApplicationsPage />
+                <CandidateOnboardingPage />
               </ProtectedRoute>
             }
           />
@@ -72,22 +52,28 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Moi route /candidate/* (tru /candidate/onboarding o tren) deu can qua
+              RequireCandidateProfileOnboarding (FR-U14 R-O2) - giong khuon RequireCompany o nhom HR
+              ben duoi. */}
           <Route
-            path="/candidate/notifications"
             element={
               <ProtectedRoute allowedRoles={['CANDIDATE']}>
-                <CandidateNotificationsPage />
+                <RequireCandidateProfileOnboarding>
+                  <Outlet />
+                </RequireCandidateProfileOnboarding>
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/candidate/resumes/:id/improvement-suggestions"
-            element={
-              <ProtectedRoute allowedRoles={['CANDIDATE']}>
-                <CvImprovementSuggestionsPage />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="/candidate" element={<CandidateJobListPage />} />
+            <Route path="/candidate/dashboard" element={<CandidateHomePage />} />
+            <Route path="/candidate/profile" element={<CandidateProfilePage />} />
+            <Route path="/candidate/applications" element={<CandidateApplicationsPage />} />
+            <Route path="/candidate/notifications" element={<CandidateNotificationsPage />} />
+            <Route
+              path="/candidate/resumes/:id/improvement-suggestions"
+              element={<CvImprovementSuggestionsPage />}
+            />
+          </Route>
           {/* Moi route /hr/* MOI mac dinh dat trong nhom nay (can ho so cong ty). Chi route nao
               chac chan dung duoc khi HR chua co cong ty moi dat ngoai nhom, nhu /hr/company va
               /hr/notifications ben duoi. */}

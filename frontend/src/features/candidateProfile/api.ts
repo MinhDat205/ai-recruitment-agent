@@ -19,3 +19,10 @@ export async function getAutofillFromResumeRequest(): Promise<ResumeAutofillResp
   const response = await http.get<ResumeAutofillResponse>('/candidates/profile/me/autofill-from-resume')
   return response.data
 }
+
+// FR-U14 R-O3(b) - chi danh dau da qua man onboarding, khong doi field nao khac. Idempotent (goi lai
+// nhieu lan van 200, gia tri co khong doi).
+export async function skipOnboardingRequest(): Promise<CandidateProfileResponse> {
+  const response = await http.patch<CandidateProfileResponse>('/candidates/profile/me/skip-onboarding')
+  return response.data
+}
