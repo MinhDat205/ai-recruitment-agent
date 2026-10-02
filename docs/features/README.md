@@ -187,7 +187,7 @@ Lọc trên việc làm công khai đang ở trạng thái OPEN.
 - **Đặc tả chi tiết:** `docs/features/UV/U14/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-U01, FR-C05, FR-U04
 - **Mở rộng chức năng hiện có:** FR-U01 (hồ sơ nghề nghiệp)
-- **Màn hình (UI_GUIDE mục 7):** ★`/candidate/onboarding` (sau đăng ký, bỏ qua được) và `/candidate/profile`.
+- **Màn hình (UI_GUIDE mục 7):** ★`/candidate/onboarding` (lần đăng nhập đầu tiên sau đăng ký, bỏ qua được) và `/candidate/profile`.
 
 **Mục đích**
 
@@ -195,7 +195,7 @@ Thu thập thông tin nghề nghiệp và mong muốn công việc ngay từ đ�
 
 **Người dùng thao tác**
 
-- Ngay sau khi đăng ký → màn Hoàn thiện hồ sơ (bỏ qua được) → điền chức danh mong muốn, ngành nghề mong muốn (tối đa 3), khu vực mong muốn (tối đa 3), hình thức làm việc, mức lương mong muốn tối thiểu, số năm kinh nghiệm, kỹ năng chính (dạng thẻ), giới thiệu ngắn → Lưu.
+- Đăng ký xong vẫn về trang đăng nhập như hiện tại (API đăng ký không trả phiên đăng nhập); ở lần đăng nhập đầu tiên sau đó, hệ thống tự chuyển tới màn Hoàn thiện hồ sơ (bỏ qua được) → điền chức danh mong muốn, ngành nghề mong muốn (tối đa 3), khu vực mong muốn (tối đa 3), hình thức làm việc, mức lương mong muốn tối thiểu, số năm kinh nghiệm, kỹ năng chính (dạng thẻ), giới thiệu ngắn → Lưu.
 - Sửa bất kỳ lúc nào ở trang Hồ sơ cá nhân (FR-U01); dùng cùng một form.
 - Tuỳ chọn bấm Điền từ CV để lấy sẵn chức danh, kỹ năng, số năm kinh nghiệm từ CV chính đã trích xuất rồi chỉnh lại.
 
