@@ -53,10 +53,23 @@ export interface PageResponse<T> {
   totalPages: number
 }
 
+// FR-U07 R-F2: tap gia tri kin, khop dung enum backend (JobSortOption, R-W1, R-T2).
+export type WorkMode = 'ONSITE' | 'HYBRID' | 'REMOTE'
+export type PostedWithin = 'LAST_24H' | 'LAST_7D' | 'LAST_30D'
+export type JobSort = 'NEWEST' | 'SALARY_DESC'
+
+// R-F1: khong con category/location (chuoi tu do, cu) - thanh loc moi chi gui *Code theo danh muc
+// C05. Backend van giu category/location cho URL/test cu, chi frontend khong gui nua.
 export interface JobSearchParams {
   keyword?: string
-  location?: string
-  category?: string
+  categoryCode?: string
+  locationCode?: string
+  salaryMin?: number
+  salaryMax?: number
+  hideUnlisted?: boolean
+  workMode?: WorkMode[]
+  postedWithin?: PostedWithin
+  sort?: JobSort
   page?: number
   size?: number
 }

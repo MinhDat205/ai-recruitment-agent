@@ -7,12 +7,18 @@ import type { JobSearchParams } from './types'
 interface JobListProps {
   params: JobSearchParams
   onPageChange: (page: number) => void
+  // FR-U07: false khi dang hoan truy van cho danh muc tai xong (useJobFilters.canQueryJobs) - mac
+  // dinh true cho moi noi dung khong lien quan bo loc danh muc.
+  enabled?: boolean
 }
 
-export function JobList({ params, onPageChange }: JobListProps) {
-  const { data, isLoading, isError, refetch } = useJobsQuery(params)
+export function JobList({ params, onPageChange, enabled = true }: JobListProps) {
+  // isPending (khong dung isLoading): dung ca khi query bi enabled=false va chua tung fetch (status
+  // "pending", chua co data/loi) - dung truong hop nay de hien skeleton trong luc hoan cho danh muc,
+  // khong de lot xuong nhanh "khong tim thay" (data con undefined nhung khong phai vi rong).
+  const { data, isPending, isError, refetch } = useJobsQuery(params, { enabled })
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {Array.from({ length: 6 }).map((_, index) => (

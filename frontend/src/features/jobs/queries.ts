@@ -2,11 +2,16 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { getJobDetailRequest, getJobRecommendationsRequest, searchJobsRequest } from './api'
 import type { JobSearchParams } from './types'
 
-export function useJobsQuery(params: JobSearchParams) {
+// enabled=false (FR-U07, useJobFilters.canQueryJobs): hoan goi API khi URL co categoryCode/
+// locationCode ma danh muc dang tai (chua biet ma co hop le hay khong) - tranh gui ma chua kiem len
+// backend. query o trang thai "pending" (chua co data, chua loi) trong luc hoan, JobList doc
+// isPending (khong phai isLoading) de hien skeleton dung luc nay.
+export function useJobsQuery(params: JobSearchParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['public-jobs', params],
     queryFn: () => searchJobsRequest(params),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   })
 }
 

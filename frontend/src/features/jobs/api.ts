@@ -1,8 +1,31 @@
 import { http } from '../../lib/http'
 import type { JobDetail, JobSearchParams, JobSummary, PageResponse } from './types'
 
+// Axios serialize mang trong object params thanh "workMode[]=..." (da kiem bang buildURL thuc te),
+// Spring @RequestParam List<String> workMode doi dung "workMode=A&workMode=B" (lap ten tham so,
+// khong dau []) - phai tu dung URLSearchParams de kiem soat dung dinh dang.
+function toSearchParams(params: JobSearchParams): URLSearchParams {
+  const result = new URLSearchParams()
+  if (params.keyword) result.set('keyword', params.keyword)
+  if (params.categoryCode) result.set('categoryCode', params.categoryCode)
+  if (params.locationCode) result.set('locationCode', params.locationCode)
+  if (params.salaryMin != null) result.set('salaryMin', String(params.salaryMin))
+  if (params.salaryMax != null) result.set('salaryMax', String(params.salaryMax))
+  if (params.hideUnlisted) result.set('hideUnlisted', 'true')
+  for (const mode of params.workMode ?? []) {
+    result.append('workMode', mode)
+  }
+  if (params.postedWithin) result.set('postedWithin', params.postedWithin)
+  if (params.sort) result.set('sort', params.sort)
+  if (params.page != null) result.set('page', String(params.page))
+  if (params.size != null) result.set('size', String(params.size))
+  return result
+}
+
 export async function searchJobsRequest(params: JobSearchParams): Promise<PageResponse<JobSummary>> {
-  const response = await http.get<PageResponse<JobSummary>>('/public/jobs', { params })
+  const response = await http.get<PageResponse<JobSummary>>('/public/jobs', {
+    params: toSearchParams(params),
+  })
   return response.data
 }
 
