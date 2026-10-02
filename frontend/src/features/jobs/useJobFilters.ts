@@ -158,6 +158,17 @@ export function useJobFilters() {
     filters.workMode.length > 0 ||
     filters.postedWithin != null
 
+  // So dieu kien hien tren badge nut "Loc (n)" o mobile (UI.md muc 4b, 7) - CHI tinh cac nhom nam
+  // trong bottom sheet (nganh/tinh/luong/hinh thuc/thoi gian dang); tu khoa nam NGOAI sheet (van
+  // hien truc tiep trong o nhap) nen khong tinh vao day.
+  const activeFilterCount = [
+    filters.categoryCode != null,
+    filters.locationCode != null,
+    filters.salaryMin != null || filters.salaryMax != null || filters.hideUnlisted,
+    filters.workMode.length > 0,
+    filters.postedWithin != null,
+  ].filter(Boolean).length
+
   // R-U6: mot lan ap dung = DUNG MOT lan goi setSearchParams (mot muc lich su), bat ke patch doi
   // bao nhieu truong cung luc (vd popover luong doi ca salaryMin+salaryMax+hideUnlisted). R-U3: doi
   // filter/sort luon xoa "page" khoi URL (ve trang 1).
@@ -213,5 +224,15 @@ export function useJobFilters() {
     [searchParams, setSearchParams],
   )
 
-  return { filters, apiParams, catalogsQuery, applyFilter, clearFilters, setPage, hasActiveFilters, canQueryJobs }
+  return {
+    filters,
+    apiParams,
+    catalogsQuery,
+    applyFilter,
+    clearFilters,
+    setPage,
+    hasActiveFilters,
+    activeFilterCount,
+    canQueryJobs,
+  }
 }

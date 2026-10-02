@@ -146,6 +146,11 @@ có dòng "Giá trị cũ" (không có gì để hiện):
 [Chưa chuẩn hoá]
 ```
 
+**Ngoại lệ (bổ sung đã duyệt 02/10/2026):** tin `work_mode = 'REMOTE'` thuộc nhánh "thiếu hẳn" ở
+trường tỉnh/thành không hiện nhãn "Chưa chuẩn hoá" này khi lọc theo tỉnh/thành (REMOTE không cần
+tỉnh/thành là thiết kế hợp lệ của C05, không phải dữ liệu thiếu) — tin vẫn nằm trong kết quả như
+bình thường, chỉ không gắn nhãn; REMOTE còn giá trị cũ vẫn hiện nhãn kèm "Giá trị cũ" như mẫu trên.
+
 Các dòng/nhãn trên chỉ hiện đúng lúc điều kiện lọc tương ứng đang áp dụng (lọc lương / lọc ngành hoặc
 tỉnh) và tin đó thuộc đúng nhánh ngoại lệ (R-S5 / R-N1-R-N4) — không hiện khi không lọc.
 

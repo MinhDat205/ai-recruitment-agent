@@ -1,23 +1,34 @@
-import { useJobsQuery } from './queries'
-import { JobCard } from './JobCard'
+import { JobCard, type JobCardFilterContext } from './JobCard'
 import { JobCardSkeleton } from './JobCardSkeleton'
 import { Pagination } from './Pagination'
-import type { JobSearchParams } from './types'
+import type { JobSummary, PageResponse } from './types'
 
 interface JobListProps {
-  params: JobSearchParams
+  data: PageResponse<JobSummary> | undefined
+  // true khi dang hoan cho danh muc tai xong (useJobFilters.canQueryJobs=false) HOAC dang fetch
+  // lan dau - ca hai deu chua co data/loi (react-query status "pending"), hien skeleton nhu nhau.
+  isPending: boolean
+  isError: boolean
+  onRetry: () => void
   onPageChange: (page: number) => void
-  // FR-U07: false khi dang hoan truy van cho danh muc tai xong (useJobFilters.canQueryJobs) - mac
-  // dinh true cho moi noi dung khong lien quan bo loc danh muc.
-  enabled?: boolean
+  // UI.md muc 6: nut "Xoa bo loc" o trang thai rong CHI hien khi dang co loc.
+  hasActiveFilters: boolean
+  onClearFilters: () => void
+  filterContext: JobCardFilterContext
 }
 
-export function JobList({ params, onPageChange, enabled = true }: JobListProps) {
-  // isPending (khong dung isLoading): dung ca khi query bi enabled=false va chua tung fetch (status
-  // "pending", chua co data/loi) - dung truong hop nay de hien skeleton trong luc hoan cho danh muc,
-  // khong de lot xuong nhanh "khong tim thay" (data con undefined nhung khong phai vi rong).
-  const { data, isPending, isError, refetch } = useJobsQuery(params, { enabled })
-
+// Thuan hien thi - KHONG tu goi useJobsQuery (R-L3): du lieu/trang thai do component cha
+// (JobBoard) doc mot lan va truyen xuong, tranh goi API 2 lan cho cung 1 man hinh.
+export function JobList({
+  data,
+  isPending,
+  isError,
+  onRetry,
+  onPageChange,
+  hasActiveFilters,
+  onClearFilters,
+  filterContext,
+}: JobListProps) {
   if (isPending) {
     return (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -34,7 +45,7 @@ export function JobList({ params, onPageChange, enabled = true }: JobListProps) 
         <p className="text-sm text-ink-muted">Không tải được danh sách việc làm.</p>
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={onRetry}
           className="h-10 rounded-md border border-brand px-5 text-sm font-medium text-brand"
         >
           Thử lại
@@ -45,8 +56,17 @@ export function JobList({ params, onPageChange, enabled = true }: JobListProps) 
 
   if (!data || data.items.length === 0) {
     return (
-      <div className="py-16 text-center text-sm text-ink-muted">
-        Không tìm thấy tin tuyển dụng phù hợp.
+      <div className="flex flex-col items-center gap-3 py-16 text-center">
+        <p className="text-sm text-ink-muted">Không tìm thấy việc làm phù hợp với bộ lọc hiện tại.</p>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="h-10 rounded-md border border-brand px-5 text-sm font-medium text-brand"
+          >
+            Xoá bộ lọc
+          </button>
+        )}
       </div>
     )
   }
@@ -55,7 +75,7 @@ export function JobList({ params, onPageChange, enabled = true }: JobListProps) 
     <div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {data.items.map((job) => (
-          <JobCard key={job.id} job={job} />
+          <JobCard key={job.id} job={job} filterContext={filterContext} />
         ))}
       </div>
       <Pagination page={data.page} totalPages={data.totalPages} onPageChange={onPageChange} />

@@ -106,7 +106,13 @@ FR-C05 để lọc theo **mã**, chính xác hơn so khớp chuỗi.
   hiểu vì sao tin này xuất hiện trong kết quả dù trông như không khớp field đó, tránh tưởng nhầm là
   lỗi hệ thống. **Khi không lọc theo ngành/tỉnh**: giữ đúng hành vi sẵn có của `JobCard` (ẩn chip đó
   hoàn toàn, C05 UI.md mục 4d) — không hiện nhãn "Chưa chuẩn hoá" tràn lan ở danh sách không lọc,
-  nhất quán với R-N3.
+  nhất quán với R-N3. **Ngoại lệ (bổ sung đã duyệt 02/10/2026)**: tin `work_mode = 'REMOTE'` thuộc
+  nhánh "thiếu hẳn" ở trường tỉnh/thành (`location_code` và giá trị cũ đều NULL) **không** hiện nhãn
+  "Chưa chuẩn hoá" khi lọc theo tỉnh/thành — theo C05 R-J3 (tin REMOTE được phép mở OPEN mà không
+  cần `location_code`) và R-J7 (không có tỉnh + REMOTE hiển thị "Làm từ xa", không phải dữ liệu
+  thiếu); tin vẫn nằm trong kết quả như cũ, chỉ không gắn nhãn. Ngoại lệ này không áp dụng cho
+  trường ngành nghề, và không áp dụng khi REMOTE còn giá trị cũ (R-N3 vẫn hiện nhãn bình thường —
+  đó là chưa chuẩn hoá thật, không liên quan work_mode).
 - **R-N5.** Khi code: sửa lại comment dòng 1 của `UnnormalizedBadge.tsx` ("Nhan 'Chua chuan hoa'...
   CHI phia HR") cho khớp thực tế — từ đợt này component được `JobCard` (phía công khai/ứng viên)
   dùng lại, không còn "CHỈ phía HR". Không đổi phần code/markup của component (đã đúng token `m3-*`
