@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getMyProfileRequest, updateMyProfileRequest } from './api'
+import { getAutofillFromResumeRequest, getMyProfileRequest, updateMyProfileRequest } from './api'
 import type { CandidateProfileRequest } from './types'
 
 const MY_PROFILE_QUERY_KEY = ['candidate-profile', 'me']
@@ -20,5 +20,13 @@ export function useSaveProfileMutation() {
     onSuccess: (data) => {
       queryClient.setQueryData(MY_PROFILE_QUERY_KEY, data)
     },
+  })
+}
+
+// GET nhung kich hoat boi hanh dong bam nut "Dien tu CV" (R-A2), khong tu dong goi khi mo trang -
+// dung useMutation de co san isPending/isError cho UI thay vi useQuery({enabled: false}).
+export function useAutofillFromResumeMutation() {
+  return useMutation({
+    mutationFn: getAutofillFromResumeRequest,
   })
 }
