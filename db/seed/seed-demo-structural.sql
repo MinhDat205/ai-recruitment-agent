@@ -9,8 +9,9 @@
 -- thuoc AI, KHONG phu thuoc thoi diem chay that. Idempotent (ON CONFLICT DO
 -- NOTHING), chay lai bao nhieu lan cung duoc.
 --
--- Gom DUNG: 1 HR + 1 company + 6 job (DRAFT) + 6 rubric (kem tieu chi, tong
--- trong so = 100%) + 6 interview_template + 8 candidate.
+-- Gom DUNG: 1 HR + 1 company + 6 job (OPEN, published_at rai qua 3 gio/2 ngay/
+-- 6 ngay/10 ngay/20 ngay/35 ngay truoc luc nap - FR-U07 R-D1) + 6 rubric (kem
+-- tieu chi, tong trong so = 100%) + 6 interview_template + 8 candidate.
 --
 -- KHONG co INSERT INTO resumes / job_applications - hai bang do thuoc tang 2,
 -- sinh qua UI that o Dot 3-4 (gan voi file that tren dia + output AI).
@@ -118,7 +119,13 @@ INSERT INTO companies (
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 3. 6 job (DRAFT - HR tu chuyen OPEN qua UI o Dot 3)
+-- 3. 6 job (OPEN tu seed - FR-U07 R-D1, doi tu DRAFT truoc day). Ca 6 job da co
+--    category_code/location_code (tu C05) nen qua duoc guard R-J3 cua
+--    JobOwnerService ngay ca khi di qua UI sau nay - khong can sua gi them.
+--    published_at = now() tru cac khoang khac nhau de soat tay bo loc
+--    "Thoi gian dang" (postedWithin) va sap xep "Moi nhat" co thu tu ro rang.
+--    deadline giu CURRENT_DATE + 45 ngay (tinh tuong doi theo luc nap, luon
+--    con han).
 -- ---------------------------------------------------------------------------
 
 -- Job 1: Senior Java Backend Developer
@@ -137,7 +144,7 @@ INSERT INTO jobs (
     'Tối thiểu 3 năm kinh nghiệm Java. Thành thạo Spring Boot, PostgreSQL, thiết kế REST API.',
     'IT_SOFTWARE', 'HO_CHI_MINH', 'FULL_TIME', 'HYBRID',
     30000000.00, 50000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '3 hours', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -157,7 +164,7 @@ INSERT INTO jobs (
     'Có kinh nghiệm kiểm thử thủ công và tự động (Selenium/Cypress). Hiểu quy trình Agile/Scrum.',
     'IT_SOFTWARE', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     15000000.00, 25000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '2 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -178,7 +185,7 @@ INSERT INTO jobs (
     || 'Ưu tiên có chứng chỉ cloud.',
     'IT_SOFTWARE', 'HA_NOI', 'FULL_TIME', 'REMOTE',
     25000000.00, 40000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '6 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -199,7 +206,7 @@ INSERT INTO jobs (
     || 'chuẩn mực kế toán Việt Nam (VAS).',
     'ACCOUNTING_AUDIT', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     12000000.00, 18000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '10 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -219,7 +226,7 @@ INSERT INTO jobs (
     'Có kinh nghiệm digital marketing, thành thạo công cụ quảng cáo Facebook/Google Ads.',
     'MARKETING_COMMUNICATIONS', 'HO_CHI_MINH', 'FULL_TIME', 'HYBRID',
     12000000.00, 20000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '20 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -240,7 +247,7 @@ INSERT INTO jobs (
     || 'chịu được áp lực doanh số.',
     'SALES', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     8000000.00, 15000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '35 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 

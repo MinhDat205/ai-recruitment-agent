@@ -148,7 +148,7 @@ không phải số ước lượng):
 | `resumes` | 9 |
 | `resume_parsed_data` | 9 |
 | `job_embeddings` | 6 |
-| `job_recommendations` | 0 (xem ghi chú dưới) |
+| `job_recommendations` | Cần backend chạy mới đo được (xem ghi chú dưới) — **TODO đo lại ở FR-U07 đợt 6** |
 | `job_applications` | 9 |
 | `application_status_history` | 10 |
 | `scoring_runs` | 15 |
@@ -166,11 +166,14 @@ vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (8 dòng) �
 `category_code`.
 
 **Ghi chú các con số dễ gây thắc mắc:**
-- `job_recommendations = 0`: 6 job trong `seed-demo-structural.sql` ở trạng thái `DRAFT`, còn
-  `JobRecommendationCacheScheduler` cứ 5 giây xoá-rồi-chèn lại gợi ý cho mọi ứng viên có embedding CV
-  chính và chỉ khớp job `OPEN` — nên khi backend đang chạy, gợi ý luôn về 0 (đã tái hiện với dump cũ 28
-  dòng). Có từ `chore/seed-demo`, không do FR-C05; xem nợ kỹ thuật FR-C05 trong `docs/ROADMAP.md`. Muốn
-  thấy gợi ý: đăng nhập HR, mở tin (6 job đã có ngành nghề/tỉnh thành nên qua được guard mở tin).
+- `job_recommendations` (FR-U07 R-D1, 02/10/2026): trước đây 6 job trong `seed-demo-structural.sql` ở
+  trạng thái `DRAFT` nên bảng này luôn về 0 — `JobRecommendationCacheScheduler` cứ 5 giây xoá-rồi-chèn
+  lại gợi ý cho mọi ứng viên có embedding CV chính, chỉ khớp job `OPEN`, không có job `OPEN` nào thì
+  không có gợi ý nào. **Từ FR-U07 R-D1, 6 job seed thẳng ở trạng thái `OPEN`** (đã có `job_embeddings`
+  sẵn, cột ở trên) — scheduler khi backend chạy sẽ tính ra gợi ý thật cho từng ứng viên theo mức tương
+  đồng embedding, số dòng chính xác **phụ thuộc kết quả so khớp của AI (không xác định trước)**, đo
+  bằng cách chạy backend rồi `SELECT count(*) FROM job_recommendations;` — số đo thật điền ở
+  `docs/walkthrough/fr-u07-job-filter.md` (đợt 6), không ghi cố định ở đây.
 - `resume_parsed_data.embedding` = 8/9: trích xuất lại đặt embedding về NULL và F1 chỉ embed **CV chính**;
   bản CV cũ (không chính) của Lê Văn Đức không được embed lại — đúng thiết kế.
 - `score_explanation_attempts = 0` là **bình thường**, không phải thiếu sót — bảng
@@ -195,9 +198,11 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
   đã biết, không phải lỗi của bước nạp seed — xem ghi chú D2 trong `docs/ROADMAP.md`.
 - Mở một hồ sơ bất kỳ, bấm **"Xem CV gốc"** — phải tải được file PDF. Nếu lỗi, nghĩa
   là bước 4 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
-- Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm
-  **rỗng** cho tới khi HR mở tin (xem ghi chú `job_recommendations = 0` ở mục 6); trước FR-C05 bản ghi
-  này mô tả 3 gợi ý, nhưng các gợi ý đó vốn đã bị scheduler xoá ngay khi backend chạy.
+- Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm **phụ thuộc
+  kết quả so khớp embedding thật của `JobRecommendationCacheScheduler`** (xem ghi chú `job_recommendations`
+  ở mục 6, cập nhật FR-U07 R-D1) — ứng viên này thuộc ngành Nhân sự, không trùng ngành với 6 job seed
+  hiện có (không có job Nhân sự nào), nên nhiều khả năng vẫn rỗng do dưới ngưỡng tương đồng, nhưng đây
+  là suy đoán, chưa phải số đo thật; số đo thật ghi ở đợt 6.
 - Đăng nhập `le.van.duc@demo.local`, trang hồ sơ: thấy **2 phiên bản CV**, một bản
   đánh dấu là chính; mục Đơn ứng tuyển có **1 đơn "Đã rút đơn"**.
 - FR-C05 — kiểm bằng SQL sau khi nạp:
