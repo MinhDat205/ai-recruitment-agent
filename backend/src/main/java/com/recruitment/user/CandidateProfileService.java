@@ -16,7 +16,9 @@ import com.recruitment.user.dto.CandidateProfileResponse;
 import com.recruitment.user.dto.ResumeAutofillResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -40,16 +42,28 @@ public class CandidateProfileService {
     private final CatalogRegistry catalogRegistry;
     private final ResumeRepository resumeRepository;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
+    private final Clock clock;
 
     public CandidateProfileService(
             CandidateProfileRepository candidateProfileRepository,
             CatalogRegistry catalogRegistry,
             ResumeRepository resumeRepository,
-            ResumeParsedDataRepository resumeParsedDataRepository) {
+            ResumeParsedDataRepository resumeParsedDataRepository,
+            Clock clock) {
         this.candidateProfileRepository = candidateProfileRepository;
         this.catalogRegistry = catalogRegistry;
         this.resumeRepository = resumeRepository;
         this.resumeParsedDataRepository = resumeParsedDataRepository;
+        this.clock = clock;
+    }
+
+    // R-O3 - cot onboarding_completed_at la TIMESTAMPTZ (do chinh xac micro giay o Postgres).
+    // Instant.now() cua Java co do chinh xac nano giay - ghi roi doc lai (sau khi mot cau
+    // @Modifying(clearAutomatically=true) xoa persistence context, buoc phai SELECT lai tu DB) se
+    // lech voi gia tri da tra ve o lan ghi dau, du cung mot thoi diem. Cat ve micro giay NGAY LUC GHI
+    // de gia tri API tra ve luc nao cung bang dung gia tri Postgres da luu.
+    private Instant now() {
+        return clock.instant().truncatedTo(ChronoUnit.MICROS);
     }
 
     @Transactional
@@ -89,7 +103,7 @@ public class CandidateProfileService {
 
         // R-O3 - dat co lan dau (dang NULL), lan sau giu nguyen gia tri cu.
         if (profile.getOnboardingCompletedAt() == null) {
-            profile.setOnboardingCompletedAt(Instant.now());
+            profile.setOnboardingCompletedAt(now());
         }
 
         CandidateProfile saved = candidateProfileRepository.save(profile);
@@ -114,7 +128,7 @@ public class CandidateProfileService {
     public CandidateProfileResponse skipOnboarding(UUID userId) {
         CandidateProfile profile = loadOrCreate(userId);
         if (profile.getOnboardingCompletedAt() == null) {
-            profile.setOnboardingCompletedAt(Instant.now());
+            profile.setOnboardingCompletedAt(now());
         }
         return toResponse(candidateProfileRepository.save(profile));
     }
