@@ -21,6 +21,22 @@
   test xác nhận entity đọc/ghi được và qua `ddl-auto: validate` ngay ở đợt code đầu tiên (không suy ra
   "chắc chắn chạy được" chỉ từ javap — cùng tinh thần C05 bắt buộc kiểm Java migration V9 ở đợt đầu).
 
+  **Điều chỉnh sau đợt 1, 02/10/2026 — đã đo thật, không đúng như suy luận trên.** Chạy
+  `BackendApplicationTests` (Testcontainers) với `List<String> desiredIndustryCodes` +
+  `@JdbcTypeCode(SqlTypes.ARRAY)` + `@Column(columnDefinition = "text[]")` → Hibernate 7.4.1.Final
+  báo lỗi khởi động: *"Schema validation: wrong column type encountered in column
+  [desired_industry_codes]... found [_text (Types#ARRAY)], but expecting [text[] (Types#JSON)]"* —
+  Hibernate tự suy loại JDBC mong đợi thành **JSON**, không phải ARRAY, dù đã khai
+  `@JdbcTypeCode(SqlTypes.ARRAY)` (bỏ `columnDefinition` rồi thử lại vẫn lỗi tương tự, chỉ đổi thành
+  "expecting jsonb"). **Kết luận đúng, đã kiểm chứng**: phải dùng **`String[]`** (Java array, không
+  phải `List<String>`) làm kiểu field, giữ `@JdbcTypeCode(SqlTypes.ARRAY)`, **không** cần
+  `columnDefinition` (Hibernate tự suy đúng kiểu cột từ kiểu `String[]`). Với `String[]`, validate qua
+  ngay, xác nhận bằng chính `BackendApplicationTests` (`contextLoads`, full log Flyway migrate tới V10
+  + Hibernate khởi động sạch). Toàn bộ mô tả entity ở mục 4 dưới đây đã sửa theo kết quả đo này; mọi
+  quy tắc ở mục 3 (R-F2, R-K2...) giả định phần tử mảng làm việc trên `String[]` ở tầng entity (service
+  vẫn nhận/trả `List<String>` qua DTO, chỉ convert ở ranh giới entity — xem
+  `CandidateProfileService.nullToEmptyArray`).
+
   **Riêng cột `embedding vector(1536)`: KHÔNG áp dụng cách trên, phải đi theo tiền lệ khác.** Đọc
   [`ResumeParsedData.java:19-21`](../../../../backend/src/main/java/com/recruitment/resume/ResumeParsedData.java)
   và [`JobEmbedding.java:16-23`](../../../../backend/src/main/java/com/recruitment/job/JobEmbedding.java):
@@ -363,10 +379,13 @@ service qua `CatalogRegistry` (R-F1), đúng tinh thần "không tin AI/client, 
 đây là validate request thường, không phải validate output AI.
 
 **Entity `CandidateProfile`** — thêm field mới: `desiredIndustryCodes`/`desiredLocationCodes`/
-`desiredWorkModes`/`skills` (`@JdbcTypeCode(SqlTypes.ARRAY) @Column(columnDefinition = "text[]")
-List<String>`, mặc định `new ArrayList<>()`), `desiredSalaryMin` (`BigDecimal`), `bio` (`String`),
-`onboardingCompletedAt` (`Instant`), `embeddingModel` (`String`). **KHÔNG map field `embedding`** (mục
-0.a).
+`desiredWorkModes`/`skills` (`@JdbcTypeCode(SqlTypes.ARRAY) @Column(nullable = false) String[]`
+— **`String[]`, KHÔNG phải `List<String>`, KHÔNG có `columnDefinition`**, mặc định `new String[0]`;
+đã đo thật ở đợt 1 (mục 0.a: `List<String>` bị Hibernate 7.4.1 suy sai thành `jsonb`, trượt
+`ddl-auto: validate`) — `desiredSalaryMin` (`BigDecimal`), `bio` (`String`), `onboardingCompletedAt`
+(`Instant`), `embeddingModel` (`String`). **KHÔNG map field `embedding`** (mục 0.a). DTO
+(`CandidateProfileRequest`/`Response`) vẫn dùng `List<String>` cho 4 field trên — convert
+`List<String>` (DTO) ↔ `String[]` (entity) ở `CandidateProfileService`.
 
 **API**
 
@@ -543,11 +562,15 @@ chạy đúng một lần ở đợt cuối. Frontend mỗi đợt chạy đủ 
    `contextLoads()`, không phải full suite) — xác nhận Flyway áp được V10 trên Testcontainers thật và
    `ddl-auto: validate` chấp nhận ánh xạ `text[]` mới, đúng tinh thần C05 bắt buộc kiểm Java migration
    V9 ngay ở đợt đầu. Lớp test này KHÔNG chạm DB dev (Testcontainers tự dựng Postgres riêng).
-2. **Backend — service + validate + 2 endpoint mới.** `CandidateProfileService` (dedupe R-F2/R-K2,
-   validate catalog R-F1, coi mảng `null` trong request là rỗng R-V1, set cờ onboarding R-O3, so văn
-   bản đại diện + `saveAndFlush` trước native UPDATE R-E3), `skip-onboarding`, `autofill-from-resume`,
-   `CatalogResponse.Item` cho desired industries/locations trong response. `.\mvnw.cmd -q test-compile`.
-3. **Backend — embedding scheduler.** Hàm dựng văn bản đại diện thuần (R-E1),
+2. **Backend — service + validate + 2 endpoint mới (KHÔNG gồm R-E3 — dời sang đợt 3, điều chỉnh sau
+   đợt 1, 02/10/2026: R-E3 cần `saveAndFlush` ngay trước native UPDATE của chính scheduler embedding,
+   hợp lý hơn khi làm cùng lúc với phần embedding ở đợt 3, tránh sửa `update()` hai lần).**
+   `CandidateProfileService` (dedupe R-F2/R-K2, validate catalog R-F1, coi mảng `null` trong request là
+   rỗng R-V1, set cờ onboarding R-O3), `skip-onboarding`, `autofill-from-resume`, `CatalogResponse.Item`
+   cho desired industries/locations trong response. `.\mvnw.cmd -q test-compile`.
+3. **Backend — embedding scheduler (gồm R-E3).** Sửa `CandidateProfileService.update()` theo R-E3 (so
+   văn bản đại diện mới/cũ, `saveAndFlush` trước khi gọi native UPDATE đặt `embedding = NULL` — bẫy
+   flush Hibernate, xem mục 8). Hàm dựng văn bản đại diện thuần (R-E1),
    `CandidateProfileEmbeddingStateService` (native UPDATE có điều kiện, R-E5),
    `CandidateProfileEmbeddingOrchestrator`, `CandidateProfileEmbeddingScheduler` (theo khuôn
    `ResumeEmbeddingScheduler`). `.\mvnw.cmd -q test-compile`.

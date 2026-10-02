@@ -2,6 +2,7 @@ package com.recruitment.user;
 
 import com.recruitment.user.dto.CandidateProfileRequest;
 import com.recruitment.user.dto.CandidateProfileResponse;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,9 +27,11 @@ public class CandidateProfileController {
         return candidateProfileService.getMine(UUID.fromString(authentication.getName()));
     }
 
+    // @Valid them o dot 1 (FR-U14 R-V1) de Bean Validation (@Min/@Max/@Size) tren DTO co hieu luc -
+    // DTO cu khong co validate nen truoc day khong can.
     @PutMapping("/me")
     public CandidateProfileResponse update(
-            Authentication authentication, @RequestBody CandidateProfileRequest request) {
+            Authentication authentication, @Valid @RequestBody CandidateProfileRequest request) {
         return candidateProfileService.update(UUID.fromString(authentication.getName()), request);
     }
 }

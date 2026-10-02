@@ -244,6 +244,15 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_JOB_FILTER", ex.getMessage()));
     }
 
+    // FR-U14 R-V2 - sau dedupe van qua gioi han so luong (nganh/khu vuc/ky nang), ky nang sai do dai,
+    // hinh thuc lam viec mong muon ngoai tap. Mot ma loi chung, thong diep khac nhau qua getMessage(),
+    // dung khuon InvalidJobFilterException o tren.
+    @ExceptionHandler(InvalidProfileFieldException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidProfileField(InvalidProfileFieldException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_PROFILE_FIELD", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
