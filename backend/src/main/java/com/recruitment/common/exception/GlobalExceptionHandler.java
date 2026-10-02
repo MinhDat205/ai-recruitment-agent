@@ -253,6 +253,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_PROFILE_FIELD", ex.getMessage()));
     }
 
+    // FR-U14 R-A1 - chua co CV chinh da phan tich xong de dien tu dong "Dien tu CV".
+    @ExceptionHandler(PrimaryResumeNotParsedException.class)
+    public ResponseEntity<ErrorResponse> handlePrimaryResumeNotParsed(PrimaryResumeNotParsedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("NO_PRIMARY_RESUME_PARSED", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
