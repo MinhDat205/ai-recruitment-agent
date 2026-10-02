@@ -48,7 +48,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U04 | AI Job Recommendation | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
 | FR-U05 | AI CV Improvement | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
 | FR-U06 | Rút đơn Ứng tuyển | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
-| FR-U07 | Bộ lọc tìm việc nâng cao | Ứng viên | Chưa đặc tả | [features/UV/U07/REQUIREMENT.md](features/UV/U07/REQUIREMENT.md) |
+| FR-U07 | Bộ lọc tìm việc nâng cao | Ứng viên | Đã duyệt | [features/UV/U07/REQUIREMENT.md](features/UV/U07/REQUIREMENT.md) |
 | FR-U08 | Trang chi tiết đơn ứng tuyển | Ứng viên | Chưa đặc tả | [features/UV/U08/REQUIREMENT.md](features/UV/U08/REQUIREMENT.md) |
 | FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Ứng viên | Chưa đặc tả | [features/UV/U09/REQUIREMENT.md](features/UV/U09/REQUIREMENT.md) |
 | FR-U10 | Chọn khung giờ phỏng vấn | Ứng viên | Chưa đặc tả | [features/UV/U10/REQUIREMENT.md](features/UV/U10/REQUIREMENT.md) |

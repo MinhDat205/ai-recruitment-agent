@@ -151,7 +151,7 @@ Danh mục cố định, chưa có màn hình quản trị danh mục.
 - **Phase:** 2.1 · **Nhánh:** `feat/fr-u07-job-filter` · **Phía sử dụng:** Ứng viên
 - **Đặc tả chi tiết:** `docs/features/UV/U07/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-C02, FR-C05
-- **Màn hình (UI_GUIDE mục 7):** `/` và `/candidate` (trang Việc làm).
+- **Màn hình (UI_GUIDE mục 7):** `/` và `/candidate` (trang Việc làm); `/jobs/:id` (chi tiết tin — chỉ chọn layout theo vai trò và màu chữ lương, nội dung còn lại giữ nguyên).
 
 **Mục đích**
 
