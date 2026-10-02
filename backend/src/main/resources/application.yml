@@ -100,6 +100,9 @@ app:
   resume-embedding:
     poll-interval-ms: 5000
     batch-size: 10
+  candidate-profile-embedding:
+    poll-interval-ms: 5000
+    batch-size: 10
   job-recommendation:
     poll-interval-ms: 5000
     batch-size: 10

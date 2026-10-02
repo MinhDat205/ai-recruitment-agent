@@ -57,9 +57,9 @@ public class CandidateProfileService {
         return toResponse(loadOrCreate(userId));
     }
 
-    // Dot 2 - dedupe/validate ma danh muc (R-F), hinh thuc lam viec (R-M), ky nang (R-K), dat co
-    // onboarding (R-O3). CHUA lam R-E3 (so van ban dai dien, saveAndFlush truoc native UPDATE) - doi
-    // sang dot 3 lam cung luc voi scheduler embedding (xem REQUIREMENT.md muc 9, dieu chinh sau dot 1).
+    // Dot 3 - them R-E3 (so van ban dai dien cu/moi, dat embedding/model NULL khi doi). Dot 2 da lam
+    // dedupe/validate ma danh muc (R-F), hinh thuc lam viec (R-M), ky nang (R-K), dat co onboarding
+    // (R-O3).
     @Transactional
     public CandidateProfileResponse update(UUID userId, CandidateProfileRequest request) {
         // Validate/dedupe TRUOC khi dong vao entity - loi thi chua dong gi vao profile (du rollback
@@ -70,6 +70,11 @@ public class CandidateProfileService {
         List<String> skills = processSkills(request.skills());
 
         CandidateProfile profile = loadOrCreate(userId);
+
+        // R-E3 - van ban dai dien CU, doc TRUOC khi dong gia tri moi vao entity.
+        String oldText = CandidateProfileEmbeddingOrchestrator.buildEmbeddingText(
+                profile.getHeadline(), profile.getSkills(), profile.getBio());
+
         profile.setHeadline(request.headline());
         profile.setLocation(request.location());
         profile.setCurrentTitle(request.currentTitle());
@@ -87,11 +92,24 @@ public class CandidateProfileService {
             profile.setOnboardingCompletedAt(Instant.now());
         }
 
-        return toResponse(candidateProfileRepository.save(profile));
+        CandidateProfile saved = candidateProfileRepository.save(profile);
+
+        // R-E3 - van ban dai dien MOI, so voi CU: khac nhau moi dat embedding/model NULL (native
+        // UPDATE flushAutomatically = true se tu flush thay doi entity o tren TRUOC khi chay -
+        // CandidateProfileRepository.clearEmbedding). Giong nhau (vd chi doi dateOfBirth) khong dung
+        // gi den embedding.
+        String newText = CandidateProfileEmbeddingOrchestrator.buildEmbeddingText(
+                saved.getHeadline(), saved.getSkills(), saved.getBio());
+        if (!oldText.equals(newText)) {
+            candidateProfileRepository.clearEmbedding(saved.getId());
+        }
+
+        return toResponse(saved);
     }
 
-    // R-O3(b) - chi dat co, khong dung field nao khac. Idempotent: goi lai khi co da co gia tri thi
-    // khong doi gi, van 200.
+    // R-O3(b) - chi dat co, khong dung field nao khac (gom ca embedding/embedding_model - khong goi
+    // CandidateProfileEmbeddingOrchestrator.buildEmbeddingText/clearEmbedding o day). Idempotent:
+    // goi lai khi co da co gia tri thi khong doi gi, van 200.
     @Transactional
     public CandidateProfileResponse skipOnboarding(UUID userId) {
         CandidateProfile profile = loadOrCreate(userId);

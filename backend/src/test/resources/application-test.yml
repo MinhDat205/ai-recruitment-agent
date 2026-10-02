@@ -24,6 +24,8 @@ app:
     enabled: false
   resume-embedding:
     enabled: false
+  candidate-profile-embedding:
+    enabled: false
   job-recommendation:
     enabled: false
   # Dot 5 (chore/hardening) - RateLimitBucketStore la MOT map trong-nho DUY NHAT cho toan bo Spring
