@@ -26,13 +26,6 @@ function isForeignCurrency(job: JobSummary): boolean {
   return job.salaryCurrency.trim().toUpperCase() !== 'VND'
 }
 
-// R-L1: 2 ky tu dau ten cong ty viet hoa cho o logo trong; ten rong/khong doc duoc -> null (JobCard
-// roi ve icon Building2).
-function getCompanyInitials(name: string | null | undefined): string | null {
-  const trimmed = name?.trim()
-  return trimmed ? trimmed.slice(0, 2).toUpperCase() : null
-}
-
 // R-N4 ngoai le (dac ta duyet bo sung dot 4): tin work_mode=REMOTE khong co location_code VA
 // khong co gia tri cu KHONG phai du lieu thieu - C05 R-J3 cho phep REMOTE bo qua location_code khi
 // mo tin (docs/features/CHUNG/C05/REQUIREMENT.md:173-174), R-J7 hien "Lam tu xa" cho truong hop nay
@@ -65,15 +58,15 @@ interface JobCardProps {
   filterContext?: JobCardFilterContext
 }
 
-// UI.md muc 4c/4d (R-L1): sua 3 loi ROADMAP Phase 2.1b - mau luong text-m3-tertiary, han nop len
-// goc phai tren cung hang tieu de, o logo trong hien chu viet tat/icon Building2. Nhan "Chua chuan
+// UI.md muc 4c/4d (R-L1, dieu chinh sau soat tay 02/10/2026): mau luong text-m3-tertiary, han nop
+// len goc phai tren cung hang tieu de, o logo trong luon hien icon Building2 (bo nhanh chu viet tat
+// - ten cong ty nao cung bat dau bang "Cong ty" nen chu viet tat vo nghia). Nhan "Chua chuan
 // hoa"/chu thich ngoai te CHI hien dung luc dang loc truong tuong ung (R-N3/R-N4/R-S5) - khong hien
 // tran lan khi khong loc (UI.md muc 10).
 export function JobCard({ job, filterContext = NO_FILTER_CONTEXT }: JobCardProps) {
   const salary = formatSalary(job)
   const locationText = jobLocationText(job)
   const categoryText = jobCategoryText(job)
-  const companyInitials = getCompanyInitials(job.company?.name)
   const showForeignCurrencyNote = filterContext.isSalaryFilterActive && isForeignCurrency(job)
 
   return (
@@ -84,8 +77,6 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT }: JobCardProps
       <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-badge) border border-line bg-m3-surface-container">
         {job.company?.logoUrl ? (
           <img src={job.company.logoUrl} alt={job.company.name} className="h-full w-full object-cover" />
-        ) : companyInitials ? (
-          <span className="text-base font-semibold text-m3-on-surface-variant">{companyInitials}</span>
         ) : (
           <Building2 className="h-7 w-7 text-m3-on-surface-variant" aria-hidden="true" />
         )}

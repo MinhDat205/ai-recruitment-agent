@@ -545,9 +545,24 @@ tương ứng ở đây.
     nối vào user message) — có từ D1.
   - Seed demo: 6 job ở DRAFT nên `JobRecommendationCacheScheduler` xoá sạch `job_recommendations` khi backend
     chạy (có từ `chore/seed-demo`, đã tái hiện bằng dump cũ 28 dòng → 0); dump mới có 0 dòng. Chữa ở nhánh
-    seed: cho job demo OPEN trong `seed-demo-structural.sql`.
+    seed: cho job demo OPEN trong `seed-demo-structural.sql`. — **Đã xử lý ở FR-U07** (R-D1, 02/10/2026): 6
+    job demo chuyển `OPEN`, `job_recommendations` đo được 28 dòng sau khi backend chạy lại.
   - `LLM_ERROR` không phân biệt "thiếu cấu hình khoá API" với lỗi gọi API — phải đọc log.
-- [ ] `feat/fr-u07-job-filter` — FR-U07 · Bộ lọc tìm việc nâng cao
+  - `toPattern` của tìm kiếm C02 không thoát `%`/`_` — **Đã xử lý ở FR-U07** (mục 7.9 REQUIREMENT.md,
+    `JobPublicService.toPattern`): thoát `\`, `%`, `_` đúng thứ tự trước khi bọc `%...%`.
+- [x] `feat/fr-u07-job-filter` — FR-U07 · Bộ lọc tìm việc nâng cao — **HOÀN THÀNH** (02/10/2026, 6 đợt
+  code, xem `docs/walkthrough/fr-u07-job-filter.md`). Thêm `categoryCode`/`locationCode`/`salaryMin`/
+  `salaryMax`/`hideUnlisted`/`workMode`/`postedWithin`/`sort` cho `GET /api/public/jobs`, mã danh mục NULL
+  vẫn hiện (R-N), ngưỡng thời gian tính bằng `Clock` ở Java, URL là nguồn sự thật duy nhất của bộ lọc
+  (đồng bộ hai chiều qua `useSearchParams`); gộp `PublicJobListPage`/`CandidateJobListPage` thành
+  `JobBoard` dùng chung (R-L3); sửa 3 lỗi `JobCard` (màu lương, vị trí hạn nộp, ô logo trống) + màu lương
+  `PublicJobDetailPage`; 6 job demo chuyển `OPEN`. Nợ kỹ thuật:
+  - Combobox ngành/tỉnh trong thanh lọc vẫn chỉ tìm theo nhãn, không theo bí danh ("HCM", tên tỉnh cũ) —
+    kế thừa nguyên trạng từ FR-C05.
+  - Sắp xếp "Lương cao nhất" không quy đổi tiền tệ — tin ngoại tệ sắp theo đúng số lưu trong DB dù đơn vị
+    khác VND; chưa có tin demo thật ở tiền tệ khác VND để minh hoạ bằng mắt.
+  - `PublicJobSearchCriteria` (R-Q1) mới chuẩn bị điểm nối cho FR-U15 — FR-U15 (sau FR-U14) phải tự đối
+    chiếu lại phần "điều kiện cứng" này với đặc tả của chính nó khi tới lượt code.
 - [ ] `feat/fr-u14-career-profile` — FR-U14 · Hồ sơ nghề nghiệp và mong muốn công việc
 - [ ] `feat/fr-u15-profile-recommend` — FR-U15 · Gợi ý việc làm theo hồ sơ
 
@@ -557,14 +572,25 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
 **Phase 2.1b — Đồng bộ giao diện cũ theo MD3 (BẮT BUỘC trước Phase 2.2)**
 - [ ] `refactor/ui-md3-legacy` — áp UI_GUIDE.md (token `m3-*`, mục 2 điều hướng, mục 3 component, mục 4 ràng buộc) cho mọi màn hình cũ CHƯA được FR ở Phase 2.1 làm lại. Không đổi hành vi, không sửa backend. Chia đợt theo khu vực: (1) layout, (2) công khai + ứng viên, (3) HR, (4) badge + soát tổng. Danh sách việc:
   - Layout: PublicHeader thêm menu mobile (< sm hiện không có đường vào danh sách việc làm); HrLayout theo navigation drawer ≥ lg / rail < lg; CandidateLayout menu sheet < md.
-  - PublicJobDetailPage giữ điều hướng ứng viên khi đã đăng nhập (nếu FR-U07 chưa sửa); PublicCompanyProfilePage.
+  - PublicJobDetailPage: giữ điều hướng ứng viên khi đã đăng nhập, màu chữ lương (`text-accent-dark`
+    4.34:1 → `text-m3-tertiary` 4.79:1) — **đã làm ở FR-U07** (R-L1b/R-L2); phần còn lại của trang (badge
+    loại hợp đồng/hình thức hiện mã thô, xem mục soát tay dưới) và PublicCompanyProfilePage chưa làm.
   - Nút Ứng tuyển (`ApplyButton.tsx`, hiện `bg-accent` + chữ trắng 2.29:1) → `bg-m3-tertiary`; JobApplyPage/JobApplyForm.
-  - Card việc làm (nếu FR-U07 chưa làm lại): lương `#008C45` chỉ 4.34:1; hạn nộp chưa ở góc phải card; ô logo trống khi công ty chưa có logo (hiện chữ viết tắt hoặc icon `Building2`).
+  - Card việc làm — **đã làm ở FR-U07** (R-L1, 3 lỗi: màu lương `text-m3-tertiary` 5.45:1, hạn nộp chuyển
+    lên góc phải trên cùng, ô logo trống luôn hiện icon `Building2`).
+  - Trang danh sách việc làm (`PublicJobListPage`/`CandidateJobListPage`) — **đã làm ở FR-U07** (R-L3):
+    gộp thành một component dùng chung `JobBoard`, hai trang chỉ còn khác layout bọc ngoài.
   - Badge trạng thái đơn (`ApplicationStatusBadge`): bỏ xanh lá "Trúng tuyển" / đỏ "Bị từ chối", chuyển sang bảng màu trung tính; áp cho mọi nơi hiển thị trạng thái.
   - HR: HrHomePage, HrJobListPage, HrCandidatesPage, HrJobEditPage (4 tab, gồm ApplicationsTab và báo cáo giải thích), CompanyProfilePage, HrNotificationsPage.
   - Ứng viên: CandidateApplicationsPage + dòng thời gian lịch sử, CandidateProfilePage (phần FR-U14 chưa đụng), danh sách CV, CvImprovementSuggestionsPage, CandidateNotificationsPage.
   - LoginPage, RegisterPage.
   - Màn hình nào đã được FR ở Phase 2.1 làm lại hoàn toàn theo MD3 thì ghi "đã làm ở FR-xxx" và bỏ qua.
+  - Phát hiện khi soát tay FR-U07 (02/10/2026), ngoài phạm vi U07 — để lại cho đợt này xử lý:
+    - `PublicJobDetailPage` hiện mã thô `FULL_TIME`/`HYBRID` thay vì nhãn tiếng Việt cho hình thức
+      làm việc/loại hợp đồng.
+    - Ô logo công ty ở `PublicJobDetailPage` (khối thông tin công ty, khác `JobCard`) vẫn trống,
+      chưa có icon dự phòng như `JobCard` đã sửa ở FR-U07.
+    - Tab "Việc làm" của `CandidateLayout` không được tô sáng (active state) khi đang ở `/jobs/:id`.
 
 **Xong khi:** mọi route "Hiện có" trong UI_GUIDE mục 7 dùng token `m3-*` (không còn `bg-brand`/`text-ink`/`bg-accent`... trong code tầng tính năng, kiểm bằng rg); chữ trên nền màu đạt ≥ 4.5:1 (có bảng số đo); badge trạng thái không dùng cặp xanh/đỏ; `mvnw test` + `npm run build` + `npm run lint` sạch, `git diff --stat main -- backend` rỗng; soát bằng mắt từng route ở cả khổ desktop và điện thoại. Sau khi xong: cập nhật UI_GUIDE mục 0 — bỏ câu "màn hình cũ giữ nguyên tới nhánh refactor/ui-md3-legacy", token cũ chỉ còn để tương thích.
 

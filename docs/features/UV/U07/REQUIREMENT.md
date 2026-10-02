@@ -1,6 +1,6 @@
 # FR-U07 — Bộ lọc tìm việc nâng cao
 
-> Trạng thái: ĐÃ DUYỆT (02/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (02/10/2026). Duyệt: 02/10/2026. Walkthrough: `docs/walkthrough/fr-u07-job-filter.md`.
 
 - Nhóm: Ứng viên
 - Tóm tắt: Lọc theo ngành nghề, khu vực, lương, hình thức, thời gian đăng; giữ bộ lọc trên URL
@@ -238,8 +238,11 @@ FR-C05 để lọc theo **mã**, chính xác hơn so khớp chuỗi.
 - **R-L1.** Sửa 3 lỗi `JobCard` đã ghi ở ROADMAP Phase 2.1b: màu chữ lương đạt ≥ 4.5:1 (dùng
   `text-m3-tertiary`, đã chốt `#007A3D` = 5.45:1 ở `chore/ui-md3-foundation`, thay `text-accent-dark`
   hiện tại 4.34:1 — `JobCard.tsx:39`); hạn nộp chuyển lên góc phải trên cùng của card; ô logo trống
-  hiện chữ viết tắt (2 ký tự đầu tên công ty) hoặc icon lucide `Building2` khi không có `logoUrl`
-  (thay khung `bg-canvas` trống hiện tại — `JobCard.tsx:29`).
+  hiện icon lucide `Building2` (thay khung `bg-canvas` trống hiện tại — `JobCard.tsx:29`).
+  **Điều chỉnh sau soát tay 02/10/2026**: bỏ hẳn phương án chữ viết tắt (2 ký tự đầu tên công ty) —
+  tên công ty nào cũng bắt đầu bằng "Công ty" nên chữ viết tắt luôn ra "CÔ", vô nghĩa với mọi tin.
+  Luôn hiện icon `Building2` (`aria-hidden`) trên nền `bg-m3-surface-container` khi không có
+  `logoUrl`, không còn nhánh điều kiện theo tên công ty.
 - **R-L1b. Gộp thêm (phát hiện ở spec-review, cùng lỗi, không nằm trong 3 lỗi ROADMAP đã ghi).**
   `PublicJobDetailPage.tsx:83` dùng cùng `text-accent-dark` (4.34:1) cho lương — sửa luôn cùng
   `text-m3-tertiary` như R-L1, trong cùng đợt code vì FR này đã mở file này ra để sửa R-L2. Không mở

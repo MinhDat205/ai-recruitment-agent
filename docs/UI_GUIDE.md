@@ -295,8 +295,8 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm) |
-| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành) |
+| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm), FR-U07 (bộ lọc) |
+| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành), FR-U07 (giữ điều hướng ứng viên, màu chữ lương) |
 | `/companies/:id` | Hồ sơ doanh nghiệp | Hiện có | FR-C02, FR-H01 |
 | `/login` | Đăng nhập | Hiện có | FR-C01 |
 | `/register` | Đăng ký (xong → ★`/candidate/onboarding`) | Hiện có | FR-C01, ★FR-U14 |

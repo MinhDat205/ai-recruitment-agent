@@ -2,8 +2,8 @@
 
 ## 1. Trạng thái
 
-ĐÃ DUYỆT (02/10/2026). Đặc tả chức năng: `REQUIREMENT.md` cùng thư mục — mọi mã quy tắc (R-F, R-N,
-R-S, R-W, R-T, R-O, R-Q, R-U, R-L) tham chiếu từ file đó.
+ĐÃ HOÀN THÀNH (02/10/2026). Duyệt: 02/10/2026. Đặc tả chức năng: `REQUIREMENT.md` cùng thư mục —
+mọi mã quy tắc (R-F, R-N, R-S, R-W, R-T, R-O, R-Q, R-U, R-L) tham chiếu từ file đó.
 
 **Phạm vi MD3**: màn hình danh sách việc làm (`/`, `/candidate`) làm lại **toàn bộ** theo MD3 trong
 FR này (R-L1/R-L3) — khác C05 (chỉ đổi thành phần mới, phần còn lại để `refactor/ui-md3-legacy`).
@@ -122,8 +122,9 @@ Bottom sheet (trượt từ dưới, cao tối đa 85vh, cuộn trong):
 └───────────────────────────────────────────┘
 ```
 
-- Logo trống (không có `logoUrl`): ô vuông nền `bg-m3-surface-container`, hiện 2 ký tự đầu tên công
-  ty viết hoa (ví dụ "AB"), hoặc icon lucide `Building2` nếu tên công ty trống/không đọc được ký tự.
+- Logo trống (không có `logoUrl`): ô vuông nền `bg-m3-surface-container`, luôn hiện icon lucide
+  `Building2`. **Điều chỉnh sau soát tay 02/10/2026**: bỏ phương án 2 ký tự đầu tên công ty — tên
+  công ty nào cũng bắt đầu bằng "Công ty" nên chữ viết tắt luôn ra "CÔ", vô nghĩa với mọi tin.
 - Lương: `text-m3-tertiary` (thay `text-accent-dark`).
 - Hạn nộp: luôn có nhãn "Hạn nộp: " trước ngày (`dd/MM/yyyy`) — ngày đứng một mình dễ bị hiểu nhầm là
   ngày đăng tin. `text-m3-on-surface-variant text-m3-body-sm`, đặt góc phải trên (cùng hàng tiêu đề,
@@ -161,7 +162,7 @@ tỉnh) và tin đó thuộc đúng nhánh ngoại lệ (R-S5 / R-N1-R-N4) — k
 | `m3-tertiary` (`#007A3D`, 5.45:1, đã chốt ở `chore/ui-md3-foundation`) | Màu chữ lương trên `JobCard` (R-L1) **và trên `PublicJobDetailPage`** (R-L1b) — cùng một token cho cả hai nơi |
 | `m3-on-surface` | Tiêu đề tin, nhãn chọn trong thanh lọc |
 | `m3-on-surface-variant` | Hạn nộp, nhãn phụ, chữ "không áp dụng bộ lọc lương" |
-| `m3-surface-container` | Nền ô logo trống + chữ viết tắt |
+| `m3-surface-container` | Nền ô logo trống (icon `Building2`, điều chỉnh sau soát tay 02/10/2026) |
 | `m3-outline` | Viền input lương, viền trigger combobox/select trong thanh lọc (đồng bộ combobox C05) |
 | `m3-surface` | Nền thanh lọc, nền bottom sheet |
 | `m3-surface-container-high` | Nền nhãn "Chưa chuẩn hoá" (tái dùng nguyên từ C05, không đổi màu) |
@@ -210,7 +211,7 @@ tên công ty; giữ nguyên phạm vi `keyword` hiện có, không mở rộng)
 | Lương Thoả thuận | "Thoả thuận" (đã có từ trước) |
 | Ngoại tệ khi đang lọc lương | "(không áp dụng bộ lọc lương)" |
 | Chưa chuẩn hoá trên card (khi đang lọc) | Còn giá trị cũ (R-N3): "Chưa chuẩn hoá" + "Giá trị cũ: \"{text}\"" (đúng nhãn đã có ở C05). Thiếu hẳn, không có giá trị cũ (R-N4): chỉ "Chưa chuẩn hoá", không có dòng "Giá trị cũ" |
-| Logo trống | Không có chữ — chỉ hiện 2 ký tự viết hoa hoặc icon `Building2` |
+| Logo trống | Không có chữ — luôn icon `Building2` (điều chỉnh sau soát tay 02/10/2026, bỏ phương án chữ viết tắt) |
 
 ## 8. Responsive
 
@@ -233,8 +234,8 @@ tên công ty; giữ nguyên phạm vi `keyword` hiện có, không mở rộng)
 - Thông báo "Tìm thấy {n} việc làm" đặt trong vùng `aria-live="polite"` để người dùng dùng trình
   đọc màn hình biết kết quả đã đổi sau khi lọc, không cần focus lại danh sách.
 - Lỗi ô lương gắn `aria-describedby` vào đúng input (giống mẫu lỗi form hiện có của dự án).
-- Icon `Building2` trên ô logo trống có `aria-hidden="true"` (luôn có `alt`/chữ viết tắt đi kèm khi
-  không hiện icon).
+- Icon `Building2` trên ô logo trống có `aria-hidden="true"` (điều chỉnh sau soát tay 02/10/2026:
+  icon luôn hiện khi không có `logoUrl`, không còn nhánh chữ viết tắt thay thế).
 
 ## 10. Không được làm
 
