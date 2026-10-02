@@ -133,6 +133,20 @@ Chuyên viên Marketing, Nhân viên kinh doanh qua điện thoại.
 một bản cũ), minh hoạ FR-U01 "nhiều phiên bản CV, một bản là chính". Ứng viên Bùi
 Ngọc Mai (Nhân sự) **cố ý không nộp đơn nào** — xem lý do ở walkthrough.
 
+**8 `candidate_profiles` (FR-U14, nạp ở Tầng 1):** cả 8 đều có `onboarding_completed_at`
+(coi như đã qua màn "Hoàn thiện hồ sơ"). 3 người có đủ hồ sơ nghề nghiệp/mong muốn, khác
+ngành nhau và khớp đúng ngành của 3 job demo tương ứng:
+
+| Ứng viên | Chức danh mong muốn | Ngành mong muốn | Khớp job demo |
+|---|---|---|---|
+| Trần Minh Hoàng | Lập trình viên Backend (Java/Spring Boot) | Công nghệ thông tin - Phần mềm | Senior Java Backend Developer |
+| Nguyễn Thị Thu Hà | Kế toán tổng hợp | Kế toán - Kiểm toán | Kế toán tổng hợp |
+| Đỗ Khánh Linh | Chuyên viên Marketing | Marketing - Truyền thông | Chuyên viên Marketing |
+
+5 ứng viên còn lại (Lê Văn Đức, Phạm Quốc Bảo, Nguyễn Hải Sơn, Võ Thanh Tùng, Bùi Ngọc
+Mai) giữ hồ sơ mong muốn trống (mảng rỗng, `desired_salary_min`/`bio` `NULL`) — chỉ có
+cờ `onboarding_completed_at` đã đặt.
+
 **8 đơn ứng tuyển đang hoạt động + 1 đơn đã rút** (`WITHDRAWN`).
 
 **FR-C05 (01/10/2026):** dump được xuất lại sau khi gọi "Cập nhật dữ liệu trích xuất" thật cho cả 9
@@ -141,10 +155,13 @@ CV (Anthropic + OpenAI thật): `resume_parsed_data` nay là `resume-parse-v2`, 
 trước (so md5 trước/sau). `resume_reparse_requests` (hàng đợi vận hành) KHÔNG nằm trong dump.
 
 Số dòng từng bảng sau khi nạp đủ 2 tầng (đã kiểm chứng bằng `export-ai-output.ps1`,
-không phải số ước lượng):
+không phải số ước lượng) — riêng `candidate_profiles` đến từ Tầng 1
+(`seed-demo-structural.sql`, SQL viết tay, không qua export script) nên không tính vào
+dòng Tổng bên dưới:
 
 | Bảng | Số dòng |
 |---|---|
+| `candidate_profiles` *(Tầng 1)* | 8 |
 | `resumes` | 9 |
 | `resume_parsed_data` | 9 |
 | `job_embeddings` | 6 |
@@ -166,6 +183,14 @@ vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (8 dòng) �
 `category_code`.
 
 **Ghi chú các con số dễ gây thắc mắc:**
+- `candidate_profiles.embedding`/`embedding_model` (FR-U14): cả 8 hồ sơ đều `NULL` ngay
+  sau khi nạp Tầng 1 — `seed-demo-structural.sql` KHÔNG tự tính embedding (SQL thuần,
+  không gọi AI). `CandidateProfileEmbeddingScheduler` (R-E4) chỉ sinh embedding khi
+  backend thật sự chạy với khoá OpenAI thật, và chỉ cho hồ sơ có ít nhất một trong ba
+  trường `headline`/`skills`/`bio` khác rỗng (R-E2) — tức chỉ 3 hồ sơ "đầy đủ" (Trần Minh
+  Hoàng, Nguyễn Thị Thu Hà, Đỗ Khánh Linh) sẽ có embedding sau khi backend chạy một lúc;
+  5 hồ sơ còn lại (mảng/`bio` rỗng) tiếp tục giữ `embedding = NULL` vĩnh viễn, đúng thiết
+  kế, không phải lỗi.
 - `job_recommendations` (FR-U07 R-D1, 02/10/2026): trước đây 6 job trong `seed-demo-structural.sql` ở
   trạng thái `DRAFT` nên bảng này luôn về 0 — `JobRecommendationCacheScheduler` cứ 5 giây xoá-rồi-chèn
   lại gợi ý cho mọi ứng viên có embedding CV chính, chỉ khớp job `OPEN`, không có job `OPEN` nào thì

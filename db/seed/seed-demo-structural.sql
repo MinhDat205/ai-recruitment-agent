@@ -11,7 +11,8 @@
 --
 -- Gom DUNG: 1 HR + 1 company + 6 job (OPEN, published_at rai qua 3 gio/2 ngay/
 -- 6 ngay/10 ngay/20 ngay/35 ngay truoc luc nap - FR-U07 R-D1) + 6 rubric (kem
--- tieu chi, tong trong so = 100%) + 6 interview_template + 8 candidate.
+-- tieu chi, tong trong so = 100%) + 6 interview_template + 8 candidate + 8
+-- candidate_profiles (FR-U14 - ho so nghe nghiep/mong muon, 3/8 co du du lieu).
 --
 -- KHONG co INSERT INTO resumes / job_applications - hai bang do thuoc tang 2,
 -- sinh qua UI that o Dot 3-4 (gan voi file that tren dia + output AI).
@@ -95,6 +96,92 @@ INSERT INTO users (id, email, password_hash, role, full_name, phone, is_active, 
     ('d0000000-0000-0000-0000-000000000009', 'bui.ngoc.mai@demo.local',
      '$2a$10$nFbFFDzxI6exO4n2YiGste.x65NTurqzpwvPHaYx5r.bTpz4v547y',
      'CANDIDATE', 'Bùi Ngọc Mai', '0901000009', TRUE, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 1b. Ho so nghe nghiep (FR-U14) cho 8 candidate - ca 8 da "qua" man onboarding
+--     (onboarding_completed_at khac NULL). 3 nguoi (Tran Minh Hoang - IT_SOFTWARE,
+--     Nguyen Thi Thu Ha - ACCOUNTING_AUDIT, Do Khanh Linh - MARKETING_COMMUNICATIONS)
+--     co du mong muon nghe nghiep, khac nganh nhau va khop dung nganh cua job demo
+--     tuong ung (Job 1, Job 4, Job 5 o muc 3 duoi day). 5 nguoi con lai de mang
+--     rong/NULL (ho so mong muon trong, nhung van da qua man onboarding).
+--     embedding/embedding_model de NULL ca 8 - CandidateProfileEmbeddingScheduler
+--     (FR-U14 R-E4) tu tinh khi backend chay that voi khoa OpenAI that (xem README).
+--     Ma nganh/khu vuc lay tu danh muc C05 (V8__catalogs.sql): IT_SOFTWARE,
+--     ACCOUNTING_AUDIT, MARKETING_COMMUNICATIONS, HO_CHI_MINH deu da ton tai.
+-- ---------------------------------------------------------------------------
+
+-- Tran Minh Hoang (d0000000-...0002) - Java Backend, khop Job 1 (IT_SOFTWARE)
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002',
+    'Lập trình viên Backend (Java/Spring Boot)',
+    ARRAY['IT_SOFTWARE'], ARRAY['HO_CHI_MINH'], ARRAY['HYBRID', 'REMOTE'],
+    ARRAY['Java', 'Spring Boot', 'PostgreSQL', 'REST API'], 35000000.00,
+    'Hơn 3 năm kinh nghiệm phát triển backend với Java và Spring Boot, mong muốn '
+    || 'tham gia các hệ thống phục vụ lượng người dùng lớn.',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Le Van Duc (d0000000-...0003) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000003', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Pham Quoc Bao (d0000000-...0004) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000004', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Nguyen Hai Son (d0000000-...0005) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000005', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Nguyen Thi Thu Ha (d0000000-...0006) - Ke toan, khop Job 4 (ACCOUNTING_AUDIT)
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000006',
+    'Kế toán tổng hợp',
+    ARRAY['ACCOUNTING_AUDIT'], ARRAY['HO_CHI_MINH'], ARRAY['ONSITE'],
+    ARRAY['MISA', 'Excel', 'VAS', 'Báo cáo tài chính'], 15000000.00,
+    'Có kinh nghiệm làm kế toán tổng hợp tại doanh nghiệp vừa và nhỏ, nắm vững '
+    || 'chuẩn mực kế toán Việt Nam (VAS).',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Do Khanh Linh (d0000000-...0007) - Marketing, khop Job 5 (MARKETING_COMMUNICATIONS)
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000007',
+    'Chuyên viên Marketing',
+    ARRAY['MARKETING_COMMUNICATIONS'], ARRAY['HO_CHI_MINH'], ARRAY['HYBRID'],
+    ARRAY['Facebook Ads', 'Google Ads', 'Content Marketing', 'SEO'], 15000000.00,
+    'Yêu thích xây dựng nội dung và chạy quảng cáo đa kênh, mong muốn phát triển '
+    || 'sự nghiệp trong lĩnh vực digital marketing.',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Vo Thanh Tung (d0000000-...0008) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000008', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Bui Ngoc Mai (d0000000-...0009) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000009', now())
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -527,8 +614,16 @@ COMMIT;
 -- ---------------------------------------------------------------------------
 -- Kiem tra sau khi chay: phai ra dung 1 HR + 8 candidate + 1 company + 6 job
 -- + 6 rubric (moi rubric 4 tieu chi, tong weight = 100) + 6 interview_template
+-- + 8 candidate_profiles (FR-U14, ca 8 da qua onboarding, 3 co mong muon)
 -- ---------------------------------------------------------------------------
 SELECT role, count(*) FROM users WHERE id::text LIKE 'd0000000-%' GROUP BY role;
+SELECT
+    count(*) AS so_ho_so,
+    count(*) FILTER (WHERE onboarding_completed_at IS NOT NULL) AS da_qua_onboarding,
+    count(*) FILTER (WHERE cardinality(desired_industry_codes) > 0) AS co_mong_muon_nganh,
+    count(*) FILTER (WHERE embedding IS NULL) AS embedding_null
+FROM candidate_profiles
+WHERE id::text LIKE 'd6000000-%';
 SELECT j.title, r.name AS rubric, sum(rc.weight) AS tong_weight, count(rc.id) AS so_tieu_chi
 FROM jobs j
 JOIN rubrics r ON r.job_id = j.id
