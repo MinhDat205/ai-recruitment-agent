@@ -9,10 +9,12 @@ const SORT_VALUES: readonly JobSort[] = ['NEWEST', 'SALARY_DESC']
 const DEFAULT_SORT: JobSort = 'NEWEST'
 const PAGE_SIZE = 10
 
+// FR-U15 R-F1 - categoryCode/locationCode doi tu string|null sang string[] (toi da 3, mang rong =
+// khong loc) de khop R-H cua backend (FR-U07 R-H mo rong tu 1 gia tri sang danh sach).
 export interface JobFiltersState {
   keyword: string
-  categoryCode: string | null
-  locationCode: string | null
+  categoryCode: string[]
+  locationCode: string[]
   salaryMin: number | null
   salaryMax: number | null
   hideUnlisted: boolean
@@ -38,6 +40,16 @@ function parseEnum<T extends string>(raw: string | null, allowed: readonly T[]):
   return (allowed as readonly string[]).includes(raw) ? (raw as T) : null
 }
 
+// FR-U15 R-F1 - mot gia tri (URL cu, ?categoryCode=A) van doc ra dung ['A'] vi getAll tren MOT
+// tham so lap 0..n luon tra mang (du chi co 1 lan xuat hien). Khu trung + cat toi da 3 (R-H4
+// backend) - qua 3 ma hop le thi GIU 3 ma dau, khong bo het ca danh sach (giu dung tinh than R-U4
+// "URL hong khong lam vo trang", khac voi cac tham so enum/so khac bi bo qua toan bo khi sai).
+function parseCatalogCodes(raw: string[], validCodes: Set<string> | undefined): string[] {
+  const filtered = validCodes === undefined ? raw : raw.filter((code) => validCodes.has(code))
+  const deduped = [...new Set(filtered)]
+  return deduped.slice(0, 3)
+}
+
 // R-U4: tham so URL khong hop le -> bo qua DUNG tham so do, khong chan trang. categoryCode/
 // locationCode can doi chieu danh muc (bat dong bo) - khi danh muc CHUA tai xong (undefined) tam
 // chap nhan nguyen gia tri (giong hanh vi hien co cua CatalogCombobox dang disabled luc dang tai),
@@ -47,13 +59,8 @@ function parseFilters(
   industryCodes: Set<string> | undefined,
   provinceCodes: Set<string> | undefined,
 ): JobFiltersState {
-  const categoryCodeRaw = searchParams.get('categoryCode')
-  const categoryCode =
-    categoryCodeRaw && (industryCodes === undefined || industryCodes.has(categoryCodeRaw)) ? categoryCodeRaw : null
-
-  const locationCodeRaw = searchParams.get('locationCode')
-  const locationCode =
-    locationCodeRaw && (provinceCodes === undefined || provinceCodes.has(locationCodeRaw)) ? locationCodeRaw : null
+  const categoryCode = parseCatalogCodes(searchParams.getAll('categoryCode'), industryCodes)
+  const locationCode = parseCatalogCodes(searchParams.getAll('locationCode'), provinceCodes)
 
   const salaryMinParsed = parseNonNegativeInt(searchParams.get('salaryMin'))
   const salaryMaxParsed = parseNonNegativeInt(searchParams.get('salaryMax'))
@@ -127,14 +134,15 @@ export function useJobFilters() {
   // so sach. Danh muc tai LOI (isError, het "pending"): KHONG hoan nua - gui nguyen ma len API de
   // backend tu quyet dinh, vi khong con gi de doi chieu va treo trang mai mai cho danh muc se
   // khong bao gio toi la te hon mot lan goi API co the bi 400.
-  const hasUnresolvedCatalogCode = Boolean(searchParams.get('categoryCode') || searchParams.get('locationCode'))
+  const hasUnresolvedCatalogCode =
+    searchParams.getAll('categoryCode').length > 0 || searchParams.getAll('locationCode').length > 0
   const canQueryJobs = !(hasUnresolvedCatalogCode && catalogsQuery.isPending)
 
   const apiParams = useMemo<JobSearchParams>(
     () => ({
       keyword: filters.keyword || undefined,
-      categoryCode: filters.categoryCode ?? undefined,
-      locationCode: filters.locationCode ?? undefined,
+      categoryCode: filters.categoryCode.length > 0 ? filters.categoryCode : undefined,
+      locationCode: filters.locationCode.length > 0 ? filters.locationCode : undefined,
       salaryMin: filters.salaryMin ?? undefined,
       salaryMax: filters.salaryMax ?? undefined,
       hideUnlisted: filters.hideUnlisted || undefined,
@@ -150,8 +158,8 @@ export function useJobFilters() {
   // "Xoa bo loc" chi hien khi co >=1 dieu kien LOC dang ap dung, khong tinh sort/page (UI.md muc 4a).
   const hasActiveFilters =
     filters.keyword !== '' ||
-    filters.categoryCode != null ||
-    filters.locationCode != null ||
+    filters.categoryCode.length > 0 ||
+    filters.locationCode.length > 0 ||
     filters.salaryMin != null ||
     filters.salaryMax != null ||
     filters.hideUnlisted ||
@@ -162,8 +170,8 @@ export function useJobFilters() {
   // trong bottom sheet (nganh/tinh/luong/hinh thuc/thoi gian dang); tu khoa nam NGOAI sheet (van
   // hien truc tiep trong o nhap) nen khong tinh vao day.
   const activeFilterCount = [
-    filters.categoryCode != null,
-    filters.locationCode != null,
+    filters.categoryCode.length > 0,
+    filters.locationCode.length > 0,
     filters.salaryMin != null || filters.salaryMax != null || filters.hideUnlisted,
     filters.workMode.length > 0,
     filters.postedWithin != null,
@@ -186,8 +194,18 @@ export function useJobFilters() {
       }
 
       if ('keyword' in patch) setOrDelete('keyword', patch.keyword?.trim() ?? null)
-      if ('categoryCode' in patch) setOrDelete('categoryCode', patch.categoryCode ?? null)
-      if ('locationCode' in patch) setOrDelete('locationCode', patch.locationCode ?? null)
+      if ('categoryCode' in patch) {
+        next.delete('categoryCode')
+        for (const code of patch.categoryCode ?? []) {
+          next.append('categoryCode', code)
+        }
+      }
+      if ('locationCode' in patch) {
+        next.delete('locationCode')
+        for (const code of patch.locationCode ?? []) {
+          next.append('locationCode', code)
+        }
+      }
       if ('salaryMin' in patch) setOrDelete('salaryMin', patch.salaryMin != null ? String(patch.salaryMin) : null)
       if ('salaryMax' in patch) setOrDelete('salaryMax', patch.salaryMax != null ? String(patch.salaryMax) : null)
       if ('hideUnlisted' in patch) setOrDelete('hideUnlisted', patch.hideUnlisted ? 'true' : null)

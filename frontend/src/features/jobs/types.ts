@@ -60,10 +60,11 @@ export type JobSort = 'NEWEST' | 'SALARY_DESC'
 
 // R-F1: khong con category/location (chuoi tu do, cu) - thanh loc moi chi gui *Code theo danh muc
 // C05. Backend van giu category/location cho URL/test cu, chi frontend khong gui nua.
+// FR-U15 R-H3 - categoryCode/locationCode doi tu 1 gia tri sang danh sach (toi da 3, R-H4).
 export interface JobSearchParams {
   keyword?: string
-  categoryCode?: string
-  locationCode?: string
+  categoryCode?: string[]
+  locationCode?: string[]
   salaryMin?: number
   salaryMax?: number
   hideUnlisted?: boolean

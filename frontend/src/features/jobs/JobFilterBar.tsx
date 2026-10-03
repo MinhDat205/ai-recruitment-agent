@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { CatalogCombobox } from '../catalog/CatalogCombobox'
+import { CatalogMultiCombobox } from '../catalog/CatalogMultiCombobox'
 import { WORK_MODE_LABELS, WORK_MODE_OPTIONS } from './jobLabels'
 import type { JobSort, PostedWithin, WorkMode } from './types'
 import { useJobFilters, type JobFilterPatch, type JobFiltersState } from './useJobFilters'
@@ -155,8 +155,8 @@ function KeywordField({ keyword, onApply }: { keyword: string; onApply: (value: 
 }
 
 interface CatalogFilterFieldProps {
-  value: string | null
-  onChange: (code: string | null) => void
+  value: string[]
+  onChange: (codes: string[]) => void
   catalogsQuery: {
     data: { industries: { code: string; label: string }[]; provinces: { code: string; label: string }[] } | undefined
     isLoading: boolean
@@ -165,6 +165,8 @@ interface CatalogFilterFieldProps {
   }
 }
 
+// FR-U15 R-F2 - CatalogMultiCombobox (co san tu FR-U14) thay CatalogCombobox (chon 1) - toi da 3
+// ma (max={3}, khop R-H4 backend). KHONG sua ben trong CatalogMultiCombobox.
 function CategoryField({ value, onChange, catalogsQuery }: CatalogFilterFieldProps) {
   const labelId = useId()
   const id = useId()
@@ -173,7 +175,7 @@ function CategoryField({ value, onChange, catalogsQuery }: CatalogFilterFieldPro
       <Label id={labelId} htmlFor={id} className="sr-only">
         Ngành nghề
       </Label>
-      <CatalogCombobox
+      <CatalogMultiCombobox
         id={id}
         labelId={labelId}
         value={value}
@@ -184,6 +186,7 @@ function CategoryField({ value, onChange, catalogsQuery }: CatalogFilterFieldPro
         isLoading={catalogsQuery.isLoading}
         isError={catalogsQuery.isError}
         onRetry={() => catalogsQuery.refetch()}
+        max={3}
       />
     </div>
   )
@@ -197,7 +200,7 @@ function LocationField({ value, onChange, catalogsQuery }: CatalogFilterFieldPro
       <Label id={labelId} htmlFor={id} className="sr-only">
         Tỉnh/thành
       </Label>
-      <CatalogCombobox
+      <CatalogMultiCombobox
         id={id}
         labelId={labelId}
         value={value}
@@ -208,6 +211,7 @@ function LocationField({ value, onChange, catalogsQuery }: CatalogFilterFieldPro
         isLoading={catalogsQuery.isLoading}
         isError={catalogsQuery.isError}
         onRetry={() => catalogsQuery.refetch()}
+        max={3}
       />
     </div>
   )
@@ -452,8 +456,8 @@ interface MobileFilterSheetProps {
 // khi dong) - dung UI.md muc 9 ma khong can code them.
 function MobileFilterSheet({ filters, catalogsQuery, applyFilter, clearFilters, activeFilterCount }: MobileFilterSheetProps) {
   const [open, setOpen] = useState(false)
-  const [categoryDraft, setCategoryDraft] = useState<string | null>(filters.categoryCode)
-  const [locationDraft, setLocationDraft] = useState<string | null>(filters.locationCode)
+  const [categoryDraft, setCategoryDraft] = useState<string[]>(filters.categoryCode)
+  const [locationDraft, setLocationDraft] = useState<string[]>(filters.locationCode)
   const [minDraft, setMinDraft] = useState(filters.salaryMin != null ? String(filters.salaryMin) : '')
   const [maxDraft, setMaxDraft] = useState(filters.salaryMax != null ? String(filters.salaryMax) : '')
   const [hideUnlistedDraft, setHideUnlistedDraft] = useState(filters.hideUnlisted)

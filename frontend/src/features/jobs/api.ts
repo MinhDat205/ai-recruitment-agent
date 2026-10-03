@@ -3,12 +3,18 @@ import type { JobDetail, JobSearchParams, JobSummary, PageResponse } from './typ
 
 // Axios serialize mang trong object params thanh "workMode[]=..." (da kiem bang buildURL thuc te),
 // Spring @RequestParam List<String> workMode doi dung "workMode=A&workMode=B" (lap ten tham so,
-// khong dau []) - phai tu dung URLSearchParams de kiem soat dung dinh dang.
+// khong dau []) - phai tu dung URLSearchParams de kiem soat dung dinh dang. FR-U15 R-H3:
+// categoryCode/locationCode ap dung CUNG ky thuat append nhu workMode (khong con result.set don gia
+// tri) - cung ly do, cung dinh dang lap ten tham so.
 function toSearchParams(params: JobSearchParams): URLSearchParams {
   const result = new URLSearchParams()
   if (params.keyword) result.set('keyword', params.keyword)
-  if (params.categoryCode) result.set('categoryCode', params.categoryCode)
-  if (params.locationCode) result.set('locationCode', params.locationCode)
+  for (const code of params.categoryCode ?? []) {
+    result.append('categoryCode', code)
+  }
+  for (const code of params.locationCode ?? []) {
+    result.append('locationCode', code)
+  }
   if (params.salaryMin != null) result.set('salaryMin', String(params.salaryMin))
   if (params.salaryMax != null) result.set('salaryMax', String(params.salaryMax))
   if (params.hideUnlisted) result.set('hideUnlisted', 'true')
