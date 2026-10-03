@@ -178,8 +178,12 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
     đo đạc, và sẽ làm bảng tin của hầu hết ứng viên gần như trống (Kế toán/Marketing/
     Sales mỗi người chỉ còn 1 gợi ý). Hướng đúng: lọc theo khoảng cách tương đối so với
     điểm cao nhất của chính ứng viên đó (ví dụ giữ các job trong biên độ 0.10 dưới đỉnh)
-    thay vì một hằng số tuyệt đối dùng chung cho mọi CV. Hoãn vì phải đụng backend,
-    chạy lại test suite và sinh lại toàn bộ cache `job_recommendations`.
+    thay vì một hằng số tuyệt đối dùng chung cho mọi CV. Hoãn vì phải đụng backend và
+    chạy lại test suite. **Cập nhật (FR-U15, 03/10/2026):** không còn bảng đệm
+    `job_recommendations` để "sinh lại" (đã xoá — xem mục dưới và
+    `docs/walkthrough/fr-u15-profile-recommend.md`), gợi ý tính trực tiếp mỗi lần gọi API; hằng số
+    `MIN_SIMILARITY_SCORE = 0.40` vẫn giữ y nguyên, chỉ dời sang
+    `JobRecommendationCandidateService` (R-V9) — nợ kỹ thuật này vẫn còn, chưa sửa.
   - **Cập nhật (30/08/2026, nhánh `feat/candidates-scoring-action`): route `/candidate` đổi ý
     nghĩa** — không còn render Bảng tin, mà render `CandidateJobListPage.tsx` (nội dung Việc làm,
     mirror `PublicJobListPage.tsx` nhưng bọc `CandidateLayout`) — đây cũng là trang candidate thấy
@@ -546,7 +550,10 @@ tương ứng ở đây.
   - Seed demo: 6 job ở DRAFT nên `JobRecommendationCacheScheduler` xoá sạch `job_recommendations` khi backend
     chạy (có từ `chore/seed-demo`, đã tái hiện bằng dump cũ 28 dòng → 0); dump mới có 0 dòng. Chữa ở nhánh
     seed: cho job demo OPEN trong `seed-demo-structural.sql`. — **Đã xử lý ở FR-U07** (R-D1, 02/10/2026): 6
-    job demo chuyển `OPEN`, `job_recommendations` đo được 28 dòng sau khi backend chạy lại.
+    job demo chuyển `OPEN`, `job_recommendations` đo được 28 dòng sau khi backend chạy lại. — **Đã xử lý
+    tiếp ở FR-U15** (R-G, 03/10/2026): gỡ hẳn bộ đệm `JobRecommendationCacheService`/`JobRecommendationCacheScheduler`
+    và bảng `job_recommendations` (`V11__drop_job_recommendations.sql`) — gợi ý tính trực tiếp mỗi lần gọi
+    API, không còn khái niệm "đo số dòng cache" nữa.
   - `LLM_ERROR` không phân biệt "thiếu cấu hình khoá API" với lỗi gọi API — phải đọc log.
   - `toPattern` của tìm kiếm C02 không thoát `%`/`_` — **Đã xử lý ở FR-U07** (mục 7.9 REQUIREMENT.md,
     `JobPublicService.toPattern`): thoát `\`, `%`, `_` đúng thứ tự trước khi bọc `%...%`.
@@ -578,7 +585,38 @@ tương ứng ở đây.
     không phải lỗi.
   - Giới hạn "tối đa 3"/"tối đa 20"/"tối đa 1000 triệu" là hằng số cứng trong code, chưa có cấu hình.
   - `CatalogMultiCombobox` kế thừa hạn chế tìm theo nhãn (không bí danh) của `CatalogCombobox` (FR-C05).
-- [ ] `feat/fr-u15-profile-recommend` — FR-U15 · Gợi ý việc làm theo hồ sơ
+- [x] `feat/fr-u15-profile-recommend` — FR-U15 · Gợi ý việc làm theo hồ sơ — **HOÀN THÀNH**
+  (03/10/2026, 9 đợt code — đợt 9 chia thêm 2 lần sửa sau soát tay: 9a cách ly dữ liệu test, 9b sửa
+  hiển thị — xem `docs/walkthrough/fr-u15-profile-recommend.md`). Gỡ hẳn bộ đệm `job_recommendations`
+  của FR-U04 (`V11__drop_job_recommendations.sql`), thay bằng tính **trực tiếp** mỗi lần gọi `GET
+  /api/candidates/job-recommendations`: ưu tiên CV (ngưỡng 0.40 kế thừa) → hồ sơ nghề nghiệp (không
+  ngưỡng) → chỉ ngành/khu vực mong muốn (sắp theo mới nhất) → `PREPARING`/`NO_DATA`; loại trừ job đã
+  nộp đơn trong chu kỳ hiện tại (bất kể trạng thái đơn, kể cả `WITHDRAWN`); chip "Khớp mong muốn" do
+  backend tính (R-M), không bao giờ loại job khỏi kết quả; mở rộng điều kiện cứng `categoryCode`/
+  `locationCode` của FR-U07 sang tối đa 3 mã/loại, dùng chung cho cả `GET /api/public/jobs` và gợi
+  ý. Nợ kỹ thuật:
+  - [index.css:124-127](../frontend/src/index.css) — rule `a { color: inherit; text-decoration: none; }`
+    nằm ngoài mọi `@layer`, CSS Cascade Layers khiến nó LUÔN thắng mọi utility class Tailwind
+    (`@layer utilities`) đặt trực tiếp trên `<a>`/`<Link>`, bất kể specificity — chữ liên kết thành
+    màu kế thừa (đen) thay vì màu token. Đã vá cục bộ ở `RecommendedJobs.tsx` (chuyển màu/gạch chân
+    sang `<span>` con), còn ảnh hưởng `JobApplyForm.tsx:68,79` và `NotificationDropdown.tsx:57`.
+    Cách sửa gốc: bọc `a {...}` trong `@layer base { ... }` ở `index.css` — chưa làm, ảnh hưởng toàn
+    site nên cần một nhánh riêng.
+  - Trang chi tiết việc làm (`/jobs/:id`) hiện mã thô `FULL_TIME`/`ONSITE` thay vì nhãn tiếng Việt
+    cho hình thức làm việc/loại hợp đồng — tái xác nhận lại khi soát tay FR-U15 (từ "Xem tất cả" mở
+    job gợi ý); đã ghi nhận trước ở Phase 2.1b dòng 611-613 (`refactor/ui-md3-legacy`), không phải
+    lỗi mới.
+  - Các lớp test tích hợp tạo job `OPEN` không tự dọn (`ResumeEmbeddingOrchestratorTest`,
+    `JobEmbeddingOrchestratorTest`, `JobEmbeddingPipelineIntegrationTest` — không `@Transactional`
+    cấp class, ghi thật vào Postgres Testcontainers dùng chung) — `JobRecommendationCandidateServiceTest`/
+    `JobRecommendationCandidateControllerIntegrationTest` phải tự soft-delete job `OPEN` sót lại ở
+    `@BeforeEach` vì truy vấn mới có `LIMIT 6` (không còn khoan dung như assertion của test cache cũ).
+    Không giải quyết gốc rễ (3 lớp nguồn vẫn không dọn).
+  - Nhãn hình thức làm việc (`ONSITE`/`HYBRID`/`REMOTE`) chép tay song song ở backend
+    (`JobRecommendationCandidateService.WORK_MODE_LABELS`) và frontend (`jobLabels.ts`) — chưa có
+    bảng nhãn dùng chung.
+  - `README.md` gốc (thư mục root) dòng 66 "Chưa triển khai chức năng nào" đã lỗi thời — dự án đã
+    hoàn thành 18 FR gốc + nhiều FR bổ sung, câu này có từ lúc khởi tạo repo, chưa ai cập nhật lại.
 
 **Xong khi:** tin/hồ sơ thiếu dữ liệu chuẩn hoá vẫn hiện kèm nhãn, không bị loại âm thầm; ứng viên
 chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.

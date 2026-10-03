@@ -88,7 +88,7 @@ lần chạy lại pipeline thật sẽ ra một bộ điểm/giải thích khá
 
 ## 4. Tài khoản demo — mật khẩu công khai có chủ đích
 
-Toàn bộ 9 tài khoản dùng chung mật khẩu **`Demo1234`**. Đây **không phải rò rỉ bí
+Toàn bộ 10 tài khoản dùng chung mật khẩu **`Demo1234`**. Đây **không phải rò rỉ bí
 mật** — mật khẩu được công khai có chủ đích để phục vụ buổi bảo vệ đồ án, ai cũng có
 thể đăng nhập thử trên máy chạy demo cục bộ.
 
@@ -103,6 +103,7 @@ thể đăng nhập thử trên máy chạy demo cục bộ.
 | `do.khanh.linh@demo.local` | Ứng viên | Đỗ Khánh Linh |
 | `vo.thanh.tung@demo.local` | Ứng viên | Võ Thanh Tùng |
 | `bui.ngoc.mai@demo.local` | Ứng viên | Bùi Ngọc Mai |
+| `hoang.minh.tuan@demo.local` | Ứng viên | Hoàng Minh Tuấn (không có CV, minh hoạ gợi ý theo hồ sơ) |
 
 ---
 

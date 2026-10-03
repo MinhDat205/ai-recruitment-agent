@@ -1,6 +1,6 @@
 # FR-U15 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 2026-10-03.
+> Trạng thái: ĐÃ HOÀN THÀNH 2026-10-03.
 
 Tham chiếu: `docs/UI_GUIDE.md` (token `m3-*`, mục 2 điều hướng, mục 3 component, mục 4 ràng buộc
 riêng — đặc biệt "Lý do gợi ý/khớp (U13, U15): chỉ là chip trung tính liệt kê điều kiện đã khớp.

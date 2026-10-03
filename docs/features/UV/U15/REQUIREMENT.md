@@ -1,6 +1,6 @@
 # FR-U15 — Gợi ý việc làm theo hồ sơ (mở rộng FR-U04)
 
-> Trạng thái: ĐÃ DUYỆT 2026-10-03.
+> Trạng thái: ĐÃ HOÀN THÀNH 2026-10-03.
 
 - Nhóm: Ứng viên
 - Tóm tắt: Khối "Gợi ý cho bạn" trên trang Việc làm, tính trực tiếp mỗi lần gọi (không bộ đệm), dựa trên mong muốn + CV (hoặc hồ sơ nghề nghiệp nếu chưa có CV); thay hẳn cơ chế cache của FR-U04
