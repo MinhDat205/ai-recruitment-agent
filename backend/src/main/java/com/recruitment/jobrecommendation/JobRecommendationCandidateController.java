@@ -1,7 +1,5 @@
 package com.recruitment.jobrecommendation;
 
-import com.recruitment.job.dto.JobSummaryResponse;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 // /api/candidates/** da bi SecurityConfig chan hasRole("CANDIDATE") o tang filter chain, khong can
 // @PreAuthorize them - dung quy uoc cua ResumeCandidateController/ApplicationCandidateController.
-// Khong co URL nao trung voi bang route da khao sat o dau F1 (/api/candidates/job-recommendations).
+// FR-U15 - route va phan quyen GIU NGUYEN, chi noi dung response doi (R-G3): tu List<JobSummaryResponse>
+// (doc bo dem cu) sang JobRecommendationResponse (status/source/items, tinh truc tiep).
 @RestController
 @RequestMapping("/api/candidates/job-recommendations")
 public class JobRecommendationCandidateController {
@@ -23,7 +22,7 @@ public class JobRecommendationCandidateController {
     }
 
     @GetMapping
-    public List<JobSummaryResponse> getRecommendations(Authentication authentication) {
+    public JobRecommendationResponse getRecommendations(Authentication authentication) {
         return jobRecommendationCandidateService.getRecommendationsForCandidate(
                 UUID.fromString(authentication.getName()));
     }

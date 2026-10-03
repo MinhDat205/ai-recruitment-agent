@@ -724,6 +724,14 @@ mỗi đợt chạy đủ `npm run build` + `npm run lint` (không warning).
 
 ## 10. Nợ kỹ thuật dự kiến
 
+- **Nhãn hình thức làm việc bị chép tay, không dùng chung.** Backend chưa có bảng nhãn
+  `ONSITE`/`HYBRID`/`REMOTE` trước FR-U15 — hằng số `WORK_MODE_LABELS` (private trong
+  `JobRecommendationCandidateService.java`) sao y 3 chuỗi từ
+  `frontend/src/features/jobs/jobLabels.ts:39-43`. Đổi chữ nhãn (ví dụ "Tại văn phòng" →
+  "Làm tại văn phòng") phải sửa **hai nơi** — frontend và file service này — không có cơ chế nào
+  tự nhắc nếu quên một bên. Khi có FR thứ hai cần nhãn này (ví dụ FR-U13), nên rút thành hằng số
+  dùng chung ở backend (gợi ý package `catalog/`) rồi để frontend đọc qua API, không giữ hai bản
+  chép tay song song mãi.
 - `MIN_SIMILARITY_SCORE = 0.40` (nhánh CV) giữ nguyên nợ đã ghi ở ROADMAP (gần như không lọc được
   ở quy mô dữ liệu hiện tại) — không sửa trong phạm vi FR-U15 (R-V9, mục 6 Ngoài phạm vi).
   Nhánh hồ sơ không ngưỡng kế thừa cùng rủi ro ở mức nhẹ hơn (phạm vi đã giới hạn bởi điều kiện
