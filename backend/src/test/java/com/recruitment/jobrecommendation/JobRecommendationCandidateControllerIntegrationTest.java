@@ -33,12 +33,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -82,6 +84,26 @@ class JobRecommendationCandidateControllerIntegrationTest {
 
     @Autowired
     private JobApplicationRepository jobApplicationRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // Vo hieu hoa job OPEN sot lai tu lop test KHAC (ResumeEmbeddingOrchestratorTest,
+    // JobEmbeddingOrchestratorTest, JobEmbeddingPipelineIntegrationTest... - cac file nay KHONG
+    // @Transactional, ghi THAT vao Postgres Testcontainers dung chung, khong tu don). Truoc day
+    // (JobRecommendationCacheServiceTest cu, da xoa o dot 4) chiu duoc nhiem nho dung assertion
+    // khoan dung (contains/doesNotContain, khong containsExactly) vi bang cache cu KHONG LIMIT.
+    // Service moi ap RECOMMENDATION_LIMIT = 6 NGAY TRONG CAU QUERY (top-N) - job rac nay du de
+    // lap day het LIMIT truoc khi toi job test thuc su can kiem, day han job do ra ngoai ket qua,
+    // assertion khoan dung khong con cuu duoc nua (xem bao cao Dot 9 nua dau). Cach ly kieu MOI:
+    // soft-delete toan bo job OPEN con lai NGAY TRUOC khi tao fixture cua tung test. Lop nay KHONG
+    // @Transactional cap class (goi qua HTTP/MockMvc, transaction do controller tu mo/dong) nen
+    // lenh nay COMMIT THAT, khong tu rollback - an toan vi khong co test nao (file nay hay file
+    // khac) dua vao viec job OPEN rac phai con sau khi lop nay chay.
+    @BeforeEach
+    void disableLeftoverOpenJobsFromOtherTestClasses() {
+        jdbcTemplate.update("UPDATE jobs SET deleted_at = now() WHERE status = 'OPEN' AND deleted_at IS NULL");
+    }
 
     private static float[] vectorWithSimilarity(double s) {
         float[] v = new float[1536];

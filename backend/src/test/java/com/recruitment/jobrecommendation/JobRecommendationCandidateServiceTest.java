@@ -32,10 +32,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,6 +90,25 @@ class JobRecommendationCandidateServiceTest {
 
     @Autowired
     private JobRecommendationCandidateService service;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // Vo hieu hoa job OPEN sot lai tu lop test KHAC (ResumeEmbeddingOrchestratorTest,
+    // JobEmbeddingOrchestratorTest, JobEmbeddingPipelineIntegrationTest... - cac file nay KHONG
+    // @Transactional, ghi THAT vao Postgres Testcontainers dung chung, khong tu don). Truoc day
+    // (JobRecommendationCacheServiceTest cu, da xoa o dot 4) chiu duoc nhiem nho dung assertion
+    // khoan dung (contains/doesNotContain, khong containsExactly) vi bang cache cu KHONG LIMIT.
+    // Service moi ap RECOMMENDATION_LIMIT = 6 NGAY TRONG CAU QUERY (top-N) - job rac nay du de
+    // lap day het LIMIT truoc khi toi job test thuc su can kiem, day han job do ra ngoai ket qua,
+    // assertion khoan dung khong con cuu duoc nua (xem bao cao Dot 9 nua dau). Cach ly kieu MOI:
+    // soft-delete toan bo job OPEN con lai NGAY TRUOC khi tao fixture cua tung test. Chay qua
+    // JdbcTemplate (tham gia transaction cua test nho @Transactional cap class o tren) nen tu
+    // rollback sau moi test, khong anh huong vinh vien du lieu cua lop test khac.
+    @BeforeEach
+    void disableLeftoverOpenJobsFromOtherTestClasses() {
+        jdbcTemplate.update("UPDATE jobs SET deleted_at = now() WHERE status = 'OPEN' AND deleted_at IS NULL");
+    }
 
     // Cung ky thuat vector don vi voi JobEmbeddingRepositoryTest/JobRecommendationCacheServiceTest
     // cu (da xoa) - xem comment o do, giu NGUYEN de doi chieu dung bang mục 7.

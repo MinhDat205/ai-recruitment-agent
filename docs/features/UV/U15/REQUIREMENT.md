@@ -760,6 +760,17 @@ mỗi đợt chạy đủ `npm run build` + `npm run lint` (không warning).
   planner thật đã chọn gì ở quy mô hiện tại, không chỉ ghi "đã đo", để làm chứng cứ cho nợ này nếu
   cần xử lý khi dữ liệu lớn hơn (ví dụ tăng số ứng viên lọc trước khi `ORDER BY`, hoặc tăng
   `ef_search` của HNSW — chưa cần quyết định bây giờ).
+- **Các lớp test tích hợp tạo job `OPEN` không tự dọn (`ResumeEmbeddingOrchestratorTest`,
+  `JobEmbeddingOrchestratorTest`, `JobEmbeddingPipelineIntegrationTest` — không `@Transactional`
+  cấp class, ghi thật vào Postgres Testcontainers dùng chung, tồn tại suốt phần còn lại của full
+  suite).** Trước FR-U15, `JobRecommendationCacheServiceTest` (đã xoá ở đợt 4) chịu được nhiễm này
+  nhờ assertion khoan dung (`contains`/`doesNotContain`, không `containsExactly`) vì bảng cache cũ
+  không có `LIMIT`. Truy vấn mới (`findRankedMatchesByVector`/`findRankedMatchesByDesiresOnly`) áp
+  `RECOMMENDATION_LIMIT = 6` ngay trong câu query (top-N) — job rác đủ để lấp đầy `LIMIT` trước khi
+  tới job test thực sự cần kiểm, đẩy hẳn job đó ra ngoài kết quả. `JobRecommendationCandidateServiceTest`
+  và `JobRecommendationCandidateControllerIntegrationTest` phải tự soft-delete (`deleted_at = now()`)
+  toàn bộ job `OPEN` còn sót ở `@BeforeEach` trước khi tạo fixture riêng — cách ly kiểu mới, chưa có
+  tiền lệ trong dự án, không giải quyết gốc rễ (các lớp nguồn gây nhiễm vẫn không dọn).
 
 ---
 

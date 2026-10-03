@@ -241,10 +241,11 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
     Optional<Job> findOpenJobById(@Param("id") UUID id);
 
     // Sinh doi voi findOpenJobById nhung nhan danh sach id - dung cho
-    // JobPublicService.getByIds (Dot 5): loc lai OPEN + deleted_at IS NULL + deadline chua qua TAI
-    // THOI DIEM DOC, phong job_recommendations cache con giu mot job vua dong/het han/bi xoa giua
-    // hai lot lam moi cache (Plan Mode F1 muc F). Khong dam bao thu tu ket qua theo dung thu tu
-    // ids dau vao - caller (JobPublicService.getByIds) tu sap lai qua Map.
+    // JobPublicService.getByIds: loc lai OPEN + deleted_at IS NULL + deadline chua qua TAI THOI
+    // DIEM DOC, phong mot job vua dong/het han/bi xoa giua luc truy van xep hang (FR-U15,
+    // findRankedMatchesByVector/findRankedMatchesByDesiresOnly) va luc hydrate nay goi toi. Khong
+    // dam bao thu tu ket qua theo dung thu tu ids dau vao - caller (JobPublicService.getByIds) tu
+    // sap lai qua Map.
     @Query(
             value =
                     """

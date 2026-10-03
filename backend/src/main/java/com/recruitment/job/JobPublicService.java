@@ -254,11 +254,12 @@ public class JobPublicService {
         return toDetail(job, company);
     }
 
-    // Dung cho JobRecommendationCandidateService (Dot 5, F1): hydrate day du JobSummaryResponse tu
-    // danh sach jobId da co san trong cache job_recommendations, GIU NGUYEN thu tu jobIds dau vao
-    // (da sap theo similarity_score DESC tu tang goi). findOpenJobsByIdIn tu loc lai OPEN/deleted_at/
-    // deadline nen mot job vua dong/het han/bi xoa giua hai lot lam moi cache se tu dong bien mat
-    // khoi ket qua, khong loi, khong can xu ly rieng.
+    // Dung cho JobRecommendationCandidateService (FR-U15): hydrate day du JobSummaryResponse tu
+    // danh sach jobId da duoc truy van xep hang truc tiep tra ve (findRankedMatchesByVector/
+    // findRankedMatchesByDesiresOnly), GIU NGUYEN thu tu jobIds dau vao (da sap theo khoang cach
+    // vector hoac thoi gian dang tu tang goi). findOpenJobsByIdIn tu loc lai OPEN/deleted_at/
+    // deadline nen mot job vua dong/het han/bi xoa giua luc truy van xep hang va luc hydrate nay se
+    // tu dong bien mat khoi ket qua, khong loi, khong can xu ly rieng.
     public List<JobSummaryResponse> getByIds(List<UUID> jobIds) {
         if (jobIds.isEmpty()) {
             return List.of();
