@@ -103,9 +103,6 @@ app:
   candidate-profile-embedding:
     poll-interval-ms: 5000
     batch-size: 10
-  job-recommendation:
-    poll-interval-ms: 5000
-    batch-size: 10
   # Dot 4 (chore/hardening) - retry-with-backoff cho loi LLM tam thoi (D1, D2) + timeout tuong minh
   # cho ca hai client (ap dung cho ca 4 dich vu Anthropic: D1/D2/D4/F2, xem AnthropicChatModelConfig
   # - CHUNG mot AnthropicChatModel ben duoi nen chi can cau hinh MOT CHO).

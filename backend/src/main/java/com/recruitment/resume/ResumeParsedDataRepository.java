@@ -48,11 +48,12 @@ public interface ResumeParsedDataRepository extends JpaRepository<ResumeParsedDa
     @Query(value = "SELECT (embedding IS NOT NULL) FROM resume_parsed_data WHERE id = :id", nativeQuery = true)
     boolean hasEmbedding(@Param("id") UUID id);
 
-    // Lay embedding cua CV chinh dang chuoi text pgvector - dung cho JobRecommendationCacheService
-    // (Dot 5, Plan Mode muc D Buoc 1). KHONG can parse thanh float[] roi format lai: chuoi doc ra tu
-    // day dung LUON lam tham so :queryVector cho JobEmbeddingRepository.findTopMatchingJobs - vong
-    // Java chi chuyen tiep String, khong dung Hibernate type nao dac biet cho vector (xem Plan Mode
-    // muc D, bang chung doc bytecode PgVectorStore that).
+    // Lay embedding cua CV chinh dang chuoi text pgvector - dung cho JobRecommendationCandidateService
+    // (FR-U15, nhanh CV cua truy van goi y; truoc day la JobRecommendationCacheService cua FR-U04,
+    // da xoa o FR-U15 dot 4). KHONG can parse thanh float[] roi format lai: chuoi doc ra tu day dung
+    // LUON lam tham so :queryVector cho JobRepository.findRankedMatchesByVector/
+    // JobEmbeddingRepository.findTopMatchingJobs - vong Java chi chuyen tiep String, khong dung
+    // Hibernate type nao dac biet cho vector (xem bang chung doc bytecode PgVectorStore that, F1).
     @Query(
             value =
                     "SELECT embedding::text FROM resume_parsed_data WHERE resume_id = :resumeId AND embedding IS NOT NULL",

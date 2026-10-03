@@ -26,8 +26,6 @@ app:
     enabled: false
   candidate-profile-embedding:
     enabled: false
-  job-recommendation:
-    enabled: false
   # Dot 5 (chore/hardening) - RateLimitBucketStore la MOT map trong-nho DUY NHAT cho toan bo Spring
   # context. Hang chuc @SpringBootTest khac (dung chung context cache) goi that POST /api/auth/login
   # qua MockMvc de lay token - TONG CONG hang tram lan trong ca bo test - neu bat len se lam vo hang
