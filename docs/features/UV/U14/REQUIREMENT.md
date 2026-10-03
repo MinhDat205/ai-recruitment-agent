@@ -1,6 +1,6 @@
 # FR-U14 — Hồ sơ nghề nghiệp và mong muốn công việc
 
-> Trạng thái: ĐÃ DUYỆT (02/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (03/10/2026).
 
 - Nhóm: Ứng viên
 - Tóm tắt: Sau đăng ký hoặc ở trang hồ sơ: khai chức danh, ngành, khu vực, lương, kỹ năng mong muốn; điền nhanh từ CV
@@ -264,18 +264,20 @@ danh mục ngành nghề/tỉnh thành (FR-C05) và hạ tầng embedding (FR-U0
   field khác). Giống nhau (ví dụ chỉ sửa `dateOfBirth`) → **không đụng `embedding`** (test đơn vị mục
   7.10 khẳng định đúng việc này).
 
-  **Bẫy Hibernate khi ghép hai cách ghi trong cùng transaction (entity + native `@Modifying`):**
-  `CandidateProfileRepository.save(profile)` chỉ đưa thay đổi field (`headline`...) vào persistence
-  context, **chưa chắc đã flush xuống DB**. Câu native UPDATE đặt `embedding = NULL` dùng
-  `@Modifying(clearAutomatically = true)` — `clearAutomatically` **xoá toàn bộ persistence context
-  SAU KHI chạy** (`org.springframework.data.jpa.repository.Modifying`, xác nhận bằng `javap` trên
-  `spring-data-jpa-4.1.0.jar`: hai thuộc tính `flushAutomatically()`/`clearAutomatically()` tách biệt,
-  `flushAutomatically` mặc định `false`). Nếu gọi native UPDATE này TRƯỚC khi entity `profile` được
-  flush, context bị xoá trước khi Hibernate kịp ghi `headline` xuống DB ở cuối transaction → **thay
-  đổi `headline` bị mất**, chỉ `embedding = NULL` được ghi. Bắt buộc: `save()` bằng
-  `candidateProfileRepository.saveAndFlush(profile)` (ép flush ngay) **TRƯỚC KHI** gọi native UPDATE
-  đặt `embedding = NULL` — thứ tự trong service method: đọc văn bản cũ → set field mới lên entity →
-  `saveAndFlush` → so văn bản mới/cũ → nếu khác, gọi native UPDATE đặt `embedding = NULL`.
+  **Bẫy Hibernate khi ghép hai cách ghi trong cùng transaction (entity + native `@Modifying`) — đã
+  chốt cách giải quyết ở đợt 3, 03/10/2026, theo đúng tiền lệ `touchAfterReparse` (FR-C05 R-R5,
+  `ResumeParsedDataRepository.java`):** `CandidateProfileRepository.save(profile)` chỉ đưa thay đổi
+  field (`headline`...) vào persistence context, **chưa chắc đã flush xuống DB**. Câu native UPDATE
+  đặt `embedding = NULL` dùng `@Modifying(clearAutomatically = true, flushAutomatically = true)` —
+  `flushAutomatically = true` **tự flush persistence context TRƯỚC KHI** câu UPDATE chạy (ghi
+  `headline`... xuống DB trước), rồi `clearAutomatically` mới xoá context sau khi chạy xong
+  (`org.springframework.data.jpa.repository.Modifying`, xác nhận bằng `javap` trên
+  `spring-data-jpa-4.1.0.jar`: hai thuộc tính `flushAutomatically()`/`clearAutomatically()` tách
+  biệt, `flushAutomatically` mặc định `false`). Khai báo `flushAutomatically = true` ngay trên câu
+  `@Modifying` của `clearEmbedding` gộp luôn trách nhiệm flush vào đúng chỗ, không cần tầng service
+  tự nhớ gọi `saveAndFlush` theo đúng thứ tự — `CandidateProfileService.update` chỉ cần gọi
+  `save(profile)` bình thường TRƯỚC khi gọi `clearEmbedding`. Test mục 7.15 xác nhận cả `headline`
+  mới lẫn `embedding = null` cùng đúng sau một lần ghi.
 - **R-E4.** Scheduler mới `CandidateProfileEmbeddingScheduler` theo đúng khuôn
   `ResumeEmbeddingScheduler`/`JobEmbeddingScheduler` (`@Scheduled(fixedDelayString =
   "${app.candidate-profile-embedding.poll-interval-ms:5000}")`, có `@ConditionalOnProperty` tắt được
@@ -492,8 +494,9 @@ Tất cả lệnh sạch: `cd backend && ./mvnw test` (full suite, đúng một 
 15. **Bẫy flush Hibernate (R-E3)**: `PUT` đổi `headline` (khác văn bản đại diện cũ, nên `embedding`
     phải bị đặt `null`) → đọc lại qua `GET /me` ngay sau đó, khẳng định **CẢ HAI** cùng đúng trong một
     lần đọc: `headline` đã là giá trị MỚI **VÀ** `embedding`/`embeddingModel` đã là `null` — phản
-    chứng đúng bẫy `clearAutomatically` xoá persistence context trước khi entity kịp flush (nếu thiếu
-    `saveAndFlush`, test này đỏ vì `headline` vẫn là giá trị cũ dù response trả 200).
+    chứng đúng bẫy `clearAutomatically` xoá persistence context trước khi entity kịp flush (nếu
+    `clearEmbedding` thiếu `flushAutomatically = true`, test này đỏ vì `headline` vẫn là giá trị cũ
+    dù response trả 200).
 16. **RBAC/sở hữu**: đã có sẵn ở `/api/candidates/profile/**` (FR-U01) — chỉ cần test bổ sung ở mục 9
     (HR → 403), không cần test RBAC mới khác.
 
@@ -509,10 +512,11 @@ Tất cả lệnh sạch: `cd backend && ./mvnw test` (full suite, đúng một 
 - Map field `embedding` vào entity `CandidateProfile` bằng `@JdbcTypeCode`/kiểu tự định nghĩa — tiền
   lệ dự án (xác nhận bằng bytecode `spring-ai-pgvector-store`) là KHÔNG map, chỉ qua native query (mục
   0.a).
-- Gọi native UPDATE đặt `embedding = NULL` (`@Modifying(clearAutomatically = true)`) NGAY SAU
-  `repository.save(profile)` mà không `saveAndFlush`/flush tường minh trước — `clearAutomatically` xoá
-  persistence context, nếu thay đổi entity (`headline`...) chưa kịp flush xuống DB thì MẤT LUÔN, không
-  phải lỗi ở lần chạy sau mà mất ngay trong chính request đó (R-E3, test mục 7.15).
+- Khai báo câu native UPDATE đặt `embedding = NULL` chỉ với `@Modifying(clearAutomatically = true)`
+  (thiếu `flushAutomatically = true`) — `clearAutomatically` xoá persistence context, nếu thay đổi
+  entity (`headline`...) chưa kịp flush xuống DB thì MẤT LUÔN, không phải lỗi ở lần chạy sau mà mất
+  ngay trong chính request đó (R-E3, test mục 7.15). Cách đúng: `@Modifying(clearAutomatically =
+  true, flushAutomatically = true)` ngay trên `clearEmbedding`, đúng tiền lệ `touchAfterReparse`.
 - Đọc `expectedUpdatedAt` (R-E5) bằng `Instant.now()`/đồng hồ Java thay vì đọc lại chính giá trị
   `updated_at` đã lưu trong Postgres — hai nguồn thời gian khác độ chính xác, so sánh lệch sẽ khiến
   điều kiện `WHERE updated_at = :expectedUpdatedAt` không bao giờ khớp (rowcount luôn 0) hoặc khớp sai

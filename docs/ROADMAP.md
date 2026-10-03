@@ -563,7 +563,21 @@ tương ứng ở đây.
     khác VND; chưa có tin demo thật ở tiền tệ khác VND để minh hoạ bằng mắt.
   - `PublicJobSearchCriteria` (R-Q1) mới chuẩn bị điểm nối cho FR-U15 — FR-U15 (sau FR-U14) phải tự đối
     chiếu lại phần "điều kiện cứng" này với đặc tả của chính nó khi tới lượt code.
-- [ ] `feat/fr-u14-career-profile` — FR-U14 · Hồ sơ nghề nghiệp và mong muốn công việc
+- [x] `feat/fr-u14-career-profile` — FR-U14 · Hồ sơ nghề nghiệp và mong muốn công việc — **HOÀN THÀNH**
+  (03/10/2026, 7 đợt code, xem `docs/walkthrough/fr-u14-career-profile.md`). Mở rộng `candidate_profiles`
+  (migration V10) với 4 cột mảng `text[]` (ngành/khu vực/hình thức làm việc mong muốn, kỹ năng — lần đầu
+  dự án map mảng Postgres qua Hibernate, phải dùng `String[]` chứ không phải `List<String>`), lương mong
+  muốn, giới thiệu ngắn, cờ `onboarding_completed_at`, `embedding`/`embedding_model` riêng cho hồ sơ; màn
+  `/candidate/onboarding` (★Mới) + wrapper `RequireCandidateProfileOnboarding` tự chuyển hướng ở lần đăng
+  nhập đầu; nút "Điền từ CV" (đọc `resume_parsed_data`, không gọi AI); `CandidateProfileEmbeddingScheduler`
+  tính embedding hồ sơ theo khuôn FR-U04, ghi có điều kiện theo `updated_at` để tránh race đã ghi nợ ở CV.
+  Nợ kỹ thuật:
+  - Scheduler embedding hồ sơ không có claim/stale-reaper (giống khoản nợ đã ghi ở FR-U04 cho CV/Job) —
+    an toàn 1 instance, có thể sinh embedding trùng ở đa instance (tốn API, không sai dữ liệu).
+  - `embedding_model` là `NULL` cho hồ sơ chưa được scheduler xử lý lần nào — thứ tự thời gian tự nhiên,
+    không phải lỗi.
+  - Giới hạn "tối đa 3"/"tối đa 20"/"tối đa 1000 triệu" là hằng số cứng trong code, chưa có cấu hình.
+  - `CatalogMultiCombobox` kế thừa hạn chế tìm theo nhãn (không bí danh) của `CatalogCombobox` (FR-C05).
 - [ ] `feat/fr-u15-profile-recommend` — FR-U15 · Gợi ý việc làm theo hồ sơ
 
 **Xong khi:** tin/hồ sơ thiếu dữ liệu chuẩn hoá vẫn hiện kèm nhãn, không bị loại âm thầm; ứng viên
@@ -582,7 +596,9 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     gộp thành một component dùng chung `JobBoard`, hai trang chỉ còn khác layout bọc ngoài.
   - Badge trạng thái đơn (`ApplicationStatusBadge`): bỏ xanh lá "Trúng tuyển" / đỏ "Bị từ chối", chuyển sang bảng màu trung tính; áp cho mọi nơi hiển thị trạng thái.
   - HR: HrHomePage, HrJobListPage, HrCandidatesPage, HrJobEditPage (4 tab, gồm ApplicationsTab và báo cáo giải thích), CompanyProfilePage, HrNotificationsPage.
-  - Ứng viên: CandidateApplicationsPage + dòng thời gian lịch sử, CandidateProfilePage (phần FR-U14 chưa đụng), danh sách CV, CvImprovementSuggestionsPage, CandidateNotificationsPage.
+  - Ứng viên: CandidateApplicationsPage + dòng thời gian lịch sử, CandidateProfilePage (phần form hồ sơ —
+    card "Thông tin cơ bản" + "Nghề nghiệp và mong muốn công việc" — đã làm ở FR-U14; phần "CV của tôi"
+    còn lại cho đợt này), danh sách CV, CvImprovementSuggestionsPage, CandidateNotificationsPage.
   - LoginPage, RegisterPage.
   - Màn hình nào đã được FR ở Phase 2.1 làm lại hoàn toàn theo MD3 thì ghi "đã làm ở FR-xxx" và bỏ qua.
   - Phát hiện khi soát tay FR-U07 (02/10/2026), ngoài phạm vi U07 — để lại cho đợt này xử lý:

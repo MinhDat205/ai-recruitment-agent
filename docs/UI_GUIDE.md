@@ -299,7 +299,7 @@ thêm lúc code.
 | `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành), FR-U07 (giữ điều hướng ứng viên, màu chữ lương) |
 | `/companies/:id` | Hồ sơ doanh nghiệp | Hiện có | FR-C02, FR-H01 |
 | `/login` | Đăng nhập | Hiện có | FR-C01 |
-| `/register` | Đăng ký (xong → ★`/candidate/onboarding`) | Hiện có | FR-C01, ★FR-U14 |
+| `/register` | Đăng ký (xong vẫn về `/login`; ★`/candidate/onboarding` chỉ xuất hiện ở lần đăng nhập đầu) | Hiện có | FR-C01, ★FR-U14 |
 
 ### Ứng viên
 

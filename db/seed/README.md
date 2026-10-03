@@ -190,7 +190,9 @@ vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (8 dòng) �
   trường `headline`/`skills`/`bio` khác rỗng (R-E2) — tức chỉ 3 hồ sơ "đầy đủ" (Trần Minh
   Hoàng, Nguyễn Thị Thu Hà, Đỗ Khánh Linh) sẽ có embedding sau khi backend chạy một lúc;
   5 hồ sơ còn lại (mảng/`bio` rỗng) tiếp tục giữ `embedding = NULL` vĩnh viễn, đúng thiết
-  kế, không phải lỗi.
+  kế, không phải lỗi. Số đo thật sau khi nạp lại và chạy backend với khoá OpenAI thật
+  (03/10/2026): **`SELECT count(*) FROM candidate_profiles WHERE embedding IS NOT NULL;`
+  → 3** — đúng 3 hồ sơ "đầy đủ" dự kiến ở trên, không hơn không kém.
 - `job_recommendations` (FR-U07 R-D1, 02/10/2026): trước đây 6 job trong `seed-demo-structural.sql` ở
   trạng thái `DRAFT` nên bảng này luôn về 0 — `JobRecommendationCacheScheduler` cứ 5 giây xoá-rồi-chèn
   lại gợi ý cho mọi ứng viên có embedding CV chính, chỉ khớp job `OPEN`, không có job `OPEN` nào thì

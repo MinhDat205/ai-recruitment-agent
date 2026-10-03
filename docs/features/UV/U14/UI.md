@@ -2,7 +2,7 @@
 
 ## 1. Trạng thái
 
-ĐÃ DUYỆT (02/10/2026). Đặc tả chức năng: `REQUIREMENT.md` cùng thư mục — mọi mã quy tắc (R-F, R-S,
+ĐÃ HOÀN THÀNH (03/10/2026). Đặc tả chức năng: `REQUIREMENT.md` cùng thư mục — mọi mã quy tắc (R-F, R-S,
 R-M, R-K, R-B, R-G, R-O, R-A, R-E, R-P, R-V) tham chiếu từ file đó.
 
 **Phạm vi MD3**: toàn bộ màn hình `/candidate/onboarding` (★Mới) và **toàn bộ** hai card mới/sửa trên
