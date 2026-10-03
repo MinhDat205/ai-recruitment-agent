@@ -56,6 +56,9 @@ const NO_FILTER_CONTEXT: JobCardFilterContext = {
 interface JobCardProps {
   job: JobSummary
   filterContext?: JobCardFilterContext
+  // FR-U15 R-M1 - tuy chon, chi khoi goi y (RecommendedJobs) truyen vao. Noi khac dung JobCard
+  // KHONG truyen prop nay -> giao dien khong doi (R-M, UI.md muc 5).
+  matchedConditions?: string[]
 }
 
 // UI.md muc 4c/4d (R-L1, dieu chinh sau soat tay 02/10/2026): mau luong text-m3-tertiary, han nop
@@ -63,7 +66,7 @@ interface JobCardProps {
 // - ten cong ty nao cung bat dau bang "Cong ty" nen chu viet tat vo nghia). Nhan "Chua chuan
 // hoa"/chu thich ngoai te CHI hien dung luc dang loc truong tuong ung (R-N3/R-N4/R-S5) - khong hien
 // tran lan khi khong loc (UI.md muc 10).
-export function JobCard({ job, filterContext = NO_FILTER_CONTEXT }: JobCardProps) {
+export function JobCard({ job, filterContext = NO_FILTER_CONTEXT, matchedConditions }: JobCardProps) {
   const salary = formatSalary(job)
   const locationText = jobLocationText(job)
   const categoryText = jobCategoryText(job)
@@ -123,6 +126,26 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT }: JobCardProps
         )}
         {filterContext.isLocationFilterActive && shouldShowLocationUnnormalizedBadge(job) && (
           <UnnormalizedField legacyValue={job.legacyLocation} />
+        )}
+
+        {/* FR-U15 R-M - chip trung tinh, mot mau duy nhat (khong phan cap theo "muc do khop").
+            aria-label gop tren container + aria-hidden tren tung chip: trinh doc man hinh doc MOT
+            lan noi dung gop, khong doc roi tung chip rieng le (UI_GUIDE muc 9). */}
+        {matchedConditions && matchedConditions.length > 0 && (
+          <div
+            className="mt-1 flex flex-wrap gap-2"
+            aria-label={`Điều kiện khớp: ${matchedConditions.join(', ')}`}
+          >
+            {matchedConditions.map((condition) => (
+              <span
+                key={condition}
+                aria-hidden="true"
+                className="rounded-(--radius-badge) bg-m3-surface-container px-3 py-1 text-xs text-m3-on-surface"
+              >
+                {condition}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </Link>

@@ -23,9 +23,10 @@ export function useJobDetailQuery(id: string | undefined) {
   })
 }
 
-// Khong can refetchInterval nhu goi y cai thien CV (F2, poll khi trang thai PENDING/RUNNING):
-// cache goi y viec lam da duoc JobRecommendationCacheScheduler sinh san dinh ky o backend,
-// endpoint chi doc cache co san - khong co trang thai "dang xu ly" nao o phia candidate can cho.
+// FR-U15 - khong con bo dem (JobRecommendationCacheScheduler cua F1/FR-U04 da xoa), backend tinh
+// TRUC TIEP moi lan goi. Khong can refetchInterval: trang thai PREPARING la tam thoi (cho embedding
+// tinh xong o lan poll sau cua scheduler khac), nguoi dung tai lai trang se thay cap nhat, khong
+// can tu poll lien tuc o day.
 export function useJobRecommendationsQuery() {
   return useQuery({
     queryKey: ['candidate-job-recommendations'],

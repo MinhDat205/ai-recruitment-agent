@@ -1,5 +1,5 @@
 import { http } from '../../lib/http'
-import type { JobDetail, JobSearchParams, JobSummary, PageResponse } from './types'
+import type { JobDetail, JobRecommendationResponse, JobSearchParams, JobSummary, PageResponse } from './types'
 
 // Axios serialize mang trong object params thanh "workMode[]=..." (da kiem bang buildURL thuc te),
 // Spring @RequestParam List<String> workMode doi dung "workMode=A&workMode=B" (lap ten tham so,
@@ -40,9 +40,9 @@ export async function getJobDetailRequest(id: string): Promise<JobDetail> {
   return response.data
 }
 
-// Backend tra thang List<JobSummaryResponse>, KHONG boc PageResponse - cache goi y da gioi han
-// san TOP_N=10 tu luc sinh o backend (JobRecommendationCacheService), khong can phan trang them.
-export async function getJobRecommendationsRequest(): Promise<JobSummary[]> {
-  const response = await http.get<JobSummary[]>('/candidates/job-recommendations')
+// FR-U15 R-S - backend tinh TRUC TIEP moi lan goi (khong con bo dem F1/FR-U04), tra
+// {status, source, items} thay cho List<JobSummaryResponse> cu.
+export async function getJobRecommendationsRequest(): Promise<JobRecommendationResponse> {
+  const response = await http.get<JobRecommendationResponse>('/candidates/job-recommendations')
   return response.data
 }
