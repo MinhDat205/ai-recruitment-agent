@@ -44,7 +44,7 @@ $TableOrder = @(
     'resumes',
     'resume_parsed_data',
     'job_embeddings',
-    'job_recommendations',
+    # FR-U15 dot 4: da go bo dem (bang job_recommendations) - khong con xuat bang nay.
     'job_applications',
     'application_status_history',
     'scoring_runs',

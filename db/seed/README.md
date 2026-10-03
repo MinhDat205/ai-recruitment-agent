@@ -133,15 +133,21 @@ Chuyên viên Marketing, Nhân viên kinh doanh qua điện thoại.
 một bản cũ), minh hoạ FR-U01 "nhiều phiên bản CV, một bản là chính". Ứng viên Bùi
 Ngọc Mai (Nhân sự) **cố ý không nộp đơn nào** — xem lý do ở walkthrough.
 
-**8 `candidate_profiles` (FR-U14, nạp ở Tầng 1):** cả 8 đều có `onboarding_completed_at`
-(coi như đã qua màn "Hoàn thiện hồ sơ"). 3 người có đủ hồ sơ nghề nghiệp/mong muốn, khác
-ngành nhau và khớp đúng ngành của 3 job demo tương ứng:
+**1 ứng viên thứ 9 — Hoàng Minh Tuấn — KHÔNG có CV nào (FR-U15, nạp ở Tầng 1):**
+chỉ có hồ sơ nghề nghiệp đầy đủ, chưa từng tải CV lên — minh hoạ nhánh gợi ý việc làm
+dựa trên hồ sơ/mong muốn (`PROFILE`/`DESIRES`) khi ứng viên chưa có CV, khác 8 ứng
+viên còn lại (đều có ít nhất 1 CV).
+
+**9 `candidate_profiles` (FR-U14/FR-U15, nạp ở Tầng 1):** cả 9 đều có `onboarding_completed_at`
+(coi như đã qua màn "Hoàn thiện hồ sơ"). 4 người có đủ hồ sơ nghề nghiệp/mong muốn, khác
+ngành nhau và khớp đúng ngành của 4 job demo tương ứng:
 
 | Ứng viên | Chức danh mong muốn | Ngành mong muốn | Khớp job demo |
 |---|---|---|---|
 | Trần Minh Hoàng | Lập trình viên Backend (Java/Spring Boot) | Công nghệ thông tin - Phần mềm | Senior Java Backend Developer |
 | Nguyễn Thị Thu Hà | Kế toán tổng hợp | Kế toán - Kiểm toán | Kế toán tổng hợp |
 | Đỗ Khánh Linh | Chuyên viên Marketing | Marketing - Truyền thông | Chuyên viên Marketing |
+| Hoàng Minh Tuấn *(không có CV)* | Chuyên viên Kinh doanh / Telesales | Kinh doanh - Bán hàng | Nhân viên kinh doanh qua điện thoại |
 
 5 ứng viên còn lại (Lê Văn Đức, Phạm Quốc Bảo, Nguyễn Hải Sơn, Võ Thanh Tùng, Bùi Ngọc
 Mai) giữ hồ sơ mong muốn trống (mảng rỗng, `desired_salary_min`/`bio` `NULL`) — chỉ có
@@ -161,11 +167,10 @@ dòng Tổng bên dưới:
 
 | Bảng | Số dòng |
 |---|---|
-| `candidate_profiles` *(Tầng 1)* | 8 |
+| `candidate_profiles` *(Tầng 1)* | 9 |
 | `resumes` | 9 |
 | `resume_parsed_data` | 9 |
 | `job_embeddings` | 6 |
-| `job_recommendations` | **28** (đo 02/10/2026, backend chạy với 6 tin `OPEN` — xem ghi chú dưới) |
 | `job_applications` | 9 |
 | `application_status_history` | 10 |
 | `scoring_runs` | 15 |
@@ -183,24 +188,21 @@ vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (8 dòng) �
 `category_code`.
 
 **Ghi chú các con số dễ gây thắc mắc:**
-- `candidate_profiles.embedding`/`embedding_model` (FR-U14): cả 8 hồ sơ đều `NULL` ngay
+- `candidate_profiles.embedding`/`embedding_model` (FR-U14): cả 9 hồ sơ đều `NULL` ngay
   sau khi nạp Tầng 1 — `seed-demo-structural.sql` KHÔNG tự tính embedding (SQL thuần,
   không gọi AI). `CandidateProfileEmbeddingScheduler` (R-E4) chỉ sinh embedding khi
   backend thật sự chạy với khoá OpenAI thật, và chỉ cho hồ sơ có ít nhất một trong ba
-  trường `headline`/`skills`/`bio` khác rỗng (R-E2) — tức chỉ 3 hồ sơ "đầy đủ" (Trần Minh
-  Hoàng, Nguyễn Thị Thu Hà, Đỗ Khánh Linh) sẽ có embedding sau khi backend chạy một lúc;
-  5 hồ sơ còn lại (mảng/`bio` rỗng) tiếp tục giữ `embedding = NULL` vĩnh viễn, đúng thiết
-  kế, không phải lỗi. Số đo thật sau khi nạp lại và chạy backend với khoá OpenAI thật
-  (03/10/2026): **`SELECT count(*) FROM candidate_profiles WHERE embedding IS NOT NULL;`
-  → 3** — đúng 3 hồ sơ "đầy đủ" dự kiến ở trên, không hơn không kém.
-- `job_recommendations` (FR-U07 R-D1, 02/10/2026): trước đây 6 job trong `seed-demo-structural.sql` ở
-  trạng thái `DRAFT` nên bảng này luôn về 0 — `JobRecommendationCacheScheduler` cứ 5 giây xoá-rồi-chèn
-  lại gợi ý cho mọi ứng viên có embedding CV chính, chỉ khớp job `OPEN`, không có job `OPEN` nào thì
-  không có gợi ý nào. **Từ FR-U07 R-D1, 6 job seed thẳng ở trạng thái `OPEN`** (đã có `job_embeddings`
-  sẵn, cột ở trên) — scheduler khi backend chạy tính ra gợi ý thật cho từng ứng viên theo mức tương
-  đồng embedding. Số đo thật sau khi nạp lại và chạy backend (02/10/2026):
-  **`SELECT count(*) FROM job_recommendations;` → 28** — chi tiết ở
-  `docs/walkthrough/fr-u07-job-filter.md`.
+  trường `headline`/`skills`/`bio` khác rỗng (R-E2) — tức chỉ 4 hồ sơ "đầy đủ" (Trần Minh
+  Hoàng, Nguyễn Thị Thu Hà, Đỗ Khánh Linh, Hoàng Minh Tuấn) sẽ có embedding sau khi backend
+  chạy một lúc; 5 hồ sơ còn lại (mảng/`bio` rỗng) tiếp tục giữ `embedding = NULL` vĩnh viễn,
+  đúng thiết kế, không phải lỗi. Số đo ngay sau khi nạp lại (trước khi chạy backend):
+  **`SELECT count(*) FROM candidate_profiles WHERE embedding IS NOT NULL;` → 0** — đúng
+  thiết kế, backend chưa chạy nên scheduler chưa có cơ hội tính.
+- `job_recommendations` **đã bị xoá hẳn ở FR-U15 (đợt 4, `V11__drop_job_recommendations.sql`)**
+  — bộ đệm cũ của FR-U04 (xoá-rồi-chèn lại định kỳ qua `JobRecommendationCacheScheduler`, đã xoá
+  cùng đợt) được thay bằng tính toán trực tiếp mỗi lần gọi `GET /api/candidates/job-recommendations`
+  (không còn bảng, không còn số dòng nào để đo ở bước seed). Chi tiết ở
+  `docs/walkthrough/fr-u15-profile-recommend.md`.
 - `resume_parsed_data.embedding` = 8/9: trích xuất lại đặt embedding về NULL và F1 chỉ embed **CV chính**;
   bản CV cũ (không chính) của Lê Văn Đức không được embed lại — đúng thiết kế.
 - `score_explanation_attempts = 0` là **bình thường**, không phải thiếu sót — bảng
@@ -225,9 +227,9 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
   đã biết, không phải lỗi của bước nạp seed — xem ghi chú D2 trong `docs/ROADMAP.md`.
 - Mở một hồ sơ bất kỳ, bấm **"Xem CV gốc"** — phải tải được file PDF. Nếu lỗi, nghĩa
   là bước 4 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
-- Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm **phụ thuộc
-  kết quả so khớp embedding thật của `JobRecommendationCacheScheduler`** (xem ghi chú `job_recommendations`
-  ở mục 6, cập nhật FR-U07 R-D1, đo thật 28 dòng toàn bảng) — ứng viên này thuộc ngành Nhân sự, không
+- Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm **tính
+  trực tiếp ngay khi gọi `GET /api/candidates/job-recommendations` (FR-U15, không còn bảng đệm/scheduler
+  — xem ghi chú `job_recommendations` ở mục 6)** — ứng viên này thuộc ngành Nhân sự, không
   trùng ngành với 6 job seed hiện có (không có job Nhân sự nào), nhiều khả năng khối gợi ý của riêng
   ứng viên này vẫn rỗng do dưới ngưỡng tương đồng.
 - Đăng nhập `le.van.duc@demo.local`, trang hồ sơ: thấy **2 phiên bản CV**, một bản

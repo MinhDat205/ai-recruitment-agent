@@ -94,8 +94,9 @@ TRUNCATE TABLE
     job_applications, application_status_history, interview_invitations,
     -- Cham diem AI
     scoring_runs, criterion_scores, score_explanations, score_explanation_attempts,
-    -- Goi y viec lam & cai thien CV (F1/F2)
-    job_recommendations, cv_improvement_suggestions, cv_improvement_requests,
+    -- Goi y viec lam (F1/FR-U04, da go bo dem o FR-U15 dot 4 - khong con bang
+    -- job_recommendations) & cai thien CV (F2)
+    cv_improvement_suggestions, cv_improvement_requests,
     -- Thong bao (E2)
     notifications
 CASCADE;
