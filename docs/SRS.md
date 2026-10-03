@@ -56,7 +56,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U12 | Tạo CV (CV builder) | Ứng viên | Chưa đặc tả | [features/UV/U12/REQUIREMENT.md](features/UV/U12/REQUIREMENT.md) |
 | FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Ứng viên | Chưa đặc tả | [features/UV/U13/REQUIREMENT.md](features/UV/U13/REQUIREMENT.md) |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Ứng viên | Đã hoàn thành | [features/UV/U14/REQUIREMENT.md](features/UV/U14/REQUIREMENT.md) |
-| FR-U15 | Gợi ý việc làm theo hồ sơ | Ứng viên | Chưa đặc tả | [features/UV/U15/REQUIREMENT.md](features/UV/U15/REQUIREMENT.md) |
+| FR-U15 | Gợi ý việc làm theo hồ sơ | Ứng viên | Đã duyệt | [features/UV/U15/REQUIREMENT.md](features/UV/U15/REQUIREMENT.md) |
 
 # 1. Chức năng chung (Common Functions)
 

@@ -243,7 +243,7 @@ Chủ động đưa một số việc làm phù hợp lên trang tìm việc, th
 
 - Điều kiện cứng lấy từ mong muốn: ngành nghề và khu vực (nếu ứng viên có khai), áp bằng đúng truy vấn của U07; chỉ lấy việc làm OPEN, còn hạn, chưa ứng tuyển trong chu kỳ hiện tại.
 - Xếp hạng theo độ tương đồng giữa vector đại diện của ứng viên và embedding việc làm. Vector là embedding của CV chính nếu có (như FR-U04 hiện tại), nếu chưa có CV thì dùng embedding hồ sơ U14.
-- Mức lương và hình thức làm việc không loại tin, chỉ hiển thị là điều kiện khớp hoặc không khớp, tránh danh sách rỗng vì nhiều tin không công bố lương.
+- Mức lương và hình thức làm việc không loại tin; chỉ hiện chip điều kiện khớp khi thực sự khớp, không khớp thì không hiện gì — tránh danh sách rỗng vì nhiều tin không công bố lương.
 - Nhánh CV giữ ngưỡng tương đồng hiện có của FR-U04. Nhánh hồ sơ không áp ngưỡng: văn bản hồ sơ ngắn nên điểm tương đồng không cùng thang với CV mà ngưỡng đã được hiệu chỉnh; phạm vi đã được giới hạn bằng điều kiện cứng.
 - Tính trực tiếp khi mở trang, dùng chung bộ máy "điều kiện cứng + xếp theo embedding" với U13. Bộ đệm và lịch làm mới của FR-U04 được thay bằng cách này để hệ thống chỉ còn một nguồn gợi ý.
 - Không có kết quả thì hiển thị thông báo và đề nghị mở rộng mong muốn; hệ thống không tự nới điều kiện.
