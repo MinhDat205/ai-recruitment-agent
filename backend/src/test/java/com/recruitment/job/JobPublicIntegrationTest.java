@@ -450,6 +450,122 @@ class JobPublicIntegrationTest {
         assertThat(result.getResponse().getContentAsString()).contains("\"error\":\"INVALID_CATALOG_CODE\"");
     }
 
+    // ===== FR-U15 R-H3/R-H4 - mo rong categoryCode/locationCode sang nhieu gia tri (them MOI, =====
+    // ===== khong sua method nao o tren) =====
+
+    @Test
+    void list_filtersByCategoryCode_multipleValues_matchesAnyOfThem() throws Exception {
+        User hr = createHrUser();
+        Company company = createCompany(hr.getId());
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        Job itJob = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiCat IT " + unique, null, null);
+        itJob.setCategoryCode("IT_SOFTWARE");
+        jobRepository.save(itJob);
+        Job salesJob =
+                createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiCat Sales " + unique, null, null);
+        salesJob.setCategoryCode("SALES");
+        jobRepository.save(salesJob);
+        Job marketingJob = createJob(
+                company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiCat Marketing " + unique, null, null);
+        marketingJob.setCategoryCode("MARKETING_COMMUNICATIONS");
+        jobRepository.save(marketingJob);
+        Job otherJob =
+                createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiCat Other " + unique, null, null);
+        otherJob.setCategoryCode("FINANCE_BANKING");
+        jobRepository.save(otherJob);
+
+        MvcResult result = mockMvc.perform(get("/api/public/jobs")
+                        .param("categoryCode", "IT_SOFTWARE", "SALES", "MARKETING_COMMUNICATIONS")
+                        .param("keyword", unique)
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("MultiCat IT " + unique);
+        assertThat(body).contains("MultiCat Sales " + unique);
+        assertThat(body).contains("MultiCat Marketing " + unique);
+        assertThat(body).doesNotContain("MultiCat Other " + unique);
+    }
+
+    @Test
+    void list_filtersByLocationCode_multipleValues_matchesAnyOfThem() throws Exception {
+        User hr = createHrUser();
+        Company company = createCompany(hr.getId());
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        Job hnJob = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiLoc HN " + unique, null, null);
+        hnJob.setLocationCode("HA_NOI");
+        jobRepository.save(hnJob);
+        Job hcmJob = createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiLoc HCM " + unique, null, null);
+        hcmJob.setLocationCode("HO_CHI_MINH");
+        jobRepository.save(hcmJob);
+        Job otherJob =
+                createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "MultiLoc Other " + unique, null, null);
+        otherJob.setLocationCode("DA_NANG");
+        jobRepository.save(otherJob);
+
+        MvcResult result = mockMvc.perform(get("/api/public/jobs")
+                        .param("locationCode", "HA_NOI", "HO_CHI_MINH")
+                        .param("keyword", unique)
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("MultiLoc HN " + unique);
+        assertThat(body).contains("MultiLoc HCM " + unique);
+        assertThat(body).doesNotContain("MultiLoc Other " + unique);
+    }
+
+    // Bien dung R-H4: dung 3 ma (sau khu trung) -> 200; 4 ma KHAC NHAU -> 400 INVALID_JOB_FILTER.
+    @Test
+    void list_categoryCodes_exactlyThreeIsValid_fourDistinctExceedsLimit() throws Exception {
+        mockMvc.perform(get("/api/public/jobs")
+                        .param("categoryCode", "IT_SOFTWARE", "SALES", "MARKETING_COMMUNICATIONS"))
+                .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(get("/api/public/jobs")
+                        .param("categoryCode", "IT_SOFTWARE", "SALES", "MARKETING_COMMUNICATIONS", "FINANCE_BANKING"))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("\"error\":\"INVALID_JOB_FILTER\"");
+    }
+
+    // R-F2/R-H4: khu trung TRUOC KHI kiem so luong - 4 gia tri tho co 1 trung (con 3 ma phan biet)
+    // phai duoc chap nhan (200), khong bi tu choi vi do dai mang tho la 4.
+    @Test
+    void list_categoryCodes_duplicateValues_dedupedBeforeCountCheck_returns200() throws Exception {
+        mockMvc.perform(get("/api/public/jobs")
+                        .param("categoryCode", "IT_SOFTWARE", "IT_SOFTWARE", "SALES", "MARKETING_COMMUNICATIONS"))
+                .andExpect(status().isOk());
+    }
+
+    // R-H3: mot gia tri (khong lap tham so) van hop le - hoi quy truc tiep doi chieu voi hanh vi
+    // truoc khi mo rong sang danh sach (cung kich ban voi list_filtersByCategoryCode_
+    // returnsMatchingJobsOnly o tren, test do VAN chay khong sua la bang chung hoi quy chinh).
+    @Test
+    void list_filtersByCategoryCode_singleValueStillValid_matchesSameAsBeforeExtension() throws Exception {
+        User hr = createHrUser();
+        Company company = createCompany(hr.getId());
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        Job itJob =
+                createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "SingleCat IT " + unique, null, null);
+        itJob.setCategoryCode("IT_SOFTWARE");
+        jobRepository.save(itJob);
+        Job salesJob =
+                createJob(company.getId(), hr.getId(), JobStatus.OPEN, null, "SingleCat Sales " + unique, null, null);
+        salesJob.setCategoryCode("SALES");
+        jobRepository.save(salesJob);
+
+        MvcResult result = mockMvc.perform(get("/api/public/jobs")
+                        .param("categoryCode", "IT_SOFTWARE")
+                        .param("keyword", unique)
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("SingleCat IT " + unique);
+        assertThat(body).doesNotContain("SingleCat Sales " + unique);
+    }
+
     // ===== Muc 7.2 - Ma NULL van hien, khong bi day xuong cuoi mot cach dac biet (R-N) =====
 
     @Test
