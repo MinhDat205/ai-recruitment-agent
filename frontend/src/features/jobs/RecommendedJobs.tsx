@@ -56,11 +56,17 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-ink">Gợi ý cho bạn</h2>
         {showViewAll && (
+          // index.css dong 124 dat "a { color: inherit }" KHONG boc trong @layer (unlayered) - CSS
+          // cascade layers cho unlayered LUON thang layer "utilities" cua Tailwind du specificity
+          // thap hon, nen text-m3-primary/hover:underline dat TRUC TIEP tren <Link> (render ra <a>)
+          // bi de thanh mau ke thua (den) - phai dat hai class do tren <span> con, KHONG phai tren
+          // <a> (xem bao cao Dot 9b, da build CSS thuc kiem chung). focus-visible van dat tren Link
+          // (nhan focus) - khong bi anh huong vi khong trung thuoc tinh voi rule unlayered o tren.
           <Link
             to={viewAllHref}
-            className="shrink-0 text-sm font-medium text-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+            className="shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
           >
-            Xem tất cả
+            <span className="text-sm font-medium text-m3-primary hover:underline">Xem tất cả</span>
           </Link>
         )}
       </div>
@@ -96,11 +102,12 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
             <p className="text-sm text-ink-muted">
               Hãy hoàn thiện hồ sơ nghề nghiệp hoặc tải CV để nhận gợi ý việc làm phù hợp.
             </p>
+            {/* Mau/gach chan dat tren <span> con, khong tren <a> - xem comment o nut "Xem tat ca" */}
             <Link
               to="/candidate/profile"
-              className="text-sm text-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+              className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
             >
-              Hoàn thiện hồ sơ
+              <span className="text-sm text-m3-primary hover:underline">Hoàn thiện hồ sơ</span>
             </Link>
           </div>
         )}
@@ -121,12 +128,13 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
               Chưa có việc làm nào để gợi ý lúc này.
               {hasDesires && ' Hãy thử mở rộng ngành nghề hoặc khu vực mong muốn.'}
             </p>
+            {/* Mau/gach chan dat tren <span> con, khong tren <a> - xem comment o nut "Xem tat ca" */}
             {hasDesires && (
               <Link
                 to="/candidate/profile"
-                className="text-sm text-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+                className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
               >
-                Chỉnh mong muốn
+                <span className="text-sm text-m3-primary hover:underline">Chỉnh mong muốn</span>
               </Link>
             )}
           </div>

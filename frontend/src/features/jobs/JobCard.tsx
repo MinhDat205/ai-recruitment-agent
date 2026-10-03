@@ -128,24 +128,18 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT, matchedConditi
           <UnnormalizedField legacyValue={job.legacyLocation} />
         )}
 
-        {/* FR-U15 R-M - chip trung tinh, mot mau duy nhat (khong phan cap theo "muc do khop").
-            aria-label gop tren container + aria-hidden tren tung chip: trinh doc man hinh doc MOT
-            lan noi dung gop, khong doc roi tung chip rieng le (UI_GUIDE muc 9). */}
+        {/* FR-U15 R-M (sua sau soat tay 03/10/2026) - MOT dong van ban duy nhat, tu xuong dong,
+            khong con chip rieng tung dieu kien (tranh chong voi tag khu vuc/nganh phia tren va
+            lap lai y nguyen nhan). Trung tinh mot mau duy nhat, khong %, khong dau check. aria-label
+            gop giu nguyen y nghia cu (UI_GUIDE muc 9) - noi dung hien thi va aria-label giong nhau
+            nen khong can tach aria-hidden nhu truoc. */}
         {matchedConditions && matchedConditions.length > 0 && (
-          <div
-            className="mt-1 flex flex-wrap gap-2"
+          <p
+            className="mt-1 rounded-(--radius-badge) bg-m3-surface-container px-3 py-1 text-xs text-m3-on-surface"
             aria-label={`Điều kiện khớp: ${matchedConditions.join(', ')}`}
           >
-            {matchedConditions.map((condition) => (
-              <span
-                key={condition}
-                aria-hidden="true"
-                className="rounded-(--radius-badge) bg-m3-surface-container px-3 py-1 text-xs text-m3-on-surface"
-              >
-                {condition}
-              </span>
-            ))}
-          </div>
+            <span className="font-medium">Khớp mong muốn:</span> {matchedConditions.join(' · ')}
+          </p>
         )}
       </div>
     </Link>

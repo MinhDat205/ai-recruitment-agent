@@ -51,6 +51,7 @@ bảng đó.
 │ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐        │
 │ │ (JobCard)        │ │ (JobCard)        │ │ (JobCard)        │        │
 │ │ ...              │ │ ...              │ │ ...              │        │
+│ │ Khớp mong muốn:  │ │ Khớp mong muốn:  │ │ Khớp mong muốn:  │        │
 │ │ Hà Nội · CNTT ·  │ │ CNTT · Toàn thời │ │ Lương đạt mong   │        │
 │ │ Toàn thời gian · │ │ gian             │ │ muốn             │        │
 │ │ Lương đạt mong   │ │                  │ │                  │        │
@@ -69,10 +70,10 @@ bảng đó.
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-Lưới 3 cột `lg` (giống `RecommendedJobs` hiện có), tối đa 6 thẻ (2 dòng × 3 cột). Dòng chip điều
-kiện khớp nằm **dưới cùng** mỗi `JobCard` (phần mở rộng mới của `JobCard`, chỉ hiện khi
-`matchedConditions` không rỗng — các nơi khác dùng `JobCard` không truyền prop này, không đổi giao
-diện).
+Lưới 3 cột `lg` (giống `RecommendedJobs` hiện có), tối đa 6 thẻ (2 dòng × 3 cột). Dòng văn bản điều
+kiện khớp (một khối duy nhất, nhãn "Khớp mong muốn:" + các điều kiện nối bằng "·", tự xuống dòng)
+nằm **dưới cùng** mỗi `JobCard` (phần mở rộng mới của `JobCard`, chỉ hiện khi `matchedConditions`
+không rỗng — các nơi khác dùng `JobCard` không truyền prop này, không đổi giao diện).
 
 ### 4b. `/candidate` — mobile (`< sm`, 375px), trạng thái `READY`
 
@@ -82,8 +83,9 @@ diện).
 │                  Xem tất cả →│
 │ ┌───────────────────────────┐│
 │ │ (JobCard)                 ││
-│ │ Hà Nội · CNTT · Toàn thời ││
-│ │ gian · Lương đạt mong muốn││
+│ │ Khớp mong muốn: Hà Nội ·  ││
+│ │ CNTT · Toàn thời gian ·   ││
+│ │ Lương đạt mong muốn       ││
 │ └───────────────────────────┘│
 │ ┌───────────────────────────┐│
 │ │ (JobCard)                 ││
@@ -156,27 +158,29 @@ trần.
   "Xem tất cả" theo trang (R-X3); (b) quyết định có thêm câu "mở rộng mong muốn" vào thông báo
   `NO_RESULT` hay không (R-S5 REQUIREMENT.md, mục 6/7 dưới).
 - `JobCard` (mở rộng, không file mới): thêm prop tuỳ chọn `matchedConditions?: string[]`. Khi có
-  giá trị (không rỗng), render thêm một dòng chip dưới khối thẻ hiện có (tag/kỹ năng vẫn giữ vị trí
-  cũ) — dùng lại class "assist chip trung tính" (mục "Component" UI_GUIDE §3), nền
+  giá trị (không rỗng), render thêm **một khối văn bản duy nhất** (`<p>`, tự xuống dòng, KHÔNG phải
+  nhiều chip riêng lẻ) dưới khối thẻ hiện có (tag/kỹ năng vẫn giữ vị trí cũ) — nhãn "Khớp mong
+  muốn:" (đậm hơn một bậc, `font-medium`) nối với các điều kiện bằng " · " trong cùng một dòng. Nền
   `bg-m3-surface-container`, chữ `text-m3-on-surface` (**không phải** `m3-on-surface-variant` —
   UI_GUIDE mục 6 nói rõ `m3-on-surface-variant` trên nền `m3-surface-container` không đạt 4.5:1,
   phải dùng `m3-on-surface` trên nền này), khác `bg-m3-primary-container` của chip lọc/chip kỹ năng
-  để phân biệt rõ đây là thông tin chỉ-đọc, không phải điều khiển.
+  để phân biệt rõ đây là thông tin chỉ-đọc, không phải điều khiển. Không %, không màu theo mức độ,
+  không dấu ✓ trước mỗi điều kiện.
 
 ### Bảng token dùng cho khối gợi ý
 
 | Thành phần | Token nền | Token chữ | Ghi chú tương phản |
 |---|---|---|---|
-| Chip điều kiện khớp | `bg-m3-surface-container` | `text-m3-on-surface` | `m3-on-surface` luôn dùng trên nền container (UI_GUIDE mục 6) — không dùng `m3-on-surface-variant` (dưới 4.5:1 trên nền này) |
+| Dòng văn bản điều kiện khớp | `bg-m3-surface-container` | `text-m3-on-surface` | `m3-on-surface` luôn dùng trên nền container (UI_GUIDE mục 6) — không dùng `m3-on-surface-variant` (dưới 4.5:1 trên nền này) |
 | Tiêu đề khối "Gợi ý cho bạn" | — (nền `m3-surface` kế thừa từ `JobBoard`) | `text-m3-on-surface` | 14.68:1 trên `m3-surface` (UI_GUIDE:95) |
-| Dòng nguồn ("Dựa trên...") | — | `text-m3-on-surface-variant` | Đặt trên `m3-surface` (nền trắng của trang), đạt 4.83:1 (UI_GUIDE:96) — hợp lệ ở vị trí này, khác chip ở trên |
+| Dòng nguồn ("Dựa trên...") | — | `text-m3-on-surface-variant` | Đặt trên `m3-surface` (nền trắng của trang), đạt 4.83:1 (UI_GUIDE:96) — hợp lệ ở vị trí này, khác dòng văn bản điều kiện khớp ở trên |
 | Thông báo `NO_DATA`/`PREPARING`/`NO_RESULT`/lỗi tải | — | `text-m3-on-surface-variant` | Cùng lý do trên — đặt trực tiếp trên `m3-surface`, không đặt trong khối nền container nào khác |
 | Liên kết hành động ("Hoàn thiện hồ sơ", "Chỉnh mong muốn", "Xem tất cả") | — | `text-m3-primary` (giữ màu liên kết hiện có của `RecommendedJobs`/`JobFilterBar`) | Theo đúng token liên kết đã dùng ở `JobFilterBar.tsx` (`text-m3-primary`), không tạo màu liên kết mới |
 | `JobCardSkeleton` (trạng thái Đang tải) | Giữ nguyên component có sẵn, không đổi token | — | — |
 
-Không dùng `m3-outline-variant` làm viền chip (chỉ 1.23:1 so nền trắng, UI_GUIDE mục 6 — chỉ dùng
-để phân khối lớn, không phải viền một chip nhỏ); chip không cần viền vì đã phân biệt đủ bằng nền
-`m3-surface-container` khác nền trắng của card.
+Không dùng `m3-outline-variant` làm viền khối văn bản này (chỉ 1.23:1 so nền trắng, UI_GUIDE mục 6
+— chỉ dùng để phân khối lớn, không phải viền một khối nhỏ); không cần viền vì đã phân biệt đủ bằng
+nền `m3-surface-container` khác nền trắng của card.
 - `JobBoard` (sửa, không file mới): thêm prop `showRecommendations?: boolean` (mặc định `false`).
   Khi `true` **và** đang ở trang 1, chưa có từ khoá, không có bộ lọc đang áp (R-L3
   `REQUIREMENT.md`) → render `<RecommendedJobs />` trước `<JobFilterBar />`.
@@ -219,8 +223,9 @@ tải/lỗi để tránh layout nhảy.
 | `NO_RESULT` — liên kết (chỉ hiện cùng câu phụ trên) | "Chỉnh mong muốn" |
 | Lỗi tải | "Không tải được gợi ý việc làm." |
 | Nút thử lại | "Thử lại" |
-| Chip điều kiện khớp — lương | "Lương đạt mong muốn" (cố định, không chèn số) |
-| Chip điều kiện khớp — khác | Nhãn thật của ngành/tỉnh/hình thức (tra qua `CatalogRegistry`/`WORK_MODE_LABELS`, không phải chuỗi cố định) |
+| Dòng văn bản điều kiện khớp — nhãn | "Khớp mong muốn:" (cố định, đứng đầu dòng, đậm hơn một bậc) |
+| Dòng văn bản điều kiện khớp — lương | "Lương đạt mong muốn" (cố định, không chèn số) |
+| Dòng văn bản điều kiện khớp — khác | Nhãn thật của ngành/tỉnh/hình thức (tra qua `CatalogRegistry`/`WORK_MODE_LABELS`, không phải chuỗi cố định) |
 
 Dòng "Dựa trên..." đặt ngay dưới tiêu đề khối, trên lưới thẻ — chỉ hiện khi `status ∈ {READY,
 NO_RESULT, PREPARING}` (có `source`), ẩn khi `NO_DATA` (`source=null`).
@@ -241,18 +246,19 @@ chưa khai gì — câu phụ chỉ xuất hiện khi `desiredIndustries.length 
 - **Medium/Expanded (`>= sm`)**: lưới 3 cột (`lg:grid-cols-3`, giữ breakpoint hiện tại của
   `RecommendedJobs`, không đổi sang `md`), **hiển thị đủ 6 thẻ**; `CatalogMultiCombobox` trong
   thanh lọc ngang.
-- Dòng chip điều kiện khớp trong `JobCard`: `flex-wrap`, không cắt dòng cố định — chip tự xuống
-  dòng khi hẹp, không dùng `line-clamp`/`truncate` (khác tiêu đề job, vốn `line-clamp-2`).
+- Dòng văn bản điều kiện khớp trong `JobCard`: một khối `<p>` duy nhất, tự xuống dòng tự nhiên theo
+  độ rộng (không `flex-wrap` vì không còn nhiều chip rời), không dùng `line-clamp`/`truncate` (khác
+  tiêu đề job, vốn `line-clamp-2`).
 
 ## 9. Khả năng tiếp cận
 
 - Khối gợi ý là `<section>` có `aria-label="Gợi ý việc làm cho bạn"` (tiêu đề `h2` hiện có đủ, chỉ
   thêm `aria-label` khi tiêu đề và nội dung không liền kề về DOM do skeleton/trạng thái rỗng chèn
   giữa).
-- Chip điều kiện khớp: liệt kê trong một `<ul>`/`<span>` có `aria-label` mô tả gộp (ví dụ
-  "Điều kiện khớp: Hà Nội, CNTT, Toàn thời gian, Lương đạt mong muốn") thay vì để trình đọc màn
-  hình đọc rời từng chip không ngữ cảnh — tái dùng mẫu `aria-label` đã có ở
-  `CatalogMultiCombobox` (nút "Bỏ chọn X").
+- Dòng văn bản điều kiện khớp: một khối `<p>` duy nhất có `aria-label` mô tả gộp giữ nguyên ý nghĩa
+  (ví dụ "Điều kiện khớp: Hà Nội, CNTT, Toàn thời gian, Lương đạt mong muốn") — nội dung hiển thị
+  ("Khớp mong muốn: Hà Nội · CNTT · ...") và `aria-label` khác nhau về cách diễn đạt nhưng cùng ý
+  nghĩa, tái dùng mẫu `aria-label` đã có ở `CatalogMultiCombobox` (nút "Bỏ chọn X").
 - Trạng thái `PREPARING`/`NO_RESULT`/`NO_DATA`: vùng text bọc `aria-live="polite"` (giống
   `countText` của `JobFilterBar.tsx:90`) — chuyển trạng thái (ví dụ từ `PREPARING` sang `READY` khi
   ứng viên tải lại trang sau khi embedding xong) được thông báo, không chỉ đổi nội dung lặng lẽ.
@@ -266,9 +272,10 @@ chưa khai gì — câu phụ chỉ xuất hiện khi `desiredIndustries.length 
 
 - Không hiện % độ khớp, thanh tiến trình, hay bất kỳ biểu diễn số nào của mức độ phù hợp
   (UI_GUIDE mục 4 "Lý do gợi ý/khớp" — chỉ chip trung tính).
-- Không tô màu chip điều kiện khớp theo mức độ (ví dụ xanh đậm cho "khớp nhiều", nhạt cho "khớp
-  ít") — một màu token duy nhất cho mọi chip, không phân cấp.
-- Không có nhãn "Phù hợp cao"/"Rất phù hợp"/dấu ✓ cạnh job hay cạnh từng chip.
+- Không tô màu dòng văn bản điều kiện khớp theo mức độ (ví dụ xanh đậm cho "khớp nhiều", nhạt cho
+  "khớp ít") — một màu token duy nhất, không phân cấp.
+- Không có nhãn "Phù hợp cao"/"Rất phù hợp"/dấu ✓ cạnh job hay cạnh từng điều kiện trong dòng văn
+  bản.
 - Không hiện khối gợi ý ở `/` (trang công khai, khách/chưa đăng nhập) — `showRecommendations`
   luôn `false` ở `PublicJobListPage`.
 - Không ẩn khối gợi ý bằng cách trả `items: []` lặng lẽ khi lỗi mạng — lỗi mạng phải vào trạng thái

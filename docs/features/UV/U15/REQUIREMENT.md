@@ -93,8 +93,9 @@ mỗi lần ứng viên mở trang.
 **Ứng viên đã đăng nhập** — `/candidate` (trang Việc làm)
 1. Mở trang → khối "Gợi ý cho bạn" (tối đa 6 việc) nằm **trên** danh sách tìm kiếm chính, chỉ hiện
    khi đang ở trang 1, chưa gõ từ khoá, chưa áp bộ lọc nào (mục 3.7 R-L).
-2. Mỗi thẻ gợi ý ghi các điều kiện đã khớp dưới dạng chip trung tính, nối bằng "·" (ví dụ "Hà Nội ·
-   CNTT · Toàn thời gian · Lương đạt mong muốn").
+2. Mỗi thẻ gợi ý ghi các điều kiện đã khớp trong một dòng văn bản trung tính duy nhất, nhãn "Khớp
+   mong muốn:" + các điều kiện nối bằng "·" (ví dụ "Khớp mong muốn: Hà Nội · CNTT · Toàn thời gian
+   · Lương đạt mong muốn").
 3. Bấm "Xem tất cả" → mở `/candidate` không khối gợi ý, bộ lọc U07 điền sẵn ngành + khu vực mong
    muốn nếu có khai (mục 3.10 R-X), ứng viên sửa tiếp được. Không khai ngành lẫn khu vực nào →
    **ẩn hẳn nút này** ở `/candidate` (R-X3).
@@ -299,12 +300,13 @@ mỗi lần ứng viên mở trang.
     Tin Thoả thuận (cả hai cột NULL) hoặc ngoại tệ → **không** hiện điều kiện lương (không đủ dữ
     liệu để so, không phải "không khớp").
 - **R-M3.** Không khớp hoặc ứng viên không khai trường đó → **không hiện gì** cho điều kiện đó
-  (không có chip "Không khớp Khu vực" hay tương tự) — chỉ liệt kê điều kiện ĐÃ khớp.
+  (không có mục "Không khớp Khu vực" hay tương tự trong dòng văn bản) — chỉ liệt kê điều kiện ĐÃ
+  khớp.
 - **R-M4.** Lương và hình thức **không bao giờ loại job** khỏi kết quả — chỉ ảnh hưởng
   `matchedConditions`, không ảnh hưởng tập job trả về (khác ngành/khu vực, là điều kiện cứng R-H).
-- **R-M5.** Thứ tự chip trên thẻ cố định: Khu vực · Ngành · Hình thức · Lương (khớp đúng ví dụ
-  README "Hà Nội · CNTT · Toàn thời gian · Lương đạt mong muốn") — chip nào không khớp bị bỏ qua,
-  không để trống vị trí.
+- **R-M5.** Thứ tự các điều kiện trong dòng văn bản trên thẻ cố định: Khu vực · Ngành · Hình thức ·
+  Lương (khớp đúng ví dụ README "Khớp mong muốn: Hà Nội · CNTT · Toàn thời gian · Lương đạt mong
+  muốn") — điều kiện nào không khớp bị bỏ qua, không để trống vị trí.
 
 ### 3.9 Mở rộng bộ lọc U07 sang chọn nhiều (R-F)
 
@@ -558,7 +560,7 @@ Ngoài 7 dòng trên, **không xoá hay nới** bất kỳ test nào khác trong
    `salary_max = desired_salary_min` → khớp, lệch 1 đơn vị → không khớp); job Thoả thuận/ngoại tệ
    không hiện điều kiện lương dù ứng viên có khai mong muốn lương.
 9. Lương/hình thức không loại tin (R-M4): job không khớp lương/hình thức mong muốn vẫn xuất hiện
-   trong `items`, chỉ thiếu chip tương ứng.
+   trong `items`, chỉ thiếu điều kiện tương ứng trong dòng văn bản đó.
 10. Giới hạn 6 (R-L1): seed > 6 job đủ điều kiện → `items.size() == 6`.
 11. Mở rộng U07 nhiều mã (R-H3/R-H4): `categoryCode=A&categoryCode=B&categoryCode=C` → 200, job
     khớp A hoặc B hoặc C được trả về; thêm mã thứ 4 → 400 `INVALID_JOB_FILTER`; trùng mã (dedupe
