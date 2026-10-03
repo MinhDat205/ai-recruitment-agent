@@ -14,6 +14,16 @@ public interface CandidateProfileRepository extends JpaRepository<CandidateProfi
 
     Optional<CandidateProfile> findByUserId(UUID userId);
 
+    // FR-U15 R-H6/muc 4 - doc vector ho so dang chuoi text pgvector theo userId, dung cho nhanh
+    // (ii) cua truy van goi y. Cung khuon ResumeParsedDataRepository.findEmbeddingTextByResumeId
+    // (FR-U04): chi tra ve khi DA co embedding (IS NOT NULL), khong map field embedding vao entity
+    // (muc 0.a - Spring AI cung khong bind kieu vector qua Hibernate).
+    @Query(
+            value =
+                    "SELECT embedding::text FROM candidate_profiles WHERE user_id = :userId AND embedding IS NOT NULL",
+            nativeQuery = true)
+    Optional<String> findEmbeddingTextByUserId(@Param("userId") UUID userId);
+
     // R-E4 - chi quet ho so CHUA co embedding VA van ban dai dien (R-E1) khac rong, loc ngay trong
     // SQL (khong quet roi bo qua trong Java). ORDER BY updated_at ASC, id ASC - ho so cho lau nhat
     // uu tien truoc, id la khoa cuoi duy nhat (quy uoc chung cua du an).

@@ -143,6 +143,93 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                 null, null, false, false, List.of("__NONE__"), null, pageable);
     }
 
+    // FR-U15 R-V/R-H6 - bien the (i)/(ii) cua truy van goi y: tai dung PUBLIC_JOB_FILTER_WHERE
+    // (khong chep lai dieu kien cung), JOIN job_embeddings de xep theo khoang cach cosine. NOT
+    // EXISTS loai tru job da co don (BAT KE trang thai, ke ca WITHDRAWN) trong CHINH chu ky hien
+    // tai cua job do (R-C1 - ApplicationService.withdraw khong doi recruitment_cycle, khong xoa
+    // hang, dung ngu nghia uq_application_per_cycle). applyThreshold chon nhanh: TRUE (nhanh CV)
+    // ap nguong minSimilarity (gia tri 0.40 cua FR-U04 cu, truyen tu Java); FALSE (nhanh ho so) bo
+    // qua nguong, tham so minSimilarity khong duoc dung toi luc do. Tie-break j.id ASC - dung tien
+    // le JobEmbeddingRepository.findTopMatchingJobs.
+    //
+    // Guard NaN (< 'Infinity'::float8) giu nguyen ly do da ghi o JobEmbeddingRepository.
+    // findTopMatchingJobs: EmbeddingService da chan vector suy bien tai nguon, nhung du lieu CU co
+    // the da nam trong job_embeddings/candidate_profiles/resume_parsed_data TRUOC KHI guard do ton
+    // tai.
+    @Query(
+            value =
+                    "SELECT j.* FROM jobs j JOIN job_embeddings je ON je.job_id = j.id "
+                            + PUBLIC_JOB_FILTER_WHERE
+                            + """
+                            AND NOT EXISTS (
+                                SELECT 1 FROM job_applications ja
+                                WHERE ja.job_id = j.id AND ja.candidate_id = :candidateId
+                                  AND ja.recruitment_cycle = j.recruitment_cycle
+                            )
+                            AND (1 - (je.embedding <=> CAST(:queryVector AS vector))) < 'Infinity'::float8
+                            AND (:applyThreshold = FALSE
+                                 OR (1 - (je.embedding <=> CAST(:queryVector AS vector))) >= :minSimilarity)
+                            ORDER BY je.embedding <=> CAST(:queryVector AS vector), j.id ASC
+                            LIMIT :limit
+                            """,
+            nativeQuery = true)
+    List<Job> findRankedMatchesByVector(
+            @Param("titlePattern") String titlePattern,
+            @Param("locationPattern") String locationPattern,
+            @Param("categoryPattern") String categoryPattern,
+            @Param("categoryCodesPresent") boolean categoryCodesPresent,
+            @Param("categoryCodeParams") List<String> categoryCodeParams,
+            @Param("locationCodesPresent") boolean locationCodesPresent,
+            @Param("locationCodeParams") List<String> locationCodeParams,
+            @Param("salaryMinVnd") BigDecimal salaryMinVnd,
+            @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
+            @Param("hideUnlisted") boolean hideUnlisted,
+            @Param("workModesPresent") boolean workModesPresent,
+            @Param("workModeParams") List<String> workModeParams,
+            @Param("sinceTimestamp") Instant sinceTimestamp,
+            @Param("candidateId") UUID candidateId,
+            @Param("queryVector") String queryVector,
+            @Param("applyThreshold") boolean applyThreshold,
+            @Param("minSimilarity") double minSimilarity,
+            @Param("limit") int limit);
+
+    // FR-U15 R-V/R-H6 - bien the (iii) cua truy van goi y: khong JOIN job_embeddings (ung vien
+    // khong co vector nao dung duoc), sap theo thoi gian dang moi nhat - CUNG tieu chi "moi nhat"
+    // voi sort=NEWEST cua FR-U07 nen dung CUNG tie-break j.id DESC (JobRepository.java, ORDER BY
+    // cua searchPublicJobsSortedByNewest) - khac bien the (i)/(ii) o tren dung j.id ASC (tien le
+    // JobEmbeddingRepository), hai chieu khac nhau co chu dich, khong tu y thong nhat. NOT EXISTS
+    // chu ky giong bien the (i)/(ii).
+    @Query(
+            value =
+                    "SELECT j.* FROM jobs j "
+                            + PUBLIC_JOB_FILTER_WHERE
+                            + """
+                            AND NOT EXISTS (
+                                SELECT 1 FROM job_applications ja
+                                WHERE ja.job_id = j.id AND ja.candidate_id = :candidateId
+                                  AND ja.recruitment_cycle = j.recruitment_cycle
+                            )
+                            ORDER BY COALESCE(j.published_at, j.created_at) DESC, j.id DESC
+                            LIMIT :limit
+                            """,
+            nativeQuery = true)
+    List<Job> findRankedMatchesByDesiresOnly(
+            @Param("titlePattern") String titlePattern,
+            @Param("locationPattern") String locationPattern,
+            @Param("categoryPattern") String categoryPattern,
+            @Param("categoryCodesPresent") boolean categoryCodesPresent,
+            @Param("categoryCodeParams") List<String> categoryCodeParams,
+            @Param("locationCodesPresent") boolean locationCodesPresent,
+            @Param("locationCodeParams") List<String> locationCodeParams,
+            @Param("salaryMinVnd") BigDecimal salaryMinVnd,
+            @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
+            @Param("hideUnlisted") boolean hideUnlisted,
+            @Param("workModesPresent") boolean workModesPresent,
+            @Param("workModeParams") List<String> workModeParams,
+            @Param("sinceTimestamp") Instant sinceTimestamp,
+            @Param("candidateId") UUID candidateId,
+            @Param("limit") int limit);
+
     @Query(
             value =
                     """
