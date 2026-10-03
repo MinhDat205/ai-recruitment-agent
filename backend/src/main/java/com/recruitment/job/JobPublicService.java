@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +39,15 @@ public class JobPublicService {
     private static final Set<String> VALID_WORK_MODES = Set.of("ONSITE", "HYBRID", "REMOTE");
 
     private static final String UNSET_WORK_MODE_SENTINEL = "__NONE__";
+
+    // FR-U15 R-H2 - sentinel rieng cho categoryCode/locationCode khi danh sach rong (cung ly do voi
+    // UNSET_WORK_MODE_SENTINEL: Postgres khong cho "IN ()" voi danh sach rong, phai truyen mot gia
+    // tri khong bao gio khop thay the, luon di kem co :categoryCodesPresent/:locationCodesPresent
+    // = FALSE de bo qua nhanh IN nay truoc khi no anh huong ket qua).
+    private static final String UNSET_CODE_SENTINEL = "__NONE__";
+
+    // FR-U15 R-H4 - gioi han sau khi khu trung (dedupe), dung cho ca categoryCode va locationCode.
+    private static final int MAX_CODES = 3;
 
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
@@ -80,12 +90,14 @@ public class JobPublicService {
     }
 
     // FR-U07: diem vao that su cua GET /api/public/jobs sau khi mo rong tham so (R-F2).
+    // FR-U15 R-H3 - categoryCode/locationCode doi tu String sang List<String> (lap tham so, cung
+    // quy uoc voi workMode - mot gia tri van hop le nhu cu, danh sach rong = khong loc).
     public PageResponse<JobSummaryResponse> search(
             String keyword,
             String location,
             String category,
-            String categoryCode,
-            String locationCode,
+            List<String> categoryCode,
+            List<String> locationCode,
             Integer salaryMin,
             Integer salaryMax,
             Boolean hideUnlisted,
@@ -94,11 +106,30 @@ public class JobPublicService {
             String sort,
             Integer page,
             Integer size) {
-        if (categoryCode != null && !catalogRegistry.isIndustry(categoryCode)) {
-            throw InvalidCatalogCodeException.industry();
+        // R-H5 - validate TUNG ma trong danh sach truoc (giu dung thu tu loi nhu truoc khi co danh
+        // sach: ma la vao danh muc thi bao INVALID_CATALOG_CODE ngay, chua can biet so luong/trung).
+        List<String> categoryCodes = categoryCode == null ? List.of() : categoryCode;
+        for (String code : categoryCodes) {
+            if (!catalogRegistry.isIndustry(code)) {
+                throw InvalidCatalogCodeException.industry();
+            }
         }
-        if (locationCode != null && !catalogRegistry.isProvince(locationCode)) {
-            throw InvalidCatalogCodeException.province();
+        List<String> locationCodes = locationCode == null ? List.of() : locationCode;
+        for (String code : locationCodes) {
+            if (!catalogRegistry.isProvince(code)) {
+                throw InvalidCatalogCodeException.province();
+            }
+        }
+
+        // R-H4 - khu trung (giu thu tu xuat hien dau tien) TRUOC KHI kiem so luong, cung nguyen tac
+        // voi R-F2 cua FR-U14: gui 4 ma co 1 trung (dedupe con 3) phai duoc chap nhan.
+        categoryCodes = dedupePreservingOrder(categoryCodes);
+        if (categoryCodes.size() > MAX_CODES) {
+            throw InvalidJobFilterException.tooManyCategoryCodes();
+        }
+        locationCodes = dedupePreservingOrder(locationCodes);
+        if (locationCodes.size() > MAX_CODES) {
+            throw InvalidJobFilterException.tooManyLocationCodes();
         }
 
         List<String> workModes = workMode == null ? List.of() : workMode;
@@ -123,8 +154,8 @@ public class JobPublicService {
                 postedWithinOption == null ? null : clock.instant().minus(postedWithinOption.hours(), ChronoUnit.HOURS);
 
         PublicJobSearchCriteria criteria = new PublicJobSearchCriteria(
-                categoryCode,
-                locationCode,
+                categoryCodes,
+                locationCodes,
                 toVnd(salaryMin),
                 toVnd(salaryMax),
                 Boolean.TRUE.equals(hideUnlisted),
@@ -155,13 +186,24 @@ public class JobPublicService {
         // khong loc, :workModesPresent = FALSE da bo qua nhanh IN nay truoc khi no anh huong ket qua.
         List<String> workModeParams = workModesPresent ? criteria.workModes() : List.of(UNSET_WORK_MODE_SENTINEL);
 
+        // FR-U15 R-H2 - cung ky thuat Present+sentinel nhu workMode o tren, ap dung cho
+        // categoryCodes/locationCodes sau khi mo rong tu mot gia tri sang danh sach.
+        boolean categoryCodesPresent = !criteria.categoryCodes().isEmpty();
+        List<String> categoryCodeParams =
+                categoryCodesPresent ? criteria.categoryCodes() : List.of(UNSET_CODE_SENTINEL);
+        boolean locationCodesPresent = !criteria.locationCodes().isEmpty();
+        List<String> locationCodeParams =
+                locationCodesPresent ? criteria.locationCodes() : List.of(UNSET_CODE_SENTINEL);
+
         return switch (sort) {
             case NEWEST -> jobRepository.searchPublicJobsSortedByNewest(
                     titlePattern,
                     locationPattern,
                     categoryPattern,
-                    criteria.categoryCode(),
-                    criteria.locationCode(),
+                    categoryCodesPresent,
+                    categoryCodeParams,
+                    locationCodesPresent,
+                    locationCodeParams,
                     criteria.salaryMinVnd(),
                     criteria.salaryMaxVnd(),
                     criteria.hideUnlisted(),
@@ -173,8 +215,10 @@ public class JobPublicService {
                     titlePattern,
                     locationPattern,
                     categoryPattern,
-                    criteria.categoryCode(),
-                    criteria.locationCode(),
+                    categoryCodesPresent,
+                    categoryCodeParams,
+                    locationCodesPresent,
+                    locationCodeParams,
                     criteria.salaryMinVnd(),
                     criteria.salaryMaxVnd(),
                     criteria.hideUnlisted(),
@@ -183,6 +227,19 @@ public class JobPublicService {
                     criteria.sinceTimestamp(),
                     pageable);
         };
+    }
+
+    // FR-U15 R-H4 - khu trung giu thu tu xuat hien dau tien, cung nguyen tac voi
+    // CandidateProfileService (FR-U14 R-F2): danh sach nho (toi da vai chuc phan tu tu URL), O(n^2)
+    // don gian hon can mot Set phu de giu thu tu.
+    private List<String> dedupePreservingOrder(List<String> raw) {
+        List<String> result = new ArrayList<>();
+        for (String value : raw) {
+            if (!result.contains(value)) {
+                result.add(value);
+            }
+        }
+        return result;
     }
 
     // R-S1 - dau vao trieu VND (so nguyen), quy doi sang VND truoc khi so voi salary_min/salary_max

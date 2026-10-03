@@ -24,13 +24,15 @@ public class JobPublicController {
     // FR-U07 R-F2 - mo rong tham so, giu nguyen path va ba tham so cu keyword/location/category
     // (R-F1). categoryCode/locationCode (R-N), salaryMin/salaryMax/hideUnlisted (R-S), workMode lap
     // tham so 0..n (R-W), postedWithin (R-T), sort (R-O) - validate va xu ly o JobPublicService.
+    // FR-U15 R-H3 - categoryCode/locationCode doi tu String sang List<String> (lap tham so 0..n,
+    // cung quy uoc voi workMode) - mot gia tri (?categoryCode=A) van hop le nhu cu.
     @GetMapping
     public PageResponse<JobSummaryResponse> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String categoryCode,
-            @RequestParam(required = false) String locationCode,
+            @RequestParam(required = false) List<String> categoryCode,
+            @RequestParam(required = false) List<String> locationCode,
             @RequestParam(required = false) Integer salaryMin,
             @RequestParam(required = false) Integer salaryMax,
             @RequestParam(required = false) Boolean hideUnlisted,

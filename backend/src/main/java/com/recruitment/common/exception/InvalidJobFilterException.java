@@ -28,4 +28,13 @@ public class InvalidJobFilterException extends RuntimeException {
     public static InvalidJobFilterException salaryMinGreaterThanMax() {
         return new InvalidJobFilterException("Lương tối thiểu phải nhỏ hơn hoặc bằng lương tối đa.");
     }
+
+    // FR-U15 R-H4 - categoryCode/locationCode mo rong sang danh sach, sau khu trung van qua 3 ma.
+    public static InvalidJobFilterException tooManyCategoryCodes() {
+        return new InvalidJobFilterException("Chỉ được chọn tối đa 3 ngành nghề.");
+    }
+
+    public static InvalidJobFilterException tooManyLocationCodes() {
+        return new InvalidJobFilterException("Chỉ được chọn tối đa 3 khu vực.");
+    }
 }

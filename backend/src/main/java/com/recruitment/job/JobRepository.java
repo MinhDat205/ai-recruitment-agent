@@ -27,12 +27,15 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
     // tim kiem van ban cua U07.
     //
     // categoryCode/locationCode (R-N1/R-N2): so bang HOAC ma NULL (tin "chua chuan hoa" khong bi loai
-    // am tham). Luong (R-S2/R-S4/R-S5): chuan hoa salary_currency ve VND khi NULL/rong, so sanh
-    // khong phan biet hoa-thuong va khoang trang; nhom ngoai te (R-S5) khong bi R-S2 so sanh, luon
-    // hien. hideUnlisted (R-S4/R-S6) la dieu kien DOC LAP, chi loai dung nhom Thoa thuan. workMode
-    // (R-W1): :workModesPresent = FALSE bo qua IN-list khi danh sach rong (Postgres khong cho
-    // "IN ()" voi danh sach rong). postedWithin (R-T2): nguong :sinceTimestamp da tinh san o Java
-    // bang Clock, KHONG viet NOW() - INTERVAL trong SQL.
+    // am tham). FR-U15 R-H2: mo rong tu so bang MOT gia tri (=) sang danh sach (IN), cung khuon
+    // workMode (:categoryCodesPresent/:locationCodesPresent = FALSE bo qua IN-list khi danh sach
+    // rong, Postgres khong cho "IN ()" voi danh sach rong) - OR category_code/location_code IS NULL
+    // giu nguyen, khong doi y nghia R-N. Luong (R-S2/R-S4/R-S5): chuan hoa salary_currency ve VND
+    // khi NULL/rong, so sanh khong phan biet hoa-thuong va khoang trang; nhom ngoai te (R-S5) khong
+    // bi R-S2 so sanh, luon hien. hideUnlisted (R-S4/R-S6) la dieu kien DOC LAP, chi loai dung nhom
+    // Thoa thuan. workMode (R-W1): :workModesPresent = FALSE bo qua IN-list khi danh sach rong.
+    // postedWithin (R-T2): nguong :sinceTimestamp da tinh san o Java bang Clock, KHONG viet NOW() -
+    // INTERVAL trong SQL.
     //
     // CAST(:param AS text) bat buoc o ca hai ve: Postgres khong tu suy duoc kieu tham so khi ve con
     // lai la NULL (ERROR: could not determine data type of parameter).
@@ -54,9 +57,9 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                    OR j.category ILIKE CAST(:categoryPattern AS text)
                    OR EXISTS (SELECT 1 FROM catalog_industries ci WHERE ci.code = j.category_code
                               AND ci.label ILIKE CAST(:categoryPattern AS text)))
-              AND (CAST(:categoryCode AS text) IS NULL OR j.category_code = CAST(:categoryCode AS text)
+              AND (:categoryCodesPresent = FALSE OR j.category_code IN :categoryCodeParams
                    OR j.category_code IS NULL)
-              AND (CAST(:locationCode AS text) IS NULL OR j.location_code = CAST(:locationCode AS text)
+              AND (:locationCodesPresent = FALSE OR j.location_code IN :locationCodeParams
                    OR j.location_code IS NULL)
               AND (
                     (UPPER(TRIM(COALESCE(j.salary_currency, 'VND'))) = 'VND'
@@ -83,8 +86,10 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             @Param("titlePattern") String titlePattern,
             @Param("locationPattern") String locationPattern,
             @Param("categoryPattern") String categoryPattern,
-            @Param("categoryCode") String categoryCode,
-            @Param("locationCode") String locationCode,
+            @Param("categoryCodesPresent") boolean categoryCodesPresent,
+            @Param("categoryCodeParams") List<String> categoryCodeParams,
+            @Param("locationCodesPresent") boolean locationCodesPresent,
+            @Param("locationCodeParams") List<String> locationCodeParams,
             @Param("salaryMinVnd") BigDecimal salaryMinVnd,
             @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
             @Param("hideUnlisted") boolean hideUnlisted,
@@ -109,8 +114,10 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             @Param("titlePattern") String titlePattern,
             @Param("locationPattern") String locationPattern,
             @Param("categoryPattern") String categoryPattern,
-            @Param("categoryCode") String categoryCode,
-            @Param("locationCode") String locationCode,
+            @Param("categoryCodesPresent") boolean categoryCodesPresent,
+            @Param("categoryCodeParams") List<String> categoryCodeParams,
+            @Param("locationCodesPresent") boolean locationCodesPresent,
+            @Param("locationCodeParams") List<String> locationCodeParams,
             @Param("salaryMinVnd") BigDecimal salaryMinVnd,
             @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
             @Param("hideUnlisted") boolean hideUnlisted,
@@ -124,9 +131,16 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
     // dieu kien la "khong loc" - thay the dung cho ban searchPublicJobs(3 String, Pageable) cu truoc
     // FR-U07 (da xoa: ORDER BY created_at DESC thieu tie-break id, R-O3 phai sua, khong duoc giu lam
     // "ban thu hai" chi vi mot noi goi con dung).
+    // FR-U15 R-H2 - sua co hoc theo chu ky moi cua searchPublicJobsSortedByNewest (categoryCode/
+    // locationCode don gia tri -> cap Present+IN): categoryCodesPresent=false/locationCodesPresent=
+    // false bo qua IN-list (danh sach sentinel khong bao gio khop, giong workModeParams), HANH VI
+    // KHONG DOI - van tra ve moi job OPEN, khong loc gi.
     default Page<Job> searchOpenJobsNewest(Pageable pageable) {
         return searchPublicJobsSortedByNewest(
-                null, null, null, null, null, null, null, false, false, List.of("__NONE__"), null, pageable);
+                null, null, null,
+                false, List.of("__NONE__"),
+                false, List.of("__NONE__"),
+                null, null, false, false, List.of("__NONE__"), null, pageable);
     }
 
     @Query(

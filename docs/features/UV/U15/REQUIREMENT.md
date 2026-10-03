@@ -67,16 +67,19 @@ Ngoài phạm vi dự án: `cot.txt` (file chưa track trong git, ở thư mục
   bên trong.
 - **`JobPublicServiceTest.java:45,60`** gọi trực tiếp overload 5-tham số (`search(keyword, location, category, page, size)`) — overload này **không đổi chữ ký**, chỉ truyền `null` cho mọi tham số mới (bao gồm hai danh sách mã mới thay cho hai String cũ).
 - **Đã chốt (trước đây là "Cần người dùng quyết định" #1, xem mục "Đã chốt" cuối file)**:
+  **3 lời gọi** (không phải 2) khớp đúng 12 tham số hiện tại —
+  `JobPublicServiceTest.java:39-41` (`when(...)` của `search_oversizedSize_isClampedToMax`),
   `JobPublicServiceTest.java:54-56` (`when(jobRepository.searchPublicJobsSortedByNewest(isNull(),
   any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(), any(), any()))`) và
-  `:62-65` (`verify(jobRepository).searchPublicJobsSortedByNewest(...)`, cùng 12 matcher) — **cả
-  hai lời gọi** (stub lẫn verify) dùng **đúng 12 matcher** cho 12 tham số hiện tại. Mở rộng
-  `categoryCode`/`locationCode` từ String sang danh sách theo đúng khuôn `workMode` (cần thêm cờ
-  `...CodesPresent` để tránh `IN ()` rỗng, xem mục 4) làm số tham số của phương thức này tăng từ 12
-  lên 14 → **cả hai lời gọi** không còn khớp số lượng tham số. **Đã được duyệt sửa CƠ HỌC**: thêm
-  đúng 2 `anyBoolean()` vào cả hai lời gọi (ở vị trí `categoryCodesPresent`/`locationCodesPresent`),
-  **giữ nguyên `isNull()` ở vị trí `titlePattern`**, **không đổi bất kỳ `assertThat(...)` nào** của
-  2 test này (R-H7, mục 3.2).
+  `JobPublicServiceTest.java:62-65` (`verify(jobRepository).searchPublicJobsSortedByNewest(...)`,
+  cùng 12 matcher, của `search_blankKeyword_passesNullPattern`) — **cả ba lời gọi** (2 stub + 1
+  verify) dùng **đúng 12 matcher** cho 12 tham số hiện tại. Mở rộng `categoryCode`/`locationCode`
+  từ String sang danh sách theo đúng khuôn `workMode` (cần thêm cờ `...CodesPresent` để tránh
+  `IN ()` rỗng, xem mục 4) làm số tham số của phương thức này tăng từ 12 lên 14 → **cả ba lời gọi**
+  không còn khớp số lượng tham số. **Đã được duyệt sửa CƠ HỌC**: thêm đúng 2 `anyBoolean()` vào cả
+  ba lời gọi (ở vị trí `categoryCodesPresent`/`locationCodesPresent`), **giữ nguyên `isNull()` ở
+  vị trí `titlePattern`** (chỉ áp dụng cho 2 lời gọi có `isNull()`), **không đổi bất kỳ
+  `assertThat(...)` nào** trong 2 test này (3 lời gọi, R-H7, mục 3.2).
 
 ## 1. Mục đích
 
@@ -157,14 +160,16 @@ mỗi lần ứng viên mở trang.
   qua từng phần tử) — mã lạ → 400 `INVALID_CATALOG_CODE` (giữ nguyên hành vi).
 - **R-H6.** `PublicJobSearchCriteria`/`PUBLIC_JOB_FILTER_WHERE` sau khi mở rộng được **FR-U15 dùng
   lại trực tiếp** cho câu truy vấn gợi ý (mục 3.5 R-V) — không viết điều kiện cứng riêng.
-- **R-H7. Đã chốt — sửa cơ học 2 test `JobPublicServiceTest` (không phải "sửa khẳng định").**
-  Việc tăng tham số `searchPublicJobsSortedByNewest`/`SortedBySalaryDesc` từ 12 lên 14 (R-H2) làm
-  `JobPublicServiceTest.java:54-56` (`when(...)`) và `:62-65` (`verify(...)`) không còn khớp số
+- **R-H7. Đã chốt — sửa cơ học 3 lời gọi trong 2 test `JobPublicServiceTest` (không phải "sửa
+  khẳng định").** Việc tăng tham số `searchPublicJobsSortedByNewest`/`SortedBySalaryDesc` từ 12
+  lên 14 (R-H2) làm `JobPublicServiceTest.java:39-41` (`when(...)` của
+  `search_oversizedSize_isClampedToMax`), `:54-56` (`when(...)` của
+  `search_blankKeyword_passesNullPattern`) và `:62-65` (`verify(...)` cùng test) không còn khớp số
   lượng matcher. Sửa bằng cách thêm đúng 2 `anyBoolean()` vào mỗi lời gọi (vị trí
   `categoryCodesPresent`/`locationCodesPresent`), **giữ nguyên `isNull()`** ở vị trí
-  `titlePattern`, **không đổi bất kỳ `assertThat(...)`** nào trong file này hay bất kỳ test khác.
-  Nếu đợt 1 làm đỏ bất kỳ test U07 nào KHÁC ngoài đúng 2 chỗ này vì lý do khác (không phải đổi số
-  lượng tham số thuần tuý) → vẫn **DỪNG và báo**, không tự sửa.
+  `titlePattern` (chỗ nào đang có), **không đổi bất kỳ `assertThat(...)`** nào trong file này hay
+  bất kỳ test khác. Nếu đợt 1 làm đỏ bất kỳ test U07 nào KHÁC ngoài đúng 3 lời gọi này vì lý do
+  khác (không phải đổi số lượng tham số thuần tuý) → vẫn **DỪNG và báo**, không tự sửa.
 
 ### 3.3 Mã NULL vẫn hiện (R-N — kế thừa FR-U07, không đổi ý nghĩa)
 
@@ -570,7 +575,7 @@ Ngoài 7 dòng trên, **không xoá hay nới** bất kỳ test nào khác trong
     (`job_applications`, `candidate_profiles`, `resume_parsed_data`, `jobs`) trước và sau — không
     đổi; không có `@Transactional` ghi nào trong `JobRecommendationCandidateService`.
 15. Test cũ U07 vẫn xanh (mục 0.c — xem "Đã chốt"): 14+2 case `JobPublicIntegrationTest`/
-    `JobPublicServiceTest` hiện có chạy lại không đổi kết quả (ngoại trừ sửa cơ học 2 chỗ arity đã
+    `JobPublicServiceTest` hiện có chạy lại không đổi kết quả (ngoại trừ sửa cơ học 3 lời gọi arity đã
     chốt ở R-H7).
 
 ### Đo hiệu năng (không phải test tự động — tách khỏi danh sách đánh số trên)
@@ -607,9 +612,10 @@ quy mô dữ liệu demo hiện tại.
   danh sách ngoại lệ K3 ở CLAUDE.md §7.
 - Làm đỏ test U07 hiện có (`JobPublicIntegrationTest`/`JobPublicServiceTest`) rồi tự sửa khẳng định
   cho xanh trở lại mà không báo. **Ngoại lệ duy nhất đã duyệt** (R-H7, mục 0.c "Đã chốt"): thêm
-  đúng 2 `anyBoolean()` vào `when(...)`/`verify(...)` của `JobPublicServiceTest.java:54-56,62-65`
-  theo đúng số tham số mới — không cần dừng hỏi cho riêng 2 chỗ này. **Mọi test U07 khác** (bất kỳ
-  file nào, bất kỳ lý do nào ngoài đúng việc đổi số lượng tham số thuần tuý ở 2 chỗ trên) đỏ → vẫn
+  đúng 2 `anyBoolean()` vào 3 lời gọi `when(...)`/`verify(...)` của
+  `JobPublicServiceTest.java:39-41,54-56,62-65` theo đúng số tham số mới — không cần dừng hỏi cho
+  riêng 3 chỗ này. **Mọi test U07 khác** (bất kỳ
+  file nào, bất kỳ lý do nào ngoài đúng việc đổi số lượng tham số thuần tuý ở 3 chỗ trên) đỏ → vẫn
   **DỪNG và báo**, không tự sửa khẳng định.
 - Sửa `V10__career_profile.sql` hoặc bất kỳ migration V1–V10 nào — chỉ thêm `V11` mới.
 - Chạy `./mvnw spring-boot:run` hay bất kỳ lệnh chạm DB dev nào **trong khoảng từ đợt 4** (migration
@@ -654,9 +660,10 @@ mỗi đợt chạy đủ `npm run build` + `npm run lint` (không warning).
    tham số — `searchOpenJobsNewest` sửa cơ học theo mục 0.c, không đổi hành vi),
    `JobPublicService.search`/`searchByCriteria`, `JobPublicController` (`List<String>` lặp tham
    số), 2 factory mới `InvalidJobFilterException.tooManyCategoryCodes()`/`tooManyLocationCodes()`,
-   sửa cơ học 2 chỗ arity ở `JobPublicServiceTest.java:54-56,62-65` (R-H7 — đã chốt, không cần hỏi
-   lại). `test-compile`, sau đó chạy riêng `JobPublicServiceTest`/`JobPublicIntegrationTest`/
-   `JobCatalogGuardIntegrationTest` — bất kỳ test U07 khác đỏ ngoài 2 chỗ đã chốt → DỪNG và báo.
+   sửa cơ học 3 lời gọi arity ở `JobPublicServiceTest.java:39-41,54-56,62-65` (R-H7 — đã chốt,
+   không cần hỏi lại). `test-compile`, sau đó chạy riêng `JobPublicServiceTest`/
+   `JobPublicIntegrationTest`/`JobCatalogGuardIntegrationTest` — bất kỳ test U07 khác đỏ ngoài 3
+   lời gọi đã chốt → DỪNG và báo.
 2. **Backend — truy vấn gợi ý dùng chung (R-V, R-C).** 2 phương thức mới trong `JobRepository`
    (biến thể (i)/(ii) gộp cờ `applyThreshold`, tie-break `j.id ASC`; biến thể (iii) riêng,
    tie-break `j.id DESC` theo mục 4), NOT EXISTS chu kỳ (R-C1),
@@ -751,13 +758,14 @@ mỗi đợt chạy đủ `npm run build` + `npm run lint` (không warning).
 ## Đã chốt (trước đây là "Cần người dùng quyết định" — đã duyệt, không hỏi lại)
 
 1. **Xung đột giữa "test U07 không sửa khẳng định" và việc mở rộng `categoryCode`/`locationCode`
-   sang danh sách (R-H2).** `JobPublicServiceTest.java:54-56` (`when(...)`) và `:62-65`
-   (`verify(...)`) dùng đúng 12 matcher khớp 12 tham số hiện tại; thêm cờ
-   `categoryCodesPresent`/`locationCodesPresent` nâng tổng tham số lên 14. **Đã chốt**: sửa CƠ HỌC
-   — thêm đúng 2 `anyBoolean()` vào cả hai lời gọi, **giữ nguyên `isNull()`** ở vị trí
-   `titlePattern`, **không đổi bất kỳ `assertThat(...)` nào**. Không coi đây là "sửa khẳng định" bị
-   cấm. Chi tiết ở R-H7 (mục 3.2) và mục 8. Mọi test U07 khác đỏ vì lý do khác vẫn phải DỪNG và báo
-   như thường.
+   sang danh sách (R-H2).** **3 lời gọi** (không phải 2) khớp đúng 12 tham số hiện tại —
+   `JobPublicServiceTest.java:39-41` (`when(...)` của `search_oversizedSize_isClampedToMax`),
+   `:54-56` (`when(...)`) và `:62-65` (`verify(...)`, cả hai của
+   `search_blankKeyword_passesNullPattern`); thêm cờ `categoryCodesPresent`/`locationCodesPresent`
+   nâng tổng tham số lên 14. **Đã chốt**: sửa CƠ HỌC — thêm đúng 2 `anyBoolean()` vào cả ba lời
+   gọi, **giữ nguyên `isNull()`** ở vị trí `titlePattern` (chỗ nào đang có), **không đổi bất kỳ
+   `assertThat(...)` nào**. Không coi đây là "sửa khẳng định" bị cấm. Chi tiết ở R-H7 (mục 3.2) và
+   mục 8. Mọi test U07 khác đỏ vì lý do khác vẫn phải DỪNG và báo như thường.
 2. **`PREPARING` khi cả CV và hồ sơ cùng "đang chờ"** (mục 3.5 R-V6.4) — **đã chốt giữ như đã
    viết**: báo `source=CV` (ưu tiên CV trong thông báo).
 3. **Tên file service/test** — **đã chốt**: giữ `JobRecommendationCandidateService.java` (không

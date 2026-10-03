@@ -37,7 +37,7 @@ class JobPublicServiceTest {
                 new JobPublicService(jobRepository, companyRepository, EMPTY_CATALOG, Clock.systemUTC());
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         when(jobRepository.searchPublicJobsSortedByNewest(
-                        any(), any(), any(), any(), any(), any(), any(),
+                        any(), any(), any(), anyBoolean(), any(), anyBoolean(), any(), any(), any(),
                         anyBoolean(), anyBoolean(), any(), any(), pageableCaptor.capture()))
                 .thenReturn(Page.empty());
         when(companyRepository.findByIdIn(any())).thenReturn(List.of());
@@ -52,7 +52,7 @@ class JobPublicServiceTest {
         JobPublicService service =
                 new JobPublicService(jobRepository, companyRepository, EMPTY_CATALOG, Clock.systemUTC());
         when(jobRepository.searchPublicJobsSortedByNewest(
-                        isNull(), any(), any(), any(), any(), any(), any(),
+                        isNull(), any(), any(), anyBoolean(), any(), anyBoolean(), any(), any(), any(),
                         anyBoolean(), anyBoolean(), any(), any(), any()))
                 .thenReturn(Page.empty());
         when(companyRepository.findByIdIn(any())).thenReturn(List.of());
@@ -61,7 +61,7 @@ class JobPublicServiceTest {
 
         verify(jobRepository)
                 .searchPublicJobsSortedByNewest(
-                        isNull(), any(), any(), any(), any(), any(), any(),
+                        isNull(), any(), any(), anyBoolean(), any(), anyBoolean(), any(), any(), any(),
                         anyBoolean(), anyBoolean(), any(), any(), any());
     }
 }
