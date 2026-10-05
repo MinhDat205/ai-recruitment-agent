@@ -5,12 +5,12 @@ import type { JobPerformanceItem } from './types'
 
 export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) {
   if (items.length === 0) {
-    return <p className="text-sm text-ink-muted">Chưa có tin tuyển dụng nào.</p>
+    return <p className="text-sm text-m3-on-surface-variant">Chưa có tin tuyển dụng nào.</p>
   }
 
   return (
     <div>
-      <div className="rounded-(--radius-card) border border-line bg-surface">
+      <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
         <Table>
           <TableHeader>
             <TableRow>
@@ -27,16 +27,16 @@ export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) 
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.jobId}>
-                <TableCell className="font-medium text-ink">{item.title}</TableCell>
+                <TableCell className="font-medium text-m3-on-surface">{item.title}</TableCell>
                 <TableCell>
                   <JobStatusBadge status={item.status} />
                 </TableCell>
-                <TableCell className="text-ink-muted">{item.recruitmentCycle}</TableCell>
-                <TableCell className="text-right text-ink-muted">{item.totalApplications}</TableCell>
-                <TableCell className="text-right text-ink-muted">{item.scoredApplications}</TableCell>
-                <TableCell className="text-right text-ink-muted">{formatScore(item.averageScore)}</TableCell>
-                <TableCell className="text-right text-ink-muted">{item.everInvitedCount}</TableCell>
-                <TableCell className="text-right text-ink-muted">{item.everHiredCount}</TableCell>
+                <TableCell className="text-m3-on-surface-variant">{item.recruitmentCycle}</TableCell>
+                <TableCell className="text-right text-m3-on-surface-variant">{item.totalApplications}</TableCell>
+                <TableCell className="text-right text-m3-on-surface-variant">{item.scoredApplications}</TableCell>
+                <TableCell className="text-right text-m3-on-surface-variant">{formatScore(item.averageScore)}</TableCell>
+                <TableCell className="text-right text-m3-on-surface-variant">{item.everInvitedCount}</TableCell>
+                <TableCell className="text-right text-m3-on-surface-variant">{item.everHiredCount}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -46,7 +46,7 @@ export function JobPerformanceTable({ items }: { items: JobPerformanceItem[] }) 
           KHONG phai trang thai HIEN TAI cua don - chu thich de HR khong tu cong don voi
           StatusBreakdownChart (phan bo trang thai hien tai) roi thay venh so ma khong hieu tai
           sao. */}
-      <p className="mt-2 text-xs text-ink-muted">
+      <p className="mt-2 text-xs text-m3-on-surface-variant">
         "Đã từng mời PV" và "Đã từng trúng tuyển" đếm theo lịch sử chuyển trạng thái (đơn đã từng
         đạt trạng thái đó), không phải trạng thái hiện tại — một đơn đã được mời phỏng vấn rồi rút
         đơn vẫn được tính vào "Đã từng mời PV".

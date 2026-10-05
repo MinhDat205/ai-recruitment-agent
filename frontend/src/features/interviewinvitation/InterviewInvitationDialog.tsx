@@ -110,17 +110,17 @@ export function InterviewInvitationDialog({ application, jobId, onOpenChange }: 
           </DialogDescription>
         </DialogHeader>
 
-        {previewQuery.isLoading && <p className="text-sm text-ink-muted">Đang tải nội dung mẫu...</p>}
+        {previewQuery.isLoading && <p className="text-sm text-m3-on-surface-variant">Đang tải nội dung mẫu...</p>}
         {previewQuery.isError && (
-          <p className="text-sm text-danger">Không tải được nội dung mẫu, vui lòng đóng và thử lại.</p>
+          <p className="text-sm text-m3-error">Không tải được nội dung mẫu, vui lòng đóng và thử lại.</p>
         )}
 
         {previewQuery.data && (
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             {previewQuery.data.companyNameMismatch && (
-              <div className="flex gap-2 rounded-(--radius-card) border border-warning bg-canvas p-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-                <p className="text-sm text-ink">
+              <div className="flex gap-2 rounded-(--radius-card) border border-m3-warning bg-m3-surface p-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-m3-warning" aria-hidden="true" />
+                <p className="text-sm text-m3-on-surface">
                   Tên công ty trong mẫu giấy mời (<span className="font-medium">{previewQuery.data.templateCompanyName}</span>)
                   khác với tên công ty hiện tại (
                   <span className="font-medium">{previewQuery.data.currentCompanyName}</span>). Hệ thống không tự sửa —
@@ -133,7 +133,7 @@ export function InterviewInvitationDialog({ application, jobId, onOpenChange }: 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="invite-scheduled-at">Ngày giờ phỏng vấn</Label>
                 <Input id="invite-scheduled-at" type="datetime-local" {...register('scheduledAt')} />
-                {errors.scheduledAt && <p className="text-sm text-danger">{errors.scheduledAt.message}</p>}
+                {errors.scheduledAt && <p className="text-sm text-m3-error">{errors.scheduledAt.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="invite-location">Địa điểm (tuỳ chọn)</Label>
@@ -144,17 +144,17 @@ export function InterviewInvitationDialog({ application, jobId, onOpenChange }: 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="invite-subject">Tiêu đề thư mời</Label>
               <Input id="invite-subject" {...register('subject')} />
-              {errors.subject && <p className="text-sm text-danger">{errors.subject.message}</p>}
+              {errors.subject && <p className="text-sm text-m3-error">{errors.subject.message}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="invite-content">Nội dung thư mời</Label>
               <Textarea id="invite-content" rows={8} {...register('content')} />
-              {errors.content && <p className="text-sm text-danger">{errors.content.message}</p>}
+              {errors.content && <p className="text-sm text-m3-error">{errors.content.message}</p>}
             </div>
 
             {sendMutation.isError && (
-              <p className="text-sm text-danger">
+              <p className="text-sm text-m3-error">
                 {extractErrorMessage(sendMutation.error, 'Gửi lời mời thất bại, vui lòng thử lại.')}
               </p>
             )}

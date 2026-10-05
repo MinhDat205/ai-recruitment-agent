@@ -100,7 +100,7 @@ export function CandidatesFilterBar({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-(--radius-card) border border-line bg-surface p-4">
+    <div className="flex flex-col gap-3 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4">
       {/* lg:grid-cols-3 (khong phai -6, xem test tay Dot 6 LOI 2): gia tri that dai nhat hien co
           ("Java Backend Developer (test Phase D)", "Trinh do hoc van nganh CNTT") van bi cat qua
           ngan de phan biet duoc o 6 cot tren mot hang du da co min-w-0/truncate - bo loc khong
@@ -128,7 +128,7 @@ export function CandidatesFilterBar({
             </SelectContent>
           </Select>
           {jobListTruncated && (
-            <p className="text-xs text-ink-muted">
+            <p className="text-xs text-m3-on-surface-variant">
               Đang hiển thị {jobsPage!.items.length} tin gần nhất trong tổng số {jobsPage!.totalElements} tin.
             </p>
           )}
@@ -211,10 +211,10 @@ export function CandidatesFilterBar({
       </div>
 
       {filterMismatch && (
-        <p className="text-xs text-danger">Phải chọn cả tiêu chí lẫn điểm tối thiểu, hoặc bỏ trống cả hai.</p>
+        <p className="text-xs text-m3-error">Phải chọn cả tiêu chí lẫn điểm tối thiểu, hoặc bỏ trống cả hai.</p>
       )}
       {scoreRangeInvalid && (
-        <p className="text-xs text-danger">Tổng điểm từ không được lớn hơn tổng điểm đến.</p>
+        <p className="text-xs text-m3-error">Tổng điểm từ không được lớn hơn tổng điểm đến.</p>
       )}
 
       <div className="flex items-center justify-between gap-2">

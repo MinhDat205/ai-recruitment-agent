@@ -70,16 +70,16 @@ export function CriterionRow({
     <TableRow draggable={draggable} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}>
       <TableCell className="w-8">
         {draggable && (
-          <GripVertical className="size-4 cursor-grab text-ink-muted" aria-hidden="true" />
+          <GripVertical className="size-4 cursor-grab text-m3-on-surface-variant" aria-hidden="true" />
         )}
       </TableCell>
       <TableCell>
-        <p className="font-medium text-ink">{criterion.name}</p>
-        {criterion.description && <p className="text-xs text-ink-muted italic">{criterion.description}</p>}
+        <p className="font-medium text-m3-on-surface">{criterion.name}</p>
+        {criterion.description && <p className="text-xs text-m3-on-surface-variant italic">{criterion.description}</p>}
       </TableCell>
-      <TableCell className="text-ink">{formatWeight(criterion.weight)}%</TableCell>
-      <TableCell className="text-ink-muted">{criterion.maxScore}</TableCell>
-      <TableCell className="text-ink-muted">{scaleSummary}</TableCell>
+      <TableCell className="text-m3-on-surface">{formatWeight(criterion.weight)}%</TableCell>
+      <TableCell className="text-m3-on-surface-variant">{criterion.maxScore}</TableCell>
+      <TableCell className="text-m3-on-surface-variant">{scaleSummary}</TableCell>
       {!locked && (
         <TableCell className="text-right">
           <div className="flex flex-col items-end gap-1">
@@ -100,7 +100,7 @@ export function CriterionRow({
                     variant="outline"
                     size="icon-sm"
                     aria-label="Xoá tiêu chí"
-                    className="border-danger text-danger hover:bg-danger/10"
+                    className="border-m3-error text-m3-error hover:bg-m3-error/10"
                   >
                     <Trash2 />
                   </Button>
@@ -129,7 +129,7 @@ export function CriterionRow({
               </Dialog>
             </div>
             {deleteMutation.isError && (
-              <p className="text-xs text-danger">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+              <p className="text-xs text-m3-error">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
             )}
           </div>
         </TableCell>

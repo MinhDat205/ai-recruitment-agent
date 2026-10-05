@@ -208,15 +208,15 @@ export function HrJobCreatePage() {
                 <div key={s.title} className="flex flex-1 items-center gap-2">
                   <div
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                      index <= step ? 'bg-brand text-white' : 'bg-canvas text-ink-muted'
+                      index <= step ? 'bg-m3-primary text-m3-on-primary' : 'bg-m3-surface-container text-m3-on-surface'
                     }`}
                   >
                     {index + 1}
                   </div>
-                  <span className={`text-xs ${index === step ? 'font-medium text-ink' : 'text-ink-muted'}`}>
+                  <span className={`text-xs ${index === step ? 'font-medium text-m3-on-surface' : 'text-m3-on-surface-variant'}`}>
                     {s.title}
                   </span>
-                  {index < STEPS.length - 1 && <div className="h-px flex-1 bg-line" />}
+                  {index < STEPS.length - 1 && <div className="h-px flex-1 bg-m3-surface-container-highest" />}
                 </div>
               ))}
             </div>
@@ -229,7 +229,7 @@ export function HrJobCreatePage() {
                   <Label htmlFor="job-title">Tiêu đề tin tuyển dụng</Label>
                   <Input id="job-title" {...register('title')} />
                   {errors.title && (touchedFields.title) && (
-                    <p className="text-sm text-danger">{errors.title.message}</p>
+                    <p className="text-sm text-m3-error">{errors.title.message}</p>
                   )}
                 </div>
 
@@ -237,7 +237,7 @@ export function HrJobCreatePage() {
                   <Label htmlFor="job-description">Mô tả công việc</Label>
                   <Textarea id="job-description" rows={5} {...register('description')} />
                   {errors.description && (touchedFields.description) && (
-                    <p className="text-sm text-danger">{errors.description.message}</p>
+                    <p className="text-sm text-m3-error">{errors.description.message}</p>
                   )}
                 </div>
 
@@ -353,7 +353,7 @@ export function HrJobCreatePage() {
                     <Label htmlFor="job-salary-max">Lương tối đa</Label>
                     <Input id="job-salary-max" type="number" min={0} {...register('salaryMax')} />
                     {errors.salaryMax && (touchedFields.salaryMax) && (
-                      <p className="text-sm text-danger">{errors.salaryMax.message}</p>
+                      <p className="text-sm text-m3-error">{errors.salaryMax.message}</p>
                     )}
                   </div>
                 </div>
@@ -362,7 +362,7 @@ export function HrJobCreatePage() {
                   <Label htmlFor="job-salary-currency">Đơn vị tiền tệ</Label>
                   <Input id="job-salary-currency" placeholder="VND" {...register('salaryCurrency')} />
                   {errors.salaryCurrency && (touchedFields.salaryCurrency) && (
-                    <p className="text-sm text-danger">{errors.salaryCurrency.message}</p>
+                    <p className="text-sm text-m3-error">{errors.salaryCurrency.message}</p>
                   )}
                 </div>
 
@@ -370,7 +370,7 @@ export function HrJobCreatePage() {
                   <Label htmlFor="job-deadline">Hạn ứng tuyển</Label>
                   <Input id="job-deadline" type="date" min={TODAY_ISO} {...register('deadline')} />
                   {errors.deadline && (touchedFields.deadline) && (
-                    <p className="text-sm text-danger">{errors.deadline.message}</p>
+                    <p className="text-sm text-m3-error">{errors.deadline.message}</p>
                   )}
                 </div>
               </>
@@ -378,7 +378,7 @@ export function HrJobCreatePage() {
 
             {step === 2 && (
               <>
-                <p className="text-sm text-ink-muted">
+                <p className="text-sm text-m3-on-surface-variant">
                   Mẫu giấy mời phỏng vấn dùng chung cho mọi ứng viên của tin này. Ngày giờ phỏng vấn cụ thể sẽ do bạn
                   điền khi mời từng ứng viên sau này, không cấu hình ở đây.
                 </p>
@@ -387,7 +387,7 @@ export function HrJobCreatePage() {
                   <Label htmlFor="tpl-subject">Tiêu đề thư mời</Label>
                   <Input id="tpl-subject" {...register('subject')} />
                   {errors.subject && (touchedFields.subject) && (
-                    <p className="text-sm text-danger">{errors.subject.message}</p>
+                    <p className="text-sm text-m3-error">{errors.subject.message}</p>
                   )}
                 </div>
 
@@ -395,7 +395,7 @@ export function HrJobCreatePage() {
                   <Label htmlFor="tpl-body">Nội dung thư mời</Label>
                   <Textarea id="tpl-body" rows={6} {...register('body')} />
                   {errors.body && (touchedFields.body) && (
-                    <p className="text-sm text-danger">{errors.body.message}</p>
+                    <p className="text-sm text-m3-error">{errors.body.message}</p>
                   )}
                 </div>
 
@@ -404,7 +404,7 @@ export function HrJobCreatePage() {
                     <Label htmlFor="tpl-sender-name">Người gửi</Label>
                     <Input id="tpl-sender-name" {...register('senderName')} />
                     {errors.senderName && (touchedFields.senderName) && (
-                      <p className="text-sm text-danger">{errors.senderName.message}</p>
+                      <p className="text-sm text-m3-error">{errors.senderName.message}</p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -421,7 +421,7 @@ export function HrJobCreatePage() {
             )}
 
             {createMutation.isError && (
-              <p className="text-sm text-danger">
+              <p className="text-sm text-m3-error">
                 {extractErrorMessage(createMutation.error, 'Tạo tin tuyển dụng thất bại, vui lòng thử lại.')}
               </p>
             )}

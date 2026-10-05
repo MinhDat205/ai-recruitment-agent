@@ -20,10 +20,10 @@ const STATUS_LABELS: Record<ScoringRunStatus, string> = {
 }
 
 const STATUS_TONE: Record<ScoringRunStatus, string> = {
-  PENDING: 'bg-canvas text-ink-muted',
-  RUNNING: 'bg-canvas text-ink-muted',
-  DONE: 'bg-brand-light text-brand',
-  FAILED: 'bg-canvas text-ink-muted',
+  PENDING: 'bg-m3-surface-container text-m3-on-surface',
+  RUNNING: 'bg-m3-surface-container text-m3-on-surface',
+  DONE: 'bg-m3-primary-container text-m3-on-primary-container',
+  FAILED: 'bg-m3-surface-container text-m3-on-surface',
 }
 
 function StatusLabel({ status }: { status: ScoringRunStatus }) {
@@ -67,11 +67,11 @@ function CriterionScoreAuditTable({ criterionScores }: { criterionScores: Criter
       <TableBody>
         {criterionScores.map((item) => (
           <TableRow key={item.criterionNameSnapshot}>
-            <TableCell className="text-ink">{item.criterionNameSnapshot}</TableCell>
-            <TableCell className="text-ink-muted">
+            <TableCell className="text-m3-on-surface">{item.criterionNameSnapshot}</TableCell>
+            <TableCell className="text-m3-on-surface-variant">
               {item.score}/{item.maxScoreSnapshot}
             </TableCell>
-            <TableCell className="text-ink-muted">{item.weightSnapshot}%</TableCell>
+            <TableCell className="text-m3-on-surface-variant">{item.weightSnapshot}%</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -99,44 +99,44 @@ export function ScoringRunAuditPanel({
           {application && <ApplicationStatusBadge status={application.status} />}
         </SheetHeader>
         <SheetBody>
-          {isLoading && <p className="p-4 text-sm text-ink-muted">Đang tải...</p>}
-          {isError && <p className="p-4 text-sm text-danger">Không tải được lịch sử đánh giá, vui lòng thử lại.</p>}
+          {isLoading && <p className="p-4 text-sm text-m3-on-surface-variant">Đang tải...</p>}
+          {isError && <p className="p-4 text-sm text-m3-error">Không tải được lịch sử đánh giá, vui lòng thử lại.</p>}
           {!isLoading && !isError && runs && runs.length === 0 && (
-            <p className="p-4 text-sm text-ink-muted">Đơn này chưa có lượt chấm điểm nào.</p>
+            <p className="p-4 text-sm text-m3-on-surface-variant">Đơn này chưa có lượt chấm điểm nào.</p>
           )}
           {!isLoading && !isError && runs && runs.length > 0 && (
             <div className="flex flex-col gap-4 p-4">
               {runs.map((run) => (
-                <div key={run.scoringRunId} className="rounded-(--radius-card) border border-line bg-surface">
-                  <div className="flex flex-col gap-2 border-b border-line p-4">
+                <div key={run.scoringRunId} className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
+                  <div className="flex flex-col gap-2 border-b border-m3-outline-variant p-4">
                     <div className="flex items-center justify-between gap-2">
                       <StatusLabel status={run.status} />
-                      <span className="text-sm font-medium text-ink">{formatScore(run.totalScore)}</span>
+                      <span className="text-sm font-medium text-m3-on-surface">{formatScore(run.totalScore)}</span>
                     </div>
-                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink-muted">
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-m3-on-surface-variant">
                       <div>
                         <dt className="inline">Tạo lúc: </dt>
-                        <dd className="inline text-ink">{formatDateTime(run.createdAt)}</dd>
+                        <dd className="inline text-m3-on-surface">{formatDateTime(run.createdAt)}</dd>
                       </div>
                       <div>
                         <dt className="inline">Hoàn tất lúc: </dt>
-                        <dd className="inline text-ink">{formatDateTime(run.finishedAt)}</dd>
+                        <dd className="inline text-m3-on-surface">{formatDateTime(run.finishedAt)}</dd>
                       </div>
                       <div>
                         <dt className="inline">Model chấm điểm: </dt>
-                        <dd className="inline text-ink">{run.model ?? '—'}</dd>
+                        <dd className="inline text-m3-on-surface">{run.model ?? '—'}</dd>
                       </div>
                       <div>
                         <dt className="inline">Phiên bản prompt: </dt>
-                        <dd className="inline text-ink">{run.promptVersion ?? '—'}</dd>
+                        <dd className="inline text-m3-on-surface">{run.promptVersion ?? '—'}</dd>
                       </div>
                       <div>
                         <dt className="inline">Token sử dụng: </dt>
-                        <dd className="inline text-ink">{run.tokenUsage ?? '—'}</dd>
+                        <dd className="inline text-m3-on-surface">{run.tokenUsage ?? '—'}</dd>
                       </div>
                       <div>
                         <dt className="inline">Báo cáo giải thích: </dt>
-                        <dd className="inline text-ink">
+                        <dd className="inline text-m3-on-surface">
                           {run.explanation ? `${run.explanation.model} / ${run.explanation.promptVersion}` : 'Chưa có'}
                         </dd>
                       </div>
@@ -145,7 +145,7 @@ export function ScoringRunAuditPanel({
                   {run.criterionScores.length > 0 ? (
                     <CriterionScoreAuditTable criterionScores={run.criterionScores} />
                   ) : (
-                    <p className="p-4 text-sm text-ink-muted">Lượt này chưa có điểm tiêu chí nào.</p>
+                    <p className="p-4 text-sm text-m3-on-surface-variant">Lượt này chưa có điểm tiêu chí nào.</p>
                   )}
                 </div>
               ))}

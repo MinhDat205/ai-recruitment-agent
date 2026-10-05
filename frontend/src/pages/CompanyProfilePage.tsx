@@ -174,7 +174,7 @@ export function CompanyProfilePage() {
   return (
     <HrLayout title="Hồ sơ công ty">
       {showNeedCompanyBanner && (
-        <p className="mx-auto mb-4 max-w-2xl rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
+        <p className="mx-auto mb-4 max-w-2xl rounded-(--radius-badge) bg-m3-primary-container px-3 py-2 text-sm text-m3-on-primary-container">
           Bạn cần tạo hồ sơ công ty trước khi đăng tin và quản lý ứng viên.
         </p>
       )}
@@ -264,7 +264,7 @@ export function CompanyProfilePage() {
             </div>
 
             {saveMutation.isError && (
-              <p className="text-sm text-danger">
+              <p className="text-sm text-m3-error">
                 {extractErrorMessage(saveMutation.error, 'Lưu thất bại, vui lòng thử lại.')}
               </p>
             )}
@@ -275,7 +275,7 @@ export function CompanyProfilePage() {
               {saveMutation.isPending ? 'Đang lưu...' : notFound ? 'Tạo hồ sơ công ty' : 'Lưu thay đổi'}
             </Button>
             {saveSuccessVisible && (
-              <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
+              <p className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-2 text-sm text-m3-on-primary-container">
                 {saveKind === 'create' ? 'Đã tạo hồ sơ công ty' : 'Đã lưu thay đổi'}
               </p>
             )}

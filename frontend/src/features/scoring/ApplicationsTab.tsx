@@ -108,7 +108,7 @@ function ScoringProgressHint({
         criteriaTotal={criteriaTotal}
       />
       {status === 'FAILED' && errorMessage && (
-        <p className="whitespace-normal break-words text-xs text-ink-muted">{errorMessage}</p>
+        <p className="whitespace-normal break-words text-xs text-m3-on-surface-variant">{errorMessage}</p>
       )}
       {/* timedOut: lot cham nay dung tu dong cap nhat sau 10 phut khong doi (co the ket vinh vien do
           JVM backend restart giua chung, xem MAX_POLL_DURATION_MS) - HR tu bam de kiem tra lai,
@@ -116,7 +116,7 @@ function ScoringProgressHint({
       {timedOut && (
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-medium text-m3-primary hover:underline"
           onClick={onResume}
         >
           <RotateCw className="h-3 w-3" aria-hidden="true" />
@@ -195,17 +195,17 @@ function ApplicationRow({
   return (
     <TableRow>
       <TableCell className="whitespace-normal break-words">{application.candidateName}</TableCell>
-      <TableCell className="text-ink-muted">{formatAppliedAt(application.appliedAt)}</TableCell>
+      <TableCell className="text-m3-on-surface-variant">{formatAppliedAt(application.appliedAt)}</TableCell>
       <TableCell>
         <ParseStatusBadge status={application.resumeParseStatus} />
       </TableCell>
       <TableCell>
         <ApplicationStatusBadge status={application.status} />
       </TableCell>
-      {/* Hang/Tong diem: so trung tinh, CUNG mau/kieu chu voi cac cot khac (text-ink) - KHONG to mau
+      {/* Hang/Tong diem: so trung tinh, CUNG mau/kieu chu voi cac cot khac (text-m3-on-surface) - KHONG to mau
           theo nguong, KHONG in dam du la hang 1. Cam tuyet doi theo srs-guard. */}
-      <TableCell className="text-ink">{formatRank(application.rank)}</TableCell>
-      <TableCell className="text-ink">
+      <TableCell className="text-m3-on-surface">{formatRank(application.rank)}</TableCell>
+      <TableCell className="text-m3-on-surface">
         <div className="flex flex-col gap-1">
           <span>{formatTotalScore(application.totalScore)}</span>
           <ScoringProgressHint
@@ -275,14 +275,14 @@ function ApplicationRow({
                       />
                     </>
                   ) : (
-                    <p className="p-4 text-sm text-ink-muted">Đơn này chưa có kết quả chấm điểm để xem.</p>
+                    <p className="p-4 text-sm text-m3-on-surface-variant">Đơn này chưa có kết quả chấm điểm để xem.</p>
                   )}
                 </SheetBody>
                 {/* FR-H07 (E1, Dot 3) - hai hanh dong theo DUNG trang thai hien tai cua don (xem
                     nextActionsFor). CHI phu thuoc application.status, KHONG doc totalScore/rank o
                     day - an nut chi la tien dung UI, backend van la chot chan that (muc 4 de bai). */}
                 {(actions.canInvite || actions.canReject || actions.canHire) && (
-                  <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
+                  <div className="flex justify-end gap-2 border-t border-m3-outline-variant px-6 py-4">
                     {actions.canInvite && (
                       <Button type="button" variant="outline" onClick={onInvite}>
                         Mời phỏng vấn
@@ -313,7 +313,7 @@ function ApplicationRow({
               Chấm điểm hồ sơ
             </Button>
           </div>
-          {resumeDownloadError && <p className="text-xs text-danger">{resumeDownloadError}</p>}
+          {resumeDownloadError && <p className="text-xs text-m3-error">{resumeDownloadError}</p>}
         </div>
       </TableCell>
     </TableRow>
@@ -369,16 +369,16 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
   }
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-ink-muted">Đang tải...</p>
+    return <p className="p-6 text-sm text-m3-on-surface-variant">Đang tải...</p>
   }
   if (isError || !applications) {
-    return <p className="p-6 text-sm text-danger">Không tải được danh sách ứng viên, vui lòng thử lại.</p>
+    return <p className="p-6 text-sm text-m3-error">Không tải được danh sách ứng viên, vui lòng thử lại.</p>
   }
 
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center gap-2">
-        <Label htmlFor="applications-sort" className="text-sm text-ink-muted">
+        <Label htmlFor="applications-sort" className="text-sm text-m3-on-surface-variant">
           Sắp xếp theo
         </Label>
         <Select value={sort} onValueChange={(value) => setSort(value as ApplicationSortOption)}>
@@ -396,7 +396,7 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
           doi (co the ket vinh vien do JVM backend restart giua chung, xem MAX_POLL_DURATION_MS
           trong queries.ts) - HR tu bam de kiem tra lai, khong tu dong lap lai vo han. */}
       {listPollingTimedOut && (
-        <div className="flex items-center justify-between gap-3 rounded-(--radius-card) border border-line bg-canvas px-4 py-3 text-sm text-ink-muted">
+        <div className="flex items-center justify-between gap-3 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface-container px-4 py-3 text-sm text-m3-on-surface">
           <span>Đã dừng tự động cập nhật do chờ quá lâu. Bấm "Tải lại" để kiểm tra trạng thái mới nhất.</span>
           <Button type="button" variant="outline" size="sm" onClick={() => resumeListPolling()}>
             <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
@@ -406,11 +406,11 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
       )}
 
       {applications.length === 0 ? (
-        <div className="flex flex-col items-center gap-1 rounded-(--radius-card) border border-line bg-surface py-12 text-center">
-          <p className="text-sm text-ink-muted">Chưa có ứng viên nào nộp đơn cho tin tuyển dụng này.</p>
+        <div className="flex flex-col items-center gap-1 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface py-12 text-center">
+          <p className="text-sm text-m3-on-surface-variant">Chưa có ứng viên nào nộp đơn cho tin tuyển dụng này.</p>
         </div>
       ) : (
-        <div className="rounded-(--radius-card) border border-line bg-surface">
+        <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
           <Table>
             <TableHeader>
               <TableRow>
@@ -443,7 +443,7 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
       )}
 
       {createScoringRunMutation.isError && (
-        <p className="text-sm text-danger">
+        <p className="text-sm text-m3-error">
           {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
         </p>
       )}
@@ -460,12 +460,12 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
             <DialogTitle>{confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].title}</DialogTitle>
             <DialogDescription>
               Hành động này không thể hoàn tác. Đơn ứng tuyển của{' '}
-              <span className="font-medium text-ink">{confirmTarget?.application.candidateName}</span> sẽ chuyển sang
+              <span className="font-medium text-m3-on-surface">{confirmTarget?.application.candidateName}</span> sẽ chuyển sang
               trạng thái "{confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].statusLabel}".
             </DialogDescription>
           </DialogHeader>
           {changeStatusMutation.isError && (
-            <p className="text-sm text-danger">
+            <p className="text-sm text-m3-error">
               {extractErrorMessage(changeStatusMutation.error, 'Cập nhật trạng thái thất bại, vui lòng thử lại.')}
             </p>
           )}

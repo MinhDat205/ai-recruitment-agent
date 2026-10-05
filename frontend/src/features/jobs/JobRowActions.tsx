@@ -55,7 +55,7 @@ export function JobRowActions({ job }: { job: JobOwnerResponse }) {
 
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogTrigger asChild>
-            <Button type="button" variant="outline" size="sm" className="border-danger text-danger hover:bg-danger/10">
+            <Button type="button" variant="outline" size="sm" className="border-m3-error text-m3-error hover:bg-m3-error/10">
               Xoá
             </Button>
           </DialogTrigger>
@@ -82,12 +82,12 @@ export function JobRowActions({ job }: { job: JobOwnerResponse }) {
       </div>
 
       {changeStatusMutation.isError && (
-        <p className="text-xs text-danger">
+        <p className="text-xs text-m3-error">
           {extractErrorMessage(changeStatusMutation.error, 'Đổi trạng thái thất bại.')}
         </p>
       )}
       {deleteMutation.isError && (
-        <p className="text-xs text-danger">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+        <p className="text-xs text-m3-error">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
       )}
     </div>
   )

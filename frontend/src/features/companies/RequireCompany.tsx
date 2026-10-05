@@ -15,9 +15,9 @@ export function RequireCompany({ children }: { children: ReactNode }) {
     return (
       <HrLayout title="Đang tải">
         <div className="flex flex-col gap-4" aria-busy="true">
-          <div className="h-8 w-64 animate-pulse rounded-md bg-line" />
-          <div className="h-32 animate-pulse rounded-md bg-line" />
-          <div className="h-32 animate-pulse rounded-md bg-line" />
+          <div className="h-8 w-64 animate-pulse rounded-md bg-m3-surface-container-highest" />
+          <div className="h-32 animate-pulse rounded-md bg-m3-surface-container-highest" />
+          <div className="h-32 animate-pulse rounded-md bg-m3-surface-container-highest" />
         </div>
       </HrLayout>
     )

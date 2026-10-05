@@ -27,22 +27,22 @@ function CriterionRow({ item }: { item: CriterionScoreItem }) {
   const [reasoningExpanded, setReasoningExpanded] = useState(false)
 
   return (
-    <div className="rounded-(--radius-card) border border-line bg-surface">
+    <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left text-sm"
         onClick={() => setReasoningExpanded((expanded) => !expanded)}
         aria-expanded={reasoningExpanded}
       >
-        <span className="flex items-center gap-2 text-ink">
+        <span className="flex items-center gap-2 text-m3-on-surface">
           {reasoningExpanded ? (
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden="true" />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-m3-on-surface-variant" aria-hidden="true" />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden="true" />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-m3-on-surface-variant" aria-hidden="true" />
           )}
           {item.criterionNameSnapshot}
         </span>
-        <span className="flex shrink-0 items-center gap-4 text-ink-muted">
+        <span className="flex shrink-0 items-center gap-4 text-m3-on-surface-variant">
           <span>
             {item.score}/{item.maxScoreSnapshot} điểm
           </span>
@@ -53,14 +53,14 @@ function CriterionRow({ item }: { item: CriterionScoreItem }) {
           voi cot Tong diem/Hang o bang ngoai - khong dat gan hai cot do de tranh gay lien tuong day
           la khuyen nghi chung ve ung vien. */}
       {reasoningExpanded && (
-        <div className="border-t border-line px-4 py-3">
-          <p className="text-xs text-ink-muted">
+        <div className="border-t border-m3-outline-variant px-4 py-3">
+          <p className="text-xs text-m3-on-surface-variant">
             Diễn giải của AI cho tiêu chí này — không phải khuyến nghị tuyển dụng
           </p>
           {/* reasoning la van ban AI da sinh tu D2, hien thi NGUYEN VAN - khong loc/sua/tom tat boi
               code (Q6, nguyen tac chong bia CLAUDE.md muc 2). Plain text, khong heading "Nhan
               xet:", khong bullet nhan manh. */}
-          <p className="mt-1 text-sm whitespace-pre-wrap text-ink">{item.reasoning}</p>
+          <p className="mt-1 text-sm whitespace-pre-wrap text-m3-on-surface">{item.reasoning}</p>
 
           {/* Evidence (D4/FR-H06, Dot 5): trich xuat NGUYEN VAN tu CV, khong phai nhan xet cua AI
               nen KHONG dat chung nhan "khong phai khuyen nghi" nhu reasoning o tren (rang buoc da
@@ -72,10 +72,10 @@ function CriterionRow({ item }: { item: CriterionScoreItem }) {
               {item.evidence.map((entry, index) => (
                 <blockquote
                   key={`${entry.section}-${index}`}
-                  className="border-l-2 border-brand bg-brand-light px-3 py-2 text-sm font-normal text-ink"
+                  className="border-l-2 border-m3-primary bg-m3-primary-container px-3 py-2 text-sm font-normal text-m3-on-surface"
                 >
                   <p className="whitespace-pre-wrap">{entry.quote}</p>
-                  <p className="mt-1 text-xs text-ink-muted">Nguồn: {sectionLabel(entry.section)}</p>
+                  <p className="mt-1 text-xs text-m3-on-surface">Nguồn: {sectionLabel(entry.section)}</p>
                 </blockquote>
               ))}
             </div>
@@ -84,7 +84,7 @@ function CriterionRow({ item }: { item: CriterionScoreItem }) {
             // loi/thieu du lieu, nen KHONG de trong tron (trong nhu vay se giong loi hien thi). Chu
             // van thuong (khong bang khung trich dan brand-light) - de khong gay hieu nham day la
             // MOT trich dan rong that su, chi la mot cau mo ta trung tinh ve tinh trang du lieu.
-            <p className="mt-3 text-sm text-ink-muted">Không tìm thấy trích dẫn nào trong CV cho tiêu chí này.</p>
+            <p className="mt-3 text-sm text-m3-on-surface-variant">Không tìm thấy trích dẫn nào trong CV cho tiêu chí này.</p>
           )}
         </div>
       )}

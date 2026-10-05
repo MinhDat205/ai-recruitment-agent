@@ -66,23 +66,23 @@ export function HrJobListPage() {
           </Button>
         </div>
 
-        {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
+        {isLoading && <p className="text-sm text-m3-on-surface">Đang tải...</p>}
 
-        {isError && <p className="text-sm text-danger">Không tải được danh sách tin tuyển dụng, vui lòng thử lại.</p>}
+        {isError && <p className="text-sm text-m3-on-surface">Không tải được danh sách tin tuyển dụng, vui lòng thử lại.</p>}
 
         {!isLoading && !isError && data && data.items.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-(--radius-card) border border-line bg-surface py-12 text-center">
-            <p className="text-sm text-ink-muted">
+          <div className="flex flex-col items-center gap-2 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface py-12 text-center">
+            <p className="text-sm text-m3-on-surface-variant">
               {statusFilter === ALL_STATUS ? 'Chưa có tin tuyển dụng nào.' : 'Không có tin nào ở trạng thái này.'}
             </p>
-            <Link to="/hr/jobs/new" className="text-sm font-medium text-brand hover:underline">
+            <Link to="/hr/jobs/new" className="text-sm font-medium text-m3-primary hover:underline">
               Tạo tin đầu tiên →
             </Link>
           </div>
         )}
 
         {!isLoading && !isError && data && data.items.length > 0 && (
-          <div className="rounded-(--radius-card) border border-line bg-surface">
+          <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -100,24 +100,24 @@ export function HrJobListPage() {
                 {data.items.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell>
-                      <Link to={`/hr/jobs/${job.id}/edit`} className="font-medium text-ink hover:text-brand">
+                      <Link to={`/hr/jobs/${job.id}/edit`} className="font-medium text-m3-on-surface hover:text-m3-primary">
                         {job.title}
                       </Link>
                     </TableCell>
                     <TableCell>
                       <JobStatusBadge status={job.status} />
                     </TableCell>
-                    <TableCell className="text-ink-muted">
+                    <TableCell className="text-m3-on-surface-variant">
                       <JobLocationCell job={job} />
                     </TableCell>
-                    <TableCell className="text-ink-muted">
+                    <TableCell className="text-m3-on-surface-variant">
                       {job.employmentType ? (EMPLOYMENT_TYPE_LABELS[job.employmentType] ?? job.employmentType) : '—'}
                     </TableCell>
-                    <TableCell className="text-ink-muted">
+                    <TableCell className="text-m3-on-surface-variant">
                       {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)}
                     </TableCell>
-                    <TableCell className="text-ink-muted">{formatDeadline(job.deadline)}</TableCell>
-                    <TableCell className="text-ink-muted">{job.recruitmentCycle}</TableCell>
+                    <TableCell className="text-m3-on-surface-variant">{formatDeadline(job.deadline)}</TableCell>
+                    <TableCell className="text-m3-on-surface-variant">{job.recruitmentCycle}</TableCell>
                     <TableCell>
                       <JobRowActions job={job} />
                     </TableCell>

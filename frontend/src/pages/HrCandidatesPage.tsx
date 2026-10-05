@@ -36,14 +36,14 @@ export function HrCandidatesPage() {
           }
         />
 
-        {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
+        {isLoading && <p className="text-sm text-m3-on-surface">Đang tải...</p>}
 
-        {isError && <p className="text-sm text-danger">Không tải được danh sách ứng viên, vui lòng thử lại.</p>}
+        {isError && <p className="text-sm text-m3-on-surface">Không tải được danh sách ứng viên, vui lòng thử lại.</p>}
 
         {!isLoading && !isError && data && (
           <>
             {createScoringRunMutation.isError && (
-              <p className="text-sm text-danger">
+              <p className="text-sm text-m3-on-surface">
                 {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
               </p>
             )}

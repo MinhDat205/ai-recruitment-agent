@@ -15,18 +15,18 @@ function formatWeight(value: number): string {
 function RubricWeightSummary({ totalWeight }: { totalWeight: number }) {
   const remaining = 100 - totalWeight
   return (
-    <div className="flex flex-col gap-1 rounded-(--radius-card) border border-line bg-canvas px-4 py-3">
-      <p className="text-sm font-medium text-ink">Tổng trọng số hiện tại: {formatWeight(totalWeight)}%</p>
+    <div className="flex flex-col gap-1 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface px-4 py-3">
+      <p className="text-sm font-medium text-m3-on-surface">Tổng trọng số hiện tại: {formatWeight(totalWeight)}%</p>
       {/* Trung tinh, mang tinh thong tin - rubric dang xay do la trang thai binh thuong, khong
           phai loi. Chi dung mau canh bao khi that su vuot nguong (truong hop hiem, phong thu). */}
       {remaining > 1e-9 && (
-        <p className="text-sm text-ink-muted">Còn thiếu {formatWeight(remaining)}% mới mở tin tuyển dụng được.</p>
+        <p className="text-sm text-m3-on-surface-variant">Còn thiếu {formatWeight(remaining)}% mới mở tin tuyển dụng được.</p>
       )}
       {Math.abs(remaining) <= 1e-9 && (
-        <p className="text-sm text-ink-muted">Đã đủ 100% trọng số — sẵn sàng để mở tin tuyển dụng.</p>
+        <p className="text-sm text-m3-on-surface-variant">Đã đủ 100% trọng số — sẵn sàng để mở tin tuyển dụng.</p>
       )}
       {remaining < -1e-9 && (
-        <p className="text-sm text-danger">Tổng đang vượt 100%, vui lòng điều chỉnh lại trọng số.</p>
+        <p className="text-sm text-m3-error">Tổng đang vượt 100%, vui lòng điều chỉnh lại trọng số.</p>
       )}
     </div>
   )
@@ -58,10 +58,10 @@ export function RubricTab({ jobId }: { jobId: string }) {
     .filter((c): c is RubricCriterionResponse => Boolean(c))
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-ink-muted">Đang tải...</p>
+    return <p className="p-6 text-sm text-m3-on-surface-variant">Đang tải...</p>
   }
   if (isError || !rubric) {
-    return <p className="p-6 text-sm text-danger">Không tải được rubric, vui lòng thử lại.</p>
+    return <p className="p-6 text-sm text-m3-error">Không tải được rubric, vui lòng thử lại.</p>
   }
 
   function handleDrop(targetId: string) {
@@ -86,7 +86,7 @@ export function RubricTab({ jobId }: { jobId: string }) {
       <RubricWeightSummary totalWeight={rubric.totalWeight} />
 
       {rubric.locked && (
-        <div className="rounded-(--radius-card) border border-line bg-canvas px-4 py-3 text-sm text-ink-muted">
+        <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface-container px-4 py-3 text-sm text-m3-on-surface">
           Rubric đã khoá vì đã có lượt chấm điểm đầu tiên. Sửa tiêu chí lúc này sẽ làm sai lệch lịch sử đánh giá,
           nên form chỉ hiển thị để xem, không sửa được.
         </div>
@@ -101,12 +101,12 @@ export function RubricTab({ jobId }: { jobId: string }) {
       )}
 
       {orderedCriteria.length === 0 ? (
-        <div className="flex flex-col items-center gap-1 rounded-(--radius-card) border border-line bg-surface py-12 text-center">
-          <p className="text-sm text-ink-muted">Chưa có tiêu chí nào trong rubric.</p>
-          {!rubric.locked && <p className="text-sm text-ink-muted">Bấm "Thêm tiêu chí" để bắt đầu.</p>}
+        <div className="flex flex-col items-center gap-1 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface py-12 text-center">
+          <p className="text-sm text-m3-on-surface-variant">Chưa có tiêu chí nào trong rubric.</p>
+          {!rubric.locked && <p className="text-sm text-m3-on-surface-variant">Bấm "Thêm tiêu chí" để bắt đầu.</p>}
         </div>
       ) : (
-        <div className="rounded-(--radius-card) border border-line bg-surface">
+        <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
           <Table>
             <TableHeader>
               <TableRow>
@@ -137,7 +137,7 @@ export function RubricTab({ jobId }: { jobId: string }) {
         </div>
       )}
 
-      {reorderMutation.isError && <p className="text-sm text-danger">Sắp xếp lại thất bại, vui lòng thử lại.</p>}
+      {reorderMutation.isError && <p className="text-sm text-m3-error">Sắp xếp lại thất bại, vui lòng thử lại.</p>}
 
       {!rubric.locked && (
         <CriterionFormDialog

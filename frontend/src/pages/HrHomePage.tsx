@@ -13,12 +13,12 @@ export function HrHomePage() {
   return (
     <HrLayout title="Dashboard">
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold text-ink">Xin chào {user?.fullName}</h1>
+        <h1 className="text-2xl font-semibold text-m3-on-surface">Xin chào {user?.fullName}</h1>
 
-        {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
+        {isLoading && <p className="text-sm text-m3-on-surface">Đang tải...</p>}
 
         {isError && (
-          <p className="text-sm text-danger">Không tải được dữ liệu thống kê, vui lòng thử lại.</p>
+          <p className="text-sm text-m3-on-surface">Không tải được dữ liệu thống kê, vui lòng thử lại.</p>
         )}
 
         {!isLoading && !isError && data && (
