@@ -40,7 +40,7 @@ export function NotificationDropdown({ items }: { items: NotificationItem[] }) {
                   markReadMutation.mutate(item.id)
                 }
               }}
-              className={`flex flex-col gap-1 border-b border-m3-outline-variant px-4 py-3 text-sm last:border-b-0 hover:bg-m3-surface-container ${
+              className={`flex flex-col gap-1 border-b border-m3-outline-variant px-4 py-3 text-sm last:border-b-0 hover:bg-m3-primary-container/40 ${
                 item.isRead ? '' : 'bg-m3-primary-container/40'
               }`}
             >
@@ -54,7 +54,7 @@ export function NotificationDropdown({ items }: { items: NotificationItem[] }) {
 
       <Link
         to={viewAllPath}
-        className="border-t border-m3-outline-variant px-4 py-3 text-center text-sm font-medium text-m3-primary hover:bg-m3-surface-container"
+        className="border-t border-m3-outline-variant px-4 py-3 text-center text-sm font-medium text-m3-on-primary-container hover:bg-m3-surface-container"
       >
         Xem tất cả
       </Link>
