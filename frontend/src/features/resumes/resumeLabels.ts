@@ -12,8 +12,8 @@ export const PARSE_STATUS_LABELS: Record<ParseStatus, string> = {
 // (giong PENDING/PROCESSING), khong dung --color-danger de tranh gay an tuong day la phan quyet ve
 // chat luong CV. DONE dung --color-brand mang y nghia thong tin (da xu ly xong), khong phai "tot".
 export const PARSE_STATUS_STYLES: Record<ParseStatus, string> = {
-  PENDING: 'bg-canvas text-ink-muted',
-  PROCESSING: 'bg-canvas text-ink-muted',
-  DONE: 'bg-brand-light text-brand',
-  FAILED: 'bg-canvas text-ink-muted',
+  PENDING: 'bg-m3-surface-container text-m3-on-surface',
+  PROCESSING: 'bg-m3-surface-container text-m3-on-surface',
+  DONE: 'bg-m3-primary-container text-m3-on-primary-container',
+  FAILED: 'bg-m3-surface-container text-m3-on-surface',
 }

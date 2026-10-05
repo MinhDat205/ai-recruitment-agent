@@ -11,7 +11,7 @@ interface ScoringRunStatusBadgeProps {
 // Man hinh nay CAM tuyet doi: nhan dat/khong dat, mau do/vang/xanh theo diem, cau goi y hanh dong
 // ("nen moi phong van"...). Chi hien trang thai/tien do XU LY (dang cho, dang cham, da cham xong
 // cho D3 tong hop, hay that bai ky thuat) - KHONG hien diem so hay evidence (D3/D4 moi co). Toan bo
-// mau deu trung tinh (bg-canvas/text-ink-muted hoac bg-brand-light/text-brand mang y nghia "co
+// mau deu trung tinh (surface-container/on-surface hoac primary-container/on-primary-container mang y nghia "co
 // thong tin", khong phai "tot") - giong dung tinh than ParseStatusBadge (features/resumes).
 function labelAndIcon(status: ScoringRunStatus, finishedAt: string | null, criteriaScored: number, criteriaTotal: number) {
   if (status === 'PENDING') {
@@ -37,8 +37,8 @@ function labelAndIcon(status: ScoringRunStatus, finishedAt: string | null, crite
 }
 
 const TONE_STYLES = {
-  muted: 'bg-canvas text-ink-muted',
-  brand: 'bg-brand-light text-brand',
+  muted: 'bg-m3-surface-container text-m3-on-surface',
+  brand: 'bg-m3-primary-container text-m3-on-primary-container',
 }
 
 export function ScoringRunStatusBadge({ status, finishedAt, criteriaScored, criteriaTotal }: ScoringRunStatusBadgeProps) {
