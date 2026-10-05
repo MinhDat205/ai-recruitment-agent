@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import { GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { AlertCircle, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -70,16 +70,16 @@ export function CriterionRow({
     <TableRow draggable={draggable} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}>
       <TableCell className="w-8">
         {draggable && (
-          <GripVertical className="size-4 cursor-grab text-ink-muted" aria-hidden="true" />
+          <GripVertical className="size-4 cursor-grab text-m3-on-surface-variant" aria-hidden="true" />
         )}
       </TableCell>
       <TableCell>
-        <p className="font-medium text-ink">{criterion.name}</p>
-        {criterion.description && <p className="text-xs text-ink-muted italic">{criterion.description}</p>}
+        <p className="font-medium text-m3-on-surface">{criterion.name}</p>
+        {criterion.description && <p className="text-xs text-m3-on-surface-variant italic">{criterion.description}</p>}
       </TableCell>
-      <TableCell className="text-ink">{formatWeight(criterion.weight)}%</TableCell>
-      <TableCell className="text-ink-muted">{criterion.maxScore}</TableCell>
-      <TableCell className="text-ink-muted">{scaleSummary}</TableCell>
+      <TableCell className="text-m3-on-surface">{formatWeight(criterion.weight)}%</TableCell>
+      <TableCell className="text-m3-on-surface-variant">{criterion.maxScore}</TableCell>
+      <TableCell className="text-m3-on-surface-variant">{scaleSummary}</TableCell>
       {!locked && (
         <TableCell className="text-right">
           <div className="flex flex-col items-end gap-1">
@@ -100,9 +100,9 @@ export function CriterionRow({
                     variant="outline"
                     size="icon-sm"
                     aria-label="Xoá tiêu chí"
-                    className="border-danger text-danger hover:bg-danger/10"
+                    className="border-m3-error text-m3-on-surface hover:bg-m3-surface-container"
                   >
-                    <Trash2 />
+                    <Trash2 className="text-m3-error" aria-hidden="true" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -128,8 +128,12 @@ export function CriterionRow({
                 </DialogContent>
               </Dialog>
             </div>
+            {/* Nam trong hang bang (hover #F8F8F8): chu do chi dat 4.46:1, tin hieu loi giu bang icon. */}
             {deleteMutation.isError && (
-              <p className="text-xs text-danger">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+              <div role="alert" className="flex items-start gap-1.5 text-xs text-m3-on-surface">
+                <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0 text-m3-error" aria-hidden="true" />
+                <p>{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+              </div>
             )}
           </div>
         </TableCell>

@@ -34,14 +34,14 @@ export function ConversionFunnelCard({ funnel }: { funnel: ConversionFunnel }) {
       <CardContent>
         <div className="grid grid-cols-3 gap-4">
           {steps.map((step) => (
-            <div key={step.label} className="rounded-(--radius-card) border border-line bg-canvas p-4 text-center">
-              <p className="text-2xl font-semibold text-brand">{step.count}</p>
-              <p className="mt-1 text-xs text-ink-muted">{step.label}</p>
-              <p className="mt-1 text-sm font-medium text-ink">{step.percent}</p>
+            <div key={step.label} className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface-container p-4 text-center">
+              <p className="text-2xl font-semibold text-m3-on-primary-container">{step.count}</p>
+              <p className="mt-1 text-xs text-m3-on-surface">{step.label}</p>
+              <p className="mt-1 text-sm font-medium text-m3-on-surface">{step.percent}</p>
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-ink-muted">
+        <p className="mt-3 text-xs text-m3-on-surface-variant">
           Tính theo lịch sử chuyển trạng thái: đơn đã từng được mời phỏng vấn hoặc trúng tuyển vẫn
           được tính dù sau đó ứng viên đã rút đơn.
         </p>

@@ -18,9 +18,9 @@ export function RequireCandidateProfileOnboarding({ children }: { children: Reac
     return (
       <CandidateLayout>
         <div className="mx-auto flex max-w-[1200px] flex-col gap-4 px-4 py-8 md:px-6" aria-busy="true">
-          <div className="h-8 w-64 animate-pulse rounded-md bg-line" />
-          <div className="h-32 animate-pulse rounded-md bg-line" />
-          <div className="h-32 animate-pulse rounded-md bg-line" />
+          <div className="h-8 w-64 animate-pulse rounded-md bg-m3-surface-container-highest" />
+          <div className="h-32 animate-pulse rounded-md bg-m3-surface-container-highest" />
+          <div className="h-32 animate-pulse rounded-md bg-m3-surface-container-highest" />
         </div>
       </CandidateLayout>
     )

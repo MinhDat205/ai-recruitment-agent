@@ -36,15 +36,15 @@ export function CandidatesTable({
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-1 rounded-(--radius-card) border border-line bg-surface py-12 text-center">
-        <p className="text-sm text-ink-muted">Không có ứng viên nào khớp với bộ lọc hiện tại.</p>
+      <div className="flex flex-col items-center gap-1 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface py-12 text-center">
+        <p className="text-sm text-m3-on-surface-variant">Không có ứng viên nào khớp với bộ lọc hiện tại.</p>
       </div>
     )
   }
 
   return (
     <>
-      <div className="rounded-(--radius-card) border border-line bg-surface">
+      <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
         <Table>
           <TableHeader>
             <TableRow>
@@ -60,16 +60,16 @@ export function CandidatesTable({
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="text-ink">{item.candidateName}</TableCell>
-                <TableCell className="text-ink-muted">{item.jobTitle}</TableCell>
-                <TableCell className="text-ink-muted">{formatAppliedAt(item.appliedAt)}</TableCell>
+                <TableCell className="text-m3-on-surface">{item.candidateName}</TableCell>
+                <TableCell className="text-m3-on-surface-variant">{item.jobTitle}</TableCell>
+                <TableCell className="text-m3-on-surface-variant">{formatAppliedAt(item.appliedAt)}</TableCell>
                 <TableCell>
                   <ParseStatusBadge status={item.resumeParseStatus} />
                 </TableCell>
                 <TableCell>
                   <ApplicationStatusBadge status={item.status} />
                 </TableCell>
-                <TableCell className="text-right text-ink">{formatScore(item.totalScore)}</TableCell>
+                <TableCell className="text-right text-m3-on-surface">{formatScore(item.totalScore)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => setAuditTarget(item)}>

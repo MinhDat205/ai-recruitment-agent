@@ -16,7 +16,7 @@ export function NotificationBell() {
         <button
           type="button"
           aria-label="Thông báo"
-          className="relative flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-canvas hover:text-ink"
+          className="relative flex h-10 w-10 items-center justify-center rounded-md text-m3-on-surface-variant hover:bg-m3-surface-container hover:text-m3-on-surface"
         >
           <Bell size={20} />
           <NotificationBadge count={unreadCount} />

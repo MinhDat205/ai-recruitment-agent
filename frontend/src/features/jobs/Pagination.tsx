@@ -18,12 +18,12 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         aria-label="Trang trước"
         disabled={page <= 0}
         onClick={() => onPageChange(page - 1)}
-        className="flex h-12 w-12 items-center justify-center rounded-(--radius-badge) border border-line text-ink disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
+        className="flex h-12 w-12 items-center justify-center rounded-(--radius-badge) border border-m3-outline text-m3-on-surface disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
       >
         <ChevronLeft size={18} />
       </button>
 
-      <span className="text-sm text-ink-muted">
+      <span className="text-sm text-m3-on-surface">
         Trang {page + 1} / {totalPages}
       </span>
 
@@ -32,7 +32,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         aria-label="Trang sau"
         disabled={page >= totalPages - 1}
         onClick={() => onPageChange(page + 1)}
-        className="flex h-12 w-12 items-center justify-center rounded-(--radius-badge) border border-line text-ink disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
+        className="flex h-12 w-12 items-center justify-center rounded-(--radius-badge) border border-m3-outline text-m3-on-surface disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
       >
         <ChevronRight size={18} />
       </button>

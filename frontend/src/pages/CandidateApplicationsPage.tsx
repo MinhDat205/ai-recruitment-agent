@@ -53,7 +53,7 @@ function InterviewInvitationDetailDialog({ applicationId }: { applicationId: str
   } = useInterviewInvitationQuery(applicationId, true)
 
   if (isLoading) {
-    return <p className="text-sm text-ink-muted">Đang tải giấy mời...</p>
+    return <p className="text-sm text-m3-on-surface-variant">Đang tải giấy mời...</p>
   }
 
   if (isError) {
@@ -61,9 +61,9 @@ function InterviewInvitationDetailDialog({ applicationId }: { applicationId: str
     // phong van) - khong phai loi, chi la khong co giay moi nao de xem. Loi khac (mang, 500...)
     // moi hien canh bao do.
     if (isAxiosError(invitationError) && invitationError.response?.status === 404) {
-      return <p className="text-sm text-ink-muted">Đơn này chưa có giấy mời phỏng vấn.</p>
+      return <p className="text-sm text-m3-on-surface-variant">Đơn này chưa có giấy mời phỏng vấn.</p>
     }
-    return <p className="text-sm text-danger">Không tải được giấy mời, vui lòng thử lại.</p>
+    return <p className="text-sm text-m3-error">Không tải được giấy mời, vui lòng thử lại.</p>
   }
 
   if (!invitation) {
@@ -73,17 +73,17 @@ function InterviewInvitationDetailDialog({ applicationId }: { applicationId: str
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 text-sm">
-        <CalendarClock className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
-        <span className="font-medium text-ink">{formatScheduledAt(invitation.scheduledAt)}</span>
+        <CalendarClock className="h-4 w-4 shrink-0 text-m3-primary" aria-hidden="true" />
+        <span className="font-medium text-m3-on-surface">{formatScheduledAt(invitation.scheduledAt)}</span>
       </div>
       {invitation.location && (
-        <p className="text-sm text-ink-muted">
-          <span className="font-medium text-ink">Địa điểm: </span>
+        <p className="text-sm text-m3-on-surface-variant">
+          <span className="font-medium text-m3-on-surface">Địa điểm: </span>
           {invitation.location}
         </p>
       )}
-      <p className="text-sm font-medium text-ink">{invitation.subject}</p>
-      <p className="whitespace-pre-wrap text-sm text-ink">{invitation.renderedContent}</p>
+      <p className="text-sm font-medium text-m3-on-surface">{invitation.subject}</p>
+      <p className="whitespace-pre-wrap text-sm text-m3-on-surface">{invitation.renderedContent}</p>
     </div>
   )
 }
@@ -137,10 +137,10 @@ export function CandidateApplicationsPage() {
             <CardTitle>Đơn ứng tuyển của tôi</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
-            {isError && <p className="text-sm text-danger">Không tải được danh sách đơn, vui lòng thử lại.</p>}
+            {isLoading && <p className="text-sm text-m3-on-surface-variant">Đang tải...</p>}
+            {isError && <p className="text-sm text-m3-error">Không tải được danh sách đơn, vui lòng thử lại.</p>}
             {!isLoading && !isError && (!applications || applications.length === 0) && (
-              <p className="text-sm text-ink-muted">Bạn chưa ứng tuyển vị trí nào.</p>
+              <p className="text-sm text-m3-on-surface-variant">Bạn chưa ứng tuyển vị trí nào.</p>
             )}
             {!isLoading && !isError && applications && applications.length > 0 && (
               <Table>
@@ -157,11 +157,11 @@ export function CandidateApplicationsPage() {
                   {applications.map((application) => (
                     <TableRow key={application.id}>
                       <TableCell>{application.jobTitle}</TableCell>
-                      <TableCell className="text-ink-muted">{application.companyName}</TableCell>
+                      <TableCell className="text-m3-on-surface-variant">{application.companyName}</TableCell>
                       <TableCell>
                         <ApplicationStatusBadge status={application.status} />
                       </TableCell>
-                      <TableCell className="text-ink-muted">{formatAppliedAt(application.appliedAt)}</TableCell>
+                      <TableCell className="text-m3-on-surface-variant">{formatAppliedAt(application.appliedAt)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => setSelected(application)}>
@@ -213,11 +213,11 @@ export function CandidateApplicationsPage() {
             <DialogTitle>Rút đơn ứng tuyển?</DialogTitle>
             <DialogDescription>
               Hành động này không thể hoàn tác. Sau khi rút, bạn sẽ không thể nộp lại đơn cho vị trí{' '}
-              <span className="font-medium text-ink">{withdrawTarget?.jobTitle}</span> trong đợt tuyển hiện tại.
+              <span className="font-medium text-m3-on-surface">{withdrawTarget?.jobTitle}</span> trong đợt tuyển hiện tại.
             </DialogDescription>
           </DialogHeader>
           {withdrawMutation.isError && (
-            <p className="text-sm text-danger">
+            <p className="text-sm text-m3-error">
               {extractErrorMessage(withdrawMutation.error, 'Rút đơn thất bại, vui lòng thử lại.')}
             </p>
           )}

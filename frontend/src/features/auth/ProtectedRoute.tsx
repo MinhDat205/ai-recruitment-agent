@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   const location = useLocation()
 
   if (isLoading) {
-    return <div className="p-8 text-sm text-ink-muted">Đang tải...</div>
+    return <div className="p-8 text-sm text-m3-on-surface">Đang tải...</div>
   }
 
   if (!user) {

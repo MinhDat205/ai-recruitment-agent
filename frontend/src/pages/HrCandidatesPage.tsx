@@ -1,4 +1,4 @@
-import { RotateCw } from 'lucide-react'
+import { AlertCircle, RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { HrLayout } from '../components/layout/HrLayout'
@@ -36,16 +36,25 @@ export function HrCandidatesPage() {
           }
         />
 
-        {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
+        {isLoading && <p className="text-sm text-m3-on-surface">Đang tải...</p>}
 
-        {isError && <p className="text-sm text-danger">Không tải được danh sách ứng viên, vui lòng thử lại.</p>}
+        {/* Nen trang xam: chu do chi dat 4.16:1 nen chu dung on-surface, tin hieu loi giu bang icon. */}
+        {isError && (
+          <div role="alert" className="flex items-start gap-2 text-sm text-m3-on-surface">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
+            <p>Không tải được danh sách ứng viên, vui lòng thử lại.</p>
+          </div>
+        )}
 
         {!isLoading && !isError && data && (
           <>
             {createScoringRunMutation.isError && (
-              <p className="text-sm text-danger">
-                {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
-              </p>
+              <div role="alert" className="flex items-start gap-2 text-sm text-m3-on-surface">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
+                <p>
+                  {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
+                </p>
+              </div>
             )}
 
             <CandidatesTable

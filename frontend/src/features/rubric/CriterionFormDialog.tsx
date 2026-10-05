@@ -148,7 +148,7 @@ export function CriterionFormDialog({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="criterion-name">Tên tiêu chí</Label>
             <Input id="criterion-name" {...register('name')} />
-            {errors.name && <p className="text-sm text-danger">{errors.name.message}</p>}
+            {errors.name && <p className="text-sm text-m3-error">{errors.name.message}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -160,7 +160,7 @@ export function CriterionFormDialog({
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="criterion-weight">Trọng số (%)</Label>
               <Input id="criterion-weight" type="number" step="0.01" min={0.01} max={100} {...register('weight')} />
-              {errors.weight && <p className="text-sm text-danger">{errors.weight.message}</p>}
+              {errors.weight && <p className="text-sm text-m3-error">{errors.weight.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="criterion-max-score">Thang điểm tối đa</Label>
@@ -171,11 +171,11 @@ export function CriterionFormDialog({
                 placeholder="5 (mặc định)"
                 {...register('maxScore')}
               />
-              {errors.maxScore && <p className="text-sm text-danger">{errors.maxScore.message}</p>}
+              {errors.maxScore && <p className="text-sm text-m3-error">{errors.maxScore.message}</p>}
             </div>
           </div>
 
-          <p className={`text-sm ${exceeds ? 'text-danger' : 'text-ink-muted'}`}>
+          <p className={`text-sm ${exceeds ? 'text-m3-error' : 'text-m3-on-surface-variant'}`}>
             Tổng trọng số của cả rubric sau khi lưu: {formatPercent(projectedTotal)}%
             {exceeds && ' — vượt quá 100%, không lưu được.'}
           </p>
@@ -194,7 +194,7 @@ export function CriterionFormDialog({
             </div>
             {/* Khong bat buoc - khong danh dau sao do, khong canh bao. Bo trong la trang thai binh
                 thuong, khong phai thieu sot. */}
-            <p className="text-sm text-ink-muted">
+            <p className="text-sm text-m3-on-surface-variant">
               Không bắt buộc. Nếu để trống, AI sẽ chấm theo thang điểm mặc định dùng chung cho mọi tiêu chí.
             </p>
 
@@ -210,10 +210,10 @@ export function CriterionFormDialog({
                 <div className="flex-1">
                   <Input placeholder="Mô tả cho mức điểm này" {...register(`scaleLevels.${index}.description`)} />
                   {errors.scaleLevels?.[index]?.level && (
-                    <p className="text-sm text-danger">{errors.scaleLevels[index]?.level?.message}</p>
+                    <p className="text-sm text-m3-error">{errors.scaleLevels[index]?.level?.message}</p>
                   )}
                   {errors.scaleLevels?.[index]?.description && (
-                    <p className="text-sm text-danger">{errors.scaleLevels[index]?.description?.message}</p>
+                    <p className="text-sm text-m3-error">{errors.scaleLevels[index]?.description?.message}</p>
                   )}
                 </div>
                 <Button
@@ -230,7 +230,7 @@ export function CriterionFormDialog({
           </div>
 
           {mutation.isError && (
-            <p className="text-sm text-danger">
+            <p className="text-sm text-m3-error">
               {extractErrorMessage(mutation.error, 'Lưu thất bại, vui lòng thử lại.')}
             </p>
           )}

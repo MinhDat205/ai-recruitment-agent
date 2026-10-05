@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
+import { AlertCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
@@ -374,8 +375,14 @@ export function CandidateProfilePage() {
               >
                 {saveMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
-              {saveSuccessVisible && <p className="text-m3-body-md text-m3-primary">Đã lưu thay đổi</p>}
-              {generalError && <p className="text-m3-body-md text-m3-error">{generalError}</p>}
+              {/* Hang nut nam ngoai Card, tren nen trang xam: m3-primary/m3-error chi dat 4.07/4.16:1. */}
+              {saveSuccessVisible && <p className="text-m3-body-md text-m3-on-primary-container">Đã lưu thay đổi</p>}
+              {generalError && (
+                <div role="alert" className="flex items-start gap-2 text-m3-body-md text-m3-on-surface">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
+                  <p>{generalError}</p>
+                </div>
+              )}
             </div>
           )}
         </form>

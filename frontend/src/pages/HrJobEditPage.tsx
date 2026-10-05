@@ -166,10 +166,10 @@ function JobInfoTab({ jobId }: { jobId: string }) {
   })
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-ink-muted">Đang tải...</p>
+    return <p className="p-6 text-sm text-m3-on-surface-variant">Đang tải...</p>
   }
   if (isError || !job) {
-    return <p className="p-6 text-sm text-danger">Không tải được tin tuyển dụng, vui lòng thử lại.</p>
+    return <p className="p-6 text-sm text-m3-error">Không tải được tin tuyển dụng, vui lòng thử lại.</p>
   }
 
   return (
@@ -188,7 +188,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
             </p>
           </div>
         )}
-        <div className="flex items-center gap-2 text-sm text-ink-muted">
+        <div className="flex items-center gap-2 text-sm text-m3-on-surface-variant">
           <span>Trạng thái hiện tại:</span>
           <JobStatusBadge status={job.status} />
           <span>· Chu kỳ tuyển dụng: {job.recruitmentCycle}</span>
@@ -197,13 +197,13 @@ function JobInfoTab({ jobId }: { jobId: string }) {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-title">Tiêu đề tin tuyển dụng</Label>
           <Input id="edit-title" {...register('title')} />
-          {errors.title && <p className="text-sm text-danger">{errors.title.message}</p>}
+          {errors.title && <p className="text-sm text-m3-error">{errors.title.message}</p>}
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-description">Mô tả công việc</Label>
           <Textarea id="edit-description" rows={5} {...register('description')} />
-          {errors.description && <p className="text-sm text-danger">{errors.description.message}</p>}
+          {errors.description && <p className="text-sm text-m3-error">{errors.description.message}</p>}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -307,7 +307,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit-salary-max">Lương tối đa</Label>
             <Input id="edit-salary-max" type="number" min={0} {...register('salaryMax')} />
-            {errors.salaryMax && <p className="text-sm text-danger">{errors.salaryMax.message}</p>}
+            {errors.salaryMax && <p className="text-sm text-m3-error">{errors.salaryMax.message}</p>}
           </div>
         </div>
 
@@ -315,7 +315,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit-salary-currency">Đơn vị tiền tệ</Label>
             <Input id="edit-salary-currency" placeholder="VND" {...register('salaryCurrency')} />
-            {errors.salaryCurrency && <p className="text-sm text-danger">{errors.salaryCurrency.message}</p>}
+            {errors.salaryCurrency && <p className="text-sm text-m3-error">{errors.salaryCurrency.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit-deadline">Hạn ứng tuyển</Label>
@@ -324,7 +324,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
         </div>
 
         {updateMutation.isError && (
-          <p className="text-sm text-danger">
+          <p className="text-sm text-m3-error">
             {extractErrorMessage(updateMutation.error, 'Lưu thất bại, vui lòng thử lại.')}
           </p>
         )}
@@ -335,7 +335,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
           {updateMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
         </Button>
         {showSuccess && !isDirty && (
-          <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">Đã lưu thay đổi</p>
+          <p className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-2 text-sm text-m3-on-primary-container">Đã lưu thay đổi</p>
         )}
       </CardFooter>
     </form>
@@ -403,17 +403,17 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
   })
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-ink-muted">Đang tải...</p>
+    return <p className="p-6 text-sm text-m3-on-surface-variant">Đang tải...</p>
   }
   if (isError || !template) {
-    return <p className="p-6 text-sm text-danger">Không tải được mẫu giấy mời, vui lòng thử lại.</p>
+    return <p className="p-6 text-sm text-m3-error">Không tải được mẫu giấy mời, vui lòng thử lại.</p>
   }
 
   return (
     <form onSubmit={onSubmit} noValidate>
       <CardContent className="flex flex-col gap-4 pt-4">
-        <p className="text-sm text-ink-muted">
-          Tên công ty (<span className="font-medium text-ink">{template.companyName}</span>) lấy tự động từ hồ sơ
+        <p className="text-sm text-m3-on-surface-variant">
+          Tên công ty (<span className="font-medium text-m3-on-surface">{template.companyName}</span>) lấy tự động từ hồ sơ
           công ty, không sửa được ở đây. Mẫu này dùng chung cho mọi ứng viên của tin tuyển dụng — ngày giờ phỏng vấn
           cụ thể sẽ do bạn điền khi mời từng ứng viên, không có ở form này.
         </p>
@@ -421,20 +421,20 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="tpl-edit-subject">Tiêu đề thư mời</Label>
           <Input id="tpl-edit-subject" {...register('subject')} />
-          {errors.subject && <p className="text-sm text-danger">{errors.subject.message}</p>}
+          {errors.subject && <p className="text-sm text-m3-error">{errors.subject.message}</p>}
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="tpl-edit-body">Nội dung thư mời</Label>
           <Textarea id="tpl-edit-body" rows={6} {...register('body')} />
-          {errors.body && <p className="text-sm text-danger">{errors.body.message}</p>}
+          {errors.body && <p className="text-sm text-m3-error">{errors.body.message}</p>}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tpl-edit-sender-name">Người gửi</Label>
             <Input id="tpl-edit-sender-name" {...register('senderName')} />
-            {errors.senderName && <p className="text-sm text-danger">{errors.senderName.message}</p>}
+            {errors.senderName && <p className="text-sm text-m3-error">{errors.senderName.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tpl-edit-sender-title">Chức danh người gửi</Label>
@@ -448,7 +448,7 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
         </div>
 
         {updateMutation.isError && (
-          <p className="text-sm text-danger">
+          <p className="text-sm text-m3-error">
             {extractErrorMessage(updateMutation.error, 'Lưu thất bại, vui lòng thử lại.')}
           </p>
         )}
@@ -459,7 +459,7 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
           {updateMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
         </Button>
         {showSuccess && !isDirty && (
-          <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">Đã lưu thay đổi</p>
+          <p className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-2 text-sm text-m3-on-primary-container">Đã lưu thay đổi</p>
         )}
       </CardFooter>
     </form>
@@ -488,7 +488,7 @@ export function HrJobEditPage() {
           <CardHeader>
             <CardTitle>Sửa tin tuyển dụng</CardTitle>
             {justCreated && (
-              <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
+              <p className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-2 text-sm text-m3-on-primary-container">
                 Tin đã được tạo ở trạng thái Nháp. Thêm tiêu chí đánh giá đủ 100% trọng số để có thể mở tin tuyển
                 dụng.
               </p>

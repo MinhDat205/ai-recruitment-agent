@@ -1,6 +1,6 @@
 export function PublicFooter() {
   return (
-    <footer className="bg-ink text-surface">
+    <footer className="bg-m3-inverse-surface text-m3-inverse-on-surface">
       <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-8 px-4 py-10 text-sm sm:grid-cols-4 md:px-6">
         <div>
           <h4 className="mb-3 font-medium">Về chúng tôi</h4>

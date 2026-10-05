@@ -12,12 +12,12 @@ mật độ thông tin cao, bố cục dạng thẻ, xanh dương làm màu thư
 
 ## 0. Phạm vi áp dụng
 
-Bắt buộc cho mọi màn hình của 21 FR bổ sung. Màn hình cũ giữ nguyên tới nhánh
-`refactor/ui-md3-legacy`; khi làm FR mới, không tự sửa màn hình cũ trừ khi REQUIREMENT.md/UI.md
-đã duyệt yêu cầu.
+Bắt buộc cho mọi màn hình — cả 21 FR bổ sung lẫn màn hình cũ (đã đồng bộ ở
+`refactor/ui-md3-legacy`). Khi làm FR mới, không tự sửa màn hình khác ngoài phạm vi trừ khi
+REQUIREMENT.md/UI.md đã duyệt yêu cầu.
 
-Màn hình mới chỉ dùng token `m3-*` cho màu, chữ, bo góc, độ nổi; token cũ (`brand`, `ink`...) giữ
-cho màn hình cũ.
+Code tầng tính năng chỉ dùng token `m3-*` cho màu, chữ, bo góc, độ nổi. Token cũ (`brand`, `ink`...)
+chỉ còn để tương thích (biến shadcn trong `:root`, `components/ui`), không dùng trong code mới.
 
 ---
 
@@ -96,6 +96,11 @@ tiền tố `m3-` vì shadcn đã chiếm `--color-primary/secondary/accent/mute
 | `m3-on-surface-variant` | `text-m3-on-surface-variant` | `#6B7280` — chỉ đặt trên `m3-surface` (4.83:1), xem mục 6 |
 | `m3-outline-variant` | `border-m3-outline-variant` | `#E7E7E9` — chỉ để phân khối, xem mục 6 |
 | `m3-outline` | `border-m3-outline` | `#6B7280` — viền thành phần điều khiển (ô nhập, combobox); trên `m3-surface` đạt 4.83:1 ≥ 3:1. Cùng giá trị `m3-on-surface-variant`, không thêm màu mới (khai ở FR-C05) |
+| `m3-on-error` | `text-m3-on-error` | `#FFFFFF` — trên `m3-error` đạt 4.74:1 (khai ở `refactor/ui-md3-legacy`) |
+| `m3-inverse-surface` | `bg-m3-inverse-surface` | `#1F2937` (ink) — nền footer (khai ở `refactor/ui-md3-legacy`) |
+| `m3-inverse-on-surface` | `text-m3-inverse-on-surface` | `#FFFFFF` — trên `m3-inverse-surface` đạt 14.68:1 (khai ở `refactor/ui-md3-legacy`) |
+| `m3-surface-container-highest` | `bg-m3-surface-container-highest` | `#E7E7E9` (line) — nền skeleton, đường nối bước, badge `PAUSED`; `m3-on-surface` trên nền này đạt 11.89:1 (khai ở `refactor/ui-md3-legacy`) |
+| `m3-warning` | `border-m3-warning`, `text-m3-warning` (chỉ icon) | `#FF5B00` — CHỈ cho viền/icon trên `m3-surface` (3.11:1 ≥ 3:1); KHÔNG làm màu chữ, KHÔNG làm nền cho chữ trắng (3.11:1) (khai ở `refactor/ui-md3-legacy`) |
 
 Không thêm màu thương hiệu mới.
 
@@ -190,9 +195,10 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 └─────────────────────────────────────────────────────────┘
 ```
 
-  Logo vuông 80px, bo 4px, viền `--color-line`, `object-fit: contain`. Tiêu đề `line-clamp-2`,
-  hover đổi sang `--color-brand`. Lương màu `--color-accent-dark`. Tag: nền `--color-brand-light`,
-  chữ `--color-brand`, bo 4px, 12px. Toàn thẻ là vùng bấm được, `hover:shadow-sm hover:border-brand`.
+  Logo vuông 80px, bo 4px, viền `m3-outline-variant`, nền `m3-surface-container`, ô trống hiện icon
+  `Building2`. Tiêu đề `line-clamp-2`, hover đổi sang `m3-primary`. Lương màu `m3-tertiary` (5.45:1).
+  Tag: nền `m3-primary-container`, chữ `m3-on-primary-container` (6.23:1), bo 4px, 12px. Toàn thẻ là
+  vùng bấm được, `hover:shadow-sm hover:border-m3-primary`.
   Lưới: 2 cột `lg`, 1 cột `md` trở xuống. Icon dùng `lucide-react`: `Banknote` (lương), `MapPin`
   (địa điểm) — không dùng emoji.
 - **Chip**: filter chip cho bộ lọc (U07, H15); input chip cho kỹ năng (U14); assist chip TRUNG TÍNH
@@ -202,8 +208,17 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
   tác; **Linear progress** cho thao tác AI đồng bộ; **Search bar** (U13); **List** cho hộp thư
   (C06); **Badge số** cho mục chưa đọc.
 - **Badge trạng thái đơn**: màn hình mới dùng lại `ApplicationStatusBadge` hiện có, KHÔNG tạo bộ
-  màu mới. Bảng màu hiện tại (Trúng tuyển xanh lá, Bị từ chối đỏ — mục 1a `--color-status-hired`/
-  `-rejected`) mâu thuẫn với nguyên tắc "trung tính"; đổi ở `refactor/ui-md3-legacy`.
+  màu mới. Bảng trung tính (chốt 05/10/2026, phân biệt bằng mức nhấn mạnh, không dùng cặp xanh/đỏ):
+
+  | Trạng thái | Class |
+  |---|---|
+  | `PENDING` Chờ duyệt | `bg-m3-surface-container text-m3-on-surface` |
+  | `INTERVIEW_INVITED` Đã mời phỏng vấn | `bg-m3-primary-container text-m3-on-primary-container` |
+  | `HIRED` Trúng tuyển | `bg-m3-primary text-m3-on-primary` |
+  | `REJECTED` Bị từ chối | `border border-m3-outline bg-m3-surface text-m3-on-surface` |
+  | `WITHDRAWN` Đã rút đơn | `border border-m3-outline-variant bg-m3-surface text-m3-on-surface-variant` |
+
+  Token `--color-status-*` ở mục 1a không còn được dùng.
 
 ---
 
@@ -215,11 +230,12 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 - Hiển thị: thứ hạng, tổng điểm, điểm từng tiêu chí, nút mở giải thích.
 - **Không** dùng thang màu đỏ-vàng-xanh cho tổng điểm. Không có nhãn "Phù hợp cao / Cần xem xét /
   Không phù hợp". Không có icon ✓ ✗. Những thứ này là phán quyết trá hình, vi phạm FR-H07.
-- Điểm hiển thị dạng số và thanh tiến trình đơn sắc (`--color-brand`), không đổi màu theo ngưỡng.
+- Điểm hiển thị dạng số và thanh tiến trình đơn sắc (`m3-primary`), không đổi màu theo ngưỡng.
 
 **Màn hình giải thích điểm (FR-H06)**
 - Mỗi tiêu chí là một khối gập/mở được. Mở ra phải thấy đoạn trích nguyên văn từ CV làm evidence.
-- Trích dẫn hiển thị với viền trái `--color-brand`, nền `--color-brand-light`, font chữ thường.
+- Trích dẫn hiển thị với viền trái `m3-primary`, nền `m3-primary-container`, chữ `m3-on-surface`
+  (kể cả dòng "Nguồn"), font chữ thường.
 - Không có điểm nào hiển thị mà không mở ra được evidence.
 
 **Ô consent khi ứng tuyển (FR-U02)**
@@ -253,7 +269,9 @@ thanh màu, không nhãn "phù hợp".
 
 ## 5. Trạng thái rỗng, tải, lỗi
 
-- Mọi danh sách phải có empty state: một dòng chữ `--color-ink-muted` + một hành động gợi ý.
+- Mọi danh sách phải có empty state: một dòng chữ + một hành động gợi ý. Chữ `m3-on-surface-variant`
+  khi nằm trong thẻ trắng (`m3-surface`); `m3-on-surface` khi nằm thẳng trên nền trang
+  (`m3-surface-container`). Liên kết/nút chữ trên nền trang dùng `m3-on-primary-container`.
 - Card đang tải dùng skeleton xám, không dùng spinner toàn trang.
 - Job nền (parse CV, chấm điểm) hiển thị trạng thái theo `parse_status` / `scoring_runs.status`,
   không để người dùng nhìn màn hình trắng chờ.
@@ -266,19 +284,27 @@ thanh màu, không nhãn "phù hợp".
 
 ## 6. Khả năng tiếp cận
 
-- Tỉ lệ tương phản tối thiểu 4.5:1 cho chữ. `--color-warning` trên nền trắng **không đạt** — chỉ
-  dùng làm màu nền badge với chữ trắng, không dùng làm màu chữ.
+- Tỉ lệ tương phản tối thiểu 4.5:1 cho chữ. `m3-warning` (`#FF5B00`) **không đạt** cho chữ ở cả hai
+  chiều (trên nền trắng 3.11:1, chữ trắng trên nó 3.11:1) — chỉ dùng cho viền/icon trên `m3-surface`
+  (3.11:1 ≥ 3:1), không làm màu chữ, không làm nền cho chữ trắng.
+- **Chữ đỏ** `m3-error` chỉ đặt trên `m3-surface` (4.74:1); trên nền xám/xanh nhạt chỉ 4.16–4.17:1. Thông
+  báo lỗi nằm thẳng trên nền trang dùng `m3-on-surface` (nội dung chữ đã nói rõ là lỗi).
+- **Chữ màu chính** `m3-primary` chỉ đặt trên `m3-surface` (4.64:1); trên `m3-surface-container`/
+  `m3-primary-container` (4.07:1) dùng `m3-on-primary-container` (6.23:1).
+- **Trong hàng bảng** (`TableRow` shadcn đổi nền sang #F8F8F8 khi hover): chỉ dùng chữ `m3-on-surface`,
+  `m3-on-surface-variant` (4.55:1 khi hover) và `m3-on-primary-container`. KHÔNG dùng `m3-primary`
+  (4.37:1) hay `m3-error` (4.46:1); thông báo lỗi trong hàng dùng icon `AlertCircle` `m3-error` + chữ
+  `m3-on-surface`, nút Xoá dùng icon đỏ + chữ `m3-on-surface`.
 - **Kết quả đo (V2)**: chữ trắng trên `--color-accent` (`#1AC639`) đạt **2.29:1**; trên
   `--color-accent-dark` (`#008C45`) đạt **4.34:1**. **Cả hai đều dưới 4.5:1** — nút "Ứng tuyển"
-  hiện tại (`ApplyButton.tsx`, `bg-accent` + chữ trắng) không đạt tiếp cận. Màn hình mới dùng token
-  `m3-tertiary` `#007A3D` (mục 1c): chữ trắng đạt **5.45:1**. Nút ở màn hình cũ đổi ở
-  `refactor/ui-md3-legacy`.
+  trước đây (`ApplyButton.tsx`, `bg-accent` + chữ trắng) không đạt tiếp cận. Nay dùng token
+  `m3-tertiary` `#007A3D` (mục 1c): chữ trắng đạt **5.45:1** (đổi ở `refactor/ui-md3-legacy`).
 - **Chữ phụ:** `m3-on-surface-variant` chỉ đặt trên `m3-surface` (thẻ trắng, 4.83:1). Trên
   `m3-surface-container` (4.24:1) và `m3-surface-container-high` (4.30:1) dùng `m3-on-surface`.
 - **Viền:** `m3-outline-variant` so với nền trắng chỉ 1.23:1 — chỉ dùng để phân khối, KHÔNG dùng làm
   viền cho thành phần điều khiển (ô nhập, checkbox). Thành phần điều khiển cần viền ≥ 3:1 (WCAG
-  1.4.11): dùng `m3-outline` (`#6B7280`, 4.83:1 trên nền trắng — chốt ở FR-C05). Ô nhập cũ (shadcn
-  `border-input`) chưa đổi, lệch tạm với ô mới cho tới `refactor/ui-md3-legacy`.
+  1.4.11): dùng `m3-outline` (`#6B7280`, 4.83:1 trên nền trắng — chốt ở FR-C05). Ô nhập shadcn (`border-input`)
+  đi qua biến `--input` trong `:root`, đã trỏ về `m3-outline` ở `refactor/ui-md3-legacy`.
 - Số đo trên tính theo công thức relative luminance của WCAG 2.1.
 - Mọi icon-only button phải có `aria-label`.
 - Không truyền đạt thông tin chỉ bằng màu — badge trạng thái luôn kèm chữ.

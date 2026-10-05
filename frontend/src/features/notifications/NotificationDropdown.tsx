@@ -23,13 +23,13 @@ export function NotificationDropdown({ items }: { items: NotificationItem[] }) {
 
   return (
     <div className="flex flex-col">
-      <div className="border-b border-line px-4 py-3">
-        <p className="text-sm font-medium text-ink">Thông báo</p>
+      <div className="border-b border-m3-outline-variant px-4 py-3">
+        <p className="text-sm font-medium text-m3-on-surface">Thông báo</p>
       </div>
 
       <div className="max-h-96 overflow-y-auto">
         {items.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-ink-muted">Chưa có thông báo nào.</p>
+          <p className="px-4 py-6 text-center text-sm text-m3-on-surface-variant">Chưa có thông báo nào.</p>
         ) : (
           items.map((item) => (
             <Link
@@ -40,13 +40,13 @@ export function NotificationDropdown({ items }: { items: NotificationItem[] }) {
                   markReadMutation.mutate(item.id)
                 }
               }}
-              className={`flex flex-col gap-1 border-b border-line px-4 py-3 text-sm last:border-b-0 hover:bg-canvas ${
-                item.isRead ? '' : 'bg-brand-light/40'
+              className={`flex flex-col gap-1 border-b border-m3-outline-variant px-4 py-3 text-sm last:border-b-0 hover:bg-m3-primary-container/40 ${
+                item.isRead ? '' : 'bg-m3-primary-container/40'
               }`}
             >
-              <span className="font-medium text-ink">{item.title}</span>
-              {item.body && <span className="text-ink-muted">{item.body}</span>}
-              <span className="text-xs text-ink-muted">{formatCreatedAt(item.createdAt)}</span>
+              <span className="font-medium text-m3-on-surface">{item.title}</span>
+              {item.body && <span className="text-m3-on-surface-variant">{item.body}</span>}
+              <span className="text-xs text-m3-on-surface-variant">{formatCreatedAt(item.createdAt)}</span>
             </Link>
           ))
         )}
@@ -54,7 +54,7 @@ export function NotificationDropdown({ items }: { items: NotificationItem[] }) {
 
       <Link
         to={viewAllPath}
-        className="border-t border-line px-4 py-3 text-center text-sm font-medium text-brand hover:bg-canvas"
+        className="border-t border-m3-outline-variant px-4 py-3 text-center text-sm font-medium text-m3-on-primary-container hover:bg-m3-surface-container"
       >
         Xem tất cả
       </Link>

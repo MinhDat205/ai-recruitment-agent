@@ -141,11 +141,11 @@ export function ResumeList() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-ink-muted">Đang tải danh sách CV...</p>
+    return <p className="text-sm text-m3-on-surface-variant">Đang tải danh sách CV...</p>
   }
 
   if (!resumes || resumes.length === 0) {
-    return <p className="text-sm text-ink-muted">Chưa có CV nào. Tải lên CV đầu tiên của bạn ở trên.</p>
+    return <p className="text-sm text-m3-on-surface-variant">Chưa có CV nào. Tải lên CV đầu tiên của bạn ở trên.</p>
   }
 
   return (
@@ -165,10 +165,10 @@ export function ResumeList() {
             <TableRow key={resume.id}>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden="true" />
+                  <FileText className="h-4 w-4 shrink-0 text-m3-on-surface-variant" aria-hidden="true" />
                   <span>{resume.fileName}</span>
                   {resume.isPrimary && (
-                    <span className="rounded-(--radius-badge) bg-brand-light px-2 py-0.5 text-xs font-medium text-brand">
+                    <span className="rounded-(--radius-badge) bg-m3-primary-container px-2 py-0.5 text-xs font-medium text-m3-on-primary-container">
                       CV chính
                     </span>
                   )}
@@ -178,14 +178,14 @@ export function ResumeList() {
                 <div className="flex flex-col gap-1">
                   <ParseStatusBadge status={resume.parseStatus} />
                   {resume.parseStatus === 'FAILED' && resume.parseError && (
-                    <p className="text-xs text-ink-muted">{resume.parseError}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{resume.parseError}</p>
                   )}
                   {isResumeStalled(resume) && (
                     <div className="flex items-center gap-2">
-                      <p className="text-xs text-ink-muted">Quá trình xử lý lâu hơn dự kiến</p>
+                      <p className="text-xs text-m3-on-surface-variant">Quá trình xử lý lâu hơn dự kiến</p>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-m3-on-primary-container hover:underline disabled:opacity-50"
                         disabled={isFetching}
                         onClick={() => refetch()}
                       >
@@ -201,8 +201,8 @@ export function ResumeList() {
                   />
                 </div>
               </TableCell>
-              <TableCell className="text-ink-muted">{formatUploadedAt(resume.uploadedAt)}</TableCell>
-              <TableCell className="text-ink-muted">{formatFileSize(resume.fileSize)}</TableCell>
+              <TableCell className="text-m3-on-surface-variant">{formatUploadedAt(resume.uploadedAt)}</TableCell>
+              <TableCell className="text-m3-on-surface-variant">{formatFileSize(resume.fileSize)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   {!resume.isPrimary && (
@@ -282,7 +282,7 @@ export function ResumeList() {
           ))}
         </TableBody>
       </Table>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-m3-error">{error}</p>}
       {viewingResume && (
         <ResumeParsedDataDialog
           resumeId={viewingResume.id}
