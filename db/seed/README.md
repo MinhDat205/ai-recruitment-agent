@@ -242,3 +242,114 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
 - FR-C05 — mở "Xem dữ liệu đã trích xuất" của một CV bất kỳ: mục **Tổng quan nghề nghiệp** có chức danh,
   ngành nghề, khu vực (vd Trần Minh Hoàng: Backend Engineer · Công nghệ thông tin - Phần mềm · TP. Hồ Chí
   Minh · 6,3 năm). Không CV nào còn nút "Cập nhật dữ liệu trích xuất" (đã là v2).
+
+---
+
+## 8. Bộ dữ liệu TEST (`seed-test.sql`) — chỉ để soát giao diện
+
+> **Bộ test CHỈ dùng để soát giao diện đủ mọi trạng thái. KHÔNG nạp khi demo cho hội
+> đồng.** Khi nạp chung với demo, tin OPEN của công ty test hiện trên bảng việc làm công
+> khai và có thể xuất hiện trong gợi ý việc làm của ứng viên demo.
+
+Bộ test độc lập với hai tầng demo: nạp được trên DB chỉ có schema, hoặc nạp chung với
+demo mà không va chạm (UUID tiền tố `e0…`–`ec…`, email và tên công ty riêng). SQL viết
+tay, idempotent (`ON CONFLICT (id) DO NOTHING`), với **một ngoại lệ**: dòng
+`resume_parsed_data` của CV R3 là output thật của pipeline trích xuất. Dòng này được chạy
+một lần rồi chép nguyên văn vào file (xem comment mục 8 trong `seed-test.sql`). Bộ test
+không có điểm AI, giải thích, evidence hay embedding nào được viết tay hoặc làm giả.
+
+**Backend đọc khoá ở đâu:** `springboot4-dotenv` đọc file `.env` trong **thư mục làm việc
+lúc chạy**. Với lệnh thường dùng `cd backend; .\mvnw.cmd spring-boot:run`, file được đọc
+là **`backend/.env`**, không phải `.env` ở gốc repo. Biến môi trường đặt sẵn trong shell
+được ưu tiên hơn file này.
+
+### 8.1. Cách nạp
+
+```powershell
+# Chỉ bộ test (DB đã có schema):
+docker compose cp db\seed\seed-test.sql postgres:/tmp/seed-test.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-test.sql
+.\db\seed\install-test-files.ps1
+
+# Cùng demo: chạy đủ 4 bước ở mục 1 (gồm install-demo-files.ps1) TRƯỚC, rồi mới 3 lệnh trên.
+```
+
+**Thứ tự bắt buộc khi nạp cùng demo:** `install-demo-files.ps1` phải chạy **trước khi**
+nạp `seed-test.sql`. Script demo đọc mọi `resumes.file_url` trong DB và **xoá mọi file
+`.pdf`** trong `backend/uploads/resumes/` trước khi chép. Nếu DB đã có CV test, script sẽ
+dừng ở file test đầu tiên và để thư mục trống PDF. Muốn cài lại file demo khi bộ test đã
+nạp: chạy `reset-test-data.sql`, rồi `install-demo-files.ps1`, rồi nạp lại bộ test và
+`install-test-files.ps1`.
+
+`install-test-files.ps1` **sinh** 5 file PDF ngay trong script, nên không commit PDF nào.
+Chữ trong PDF là ASCII không dấu vì font chuẩn PDF không có glyph tiếng Việt; dữ liệu
+trong DB vẫn có dấu đầy đủ. Script chép thêm CV DOCX tiếng Việt có dấu
+`test-files/cv-mau-quoc-huy.docx` cho R3. Nội dung mỗi file khớp trạng thái CV:
+- R1 là PDF không có lớp chữ, khớp lỗi `EXTRACT_EMPTY`.
+- R5 không phải file PDF, khớp lỗi `EXTRACT_CORRUPT`.
+
+### 8.2. Dọn riêng dữ liệu test
+
+Chạy lại `seed-test.sql` **không** khôi phục các dòng đã bị sửa qua UI. Muốn đưa bộ test
+về trạng thái gốc:
+
+```powershell
+docker compose cp db\seed\reset-test-data.sql postgres:/tmp/reset-test-data.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment `
+  -v TEST_SEED_CONFIRM=YES_RESET_TEST_DATA -f /tmp/reset-test-data.sql
+# rồi nạp lại như mục 8.1
+```
+
+Script này chỉ xoá dữ liệu của 5 user test và công ty test, **kể cả dòng phát sinh qua UI**
+(đơn, lượt chấm, embedding tin, thông báo…), theo thứ tự khoá ngoại. Một ngoại lệ có chủ
+đích: đơn mà ứng viên **demo** tự nộp vào tin test qua UI cũng bị xoá, cùng thông báo gắn
+với đơn đó. Dữ liệu demo gốc không bị đụng tới (đã kiểm bằng md5 nội dung 21 bảng). Script
+không xoá file trên đĩa. `reset-demo-db.sql` (mục 1) `TRUNCATE` toàn bộ nên xoá luôn bộ test.
+
+### 8.3. Tài khoản — mật khẩu chung `12345678`
+
+| Email | Vai trò | Ghi chú |
+|---|---|---|
+| `minhdathr@gmail.com` | HR | Minh Đạt, chủ "Công ty TNHH Thử Nghiệm Ánh Dương" (hồ sơ công ty đầy đủ) |
+| `quochuyuv@gmail.com` | Ứng viên | Quốc Huy: hồ sơ nghề nghiệp khai đủ, có đơn ở cả 5 trạng thái, 3 CV |
+| `le.thi.lan@test.local` | Ứng viên phụ | Lê Thị Lan: đã bỏ qua onboarding (hồ sơ rỗng) |
+| `pham.van.khoa@test.local` | Ứng viên phụ | Phạm Văn Khoa: đã bỏ qua onboarding, CV hỏng |
+| `tran.bao.ngoc@test.local` | Ứng viên phụ | Trần Bảo Ngọc: chưa có hồ sơ, đăng nhập sẽ bị đưa sang màn onboarding |
+
+Lần đầu Trần Bảo Ngọc mở trang ứng viên, `GET /api/candidates/profile/me` tự tạo một dòng
+hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn onboarding vẫn hiện.
+Đây là hành vi của ứng dụng, không phải lỗi seed.
+
+### 8.4. Soát gì bằng tài khoản nào
+
+| Cần soát | Tài khoản | Ở đâu |
+|---|---|---|
+| Tin đủ 4 trạng thái (DRAFT/OPEN/PAUSED/CLOSED) | HR test | Danh sách tin |
+| Tin chưa chuẩn hoá ngành/khu vực, bị chặn khi "Mở lại" (R-J3) | HR test | "Chuyên viên Pháp chế" (PAUSED) |
+| Tin không công bố lương | HR test, khách | "Nhân viên Hành chính văn phòng" (OPEN), bảng việc làm công khai |
+| Rubric bị khoá do có lượt chấm đang chờ | HR test | Tab rubric của "Chuyên viên Chăm sóc khách hàng" |
+| Danh sách ứng viên nhiều dòng, nhiều trạng thái | HR test | Tab ứng viên của "Chuyên viên Chăm sóc khách hàng" (4 đơn) |
+| Lượt chấm đang chờ (đóng băng) / thất bại có thông báo lỗi | HR test | Đơn của Quốc Huy ở tin CSKH / tin Hành chính |
+| Bấm "Chấm điểm" khi CV chưa trích xuất (bị từ chối) | HR test | Đơn của Lan / Khoa / Ngọc |
+| Xem CV gốc (PDF, DOCX) | HR test | Mọi đơn |
+| Thông báo đã đọc / chưa đọc (6 / 4) | HR test | Chuông thông báo |
+| Đơn đủ 5 trạng thái, lịch sử, giấy mời phỏng vấn | Quốc Huy | Đơn ứng tuyển |
+| CV chờ trích xuất (đóng băng), thất bại, đã trích xuất | Quốc Huy | Hồ sơ → CV |
+| Thông báo đã đọc / chưa đọc (2 / 2) | Quốc Huy | Chuông thông báo |
+| Hồ sơ nghề nghiệp khai đủ | Quốc Huy | Hồ sơ |
+| Hồ sơ bỏ qua onboarding | Lê Thị Lan | Hồ sơ |
+| Màn onboarding | Trần Bảo Ngọc | Đăng nhập |
+| **Màn hình điểm số, evidence, giải thích AI** | **`hr@demo.local`** (demo) | Bộ test cố ý không có điểm AI |
+
+### 8.5. Lượt gọi API ngoài
+
+- **Khi backend chạy với bộ test** (đã đo bằng chênh lệch DB, chạy 2 phút): đúng **3 lượt
+  OpenAI một lần duy nhất**, gồm embedding 2 tin OPEN và 1 hồ sơ khai đủ. Không có lượt
+  Anthropic hay SMTP nào. Các dòng "đang chờ" được đóng băng bằng `next_attempt_at = 2099`.
+  Mọi thông báo đặt `email_status = 'SKIPPED'`.
+- **Thao tác bấm tay của người soát có gọi API thật:**
+  - "Thử lại" ở CV thất bại (Anthropic);
+  - chấm lại đơn có lượt FAILED (Anthropic);
+  - yêu cầu gợi ý cải thiện CV (Anthropic).
+- **Nạp cùng demo:** lần đầu bật backend sẽ phát sinh thêm 4 lượt OpenAI cho 4 hồ sơ demo
+  chưa có embedding (xem ghi chú ở mục 6).

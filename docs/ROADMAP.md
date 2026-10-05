@@ -528,6 +528,14 @@ tương ứng ở đây.
   màn hình cũ. BẮT BUỘC xong trước FR đầu tiên có giao diện. Đã chốt `m3-tertiary` = `#007A3D`
   (5.45:1 với chữ trắng); CSS build trước/sau giống hệt.
 - [x] `fix/hr-company-onboarding` — HR chưa có hồ sơ công ty được chuyển tới /hr/company thay vì gặp trang lỗi (không gắn mã FR).
+- [x] `chore/seed-test` — bộ dữ liệu test độc lập `db/seed/seed-test.sql` để soát giao diện đủ mọi trạng
+  thái (06/10/2026, xem `docs/walkthrough/chore-seed-test.md`). Gồm 5 tài khoản, 6 tin đủ 4 trạng thái,
+  đơn đủ 5 trạng thái, CV và lượt chấm đóng băng; kèm `reset-test-data.sql` và `install-test-files.ps1`.
+  Không nạp khi demo cho hội đồng.
+  Nợ kỹ thuật:
+  - `GET /api/candidates/profile/me` có tác dụng phụ ghi DB: `CandidateProfileService.loadOrCreate` tạo
+    dòng hồ sơ rỗng (`onboarding_completed_at` NULL) khi người dùng chưa có hồ sơ — một request GET không
+    an toàn/idempotent theo nghĩa HTTP.
 
 **Phase 2.1 — Nền dữ liệu & gợi ý việc làm**
 - [x] `feat/fr-c05-catalog` — FR-C05 · Danh mục dùng chung và chuẩn hoá dữ liệu — **HOÀN THÀNH**
