@@ -34,9 +34,10 @@ export function ResumeReparseStatus({ resume, justCompleted, requestError }: Res
         {failed && (
           <p className="text-m3-body-sm text-m3-on-surface">{reparseFailureText(resume.reparse?.errorMessage ?? null)}</p>
         )}
-        {/* Nam trong hang bang (hover #F8F8F8): chu do chi dat 4.46:1, tin hieu loi giu bang icon. */}
+        {/* Nam trong hang bang (hover #F8F8F8): chu do chi dat 4.46:1, tin hieu loi giu bang icon. Khong
+            dat role="alert" - khoi da nam trong vung aria-live="polite" ben ngoai, tranh doc hai lan. */}
         {requestError && (
-          <div role="alert" className="flex items-start gap-1.5 text-m3-body-sm text-m3-on-surface">
+          <div className="flex items-start gap-1.5 text-m3-body-sm text-m3-on-surface">
             <AlertCircle className="mt-px h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
             <p>{requestError}</p>
           </div>
