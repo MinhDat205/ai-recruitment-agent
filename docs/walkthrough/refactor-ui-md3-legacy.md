@@ -128,7 +128,9 @@ chữ. Đã chọn đổi màu chữ: trong hàng bảng chỉ dùng `m3-on-surf
 
 **Tự động (chạy lại một lượt sau commit cuối `0938f06`):**
 - `npm run build`, `npm run lint`: sạch.
-- `.\mvnw.cmd test` (biến môi trường inline, LLM được mock): 774 test, 0 thất bại, 0 lỗi, 0 bỏ qua.
+- `.\mvnw.cmd test` (biến môi trường inline, LLM được mock): 770 test, 0 thất bại, 0 lỗi, 0 bỏ qua.
+  Trước đây ghi nhầm 774: con số đó tính cả 4 test của lớp `JobRecommendationCacheServiceTest`. Lớp này
+  đã bị xoá ở FR-U15, nhưng file báo cáo cũ của nó còn sót trong `backend/target/`.
 - Lệnh rg ở mục "Xong khi" (chạy bằng ripgrep qua công cụ Grep vì `rg` không có trong PATH): 0 chỗ
   khớp. Mốc đầu là 616 chỗ / 59 file (tính theo số chỗ khớp, không theo số dòng).
 - CSS build có đủ 5 token mới; rule `a` nằm trong `@layer base` (đã kiểm bằng cách phân tích file
