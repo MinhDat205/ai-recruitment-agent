@@ -639,6 +639,7 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     | `border-line` | `border-m3-outline-variant` | chỉ để phân khối; viền ô nhập/checkbox → `border-m3-outline` (UI_GUIDE mục 6) |
     | `text-danger` / `bg-danger` / `border-danger` | `text-m3-error` / `bg-m3-error` / `border-m3-error` | chữ đỏ CHỈ trên `m3-surface` (4.74:1); trên nền xám/xanh nhạt chỉ 4.16–4.17:1 |
     | `bg-accent` + `text-white` (`ApplyButton`) | `bg-m3-tertiary text-m3-on-tertiary` | 2.29:1 → 5.45:1 |
+    | (trong hàng bảng shadcn) | — | `TableRow` có `hover:bg-muted/50` (#F8F8F8): chỉ dùng chữ `m3-on-surface`, `m3-on-surface-variant` (4.55:1 khi hover) và `m3-on-primary-container`; KHÔNG `m3-primary` (4.37:1) hay `m3-error` (4.46:1) — lỗi dùng icon `AlertCircle` đỏ + chữ `m3-on-surface` |
     | `var(--color-brand/-line/-ink-muted/-canvas)` (`StatusBreakdownChart.tsx`, 7 chỗ) | `var(--color-m3-…)` tương ứng | đã thử: Tailwind giữ biến `m3-*` khi tham chiếu bằng `var()` trong TSX |
 
   - **Đợt 1 — nền CSS (làm trước mọi màn hình):**
@@ -697,6 +698,10 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     - `/jobs/:id/apply` (`JobApplyPage`) luôn dùng `PublicLayout`, kể cả với ứng viên đã đăng nhập.
     - `components/ui/sheet.tsx` còn dùng token cũ `border-line bg-surface text-ink` (ngoài phạm vi
       lệnh rg, cùng giá trị màu).
+    - `SelectItem` của `components/ui/select.tsx` dùng `focus:bg-accent` — nền `#1AC639` khi chọn bằng bàn
+      phím, chữ trượt tương phản. Không sửa được ở nhánh này (cấm sửa `components/ui` và `--accent`).
+    - `TableRow` shadcn có `hover:bg-muted/50` (#F8F8F8) nên chữ `m3-primary`/`m3-error` không được đặt
+      trong hàng bảng (xem bảng quy tắc ở trên).
 
 **Xong khi:** lệnh
 `rg -n "\b(bg|text|border|ring|fill|stroke|divide|outline)-(brand|ink|line|canvas|surface|accent|warning|danger|status)(-[a-z-]+)?\b|var\(--color-(brand|ink|line|canvas|surface|accent|warning|danger|status)" frontend/src -g "*.{ts,tsx}" -g "!**/components/ui/**"`

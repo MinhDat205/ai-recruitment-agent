@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios'
+import { AlertCircle, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -55,7 +56,13 @@ export function JobRowActions({ job }: { job: JobOwnerResponse }) {
 
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogTrigger asChild>
-            <Button type="button" variant="outline" size="sm" className="border-m3-error text-m3-error hover:bg-m3-error/10">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-m3-error text-m3-on-surface hover:bg-m3-surface-container"
+            >
+              <Trash2 className="text-m3-error" aria-hidden="true" />
               Xoá
             </Button>
           </DialogTrigger>
@@ -81,13 +88,18 @@ export function JobRowActions({ job }: { job: JobOwnerResponse }) {
         </Dialog>
       </div>
 
+      {/* Nam trong hang bang (hover #F8F8F8): chu do chi dat 4.46:1, tin hieu loi giu bang icon. */}
       {changeStatusMutation.isError && (
-        <p className="text-xs text-m3-error">
-          {extractErrorMessage(changeStatusMutation.error, 'Đổi trạng thái thất bại.')}
-        </p>
+        <div role="alert" className="flex items-start gap-1.5 text-xs text-m3-on-surface">
+          <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0 text-m3-error" aria-hidden="true" />
+          <p>{extractErrorMessage(changeStatusMutation.error, 'Đổi trạng thái thất bại.')}</p>
+        </div>
       )}
       {deleteMutation.isError && (
-        <p className="text-xs text-m3-error">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+        <div role="alert" className="flex items-start gap-1.5 text-xs text-m3-on-surface">
+          <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0 text-m3-error" aria-hidden="true" />
+          <p>{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+        </div>
       )}
     </div>
   )

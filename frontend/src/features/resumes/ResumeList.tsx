@@ -185,7 +185,7 @@ export function ResumeList() {
                       <p className="text-xs text-m3-on-surface-variant">Quá trình xử lý lâu hơn dự kiến</p>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-m3-primary hover:underline disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-m3-on-primary-container hover:underline disabled:opacity-50"
                         disabled={isFetching}
                         onClick={() => refetch()}
                       >

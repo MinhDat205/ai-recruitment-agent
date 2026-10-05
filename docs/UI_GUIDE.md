@@ -291,6 +291,10 @@ thanh màu, không nhãn "phù hợp".
   báo lỗi nằm thẳng trên nền trang dùng `m3-on-surface` (nội dung chữ đã nói rõ là lỗi).
 - **Chữ màu chính** `m3-primary` chỉ đặt trên `m3-surface` (4.64:1); trên `m3-surface-container`/
   `m3-primary-container` (4.07:1) dùng `m3-on-primary-container` (6.23:1).
+- **Trong hàng bảng** (`TableRow` shadcn đổi nền sang #F8F8F8 khi hover): chỉ dùng chữ `m3-on-surface`,
+  `m3-on-surface-variant` (4.55:1 khi hover) và `m3-on-primary-container`. KHÔNG dùng `m3-primary`
+  (4.37:1) hay `m3-error` (4.46:1); thông báo lỗi trong hàng dùng icon `AlertCircle` `m3-error` + chữ
+  `m3-on-surface`, nút Xoá dùng icon đỏ + chữ `m3-on-surface`.
 - **Kết quả đo (V2)**: chữ trắng trên `--color-accent` (`#1AC639`) đạt **2.29:1**; trên
   `--color-accent-dark` (`#008C45`) đạt **4.34:1**. **Cả hai đều dưới 4.5:1** — nút "Ứng tuyển"
   trước đây (`ApplyButton.tsx`, `bg-accent` + chữ trắng) không đạt tiếp cận. Nay dùng token

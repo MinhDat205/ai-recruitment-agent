@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import { GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { AlertCircle, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -100,9 +100,9 @@ export function CriterionRow({
                     variant="outline"
                     size="icon-sm"
                     aria-label="Xoá tiêu chí"
-                    className="border-m3-error text-m3-error hover:bg-m3-error/10"
+                    className="border-m3-error text-m3-on-surface hover:bg-m3-surface-container"
                   >
-                    <Trash2 />
+                    <Trash2 className="text-m3-error" aria-hidden="true" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -128,8 +128,12 @@ export function CriterionRow({
                 </DialogContent>
               </Dialog>
             </div>
+            {/* Nam trong hang bang (hover #F8F8F8): chu do chi dat 4.46:1, tin hieu loi giu bang icon. */}
             {deleteMutation.isError && (
-              <p className="text-xs text-m3-error">{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+              <div role="alert" className="flex items-start gap-1.5 text-xs text-m3-on-surface">
+                <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0 text-m3-error" aria-hidden="true" />
+                <p>{extractErrorMessage(deleteMutation.error, 'Xoá thất bại.')}</p>
+              </div>
             )}
           </div>
         </TableCell>

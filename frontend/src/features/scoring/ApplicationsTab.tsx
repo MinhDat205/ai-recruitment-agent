@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, FileText, RotateCw } from 'lucide-react'
+import { AlertCircle, Download, FileText, RotateCw } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -116,7 +116,7 @@ function ScoringProgressHint({
       {timedOut && (
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-xs font-medium text-m3-primary hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-medium text-m3-on-primary-container hover:underline"
           onClick={onResume}
         >
           <RotateCw className="h-3 w-3" aria-hidden="true" />
@@ -313,7 +313,13 @@ function ApplicationRow({
               Chấm điểm hồ sơ
             </Button>
           </div>
-          {resumeDownloadError && <p className="text-xs text-m3-error">{resumeDownloadError}</p>}
+          {/* Nam trong hang bang (hover #F8F8F8): chu do chi dat 4.46:1, tin hieu loi giu bang icon. */}
+          {resumeDownloadError && (
+            <div role="alert" className="flex items-start gap-1.5 text-xs text-m3-on-surface">
+              <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0 text-m3-error" aria-hidden="true" />
+              <p>{resumeDownloadError}</p>
+            </div>
+          )}
         </div>
       </TableCell>
     </TableRow>

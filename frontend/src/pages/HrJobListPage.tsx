@@ -107,7 +107,7 @@ export function HrJobListPage() {
                 {data.items.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell>
-                      <Link to={`/hr/jobs/${job.id}/edit`} className="font-medium text-m3-on-surface hover:text-m3-primary">
+                      <Link to={`/hr/jobs/${job.id}/edit`} className="font-medium text-m3-on-surface hover:text-m3-on-primary-container">
                         {job.title}
                       </Link>
                     </TableCell>
