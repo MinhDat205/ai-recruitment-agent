@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useMarkNotificationReadMutation, useNotificationsListQuery } from './queries'
 
@@ -36,7 +36,11 @@ export function NotificationList() {
   if (isError) {
     return (
       <div className="flex flex-col items-start gap-2">
-        <p className="text-sm text-m3-on-surface">Không tải được danh sách thông báo.</p>
+        {/* Nen trang xam: chu do chi dat 4.16:1 nen chu dung on-surface, tin hieu loi giu bang icon. */}
+        <div role="alert" className="flex items-start gap-2 text-sm text-m3-on-surface">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
+          <p>Không tải được danh sách thông báo.</p>
+        </div>
         <button type="button" onClick={() => refetch()} className="text-sm font-medium text-m3-on-primary-container hover:underline">
           Thử lại
         </button>

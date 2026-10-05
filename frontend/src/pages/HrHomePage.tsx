@@ -1,3 +1,4 @@
+import { AlertCircle } from 'lucide-react'
 import { HrLayout } from '../components/layout/HrLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { useAuth } from '../features/auth/useAuth'
@@ -17,8 +18,12 @@ export function HrHomePage() {
 
         {isLoading && <p className="text-sm text-m3-on-surface">Đang tải...</p>}
 
+        {/* Nen trang xam: chu do chi dat 4.16:1 nen chu dung on-surface, tin hieu loi giu bang icon. */}
         {isError && (
-          <p className="text-sm text-m3-on-surface">Không tải được dữ liệu thống kê, vui lòng thử lại.</p>
+          <div role="alert" className="flex items-start gap-2 text-sm text-m3-on-surface">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
+            <p>Không tải được dữ liệu thống kê, vui lòng thử lại.</p>
+          </div>
         )}
 
         {!isLoading && !isError && data && (

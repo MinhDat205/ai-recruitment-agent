@@ -1,3 +1,4 @@
+import { AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { HrLayout } from '../components/layout/HrLayout'
@@ -68,7 +69,13 @@ export function HrJobListPage() {
 
         {isLoading && <p className="text-sm text-m3-on-surface">Đang tải...</p>}
 
-        {isError && <p className="text-sm text-m3-on-surface">Không tải được danh sách tin tuyển dụng, vui lòng thử lại.</p>}
+        {/* Nen trang xam: chu do chi dat 4.16:1 nen chu dung on-surface, tin hieu loi giu bang icon. */}
+        {isError && (
+          <div role="alert" className="flex items-start gap-2 text-sm text-m3-on-surface">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
+            <p>Không tải được danh sách tin tuyển dụng, vui lòng thử lại.</p>
+          </div>
+        )}
 
         {!isLoading && !isError && data && data.items.length === 0 && (
           <div className="flex flex-col items-center gap-2 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface py-12 text-center">
