@@ -624,7 +624,8 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
 **Phase 2.1b — Đồng bộ giao diện cũ theo MD3 (BẮT BUỘC trước Phase 2.2)**
 > Soát lại trên `main` @ `460fecc` (05/10/2026, sau khi merge FR-U15): lệnh rg ở mục "Xong khi" còn khớp
 > **616 chỗ** trong **59 file** của `frontend/src` (609 class token cũ + 7 chỗ `var(--color-*)`; không tính `components/ui`).
-- [ ] `refactor/ui-md3-legacy` — áp UI_GUIDE.md (token `m3-*`, mục 2 điều hướng, mục 3 component, mục 4 ràng buộc) cho mọi màn hình cũ. Không đổi hành vi, không sửa backend. Chia đợt: (1) nền CSS + layout, (2) công khai + ứng viên, (3) HR, (4) badge + soát tổng. Danh sách việc:
+- [x] `refactor/ui-md3-legacy` — **HOÀN THÀNH** (05/10/2026; 4 đợt + 4 commit sửa sau soát tay; walkthrough
+  `docs/walkthrough/refactor-ui-md3-legacy.md`, có bảng số đo tương phản) — áp UI_GUIDE.md (token `m3-*`, mục 2 điều hướng, mục 3 component, mục 4 ràng buộc) cho mọi màn hình cũ. Không đổi hành vi, không sửa backend. Chia đợt: (1) nền CSS + layout, (2) công khai + ứng viên, (3) HR, (4) badge + soát tổng. Danh sách việc:
   - **Quy tắc đổi token (bắt buộc đọc trước khi đổi):** token `m3-*` trùng giá trị token cũ, nên đổi
     tên một-một KHÔNG làm tăng tương phản — cặp đang trượt 4.5:1 vẫn trượt. Phải đổi theo ngữ cảnh nền:
 
@@ -694,14 +695,18 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     (`JobBoard`) — bố cục **đã làm ở FR-U07** (R-L1, R-L3).
   - Comment chứa tên token cũ (vd `PublicJobDetailPage.tsx:91` nhắc `text-accent-dark`) cũng khớp lệnh
     rg — viết lại comment để lệnh kiểm về 0.
-  - Nợ kỹ thuật (ghi nhận, KHÔNG sửa ở nhánh này):
+  - Nợ kỹ thuật còn lại sau khi hoàn thành (ghi nhận, KHÔNG sửa ở nhánh này):
     - `/jobs/:id/apply` (`JobApplyPage`) luôn dùng `PublicLayout`, kể cả với ứng viên đã đăng nhập.
     - `components/ui/sheet.tsx` còn dùng token cũ `border-line bg-surface text-ink` (ngoài phạm vi
       lệnh rg, cùng giá trị màu).
     - `SelectItem` của `components/ui/select.tsx` dùng `focus:bg-accent` — nền `#1AC639` khi chọn bằng bàn
       phím, chữ trượt tương phản. Không sửa được ở nhánh này (cấm sửa `components/ui` và `--accent`).
     - `TableRow` shadcn có `hover:bg-muted/50` (#F8F8F8) nên chữ `m3-primary`/`m3-error` không được đặt
-      trong hàng bảng (xem bảng quy tắc ở trên).
+      trong hàng bảng (xem bảng quy tắc ở trên). Hai cặp sát ngưỡng: chữ phụ trong hàng bảng khi hover
+      4.55:1, nội dung thông báo chưa đọc (`m3-primary-container/40`) 4.59:1 — tăng độ đậm nền là trượt.
+    - Token cũ (`--color-brand`, `--color-status-*`...) vẫn khai trong `@theme` để biến shadcn ở `:root`
+      tham chiếu; code tầng tính năng không còn dùng nhưng chưa xoá khỏi CSS.
+    - Frontend chưa có test tự động nào bảo vệ màu/tương phản.
 
 **Xong khi:** lệnh
 `rg -n "\b(bg|text|border|ring|fill|stroke|divide|outline)-(brand|ink|line|canvas|surface|accent|warning|danger|status)(-[a-z-]+)?\b|var\(--color-(brand|ink|line|canvas|surface|accent|warning|danger|status)" frontend/src -g "*.{ts,tsx}" -g "!**/components/ui/**"`
