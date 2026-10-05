@@ -96,6 +96,11 @@ tiền tố `m3-` vì shadcn đã chiếm `--color-primary/secondary/accent/mute
 | `m3-on-surface-variant` | `text-m3-on-surface-variant` | `#6B7280` — chỉ đặt trên `m3-surface` (4.83:1), xem mục 6 |
 | `m3-outline-variant` | `border-m3-outline-variant` | `#E7E7E9` — chỉ để phân khối, xem mục 6 |
 | `m3-outline` | `border-m3-outline` | `#6B7280` — viền thành phần điều khiển (ô nhập, combobox); trên `m3-surface` đạt 4.83:1 ≥ 3:1. Cùng giá trị `m3-on-surface-variant`, không thêm màu mới (khai ở FR-C05) |
+| `m3-on-error` | `text-m3-on-error` | `#FFFFFF` — trên `m3-error` đạt 4.74:1 (khai ở `refactor/ui-md3-legacy`) |
+| `m3-inverse-surface` | `bg-m3-inverse-surface` | `#1F2937` (ink) — nền footer (khai ở `refactor/ui-md3-legacy`) |
+| `m3-inverse-on-surface` | `text-m3-inverse-on-surface` | `#FFFFFF` — trên `m3-inverse-surface` đạt 14.68:1 (khai ở `refactor/ui-md3-legacy`) |
+| `m3-surface-container-highest` | `bg-m3-surface-container-highest` | `#E7E7E9` (line) — nền skeleton, đường nối bước, badge `PAUSED`; `m3-on-surface` trên nền này đạt 11.89:1 (khai ở `refactor/ui-md3-legacy`) |
+| `m3-warning` | `border-m3-warning`, `text-m3-warning` (chỉ icon) | `#FF5B00` — CHỈ cho viền/icon trên `m3-surface` (3.11:1 ≥ 3:1); KHÔNG làm màu chữ, KHÔNG làm nền cho chữ trắng (3.11:1) (khai ở `refactor/ui-md3-legacy`) |
 
 Không thêm màu thương hiệu mới.
 

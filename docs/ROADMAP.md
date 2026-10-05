@@ -604,7 +604,7 @@ tương ứng ở đây.
     xếp vào `refactor/ui-md3-legacy` đợt 1** (Phase 2.1b).
   - Trang chi tiết việc làm (`/jobs/:id`) hiện mã thô `FULL_TIME`/`ONSITE` thay vì nhãn tiếng Việt
     cho hình thức làm việc/loại hợp đồng — tái xác nhận lại khi soát tay FR-U15 (từ "Xem tất cả" mở
-    job gợi ý); đã ghi nhận trước ở Phase 2.1b, mục "Phát hiện khi soát tay" (`refactor/ui-md3-legacy`), không phải
+    job gợi ý); đã ghi nhận trước ở Phase 2.1b đợt 2 (PublicJobDetailPage) (`refactor/ui-md3-legacy`), không phải
     lỗi mới.
   - Các lớp test tích hợp tạo job `OPEN` không tự dọn (`ResumeEmbeddingOrchestratorTest`,
     `JobEmbeddingOrchestratorTest`, `JobEmbeddingPipelineIntegrationTest` — không `@Transactional`
@@ -633,6 +633,7 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     | `text-ink` | `text-m3-on-surface` | mọi nền sáng |
     | `text-ink-muted` | `text-m3-on-surface-variant` | CHỈ trên `m3-surface` (4.83:1). Trên `bg-canvas` (4.24:1 — 16 chỗ cùng className) → `text-m3-on-surface` (12.88:1) |
     | `text-brand` | `text-m3-primary` | CHỈ trên `m3-surface` (4.64:1). Trên `bg-brand-light`/`bg-canvas` (4.07:1 — 26 chỗ cùng className) → `text-m3-on-primary-container` (6.23:1) |
+    | `text-m3-primary` (đã có sẵn) | giữ nguyên | cũng CHỈ đặt trên `m3-surface` (4.64:1). Trên `m3-surface-container`/`m3-primary-container` (4.07:1) → `text-m3-on-primary-container` (6.23:1) |
     | `bg-brand` / `bg-brand-light` / `border-brand` | `bg-m3-primary` / `bg-m3-primary-container` / `border-m3-primary` | — |
     | `bg-surface` / `bg-canvas` | `bg-m3-surface` / `bg-m3-surface-container` | — |
     | `border-line` | `border-m3-outline-variant` | chỉ để phân khối; viền ô nhập/checkbox → `border-m3-outline` (UI_GUIDE mục 6) |
@@ -641,19 +642,20 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     | `var(--color-brand/-line/-ink-muted/-canvas)` (`StatusBreakdownChart.tsx`, 7 chỗ) | `var(--color-m3-…)` tương ứng | đã thử: Tailwind giữ biến `m3-*` khi tham chiếu bằng `var()` trong TSX |
 
   - **Đợt 1 — nền CSS (làm trước mọi màn hình):**
-    - Khai thêm token vai trò cho 3 nhóm token cũ chưa có vai trò `m3-*` — chỉ ánh xạ giá trị sẵn có,
+    - Khai thêm token vai trò cho các nhóm token cũ chưa có vai trò `m3-*` — chỉ ánh xạ giá trị sẵn có,
       không thêm màu mới (như `m3-outline` ở FR-C05); cập nhật bảng UI_GUIDE mục 1c trong cùng commit:
       `m3-inverse-surface` `#1F2937` + `m3-inverse-on-surface` `#FFFFFF` (footer `bg-ink text-surface`,
       14.68:1); `m3-surface-container-highest` `#E7E7E9` (`bg-line` làm nền — 8 chỗ: skeleton, đường nối
       bước, badge `PAUSED`; `m3-on-surface` trên nền này 11.89:1); `m3-warning` `#FF5B00` chỉ cho viền/icon
-      trên `m3-surface` (3.11:1 ≥ 3:1), KHÔNG làm màu chữ và KHÔNG làm nền cho chữ trắng (3.11:1).
-      `InterviewInvitationDialog` đang đặt viền/icon cảnh báo trên `bg-canvas` (2.73:1) → đổi nền khối
-      sang `m3-surface`.
+      trên `m3-surface` (3.11:1 ≥ 3:1), KHÔNG làm màu chữ và KHÔNG làm nền cho chữ trắng (3.11:1);
+      `m3-on-error` `#FFFFFF` (trên `m3-error` 4.74:1 — `NotificationBadge`).
+    - Viền ô nhập shadcn: đổi `--input` trong `:root` của `index.css` sang `var(--color-m3-outline)`
+      (1.23:1 → 4.83:1, UI_GUIDE mục 6) — không sửa `--accent`, `--border` hay file trong `components/ui`.
     - Sửa gốc rule `a { color: inherit; text-decoration: none; }` ở `index.css`: bọc vào `@layer base`.
       Hiện nó đè màu của ít nhất 14 `<a>`/`<Link>` có class màu trực tiếp và cả chữ tab đang chọn của
       `CandidateLayout` (`navLinkClass`). Sau khi sửa: gỡ bản vá `<span>` ở `RecommendedJobs.tsx`, soát
       bằng mắt mọi liên kết (màu sẽ đổi trên toàn site — đây là thay đổi chủ ý).
-    - Layout: PublicHeader thêm menu mobile (< sm hiện không có đường vào danh sách việc làm); HrLayout theo navigation drawer ≥ lg / rail < lg; CandidateLayout menu sheet < md; PublicFooter.
+    - Layout: PublicHeader thêm menu mobile (dưới sm chỉ còn logo dẫn về danh sách việc làm, không có mục điều hướng và nút đăng nhập/đăng ký gọn); HrLayout theo navigation drawer ≥ lg / rail < lg; CandidateLayout menu sheet < md; PublicFooter.
     - Tab "Việc làm" của `CandidateLayout` không tô sáng khi ở `/jobs/:id`: `isActive` đang là
       `path === '/candidate'`, thêm `|| path.startsWith('/jobs/')`.
   - **Đợt 2 — công khai + ứng viên:**
@@ -671,24 +673,35 @@ chưa có CV nhưng đã khai hồ sơ vẫn nhận gợi ý.
     (`/hr/jobs/new`, 16 chỗ) — bản trước bỏ sót**, HrCandidatesPage, HrJobEditPage (4 tab, gồm
     `RubricTab`, `ApplicationsTab`, `ScoringRunAuditPanel`, `ExplanationReport`,
     `CriterionScoreBreakdown`, `InterviewInvitationDialog`), CompanyProfilePage, HrNotificationsPage.
+    - `InterviewInvitationDialog` đang đặt viền/icon cảnh báo trên `bg-canvas` (2.73:1) → đổi nền khối
+      sang `m3-surface`.
   - **Đợt 4 — badge + soát tổng:**
     - `ApplicationStatusBadge` (`APPLICATION_STATUS_STYLES`): bỏ xanh lá "Trúng tuyển" / đỏ "Bị từ chối".
-      Hai badge hiện còn trượt tương phản: "Trúng tuyển" 3.94:1, "Đã rút đơn" 2.31:1. Bảng đề xuất (chốt
-      ở Plan Mode): `PENDING` `bg-m3-surface-container text-m3-on-surface`; `INTERVIEW_INVITED`
+      Hai badge hiện còn trượt tương phản: "Trúng tuyển" 3.94:1, "Đã rút đơn" 2.31:1. Bảng đã chốt
+      (05/10/2026): `PENDING` `bg-m3-surface-container text-m3-on-surface`; `INTERVIEW_INVITED`
       `bg-m3-primary-container text-m3-on-primary-container`; `HIRED` `bg-m3-primary text-m3-on-primary`;
       `REJECTED` `border border-m3-outline bg-m3-surface text-m3-on-surface`; `WITHDRAWN`
       `border border-m3-outline-variant bg-m3-surface text-m3-on-surface-variant`.
     - Ba badge khác dùng cùng hai cặp trượt (`bg-canvas text-ink-muted` 4.24:1, `bg-brand-light
       text-brand` 4.07:1): `JobStatusBadge`, `ScoringRunStatusBadge`, `PARSE_STATUS_STYLES`
       (`resumeLabels.ts`) — đổi theo bảng quy tắc ở trên, giữ nguyên ý nghĩa trung tính.
+    - Cập nhật UI_GUIDE mục 3, 4, 5 sang tên token `m3-*` đúng với mã nguồn sau khi đổi (card việc làm,
+      evidence, thanh điểm, empty state), cùng commit với mục 0 và mục 6.
   - **Màn hình đã được FR ở Phase 2.1 làm lại: KHÔNG làm lại bố cục, nhưng VẪN đổi token cũ còn sót**
     (nếu bỏ qua hẳn thì phép kiểm rg ở "Xong khi" không thể đạt): `JobCard` 13 chỗ, `RecommendedJobs` 8,
     `JobBoard` 1, `HrJobEditPage` 22, `PublicJobDetailPage` 24. Card việc làm và trang danh sách
     (`JobBoard`) — bố cục **đã làm ở FR-U07** (R-L1, R-L3).
+  - Comment chứa tên token cũ (vd `PublicJobDetailPage.tsx:91` nhắc `text-accent-dark`) cũng khớp lệnh
+    rg — viết lại comment để lệnh kiểm về 0.
+  - Nợ kỹ thuật (ghi nhận, KHÔNG sửa ở nhánh này):
+    - `/jobs/:id/apply` (`JobApplyPage`) luôn dùng `PublicLayout`, kể cả với ứng viên đã đăng nhập.
+    - `components/ui/sheet.tsx` còn dùng token cũ `border-line bg-surface text-ink` (ngoài phạm vi
+      lệnh rg, cùng giá trị màu).
 
 **Xong khi:** lệnh
 `rg -n "\b(bg|text|border|ring|fill|stroke|divide|outline)-(brand|ink|line|canvas|surface|accent|warning|danger|status)(-[a-z-]+)?\b|var\(--color-(brand|ink|line|canvas|surface|accent|warning|danger|status)" frontend/src -g "*.{ts,tsx}" -g "!**/components/ui/**"`
-trả 0 dòng (`components/ui` là shadcn, dùng `--accent`/`--border` riêng, không thuộc phạm vi); mọi cặp
+trả 0 dòng (`components/ui` là shadcn, dùng `--accent`/`--border` riêng, không thuộc phạm vi; các mốc
+đếm ở phase này tính theo số chỗ khớp (`rg -o`), không theo số dòng — `rg -c` đếm dòng); mọi cặp
 chữ/nền đạt ≥ 4.5:1, viền/icon thành phần điều khiển ≥ 3:1 (có bảng số đo trong walkthrough); badge
 trạng thái không dùng cặp xanh/đỏ; `mvnw test` + `npm run build` + `npm run lint` sạch, `git diff --stat
 main -- backend` rỗng; soát bằng mắt từng route "Hiện có" của UI_GUIDE mục 7 ở cả khổ desktop và điện

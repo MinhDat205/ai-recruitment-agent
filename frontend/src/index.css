@@ -104,6 +104,15 @@
       transform: translateX(300%);
     }
   }
+
+  /* Token vai tro cho nhom token cu chua co vai tro m3-* (refactor/ui-md3-legacy) - chi anh xa gia
+     tri san co, khong them mau moi. Xem UI_GUIDE muc 1c. */
+  --color-m3-inverse-surface:          #1F2937;
+  --color-m3-inverse-on-surface:       #FFFFFF;
+  --color-m3-surface-container-highest: #E7E7E9;
+  /* Chi cho vien/icon tren m3-surface (3.11:1 >= 3:1). KHONG lam mau chu, KHONG lam nen cho chu trang. */
+  --color-m3-warning:                  #FF5B00;
+  --color-m3-on-error:                 #FFFFFF;
 }
 
 html {
@@ -121,9 +130,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* Boc trong @layer base: rule ngoai moi layer luon thang layer utilities cua Tailwind bat ke
+   specificity, nen class mau/gach chan dat tren <a>/<Link> se bi de mat. */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 *:focus-visible {
@@ -190,7 +203,8 @@ a {
   --accent-foreground:        #ffffff;
   --destructive:        var(--color-danger);
   --border:        var(--color-line);
-  --input:        var(--color-line);
+  /* Vien o nhap/checkbox/select shadcn - WCAG 1.4.11 can >= 3:1 (UI_GUIDE muc 6). */
+  --input:        var(--color-m3-outline);
   --ring:        #0078C9;
   --chart-1:        oklch(0.87 0 0);
   --chart-2:        oklch(0.556 0 0);

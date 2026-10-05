@@ -54,25 +54,21 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
   return (
     <section aria-label="Gợi ý việc làm cho bạn">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-ink">Gợi ý cho bạn</h2>
+        <h2 className="text-lg font-semibold text-m3-on-surface">Gợi ý cho bạn</h2>
         {showViewAll && (
-          // index.css dong 124 dat "a { color: inherit }" KHONG boc trong @layer (unlayered) - CSS
-          // cascade layers cho unlayered LUON thang layer "utilities" cua Tailwind du specificity
-          // thap hon, nen text-m3-primary/hover:underline dat TRUC TIEP tren <Link> (render ra <a>)
-          // bi de thanh mau ke thua (den) - phai dat hai class do tren <span> con, KHONG phai tren
-          // <a> (xem bao cao Dot 9b, da build CSS thuc kiem chung). focus-visible van dat tren Link
-          // (nhan focus) - khong bi anh huong vi khong trung thuoc tinh voi rule unlayered o tren.
+          // Khoi nay nam thang tren nen trang (m3-surface-container) - m3-primary chi dat 4.07:1 tren
+          // nen do, nen lien ket dung m3-on-primary-container (6.23:1).
           <Link
             to={viewAllHref}
-            className="shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+            className="shrink-0 text-sm font-medium text-m3-on-primary-container hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
           >
-            <span className="text-sm font-medium text-m3-primary hover:underline">Xem tất cả</span>
+            Xem tất cả
           </Link>
         )}
       </div>
 
       {showSourceLine && source && (
-        <p className="mt-1 text-sm text-ink-muted">{SOURCE_LABELS[source]}</p>
+        <p className="mt-1 text-sm text-m3-on-surface">{SOURCE_LABELS[source]}</p>
       )}
 
       <div className="mt-4">
@@ -86,11 +82,11 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
 
         {!isLoading && isError && (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="text-sm text-ink-muted">Không tải được gợi ý việc làm.</p>
+            <p className="text-sm text-m3-on-surface">Không tải được gợi ý việc làm.</p>
             <button
               type="button"
               onClick={() => refetch()}
-              className="h-10 rounded-md border border-brand px-5 text-sm font-medium text-brand"
+              className="h-10 rounded-md border border-m3-primary px-5 text-sm font-medium text-m3-on-primary-container"
             >
               Thử lại
             </button>
@@ -99,22 +95,21 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
 
         {!isLoading && !isError && status === 'NO_DATA' && (
           <div aria-live="polite" className="flex flex-col items-center gap-2 py-10 text-center">
-            <p className="text-sm text-ink-muted">
+            <p className="text-sm text-m3-on-surface">
               Hãy hoàn thiện hồ sơ nghề nghiệp hoặc tải CV để nhận gợi ý việc làm phù hợp.
             </p>
-            {/* Mau/gach chan dat tren <span> con, khong tren <a> - xem comment o nut "Xem tat ca" */}
             <Link
               to="/candidate/profile"
-              className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+              className="text-sm text-m3-on-primary-container hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
             >
-              <span className="text-sm text-m3-primary hover:underline">Hoàn thiện hồ sơ</span>
+              Hoàn thiện hồ sơ
             </Link>
           </div>
         )}
 
         {!isLoading && !isError && status === 'PREPARING' && (
           <div aria-live="polite" className="flex flex-col items-center gap-2 py-10 text-center">
-            <p className="text-sm text-ink-muted">
+            <p className="text-sm text-m3-on-surface">
               {source === 'PROFILE'
                 ? 'Hệ thống đang phân tích hồ sơ của bạn. Gợi ý sẽ xuất hiện sau khi phân tích hoàn tất.'
                 : 'Hệ thống đang phân tích CV của bạn. Gợi ý sẽ xuất hiện sau khi phân tích hoàn tất.'}
@@ -124,17 +119,16 @@ export function RecommendedJobs({ alwaysShowViewAll = false }: RecommendedJobsPr
 
         {!isLoading && !isError && status === 'NO_RESULT' && (
           <div aria-live="polite" className="flex flex-col items-center gap-2 py-10 text-center">
-            <p className="text-sm text-ink-muted">
+            <p className="text-sm text-m3-on-surface">
               Chưa có việc làm nào để gợi ý lúc này.
               {hasDesires && ' Hãy thử mở rộng ngành nghề hoặc khu vực mong muốn.'}
             </p>
-            {/* Mau/gach chan dat tren <span> con, khong tren <a> - xem comment o nut "Xem tat ca" */}
             {hasDesires && (
               <Link
                 to="/candidate/profile"
-                className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+                className="text-sm text-m3-on-primary-container hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
               >
-                <span className="text-sm text-m3-primary hover:underline">Chỉnh mong muốn</span>
+                Chỉnh mong muốn
               </Link>
             )}
           </div>
