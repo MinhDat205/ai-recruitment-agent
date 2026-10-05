@@ -1,5 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
+import { CandidateLayout } from '../components/layout/CandidateLayout'
 import { PublicLayout } from '../components/layout/PublicLayout'
+import { useAuth } from '../features/auth/useAuth'
 import { ApplyButton } from '../features/jobs/ApplyButton'
 import { jobLocationText } from '../features/jobs/catalogDisplay'
 import { useJobDetailQuery } from '../features/jobs/queries'
@@ -25,27 +27,33 @@ function formatSalary(job: {
 export function PublicJobDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: job, isLoading, isError } = useJobDetailQuery(id)
+  const { user } = useAuth()
+  // R-L2: "/jobs/:id" dung chung cho moi vai tro, khong tao route rieng. Vai tro CANDIDATE boc
+  // CandidateLayout (giu nav khu vuc ung vien); moi truong hop khac (khach, HR, chua dang nhap) ->
+  // PublicLayout nhu hien tai. Mot bien duy nhat cho ca 3 nhanh return ben duoi - sua tai cho ca
+  // 3 ma khong lap lai dieu kien.
+  const Layout = user?.role === 'CANDIDATE' ? CandidateLayout : PublicLayout
 
   if (isLoading) {
     return (
-      <PublicLayout>
+      <Layout>
         <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-6">
           <div className="h-64 animate-pulse rounded-(--radius-card) bg-canvas" />
         </div>
-      </PublicLayout>
+      </Layout>
     )
   }
 
   if (isError || !job) {
     return (
-      <PublicLayout>
+      <Layout>
         <div className="mx-auto max-w-[1200px] px-4 py-16 text-center md:px-6">
           <p className="text-sm text-ink-muted">Không tìm thấy tin tuyển dụng.</p>
           <Link to="/" className="mt-3 inline-block text-sm text-brand hover:underline">
             Về trang danh sách việc làm
           </Link>
         </div>
-      </PublicLayout>
+      </Layout>
     )
   }
 
@@ -53,7 +61,7 @@ export function PublicJobDetailPage() {
   const locationText = jobLocationText(job)
 
   return (
-    <PublicLayout>
+    <Layout>
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-4 py-8 md:px-6 lg:grid-cols-[2fr_1fr]">
         <div>
           <h1 className="text-2xl font-semibold text-ink">{job.title}</h1>
@@ -80,7 +88,9 @@ export function PublicJobDetailPage() {
             </span>
           </div>
 
-          {salary && <p className="mt-3 text-lg font-medium text-accent-dark">{salary}</p>}
+          {/* R-L1b: cung token text-m3-tertiary nhu JobCard (R-L1) - text-accent-dark cu chi dat
+              4.34:1, duoi nguong AA 4.5:1. */}
+          {salary && <p className="mt-3 text-lg font-medium text-m3-tertiary">{salary}</p>}
 
           <div className="mt-6">
             <h2 className="mb-2 text-base font-semibold text-ink">Mô tả công việc</h2>
@@ -113,6 +123,6 @@ export function PublicJobDetailPage() {
           </Link>
         )}
       </div>
-    </PublicLayout>
+    </Layout>
   )
 }

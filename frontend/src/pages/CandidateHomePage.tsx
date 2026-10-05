@@ -115,7 +115,10 @@ export function CandidateHomePage() {
               <p className="text-sm text-ink-muted">Không tải được gợi ý việc làm.</p>
             ) : (
               <div className="flex flex-col gap-1">
-                <p className="text-2xl font-semibold text-ink">{recommendations?.length ?? 0}</p>
+                {/* FR-U15 - sua toi thieu de khop kieu tra ve moi ({status,source,items} thay cho
+                    mang truoc day) - KHONG doi logic/chu hien thi khac cua the nay (ngoai pham vi
+                    dot 7, chi thay khoi RecommendedJobs ben duoi). */}
+                <p className="text-2xl font-semibold text-ink">{recommendations?.items.length ?? 0}</p>
                 <p className="text-sm text-ink-muted">
                   {primaryResume?.parseStatus === 'DONE' ? 'vị trí đạt ngưỡng' : 'Cần có CV đã phân tích'}
                 </p>
@@ -124,7 +127,7 @@ export function CandidateHomePage() {
           </SummaryCard>
         </div>
 
-        <RecommendedJobs />
+        <RecommendedJobs alwaysShowViewAll />
 
         <section className="flex flex-col items-start justify-between gap-4 rounded-(--radius-card) bg-surface p-6 sm:flex-row sm:items-center">
           <div>

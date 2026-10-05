@@ -72,7 +72,7 @@ public class CvImprovementOrchestrator {
         String resumeText = buildResumeText(parsedData.getData());
 
         List<Job> openJobs =
-                jobRepository.searchPublicJobs(null, null, null, PageRequest.of(0, MARKET_TREND_JOB_LIMIT)).getContent();
+                jobRepository.searchOpenJobsNewest(PageRequest.of(0, MARKET_TREND_JOB_LIMIT)).getContent();
         String marketTrendText = buildMarketTrendText(openJobs);
 
         CvImprovementResult result;
@@ -87,8 +87,9 @@ public class CvImprovementOrchestrator {
     }
 
     // "Xu huong thi truong" lay toi da 20 job OPEN moi dang nhat (Plan Mode, SUA 1) - JobRepository
-    // da co san searchPublicJobs (loc status='OPEN' AND deleted_at IS NULL AND deadline chua qua,
-    // ORDER BY created_at DESC). Khong co job OPEN nao (khac voi "co job nhung khac linh vuc" - nhanh
+    // da co san searchOpenJobsNewest (loc status='OPEN' AND deleted_at IS NULL AND deadline chua
+    // qua, ORDER BY COALESCE(published_at, created_at) DESC, id DESC - FR-U07). Khong co job OPEN
+    // nao (khac voi "co job nhung khac linh vuc" - nhanh
     // do LLM tu xu ly trong prompt) -> truyen mot CAU MO TA CO DINH, KHONG phai chuoi rong: chuoi
     // rong de LLM tu suy dien (co the hieu nham la loi du lieu hoac tu bia noi dung), con cau mo ta
     // ro rang giup LLM ap dung DUNG logic "khong co tin hieu thi truong" ma prompt da mo ta cho nhanh

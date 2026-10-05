@@ -9,13 +9,20 @@
 -- thuoc AI, KHONG phu thuoc thoi diem chay that. Idempotent (ON CONFLICT DO
 -- NOTHING), chay lai bao nhieu lan cung duoc.
 --
--- Gom DUNG: 1 HR + 1 company + 6 job (DRAFT) + 6 rubric (kem tieu chi, tong
--- trong so = 100%) + 6 interview_template + 8 candidate.
+-- Gom DUNG: 1 HR + 1 company + 6 job (OPEN, published_at rai qua 3 gio/2 ngay/
+-- 6 ngay/10 ngay/20 ngay/35 ngay truoc luc nap - FR-U07 R-D1) + 6 rubric (kem
+-- tieu chi, tong trong so = 100%) + 6 interview_template + 9 candidate + 9
+-- candidate_profiles (FR-U14 - ho so nghe nghiep/mong muon, 4/9 co du du lieu).
+--
+-- Ung vien thu 9 (Hoang Minh Tuan, FR-U15 dot 8) KHONG co resumes - minh hoa
+-- nhanh PROFILE/DESIRES cua goi y viec lam (chua tung co CV nao, chi co ho so
+-- nghe nghiep) - 8 ung vien con lai deu co resumes o tang 2.
 --
 -- KHONG co INSERT INTO resumes / job_applications - hai bang do thuoc tang 2,
--- sinh qua UI that o Dot 3-4 (gan voi file that tren dia + output AI).
+-- sinh qua UI that o Dot 3-4 (gan voi file that tren dia + output AI). Ung
+-- vien thu 9 KHONG co du lieu nao o tang 2 (chu dich, xem tren).
 --
--- MAT KHAU DANG NHAP DEMO CHO CA HR LAN 8 CANDIDATE: "Demo1234"
+-- MAT KHAU DANG NHAP DEMO CHO CA HR LAN 9 CANDIDATE: "Demo1234"
 --
 -- CACH CHAY (PowerShell, tu thu muc goc repo), giong dev-seed.sql:
 --
@@ -96,6 +103,123 @@ INSERT INTO users (id, email, password_hash, role, full_name, phone, is_active, 
      'CANDIDATE', 'Bùi Ngọc Mai', '0901000009', TRUE, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
+-- FR-U15 dot 8: ung vien thu 9, CHUA TUNG tai CV len (khong co resumes o tang
+-- 2) - chi co ho so nghe nghiep, minh hoa nhanh PROFILE/DESIRES cua goi y viec
+-- lam (R-V3/R-V5). Mong muon nganh SALES, khop Job 6 (Nhan vien kinh doanh qua
+-- dien thoai) - khac 3 nganh da dung cho 3 ung vien co san (IT_SOFTWARE,
+-- ACCOUNTING_AUDIT, MARKETING_COMMUNICATIONS).
+INSERT INTO users (id, email, password_hash, role, full_name, phone, is_active, email_verified) VALUES
+    ('d0000000-0000-0000-0000-000000000010', 'hoang.minh.tuan@demo.local',
+     '$2a$10$nFbFFDzxI6exO4n2YiGste.x65NTurqzpwvPHaYx5r.bTpz4v547y',
+     'CANDIDATE', 'Hoàng Minh Tuấn', '0901000010', TRUE, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 1b. Ho so nghe nghiep (FR-U14) cho 9 candidate - ca 9 da "qua" man onboarding
+--     (onboarding_completed_at khac NULL). 4 nguoi (Tran Minh Hoang - IT_SOFTWARE,
+--     Nguyen Thi Thu Ha - ACCOUNTING_AUDIT, Do Khanh Linh - MARKETING_COMMUNICATIONS,
+--     Hoang Minh Tuan - SALES, FR-U15 dot 8) co du mong muon nghe nghiep, khac
+--     nganh nhau va khop dung nganh cua job demo tuong ung (Job 1, Job 4, Job 5,
+--     Job 6 o muc 3 duoi day). 5 nguoi con lai de mang rong/NULL (ho so mong
+--     muon trong, nhung van da qua man onboarding).
+--     embedding/embedding_model de NULL ca 9 - CandidateProfileEmbeddingScheduler
+--     (FR-U14 R-E4) tu tinh khi backend chay that voi khoa OpenAI that (xem README).
+--     Ma nganh/khu vuc lay tu danh muc C05 (V8__catalogs.sql): IT_SOFTWARE,
+--     ACCOUNTING_AUDIT, MARKETING_COMMUNICATIONS, SALES, HO_CHI_MINH deu da ton tai.
+-- ---------------------------------------------------------------------------
+
+-- Tran Minh Hoang (d0000000-...0002) - Java Backend, khop Job 1 (IT_SOFTWARE)
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002',
+    'Lập trình viên Backend (Java/Spring Boot)',
+    ARRAY['IT_SOFTWARE'], ARRAY['HO_CHI_MINH'], ARRAY['HYBRID', 'REMOTE'],
+    ARRAY['Java', 'Spring Boot', 'PostgreSQL', 'REST API'], 35000000.00,
+    'Hơn 3 năm kinh nghiệm phát triển backend với Java và Spring Boot, mong muốn '
+    || 'tham gia các hệ thống phục vụ lượng người dùng lớn.',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Le Van Duc (d0000000-...0003) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000003', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Pham Quoc Bao (d0000000-...0004) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000004', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Nguyen Hai Son (d0000000-...0005) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000005', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Nguyen Thi Thu Ha (d0000000-...0006) - Ke toan, khop Job 4 (ACCOUNTING_AUDIT)
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000006',
+    'Kế toán tổng hợp',
+    ARRAY['ACCOUNTING_AUDIT'], ARRAY['HO_CHI_MINH'], ARRAY['ONSITE'],
+    ARRAY['MISA', 'Excel', 'VAS', 'Báo cáo tài chính'], 15000000.00,
+    'Có kinh nghiệm làm kế toán tổng hợp tại doanh nghiệp vừa và nhỏ, nắm vững '
+    || 'chuẩn mực kế toán Việt Nam (VAS).',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Do Khanh Linh (d0000000-...0007) - Marketing, khop Job 5 (MARKETING_COMMUNICATIONS)
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000007',
+    'Chuyên viên Marketing',
+    ARRAY['MARKETING_COMMUNICATIONS'], ARRAY['HO_CHI_MINH'], ARRAY['HYBRID'],
+    ARRAY['Facebook Ads', 'Google Ads', 'Content Marketing', 'SEO'], 15000000.00,
+    'Yêu thích xây dựng nội dung và chạy quảng cáo đa kênh, mong muốn phát triển '
+    || 'sự nghiệp trong lĩnh vực digital marketing.',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Vo Thanh Tung (d0000000-...0008) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000008', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Bui Ngoc Mai (d0000000-...0009) - ho so mong muon de trong
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at) VALUES
+    ('d6000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000009', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Hoang Minh Tuan (d0000000-...0010, FR-U15 dot 8) - Kinh doanh/Telesales,
+-- khop Job 6 (SALES, HO_CHI_MINH, ONSITE, luong 8-15 trieu) - KHONG co resumes
+-- (xem muc 1), minh hoa nhanh PROFILE/DESIRES cua goi y viec lam khi ung vien
+-- chua tung tai CV.
+INSERT INTO candidate_profiles (
+    id, user_id, headline,
+    desired_industry_codes, desired_location_codes, desired_work_modes,
+    skills, desired_salary_min, bio, onboarding_completed_at
+) VALUES (
+    'd6000000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000010',
+    'Chuyên viên Kinh doanh / Telesales',
+    ARRAY['SALES'], ARRAY['HO_CHI_MINH'], ARRAY['ONSITE'],
+    ARRAY['Telesales', 'Chăm sóc khách hàng', 'Đàm phán', 'CRM'], 10000000.00,
+    'Có kinh nghiệm tư vấn và chăm sóc khách hàng qua điện thoại, mong muốn '
+    || 'làm việc tại môi trường năng động, có chỉ tiêu doanh số rõ ràng.',
+    now()
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- ---------------------------------------------------------------------------
 -- 2. Company
 -- ---------------------------------------------------------------------------
@@ -118,7 +242,13 @@ INSERT INTO companies (
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 3. 6 job (DRAFT - HR tu chuyen OPEN qua UI o Dot 3)
+-- 3. 6 job (OPEN tu seed - FR-U07 R-D1, doi tu DRAFT truoc day). Ca 6 job da co
+--    category_code/location_code (tu C05) nen qua duoc guard R-J3 cua
+--    JobOwnerService ngay ca khi di qua UI sau nay - khong can sua gi them.
+--    published_at = now() tru cac khoang khac nhau de soat tay bo loc
+--    "Thoi gian dang" (postedWithin) va sap xep "Moi nhat" co thu tu ro rang.
+--    deadline giu CURRENT_DATE + 45 ngay (tinh tuong doi theo luc nap, luon
+--    con han).
 -- ---------------------------------------------------------------------------
 
 -- Job 1: Senior Java Backend Developer
@@ -137,7 +267,7 @@ INSERT INTO jobs (
     'Tối thiểu 3 năm kinh nghiệm Java. Thành thạo Spring Boot, PostgreSQL, thiết kế REST API.',
     'IT_SOFTWARE', 'HO_CHI_MINH', 'FULL_TIME', 'HYBRID',
     30000000.00, 50000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '3 hours', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -157,7 +287,7 @@ INSERT INTO jobs (
     'Có kinh nghiệm kiểm thử thủ công và tự động (Selenium/Cypress). Hiểu quy trình Agile/Scrum.',
     'IT_SOFTWARE', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     15000000.00, 25000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '2 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -178,7 +308,7 @@ INSERT INTO jobs (
     || 'Ưu tiên có chứng chỉ cloud.',
     'IT_SOFTWARE', 'HA_NOI', 'FULL_TIME', 'REMOTE',
     25000000.00, 40000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '6 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -199,7 +329,7 @@ INSERT INTO jobs (
     || 'chuẩn mực kế toán Việt Nam (VAS).',
     'ACCOUNTING_AUDIT', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     12000000.00, 18000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '10 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -219,7 +349,7 @@ INSERT INTO jobs (
     'Có kinh nghiệm digital marketing, thành thạo công cụ quảng cáo Facebook/Google Ads.',
     'MARKETING_COMMUNICATIONS', 'HO_CHI_MINH', 'FULL_TIME', 'HYBRID',
     12000000.00, 20000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '20 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -240,7 +370,7 @@ INSERT INTO jobs (
     || 'chịu được áp lực doanh số.',
     'SALES', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
     8000000.00, 15000000.00, 'VND',
-    'DRAFT', 1, CURRENT_DATE + INTERVAL '45 days', NULL, NULL
+    'OPEN', 1, CURRENT_DATE + INTERVAL '45 days', now() - INTERVAL '35 days', NULL
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -518,10 +648,18 @@ ON CONFLICT (id) DO NOTHING;
 COMMIT;
 
 -- ---------------------------------------------------------------------------
--- Kiem tra sau khi chay: phai ra dung 1 HR + 8 candidate + 1 company + 6 job
+-- Kiem tra sau khi chay: phai ra dung 1 HR + 9 candidate + 1 company + 6 job
 -- + 6 rubric (moi rubric 4 tieu chi, tong weight = 100) + 6 interview_template
+-- + 9 candidate_profiles (FR-U14/FR-U15, ca 9 da qua onboarding, 4 co mong muon)
 -- ---------------------------------------------------------------------------
 SELECT role, count(*) FROM users WHERE id::text LIKE 'd0000000-%' GROUP BY role;
+SELECT
+    count(*) AS so_ho_so,
+    count(*) FILTER (WHERE onboarding_completed_at IS NOT NULL) AS da_qua_onboarding,
+    count(*) FILTER (WHERE cardinality(desired_industry_codes) > 0) AS co_mong_muon_nganh,
+    count(*) FILTER (WHERE embedding IS NULL) AS embedding_null
+FROM candidate_profiles
+WHERE id::text LIKE 'd6000000-%';
 SELECT j.title, r.name AS rubric, sum(rc.weight) AS tong_weight, count(rc.id) AS so_tieu_chi
 FROM jobs j
 JOIN rubrics r ON r.job_id = j.id

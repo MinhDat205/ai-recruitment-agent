@@ -100,7 +100,7 @@ app:
   resume-embedding:
     poll-interval-ms: 5000
     batch-size: 10
-  job-recommendation:
+  candidate-profile-embedding:
     poll-interval-ms: 5000
     batch-size: 10
   # Dot 4 (chore/hardening) - retry-with-backoff cho loi LLM tam thoi (D1, D2) + timeout tuong minh
