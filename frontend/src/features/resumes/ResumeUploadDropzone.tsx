@@ -88,18 +88,18 @@ export function ResumeUploadDropzone() {
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
         className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-(--radius-card) border-2 border-dashed px-6 py-10 text-center transition-colors ${
-          isDragOver ? 'border-brand bg-brand-light' : 'border-line bg-canvas'
+          isDragOver ? 'border-m3-primary bg-m3-primary-container' : 'border-m3-outline bg-m3-surface-container'
         }`}
       >
-        <UploadCloud className="h-8 w-8 text-ink-muted" aria-hidden="true" />
-        <p className="text-sm text-ink">
-          Kéo thả CV vào đây, hoặc <span className="font-medium text-brand">chọn file</span>
+        <UploadCloud className="h-8 w-8 text-m3-on-surface" aria-hidden="true" />
+        <p className="text-sm text-m3-on-surface">
+          Kéo thả CV vào đây, hoặc <span className="font-medium text-m3-on-primary-container">chọn file</span>
         </p>
-        <p className="text-xs text-ink-muted">PDF hoặc DOCX, tối đa 10MB</p>
+        <p className="text-xs text-m3-on-surface">PDF hoặc DOCX, tối đa 10MB</p>
       </div>
       <input ref={inputRef} type="file" accept=".pdf,.docx" className="hidden" onChange={handleInputChange} />
-      {uploadMutation.isPending && <p className="text-xs text-ink-muted">Đang tải lên...</p>}
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {uploadMutation.isPending && <p className="text-xs text-m3-on-surface-variant">Đang tải lên...</p>}
+      {error && <p className="text-sm text-m3-error">{error}</p>}
     </div>
   )
 }

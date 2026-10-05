@@ -80,7 +80,7 @@ function renderErrorMessage(errorCode: string | undefined): ReactNode {
     return (
       <>
         CV này chưa được xử lý xong nên chưa tạo được gợi ý. Vui lòng{' '}
-        <Link to="/candidate/profile" className="text-brand hover:underline">
+        <Link to="/candidate/profile" className="text-m3-primary hover:underline">
           quay lại trang hồ sơ
         </Link>{' '}
         để xem trạng thái xử lý CV.
@@ -104,15 +104,15 @@ export function CvImprovementSuggestionsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Gợi ý cải thiện CV</CardTitle>
-            {resume && <p className="text-sm text-ink-muted">{resume.fileName}</p>}
+            {resume && <p className="text-sm text-m3-on-surface-variant">{resume.fileName}</p>}
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {isLoading && <p className="text-sm text-ink-muted">Đang tải...</p>}
-            {isError && <p className="text-sm text-danger">{renderErrorMessage(extractErrorCode(error))}</p>}
+            {isLoading && <p className="text-sm text-m3-on-surface-variant">Đang tải...</p>}
+            {isError && <p className="text-sm text-m3-error">{renderErrorMessage(extractErrorCode(error))}</p>}
 
             {!isLoading && !isError && data?.status === 'NOT_REQUESTED' && (
               <div className="flex flex-col items-start gap-3">
-                <p className="text-sm text-ink-muted">
+                <p className="text-sm text-m3-on-surface-variant">
                   Nhận gợi ý cụ thể để cải thiện CV này, dựa trên các tin tuyển dụng đang mở cùng lĩnh vực.
                 </p>
                 <Button type="button" onClick={() => requestMutation.mutate()} disabled={requestMutation.isPending}>
@@ -120,7 +120,7 @@ export function CvImprovementSuggestionsPage() {
                   Xin gợi ý cải thiện CV
                 </Button>
                 {requestMutation.isError && (
-                  <p className="text-sm text-danger">
+                  <p className="text-sm text-m3-error">
                     {extractErrorMessage(requestMutation.error, 'Không gửi được yêu cầu, vui lòng thử lại.')}
                   </p>
                 )}
@@ -128,7 +128,7 @@ export function CvImprovementSuggestionsPage() {
             )}
 
             {!isLoading && !isError && (data?.status === 'PENDING' || data?.status === 'RUNNING') && (
-              <div className="flex items-center gap-2 text-sm text-ink-muted">
+              <div className="flex items-center gap-2 text-sm text-m3-on-surface-variant">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Đang tạo gợi ý...
               </div>
@@ -136,7 +136,7 @@ export function CvImprovementSuggestionsPage() {
 
             {!isLoading && !isError && data?.status === 'FAILED' && (
               <div className="flex flex-col items-start gap-3">
-                <p className="text-sm text-danger">Tạo gợi ý thất bại, vui lòng thử lại.</p>
+                <p className="text-sm text-m3-error">Tạo gợi ý thất bại, vui lòng thử lại.</p>
                 <Button
                   type="button"
                   variant="outline"
@@ -146,7 +146,7 @@ export function CvImprovementSuggestionsPage() {
                   Thử lại
                 </Button>
                 {requestMutation.isError && (
-                  <p className="text-sm text-danger">
+                  <p className="text-sm text-m3-error">
                     {extractErrorMessage(requestMutation.error, 'Không gửi được yêu cầu, vui lòng thử lại.')}
                   </p>
                 )}
@@ -163,13 +163,13 @@ export function CvImprovementSuggestionsPage() {
               </CardHeader>
               <CardContent>
                 {data.missingKeywords.length === 0 ? (
-                  <p className="text-sm text-ink-muted">{EMPTY_MISSING_KEYWORDS_TEXT}</p>
+                  <p className="text-sm text-m3-on-surface-variant">{EMPTY_MISSING_KEYWORDS_TEXT}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {data.missingKeywords.map((keyword) => (
                       <span
                         key={keyword}
-                        className="rounded-(--radius-badge) bg-brand-light px-2 py-1 text-sm text-brand"
+                        className="rounded-(--radius-badge) bg-m3-primary-container px-2 py-1 text-sm text-m3-on-primary-container"
                       >
                         {keyword}
                       </span>
@@ -185,18 +185,18 @@ export function CvImprovementSuggestionsPage() {
               </CardHeader>
               <CardContent>
                 {data.sectionSuggestions.length === 0 ? (
-                  <p className="text-sm text-ink-muted">{EMPTY_SECTION_SUGGESTIONS_TEXT}</p>
+                  <p className="text-sm text-m3-on-surface-variant">{EMPTY_SECTION_SUGGESTIONS_TEXT}</p>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {groupBySection(data.sectionSuggestions).map((group) => (
                       <div
                         key={group.section}
-                        className="flex flex-col gap-2 border-b border-line pb-4 last:border-b-0 last:pb-0"
+                        className="flex flex-col gap-2 border-b border-m3-outline-variant pb-4 last:border-b-0 last:pb-0"
                       >
-                        <span className="text-sm font-medium text-ink">{group.section}</span>
+                        <span className="text-sm font-medium text-m3-on-surface">{group.section}</span>
                         <ul className="flex list-disc flex-col gap-1 pl-5">
                           {group.suggestions.map((item) => (
-                            <li key={item.section + item.suggestion} className="text-sm text-ink-muted">
+                            <li key={item.section + item.suggestion} className="text-sm text-m3-on-surface-variant">
                               {item.suggestion}
                             </li>
                           ))}
@@ -214,16 +214,16 @@ export function CvImprovementSuggestionsPage() {
               </CardHeader>
               <CardContent>
                 {data.learningPath.length === 0 ? (
-                  <p className="text-sm text-ink-muted">{EMPTY_LEARNING_PATH_TEXT}</p>
+                  <p className="text-sm text-m3-on-surface-variant">{EMPTY_LEARNING_PATH_TEXT}</p>
                 ) : (
                   <ul className="flex flex-col gap-3">
                     {data.learningPath.map((item) => (
                       <li
                         key={item.topic}
-                        className="flex flex-col gap-1 border-b border-line pb-3 last:border-b-0 last:pb-0"
+                        className="flex flex-col gap-1 border-b border-m3-outline-variant pb-3 last:border-b-0 last:pb-0"
                       >
-                        <span className="text-sm font-medium text-ink">{item.topic}</span>
-                        <span className="text-sm text-ink-muted">{item.reason}</span>
+                        <span className="text-sm font-medium text-m3-on-surface">{item.topic}</span>
+                        <span className="text-sm text-m3-on-surface-variant">{item.reason}</span>
                       </li>
                     ))}
                   </ul>

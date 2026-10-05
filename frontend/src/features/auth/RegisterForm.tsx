@@ -73,7 +73,7 @@ export function RegisterForm() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex rounded-md border border-line p-1" role="tablist">
+      <div className="flex rounded-md border border-m3-outline p-1" role="tablist">
         {TABS.map((tab) => (
           <button
             key={tab.value}
@@ -82,7 +82,7 @@ export function RegisterForm() {
             aria-selected={accountType === tab.value}
             onClick={() => handleTabChange(tab.value)}
             className={`h-9 flex-1 rounded-(--radius-badge) text-sm font-medium transition-colors ${
-              accountType === tab.value ? 'bg-brand text-white' : 'text-ink-muted'
+              accountType === tab.value ? 'bg-m3-primary text-m3-on-primary' : 'text-m3-on-surface-variant'
             }`}
           >
             {tab.label}
@@ -92,79 +92,79 @@ export function RegisterForm() {
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor="register-fullName" className="text-sm font-medium text-ink">
+          <label htmlFor="register-fullName" className="text-sm font-medium text-m3-on-surface">
             Họ và tên
           </label>
           <input
             id="register-fullName"
             autoComplete="name"
-            className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+            className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
             {...register('fullName')}
           />
-          {errors.fullName && <p className="text-sm text-danger">{errors.fullName.message}</p>}
+          {errors.fullName && <p className="text-sm text-m3-error">{errors.fullName.message}</p>}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="register-email" className="text-sm font-medium text-ink">
+          <label htmlFor="register-email" className="text-sm font-medium text-m3-on-surface">
             Email
           </label>
           <input
             id="register-email"
             type="email"
             autoComplete="email"
-            className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+            className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
             {...register('email')}
           />
-          {errors.email && <p className="text-sm text-danger">{errors.email.message}</p>}
+          {errors.email && <p className="text-sm text-m3-error">{errors.email.message}</p>}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="register-phone" className="text-sm font-medium text-ink">
+          <label htmlFor="register-phone" className="text-sm font-medium text-m3-on-surface">
             Số điện thoại (tuỳ chọn)
           </label>
           <input
             id="register-phone"
             type="tel"
             autoComplete="tel"
-            className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+            className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
             {...register('phone')}
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="register-password" className="text-sm font-medium text-ink">
+          <label htmlFor="register-password" className="text-sm font-medium text-m3-on-surface">
             Mật khẩu
           </label>
           <input
             id="register-password"
             type="password"
             autoComplete="new-password"
-            className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+            className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
             {...register('password')}
           />
-          {errors.password && <p className="text-sm text-danger">{errors.password.message}</p>}
+          {errors.password && <p className="text-sm text-m3-error">{errors.password.message}</p>}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="register-confirmPassword" className="text-sm font-medium text-ink">
+          <label htmlFor="register-confirmPassword" className="text-sm font-medium text-m3-on-surface">
             Xác nhận mật khẩu
           </label>
           <input
             id="register-confirmPassword"
             type="password"
             autoComplete="new-password"
-            className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+            className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
             {...register('confirmPassword')}
           />
-          {errors.confirmPassword && <p className="text-sm text-danger">{errors.confirmPassword.message}</p>}
+          {errors.confirmPassword && <p className="text-sm text-m3-error">{errors.confirmPassword.message}</p>}
         </div>
 
-        {serverError && <p className="text-sm text-danger">{serverError}</p>}
+        {serverError && <p className="text-sm text-m3-error">{serverError}</p>}
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="h-10 rounded-md bg-brand px-5 text-sm font-medium text-white disabled:opacity-60"
+          className="h-10 rounded-md bg-m3-primary px-5 text-sm font-medium text-m3-on-primary disabled:opacity-60"
         >
           {isSubmitting ? 'Đang đăng ký...' : 'Đăng ký'}
         </button>

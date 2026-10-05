@@ -75,9 +75,9 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT, matchedConditi
   return (
     <Link
       to={`/jobs/${job.id}`}
-      className="flex gap-4 rounded-(--radius-card) border border-line bg-surface p-4 transition hover:border-brand hover:shadow-sm"
+      className="flex gap-4 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4 transition hover:border-m3-primary hover:shadow-sm"
     >
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-badge) border border-line bg-m3-surface-container">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-badge) border border-m3-outline-variant bg-m3-surface-container">
         {job.company?.logoUrl ? (
           <img src={job.company.logoUrl} alt={job.company.name} className="h-full w-full object-cover" />
         ) : (
@@ -87,12 +87,12 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT, matchedConditi
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 min-w-0 text-base font-medium text-ink hover:text-brand">{job.title}</h3>
-          <span className="shrink-0 whitespace-nowrap text-xs text-ink-muted">
+          <h3 className="line-clamp-2 min-w-0 text-base font-medium text-m3-on-surface hover:text-m3-primary">{job.title}</h3>
+          <span className="shrink-0 whitespace-nowrap text-xs text-m3-on-surface-variant">
             Hạn nộp: {formatDeadline(job.deadline)}
           </span>
         </div>
-        {job.company && <p className="text-sm text-ink-muted">{job.company.name}</p>}
+        {job.company && <p className="text-sm text-m3-on-surface-variant">{job.company.name}</p>}
 
         {salary && (
           <p className="text-sm font-medium text-m3-tertiary">
@@ -110,12 +110,12 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT, matchedConditi
             ben duoi, chi hien dung luc dang loc (R-N3/R-N4). */}
         <div className="mt-1 flex flex-wrap gap-2">
           {locationText && (
-            <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
+            <span className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-1 text-xs text-m3-on-primary-container">
               {locationText}
             </span>
           )}
           {categoryText && (
-            <span className="rounded-(--radius-badge) bg-brand-light px-3 py-1 text-xs text-brand">
+            <span className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-1 text-xs text-m3-on-primary-container">
               {categoryText}
             </span>
           )}
@@ -150,7 +150,7 @@ export function JobCard({ job, filterContext = NO_FILTER_CONTEXT, matchedConditi
 // nhan, khong co dong gia tri cu.
 function UnnormalizedField({ legacyValue }: { legacyValue: string | null }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-ink">
+    <div className="flex flex-wrap items-center gap-2 text-xs text-m3-on-surface">
       <UnnormalizedBadge />
       {legacyValue && <span>Giá trị cũ: &quot;{legacyValue}&quot;</span>}
     </div>

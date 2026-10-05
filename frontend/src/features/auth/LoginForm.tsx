@@ -53,45 +53,45 @@ export function LoginForm({ showRegisteredNotice = false }: LoginFormProps) {
   return (
     <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
       {showNotice && (
-        <p className="rounded-(--radius-badge) bg-brand-light px-3 py-2 text-sm text-brand">
+        <p className="rounded-(--radius-badge) bg-m3-primary-container px-3 py-2 text-sm text-m3-on-primary-container">
           Đăng ký thành công, vui lòng đăng nhập.
         </p>
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="login-email" className="text-sm font-medium text-ink">
+        <label htmlFor="login-email" className="text-sm font-medium text-m3-on-surface">
           Email
         </label>
         <input
           id="login-email"
           type="email"
           autoComplete="email"
-          className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+          className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
           {...register('email')}
         />
-        {errors.email && <p className="text-sm text-danger">{errors.email.message}</p>}
+        {errors.email && <p className="text-sm text-m3-error">{errors.email.message}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="login-password" className="text-sm font-medium text-ink">
+        <label htmlFor="login-password" className="text-sm font-medium text-m3-on-surface">
           Mật khẩu
         </label>
         <input
           id="login-password"
           type="password"
           autoComplete="current-password"
-          className="h-10 rounded-md border border-line px-3 text-sm text-ink"
+          className="h-10 rounded-md border border-m3-outline px-3 text-sm text-m3-on-surface"
           {...register('password')}
         />
-        {errors.password && <p className="text-sm text-danger">{errors.password.message}</p>}
+        {errors.password && <p className="text-sm text-m3-error">{errors.password.message}</p>}
       </div>
 
-      {serverError && <p className="text-sm text-danger">{serverError}</p>}
+      {serverError && <p className="text-sm text-m3-error">{serverError}</p>}
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="h-10 rounded-md bg-brand px-5 text-sm font-medium text-white disabled:opacity-60"
+        className="h-10 rounded-md bg-m3-primary px-5 text-sm font-medium text-m3-on-primary disabled:opacity-60"
       >
         {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
       </button>

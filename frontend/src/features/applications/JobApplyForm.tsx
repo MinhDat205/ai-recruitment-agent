@@ -60,12 +60,12 @@ export function JobApplyForm({ jobId }: { jobId: string }) {
 
   if (createMutation.isSuccess) {
     return (
-      <div className="rounded-(--radius-card) border border-line bg-brand-light p-6">
-        <p className="text-sm font-medium text-brand">Nộp đơn thành công.</p>
-        <p className="mt-1 text-sm text-ink-muted">
+      <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-primary-container p-6">
+        <p className="text-sm font-medium text-m3-on-primary-container">Nộp đơn thành công.</p>
+        <p className="mt-1 text-sm text-m3-on-surface">
           Hồ sơ của bạn đã được gửi tới nhà tuyển dụng. Bạn có thể theo dõi trạng thái ứng tuyển sau.
         </p>
-        <Link to="/" className="mt-3 inline-block text-sm text-brand hover:underline">
+        <Link to="/" className="mt-3 inline-block text-sm text-m3-on-primary-container hover:underline">
           Về trang danh sách việc làm
         </Link>
       </div>
@@ -74,9 +74,9 @@ export function JobApplyForm({ jobId }: { jobId: string }) {
 
   if (!resumesLoading && !resumesError && (!resumes || resumes.length === 0)) {
     return (
-      <div className="rounded-(--radius-card) border border-line bg-surface p-6">
-        <p className="text-sm text-ink-muted">Bạn chưa có CV nào. Hãy tải lên CV trước khi ứng tuyển.</p>
-        <Link to="/candidate/profile" className="mt-3 inline-block text-sm text-brand hover:underline">
+      <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-6">
+        <p className="text-sm text-m3-on-surface-variant">Bạn chưa có CV nào. Hãy tải lên CV trước khi ứng tuyển.</p>
+        <Link to="/candidate/profile" className="mt-3 inline-block text-sm text-m3-primary hover:underline">
           Tải CV lên
         </Link>
       </div>
@@ -84,11 +84,11 @@ export function JobApplyForm({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-(--radius-card) border border-line bg-surface p-6">
+    <div className="flex flex-col gap-6 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-6">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="apply-resume">Chọn CV</Label>
-        {resumesLoading && <p className="text-sm text-ink-muted">Đang tải danh sách CV...</p>}
-        {resumesError && <p className="text-sm text-danger">Không tải được danh sách CV.</p>}
+        {resumesLoading && <p className="text-sm text-m3-on-surface-variant">Đang tải danh sách CV...</p>}
+        {resumesError && <p className="text-sm text-m3-error">Không tải được danh sách CV.</p>}
         {resumes && resumes.length > 0 && (
           <Select value={resumeId} onValueChange={setSelectedResumeId}>
             <SelectTrigger id="apply-resume" className="w-full">
@@ -105,7 +105,7 @@ export function JobApplyForm({ jobId }: { jobId: string }) {
           </Select>
         )}
         {hiddenFailedCount > 0 && (
-          <p className="text-xs text-ink-muted">
+          <p className="text-xs text-m3-on-surface-variant">
             {hiddenFailedCount} CV không thể chọn do phân tích thất bại, xem trong hồ sơ CV của bạn.
           </p>
         )}
@@ -127,14 +127,14 @@ export function JobApplyForm({ jobId }: { jobId: string }) {
           checked={consentChecked}
           onCheckedChange={(checked) => setConsentChecked(checked === true)}
         />
-        <Label htmlFor="apply-consent" className="text-sm font-normal text-ink">
+        <Label htmlFor="apply-consent" className="text-sm font-normal text-m3-on-surface">
           Tôi đồng ý cho phép CV của tôi được hệ thống AI phân tích và chấm điểm để hỗ trợ nhà tuyển
           dụng đánh giá hồ sơ.
         </Label>
       </div>
 
       {createMutation.isError && (
-        <p className="text-sm text-danger">
+        <p className="text-sm text-m3-error">
           {extractErrorMessage(createMutation.error, 'Nộp đơn thất bại, vui lòng thử lại.')}
         </p>
       )}

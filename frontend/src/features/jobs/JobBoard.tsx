@@ -33,7 +33,7 @@ export function JobBoard({ showRecommendations = false }: JobBoardProps) {
         </div>
       )}
       <JobFilterBar totalElements={jobsQuery.data?.totalElements} />
-      <h2 className="mt-6 mb-4 text-xl font-semibold text-ink">Việc làm đang tuyển</h2>
+      <h2 className="mt-6 mb-4 text-xl font-semibold text-m3-on-surface">Việc làm đang tuyển</h2>
       <JobList
         data={jobsQuery.data}
         isPending={jobsQuery.isPending}

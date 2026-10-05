@@ -16,7 +16,7 @@ export function ApplyButton({ jobId }: { jobId: string }) {
         type="button"
         data-job-id={jobId}
         onClick={() => navigate('/login', { state: { from: location } })}
-        className="h-11 rounded-md bg-accent px-6 text-sm font-medium text-white"
+        className="h-11 rounded-md bg-m3-tertiary px-6 text-sm font-medium text-m3-on-tertiary"
       >
         Ứng tuyển
       </button>
@@ -28,7 +28,7 @@ export function ApplyButton({ jobId }: { jobId: string }) {
       type="button"
       data-job-id={jobId}
       onClick={() => navigate(`/jobs/${jobId}/apply`)}
-      className="h-11 rounded-md bg-accent px-6 text-sm font-medium text-white"
+      className="h-11 rounded-md bg-m3-tertiary px-6 text-sm font-medium text-m3-on-tertiary"
     >
       Ứng tuyển
     </button>

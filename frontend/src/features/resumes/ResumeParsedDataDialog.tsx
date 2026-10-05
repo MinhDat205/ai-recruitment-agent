@@ -11,13 +11,13 @@ import type {
 } from './types'
 
 function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-ink-muted">{message}</p>
+  return <p className="text-sm text-m3-on-surface-variant">{message}</p>
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-b border-line pb-4 last:border-b-0 last:pb-0">
-      <h3 className="text-sm font-medium text-ink">{title}</h3>
+    <div className="flex flex-col gap-2 border-b border-m3-outline-variant pb-4 last:border-b-0 last:pb-0">
+      <h3 className="text-sm font-medium text-m3-on-surface">{title}</h3>
       {children}
     </div>
   )
@@ -51,8 +51,8 @@ function ContactSection({ contact }: { contact: ResumeParsedContact | null }) {
     <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
       {filled.map(([label, value]) => (
         <div key={label} className="flex gap-2 text-sm">
-          <dt className="shrink-0 text-ink-muted">{label}:</dt>
-          <dd className="text-ink">{value}</dd>
+          <dt className="shrink-0 text-m3-on-surface-variant">{label}:</dt>
+          <dd className="text-m3-on-surface">{value}</dd>
         </div>
       ))}
     </dl>
@@ -71,11 +71,11 @@ function EducationSection({ education }: { education: ResumeParsedEducation[] })
           .join(' · ')
         return (
           <li key={index} className="text-sm">
-            <p className="font-medium text-ink">
+            <p className="font-medium text-m3-on-surface">
               {item.school ?? 'Chưa rõ trường'}
               {item.degree ? ` — ${item.degree}` : ''}
             </p>
-            {meta && <p className="text-ink-muted">{meta}</p>}
+            {meta && <p className="text-m3-on-surface-variant">{meta}</p>}
           </li>
         )
       })}
@@ -93,12 +93,12 @@ function ExperienceSection({ experience }: { experience: ResumeParsedExperience[
         const range = formatDateRange(item.startDate, item.endDate)
         return (
           <li key={index} className="text-sm">
-            <p className="font-medium text-ink">
+            <p className="font-medium text-m3-on-surface">
               {item.title ?? 'Chưa rõ vị trí'}
               {item.company ? ` — ${item.company}` : ''}
             </p>
-            {range && <p className="text-ink-muted">{range}</p>}
-            {item.description && <p className="mt-1 whitespace-pre-line text-ink">{item.description}</p>}
+            {range && <p className="text-m3-on-surface-variant">{range}</p>}
+            {item.description && <p className="mt-1 whitespace-pre-line text-m3-on-surface">{item.description}</p>}
           </li>
         )
       })}
@@ -113,7 +113,7 @@ function SkillsSection({ skills }: { skills: string[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {skills.map((skill) => (
-        <span key={skill} className="rounded-(--radius-badge) bg-brand-light px-2 py-1 text-xs text-brand">
+        <span key={skill} className="rounded-(--radius-badge) bg-m3-primary-container px-2 py-1 text-xs text-m3-on-primary-container">
           {skill}
         </span>
       ))}
@@ -129,9 +129,9 @@ function CertificationsSection({ certifications }: { certifications: ResumeParse
     <ul className="flex flex-col gap-2">
       {certifications.map((item, index) => (
         <li key={index} className="text-sm">
-          <span className="font-medium text-ink">{item.name ?? 'Chưa rõ tên chứng chỉ'}</span>
+          <span className="font-medium text-m3-on-surface">{item.name ?? 'Chưa rõ tên chứng chỉ'}</span>
           {[item.issuer, item.issueDate].filter(Boolean).length > 0 && (
-            <span className="text-ink-muted"> — {[item.issuer, item.issueDate].filter(Boolean).join(' · ')}</span>
+            <span className="text-m3-on-surface-variant"> — {[item.issuer, item.issueDate].filter(Boolean).join(' · ')}</span>
           )}
         </li>
       ))}
@@ -147,12 +147,12 @@ function ProjectsSection({ projects }: { projects: ResumeParsedProject[] }) {
     <ul className="flex flex-col gap-3">
       {projects.map((item, index) => (
         <li key={index} className="text-sm">
-          <p className="font-medium text-ink">{item.name ?? 'Chưa rõ tên dự án'}</p>
-          {item.description && <p className="mt-1 whitespace-pre-line text-ink">{item.description}</p>}
+          <p className="font-medium text-m3-on-surface">{item.name ?? 'Chưa rõ tên dự án'}</p>
+          {item.description && <p className="mt-1 whitespace-pre-line text-m3-on-surface">{item.description}</p>}
           {item.technologies.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-2">
               {item.technologies.map((tech) => (
-                <span key={tech} className="rounded-(--radius-badge) bg-brand-light px-2 py-1 text-xs text-brand">
+                <span key={tech} className="rounded-(--radius-badge) bg-m3-primary-container px-2 py-1 text-xs text-m3-on-primary-container">
                   {tech}
                 </span>
               ))}
@@ -167,10 +167,10 @@ function ProjectsSection({ projects }: { projects: ResumeParsedProject[] }) {
 function ParsedDataSkeleton() {
   return (
     <div className="flex flex-col gap-3" aria-hidden="true">
-      <div className="h-4 w-1/3 animate-pulse rounded bg-canvas" />
-      <div className="h-16 animate-pulse rounded bg-canvas" />
-      <div className="h-4 w-1/4 animate-pulse rounded bg-canvas" />
-      <div className="h-16 animate-pulse rounded bg-canvas" />
+      <div className="h-4 w-1/3 animate-pulse rounded bg-m3-surface-container" />
+      <div className="h-16 animate-pulse rounded bg-m3-surface-container" />
+      <div className="h-4 w-1/4 animate-pulse rounded bg-m3-surface-container" />
+      <div className="h-16 animate-pulse rounded bg-m3-surface-container" />
     </div>
   )
 }

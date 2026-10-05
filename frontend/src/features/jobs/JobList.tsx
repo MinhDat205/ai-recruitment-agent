@@ -42,11 +42,11 @@ export function JobList({
   if (isError) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <p className="text-sm text-ink-muted">Không tải được danh sách việc làm.</p>
+        <p className="text-sm text-m3-on-surface">Không tải được danh sách việc làm.</p>
         <button
           type="button"
           onClick={onRetry}
-          className="h-10 rounded-md border border-brand px-5 text-sm font-medium text-brand"
+          className="h-10 rounded-md border border-m3-primary px-5 text-sm font-medium text-m3-on-primary-container"
         >
           Thử lại
         </button>
@@ -57,12 +57,12 @@ export function JobList({
   if (!data || data.items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <p className="text-sm text-ink-muted">Không tìm thấy việc làm phù hợp với bộ lọc hiện tại.</p>
+        <p className="text-sm text-m3-on-surface">Không tìm thấy việc làm phù hợp với bộ lọc hiện tại.</p>
         {hasActiveFilters && (
           <button
             type="button"
             onClick={onClearFilters}
-            className="h-10 rounded-md border border-brand px-5 text-sm font-medium text-brand"
+            className="h-10 rounded-md border border-m3-primary px-5 text-sm font-medium text-m3-on-primary-container"
           >
             Xoá bộ lọc
           </button>

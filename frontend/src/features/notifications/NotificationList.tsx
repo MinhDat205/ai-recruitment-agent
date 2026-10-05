@@ -30,14 +30,14 @@ export function NotificationList() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-ink-muted">Đang tải...</p>
+    return <p className="text-sm text-m3-on-surface">Đang tải...</p>
   }
 
   if (isError) {
     return (
       <div className="flex flex-col items-start gap-2">
-        <p className="text-sm text-danger">Không tải được danh sách thông báo.</p>
-        <button type="button" onClick={() => refetch()} className="text-sm font-medium text-brand hover:underline">
+        <p className="text-sm text-m3-on-surface">Không tải được danh sách thông báo.</p>
+        <button type="button" onClick={() => refetch()} className="text-sm font-medium text-m3-on-primary-container hover:underline">
           Thử lại
         </button>
       </div>
@@ -47,7 +47,7 @@ export function NotificationList() {
   const items = data?.page.items ?? []
 
   if (items.length === 0) {
-    return <p className="text-sm text-ink-muted">Bạn chưa có thông báo nào.</p>
+    return <p className="text-sm text-m3-on-surface">Bạn chưa có thông báo nào.</p>
   }
 
   return (
@@ -61,15 +61,15 @@ export function NotificationList() {
               markReadMutation.mutate(item.id)
             }
           }}
-          className={`flex flex-col gap-1 rounded-(--radius-card) border border-line p-4 text-left ${
-            item.isRead ? 'bg-surface' : 'bg-brand-light/40'
+          className={`flex flex-col gap-1 rounded-(--radius-card) border border-m3-outline-variant p-4 text-left ${
+            item.isRead ? 'bg-m3-surface' : 'bg-m3-primary-container/40'
           }`}
         >
           <div className="flex items-center justify-between gap-4">
-            <p className="text-sm font-medium text-ink">{item.title}</p>
-            <span className="shrink-0 text-xs text-ink-muted">{formatCreatedAt(item.createdAt)}</span>
+            <p className="text-sm font-medium text-m3-on-surface">{item.title}</p>
+            <span className="shrink-0 text-xs text-m3-on-surface-variant">{formatCreatedAt(item.createdAt)}</span>
           </div>
-          {item.body && <p className="text-sm text-ink-muted">{item.body}</p>}
+          {item.body && <p className="text-sm text-m3-on-surface-variant">{item.body}</p>}
         </button>
       ))}
 
@@ -80,11 +80,11 @@ export function NotificationList() {
             aria-label="Trang trước"
             disabled={page <= 0}
             onClick={() => handlePageChange(page - 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-(--radius-badge) border border-line text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 w-9 items-center justify-center rounded-(--radius-badge) border border-m3-outline text-m3-on-surface disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="text-sm text-ink-muted">
+          <span className="text-sm text-m3-on-surface">
             Trang {page + 1} / {data.page.totalPages}
           </span>
           <button
@@ -92,7 +92,7 @@ export function NotificationList() {
             aria-label="Trang sau"
             disabled={page >= data.page.totalPages - 1}
             onClick={() => handlePageChange(page + 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-(--radius-badge) border border-line text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 w-9 items-center justify-center rounded-(--radius-badge) border border-m3-outline text-m3-on-surface disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRight size={18} />
           </button>
