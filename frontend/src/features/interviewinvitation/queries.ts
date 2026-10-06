@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query'
 import { hrApplicationsKeyPrefix } from '../scoring/queries'
 import { getInterviewInvitationRequest, previewInterviewInvitationRequest, sendInterviewInvitationRequest } from './api'
 import type { InterviewInvitationSendRequest } from './types'
@@ -19,14 +19,16 @@ export function useInterviewInvitationPreviewQuery(applicationId: string | undef
 
 // Gui thanh cong doi don sang INTERVIEW_INVITED o backend (ApplicationStatusService.changeStatus,
 // goi tu InterviewInvitationService.sendInvitation) - invalidate danh sach cua ca scoring/queries.ts
-// de badge trang thai + nut hanh dong cap nhat theo dung trang thai moi.
-export function useSendInterviewInvitationMutation(jobId: string) {
+// de badge trang thai + nut hanh dong cap nhat theo dung trang thai moi. extraInvalidateKeys (FR-H09
+// R-A4/R-A5): trang ho so don truyen them query cua trang; mac dinh rong - hanh vi cu giu nguyen.
+export function useSendInterviewInvitationMutation(jobId: string, extraInvalidateKeys: QueryKey[] = []) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ applicationId, payload }: { applicationId: string; payload: InterviewInvitationSendRequest }) =>
       sendInterviewInvitationRequest(applicationId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
+      extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     },
   })
 }

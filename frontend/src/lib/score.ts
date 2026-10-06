@@ -23,3 +23,16 @@ export function formatScore(score: number | null): string {
   }
   return Number(score.toFixed(3)).toString()
 }
+
+// Dau gach ngang trung tinh cho o CHUA CO gia tri (don chua cham / lot FAILED / dang cham dang) -
+// KHONG hien "0" (se hieu nham la diem that bang khong). Dung o cot Hang/Tong diem cua danh sach theo
+// Job (ApplicationsTab) va o trang ho so don (FR-H09).
+export const EMPTY_VALUE_PLACEHOLDER = '—'
+
+// Tong diem dang 2 chu so thap phan - KHAC formatScore o tren (bo so 0 thua, "Chưa chấm" khi null).
+// Tach tu ApplicationsTab (FR-H09) de trang ho so don hien tong diem DUNG nhu cot Tong diem cua danh
+// sach theo Job. Hai quy uoc cua formatScore van ap dung: null khong bao gio thanh "0", noi goi khong
+// to mau theo gia tri.
+export function formatTotalScore(totalScore: number | null): string {
+  return totalScore === null ? EMPTY_VALUE_PLACEHOLDER : totalScore.toFixed(2)
+}

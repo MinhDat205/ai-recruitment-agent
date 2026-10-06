@@ -2,28 +2,31 @@ import { useState } from 'react'
 import { AlertCircle, Download, FileText, RotateCw } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
+import {
+  ApplicationStatusConfirmDialog,
+  type ApplicationStatusConfirmTarget,
+} from '../applications/ApplicationStatusConfirmDialog'
 import type { ApplicationStatus } from '../applications/types'
 import { InterviewInvitationDialog } from '../interviewinvitation/InterviewInvitationDialog'
 import { extractErrorMessage } from '../../lib/httpError'
+import { EMPTY_VALUE_PLACEHOLDER, formatTotalScore } from '../../lib/score'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
-import { downloadApplicationResumeRequest } from './api'
 import { CriterionScoreBreakdown } from './CriterionScoreBreakdown'
+import { downloadApplicationResume } from './downloadApplicationResume'
 import { ExplanationReport } from './ExplanationReport'
-import { useChangeApplicationStatusMutation, useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
+import { useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
 import { scoringDisabledReason } from './scoringRules'
 import { ScoringRunStatusBadge } from './ScoringRunStatusBadge'
 import type { ApplicationHrListItem, ApplicationSortOption } from './types'
 
-// Dau gach ngang trung tinh cho o CHUA CO gia tri (don chua cham / lot FAILED / dang cham dang) -
-// KHONG hien "0" (se hieu nham la diem that bang khong) hay chu "Chua cham" (trung lap va co the
-// mau thuan voi tin hieu tien do o duoi so diem, xem ScoringProgressHint). O nay chi tra loi "co
-// gia tri hay khong", "vi sao" da co ScoringProgressHint tra loi.
-const EMPTY_VALUE_PLACEHOLDER = '—'
+// EMPTY_VALUE_PLACEHOLDER/formatTotalScore (lib/score.ts, tach o FR-H09): dau gach ngang trung tinh
+// cho o CHUA CO gia tri - KHONG hien "0" hay chu "Chua cham" (trung lap va co the mau thuan voi tin
+// hieu tien do o duoi so diem, xem ScoringProgressHint). O nay chi tra loi "co gia tri hay khong",
+// "vi sao" da co ScoringProgressHint tra loi.
 
 function formatAppliedAt(iso: string): string {
   return new Date(iso).toLocaleString('vi-VN', {
@@ -33,10 +36,6 @@ function formatAppliedAt(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function formatTotalScore(totalScore: number | null): string {
-  return totalScore === null ? EMPTY_VALUE_PLACEHOLDER : totalScore.toFixed(2)
 }
 
 function formatRank(rank: number | null): string {
@@ -167,24 +166,13 @@ function ApplicationRow({
   const hasEvaluationToShow = hasCriterionScores || hasExplanationInfo
   const actions = nextActionsFor(application.status)
 
-  // Blob download qua axios (KHONG phai <a href>/window.open truc tiep toi URL backend) - endpoint
-  // yeu cau header Authorization (Bearer token), the <a href> thuong khong gan duoc header nay vao
-  // request (mau y het handleDownload trong features/resumes/ResumeList.tsx, cung ly do). Loi tra
-  // ve khi responseType 'blob' cung la Blob (khong phai JSON da parse) nen extractErrorMessage se
-  // luon roi ve cau fallback - gioi han da biet va chap nhan duoc, giong y het ResumeList.
+  // Tai blob dung chung voi trang ho so don (downloadApplicationResume.ts, FR-H09 R-C4) - xem comment
+  // o do ve ly do bat buoc tai qua axios. Dieu kien khoa nut van o day (resumeDownloadDisabledReason).
   async function handleDownloadResume() {
     setResumeDownloadError(null)
     setDownloadingResume(true)
     try {
-      const { blob, fileName } = await downloadApplicationResumeRequest(application.id)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = fileName
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      URL.revokeObjectURL(url)
+      await downloadApplicationResume(application.id)
     } catch (err) {
       setResumeDownloadError(extractErrorMessage(err, 'Tải CV gốc thất bại, vui lòng thử lại.'))
     } finally {
@@ -326,30 +314,10 @@ function ApplicationRow({
   )
 }
 
-// FR-H07 (E1, Dot 3) - nhan tieu de/mo ta cho hop thoai xac nhan Tu choi/Trung tuyen, dung CHUNG
-// mot component cho ca hai (cung hinh dang, khac chu/targetStatus) - mau y het dialog "Rut don ung
-// tuyen?" trong CandidateApplicationsPage.tsx.
-const CONFIRM_STATUS_COPY: Record<'HIRED' | 'REJECTED', { title: string; statusLabel: string; confirmLabel: string; pendingLabel: string }> = {
-  HIRED: {
-    title: 'Xác nhận trúng tuyển?',
-    statusLabel: 'Trúng tuyển',
-    confirmLabel: 'Xác nhận trúng tuyển',
-    pendingLabel: 'Đang lưu...',
-  },
-  REJECTED: {
-    title: 'Từ chối ứng viên?',
-    statusLabel: 'Bị từ chối',
-    confirmLabel: 'Xác nhận từ chối',
-    pendingLabel: 'Đang lưu...',
-  },
-}
-
 export function ApplicationsTab({ jobId }: { jobId: string }) {
   const [sort, setSort] = useState<ApplicationSortOption>('total_score,desc')
   const [inviteTarget, setInviteTarget] = useState<ApplicationHrListItem | null>(null)
-  const [confirmTarget, setConfirmTarget] = useState<{ application: ApplicationHrListItem; targetStatus: 'HIRED' | 'REJECTED' } | null>(
-    null,
-  )
+  const [confirmTarget, setConfirmTarget] = useState<ApplicationStatusConfirmTarget | null>(null)
 
   const {
     data: applications,
@@ -359,20 +327,6 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
     resumePolling: resumeListPolling,
   } = useHrApplicationsQuery(jobId, sort)
   const createScoringRunMutation = useCreateScoringRunMutation(jobId)
-  const changeStatusMutation = useChangeApplicationStatusMutation(jobId)
-
-  function closeConfirmDialog() {
-    setConfirmTarget(null)
-    changeStatusMutation.reset()
-  }
-
-  function confirmChangeStatus() {
-    if (!confirmTarget) return
-    changeStatusMutation.mutate(
-      { applicationId: confirmTarget.application.id, status: confirmTarget.targetStatus },
-      { onSuccess: () => setConfirmTarget(null) },
-    )
-  }
 
   if (isLoading) {
     return <p className="p-6 text-sm text-m3-on-surface-variant">Đang tải...</p>
@@ -460,33 +414,13 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
         onOpenChange={(open) => !open && setInviteTarget(null)}
       />
 
-      <Dialog open={confirmTarget !== null} onOpenChange={(open) => !open && closeConfirmDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].title}</DialogTitle>
-            <DialogDescription>
-              Hành động này không thể hoàn tác. Đơn ứng tuyển của{' '}
-              <span className="font-medium text-m3-on-surface">{confirmTarget?.application.candidateName}</span> sẽ chuyển sang
-              trạng thái "{confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].statusLabel}".
-            </DialogDescription>
-          </DialogHeader>
-          {changeStatusMutation.isError && (
-            <p className="text-sm text-m3-error">
-              {extractErrorMessage(changeStatusMutation.error, 'Cập nhật trạng thái thất bại, vui lòng thử lại.')}
-            </p>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeConfirmDialog} disabled={changeStatusMutation.isPending}>
-              Huỷ
-            </Button>
-            <Button type="button" onClick={confirmChangeStatus} disabled={changeStatusMutation.isPending}>
-              {changeStatusMutation.isPending
-                ? confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].pendingLabel
-                : confirmTarget && CONFIRM_STATUS_COPY[confirmTarget.targetStatus].confirmLabel}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Hop xac nhan Tu choi/Trung tuyen da chuyen sang features/applications (FR-H09 R-A4), noi dung
+          chu va hanh vi giu nguyen. */}
+      <ApplicationStatusConfirmDialog
+        target={confirmTarget}
+        jobId={jobId}
+        onOpenChange={(open) => !open && setConfirmTarget(null)}
+      />
     </div>
   )
 }

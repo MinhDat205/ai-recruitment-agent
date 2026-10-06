@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient, type Query } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type Query, type QueryKey } from '@tanstack/react-query'
 import type { ApplicationStatus } from '../applications/types'
 import { changeApplicationStatusRequest, createScoringRunRequest, listHrApplicationsRequest, listScoringRunsRequest } from './api'
 import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
@@ -166,26 +166,34 @@ export function useScoringRunsQuery(applicationId: string, enabled: boolean) {
   }
 }
 
-export function useCreateScoringRunMutation(jobId: string) {
+// extraInvalidateKeys (FR-H09 R-S4): query THEM can lam moi sau khi tao luot, ngoai danh sach theo
+// Job va lot cham cua don - trang ho so don truyen candidatesKeyPrefix() + query E1/E3/E4 cua trang.
+// Mac dinh rong: ApplicationsTab giu nguyen hanh vi cu. Day la hook DUY NHAT nhan jobId; hook trung
+// ten o features/candidates/queries.ts (khong nhan jobId) giu nguyen, khong tao hook thu ba.
+export function useCreateScoringRunMutation(jobId: string, extraInvalidateKeys: QueryKey[] = []) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (applicationId: string) => createScoringRunRequest(applicationId),
     onSuccess: (_data, applicationId) => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
       queryClient.invalidateQueries({ queryKey: scoringRunsKey(applicationId) })
+      extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     },
   })
 }
 
 // FR-H07 (E1, Dot 3) - Tu choi/Trung tuyen (REJECTED/HIRED). Mau y het useCreateScoringRunMutation:
 // invalidate danh sach de badge trang thai + nut hanh dong cap nhat theo trang thai moi.
-export function useChangeApplicationStatusMutation(jobId: string) {
+// extraInvalidateKeys (FR-H09 R-A5): trang ho so don truyen them dau trang, tab Lich su va
+// /hr/candidates; mac dinh rong - danh sach theo Job giu nguyen hanh vi cu.
+export function useChangeApplicationStatusMutation(jobId: string, extraInvalidateKeys: QueryKey[] = []) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ applicationId, status }: { applicationId: string; status: ApplicationStatus }) =>
       changeApplicationStatusRequest(applicationId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
+      extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     },
   })
 }

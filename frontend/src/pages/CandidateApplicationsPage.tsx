@@ -15,7 +15,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CandidateLayout } from '../components/layout/CandidateLayout'
 import { ApplicationHistoryTimeline } from '../features/applications/ApplicationHistoryTimeline'
 import { ApplicationStatusBadge } from '../features/applications/ApplicationStatusBadge'
-import { useMyApplicationsQuery, useWithdrawApplicationMutation } from '../features/applications/queries'
+import {
+  useApplicationHistoryQuery,
+  useMyApplicationsQuery,
+  useWithdrawApplicationMutation,
+} from '../features/applications/queries'
 import type { ApplicationSummary } from '../features/applications/types'
 import { useInterviewInvitationQuery } from '../features/interviewinvitation/queries'
 
@@ -107,6 +111,13 @@ const WITHDRAWABLE_STATUSES: ApplicationSummary['status'][] = ['PENDING', 'INTER
 // can doi chieu lai lich hen cu. Backend khong loc theo status (xem 2 test
 // get_applicationHiredAfterInterview_stillReturnsInvitation / ...Rejected...).
 const INVITATION_VIEWABLE_STATUSES: ApplicationSummary['status'][] = ['INTERVIEW_INVITED', 'HIRED', 'REJECTED']
+
+// FR-H09 R-C3: ApplicationHistoryTimeline chi con hien thi - trang ung vien tu goi
+// useApplicationHistoryQuery o day. Van mount theo selected nhu truoc nen chi goi API khi mo hop thoai.
+function CandidateApplicationHistory({ applicationId }: { applicationId: string }) {
+  const { data: history, isLoading, isError } = useApplicationHistoryQuery(applicationId)
+  return <ApplicationHistoryTimeline history={history} isLoading={isLoading} isError={isError} />
+}
 
 export function CandidateApplicationsPage() {
   const { data: applications, isLoading, isError } = useMyApplicationsQuery()
@@ -203,7 +214,7 @@ export function CandidateApplicationsPage() {
           <DialogHeader>
             <DialogTitle>Lịch sử ứng tuyển{selected ? ` — ${selected.jobTitle}` : ''}</DialogTitle>
           </DialogHeader>
-          {selected && <ApplicationHistoryTimeline applicationId={selected.id} />}
+          {selected && <CandidateApplicationHistory applicationId={selected.id} />}
         </DialogContent>
       </Dialog>
 

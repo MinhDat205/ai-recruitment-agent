@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { ApplicationStatusBadge } from './ApplicationStatusBadge'
-import { useApplicationHistoryQuery } from './queries'
+import type { ApplicationHistoryEntry } from './types'
 
 function formatChangedAt(iso: string): string {
   return new Date(iso).toLocaleString('vi-VN', {
@@ -12,9 +12,17 @@ function formatChangedAt(iso: string): string {
   })
 }
 
-export function ApplicationHistoryTimeline({ applicationId }: { applicationId: string }) {
-  const { data: history, isLoading, isError } = useApplicationHistoryQuery(applicationId)
+// FR-H09 R-C3 - chi con phan hien thi, du lieu nhan qua prop: trang ung vien truyen tu
+// useApplicationHistoryQuery (/api/candidates/...), trang ho so don phia HR truyen tu hook goi endpoint
+// HR - component KHONG tu goi API nao, nen khong the lo goi API phia ung vien tu trang HR. Giao dien
+// va noi dung chu giu nguyen.
+interface ApplicationHistoryTimelineProps {
+  history: ApplicationHistoryEntry[] | undefined
+  isLoading: boolean
+  isError: boolean
+}
 
+export function ApplicationHistoryTimeline({ history, isLoading, isError }: ApplicationHistoryTimelineProps) {
   if (isLoading) {
     return <p className="text-sm text-m3-on-surface-variant">Đang tải lịch sử...</p>
   }
