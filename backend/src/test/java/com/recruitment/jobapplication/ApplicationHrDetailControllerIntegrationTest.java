@@ -729,6 +729,7 @@ class ApplicationHrDetailControllerIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
         JsonNode json = body(result);
         assertThat(json.get("scoringRunId").isNull()).isTrue();
+        assertThat(json.get("scoredAt").isNull()).isTrue();
         assertThat(json.get("explanationStatus").isNull()).isTrue();
         assertThat(json.get("explanation").isNull()).isTrue();
     }
@@ -754,7 +755,7 @@ class ApplicationHrDetailControllerIntegrationTest {
         }
     }
 
-    // T9 - co giai thich: explanationStatus null, scoringRunId trung E3 (R-D6).
+    // T9 - co giai thich: explanationStatus null, scoringRunId va scoredAt trung E3 (R-D6).
     @Test
     void getExplanation_withExplanation_returnsReportFromSameRunAsScores() throws Exception {
         ScoredJob scoredJob = createJobOwnedByNewHr("explanation-done");
@@ -769,6 +770,8 @@ class ApplicationHrDetailControllerIntegrationTest {
         assertThat(explanation.get("explanation").get("summary").asString()).isEqualTo("Tom tat gia lap trong test");
         assertThat(explanation.get("scoringRunId").asString()).isEqualTo(runId.toString());
         assertThat(scores.get("scoringRunId").asString()).isEqualTo(runId.toString());
+        assertThat(explanation.get("scoredAt").isNull()).isFalse();
+        assertThat(explanation.get("scoredAt").asString()).isEqualTo(scores.get("scoredAt").asString());
     }
 
     // T11 (E3, E4) - khong co field gan nhan phan quyet (CLAUDE.md muc 7).

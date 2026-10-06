@@ -11,6 +11,7 @@ import { CandidateOnboardingPage } from './pages/CandidateOnboardingPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
 import { CvImprovementSuggestionsPage } from './pages/CvImprovementSuggestionsPage'
+import { HrApplicationDetailPage } from './pages/HrApplicationDetailPage'
 import { HrCandidatesPage } from './pages/HrCandidatesPage'
 import { HrHomePage } from './pages/HrHomePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
@@ -91,6 +92,7 @@ function App() {
             <Route path="/hr/jobs" element={<HrJobListPage />} />
             <Route path="/hr/jobs/new" element={<HrJobCreatePage />} />
             <Route path="/hr/jobs/:id/edit" element={<HrJobEditPage />} />
+            <Route path="/hr/applications/:id" element={<HrApplicationDetailPage />} />
           </Route>
           <Route
             path="/hr/company"

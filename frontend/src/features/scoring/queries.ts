@@ -20,7 +20,8 @@ export function hrApplicationsKeyPrefix(jobId: string) {
   return [HR_APPLICATIONS_KEY_PREFIX, jobId]
 }
 
-function scoringRunsKey(applicationId: string) {
+// Export (FR-H09 R-A5) - trang ho so don truyen key nay vao danh sach query can lam moi sau thao tac.
+export function scoringRunsKey(applicationId: string) {
   return ['scoring-runs', applicationId]
 }
 
@@ -64,9 +65,15 @@ function hasApplicationWithRunInProgress(applications: ApplicationHrListItem[] |
   )
 }
 
-function isLatestRunInProgress(runs: ScoringRun[] | undefined): boolean {
+// untilFinal (FR-H09 R-T14): trang ho so don can poll toi khi lot moi nhat DONE/FAILED (ca giai doan
+// RUNNING da co finishedAt, cho D3 tong hop) moi biet luc tai lai diem/giai thich - vi trang do khong co
+// vong poll danh sach theo Job ben ngoai. Mac dinh false: giu dung dieu kien cu cho ApplicationsTab.
+function isLatestRunInProgress(runs: ScoringRun[] | undefined, untilFinal = false): boolean {
   const latest = runs?.[0]
-  return Boolean(latest && latest.finishedAt === null)
+  if (!latest) {
+    return false
+  }
+  return untilFinal ? latest.status === 'PENDING' || latest.status === 'RUNNING' : latest.finishedAt === null
 }
 
 // Dung chung cho CA hai vong poll (Dot 5, yeu cau bo sung): dem thoi gian ke tu luc `inProgress`
@@ -140,11 +147,12 @@ export function useHrApplicationsQuery(jobId: string, sort: ApplicationSortOptio
 // (criteriaScored/criteriaTotal/errorMessage) da BIET DAY DU ngay khi D2 xong, D3 tong hop xong hay
 // chua khong lam thay doi gi o day. timedOut la lop chan THEM cho truong hop finishedAt khong bao
 // gio den (xem MAX_POLL_DURATION_MS).
-export function useScoringRunsQuery(applicationId: string, enabled: boolean) {
+export function useScoringRunsQuery(applicationId: string, enabled: boolean, options: { untilFinal?: boolean } = {}) {
+  const untilFinal = options.untilFinal ?? false
   const queryClient = useQueryClient()
   const cachedData = queryClient.getQueryData<ScoringRun[]>(scoringRunsKey(applicationId))
   const { timedOut, resumePolling: resetStallTimer } = useStallGuardedRefetch(
-    isLatestRunInProgress(cachedData),
+    isLatestRunInProgress(cachedData, untilFinal),
     MAX_POLL_DURATION_MS,
   )
 
@@ -153,7 +161,7 @@ export function useScoringRunsQuery(applicationId: string, enabled: boolean) {
     queryFn: () => listScoringRunsRequest(applicationId),
     enabled,
     refetchInterval: (q: Query<ScoringRun[]>) =>
-      !timedOut && isLatestRunInProgress(q.state.data) ? POLL_INTERVAL_MS : false,
+      !timedOut && isLatestRunInProgress(q.state.data, untilFinal) ? POLL_INTERVAL_MS : false,
   })
 
   return {

@@ -311,6 +311,7 @@ record ApplicationScoresResponse(
 // E4
 record ApplicationExplanationResponse(
         UUID scoringRunId,         // cung luot voi E3
+        Instant scoredAt,          // finished_at cua luot do (= scoredAt cua E3), cho cau "Bao cao cua luot cham hoan tat ngay ..." (UI.md muc 7)
         ApplicationHrListItemResponse.ExplanationStatus explanationStatus,
         ApplicationHrListItemResponse.Explanation explanation) {}
 ```
@@ -357,7 +358,7 @@ thuộc danh sách ngoại lệ K3; không dùng K1–K4.
 | T6 | E2 trả CV của `job_applications.resume_id`, không phải CV chính hiện tại, khi ứng viên đã đổi CV chính sau khi nộp | dương |
 | T7 | E3: chưa có lượt nào → mọi field null, `criterionScores` rỗng; chỉ có lượt FAILED → như trên; lượt DONE cũ + lượt FAILED mới hơn → điểm của lượt DONE | dương + âm |
 | T8 | E3: Job có 4 đơn hoà điểm kiểu 1-2-2-4 và 1 đơn chưa chấm → `rank` của từng đơn bằng `rank` trong `GET /api/hr/jobs/{jobId}/applications`; đơn chưa chấm `rank = null` | dương |
-| T9 | E4: số lần thử sinh giải thích = `max-attempts − 1` → `PENDING`; `= max-attempts` → `FAILED`; `= max-attempts + 1` → `FAILED`; có giải thích → `explanationStatus = null`, `scoringRunId` bằng E3 | biên |
+| T9 | E4: số lần thử sinh giải thích = `max-attempts − 1` → `PENDING`; `= max-attempts` → `FAILED`; `= max-attempts + 1` → `FAILED`; có giải thích → `explanationStatus = null`, `scoringRunId` và `scoredAt` bằng E3 | biên |
 | T10 | E5: thứ tự `changed_at` tăng dần; đơn công ty khác → 403 | dương + âm |
 | T11 | JSON của E1, E3, E4 không chứa khoá `verdict`/`label`/`isQualified`/`passed`/`recommendation` | âm |
 | T12 | Nộp đơn, rút đơn, tổng hợp điểm xong → thông báo HR có `link = /hr/applications/{applicationId}`; thông báo đổi trạng thái của ứng viên vẫn `/candidate/applications` | dương |

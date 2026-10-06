@@ -80,13 +80,17 @@ public class ApplicationHrDetailService {
                 evaluation.criterionScores());
     }
 
-    // E4 (R-D6) - giai thich cua CUNG lot DONE voi E3 (cung evaluateApplication -> cung scoringRunId).
+    // E4 (R-D6) - giai thich cua CUNG lot DONE voi E3 (cung evaluateApplication -> cung scoringRunId va
+    // scoredAt).
     @Transactional(readOnly = true)
     public ApplicationExplanationResponse getExplanation(UUID ownerId, UUID applicationId) {
         OwnedApplication owned = hrApplicationAccess.loadOwned(ownerId, applicationId);
         ApplicationEvaluation evaluation = applicationOwnerService.evaluateApplication(owned.job(), applicationId);
         return new ApplicationExplanationResponse(
-                evaluation.scoringRunId(), evaluation.explanationStatus(), evaluation.explanation());
+                evaluation.scoringRunId(),
+                evaluation.scoredAt(),
+                evaluation.explanationStatus(),
+                evaluation.explanation());
     }
 
     // E5 (R-D7) - dung lai DTO + cach map cua lich su phia ung vien (khong co changed_by).
