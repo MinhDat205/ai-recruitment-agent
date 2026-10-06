@@ -155,7 +155,9 @@ public class ApplicationService {
                 v.getUpdatedAt());
     }
 
-    private static ApplicationHistoryEntryResponse toHistoryResponse(ApplicationStatusHistory h) {
+    // Package-private (khong private): ApplicationHrDetailService (FR-H09 E5) dung lai dung cach map
+    // nay cho lich su phia HR - mot DTO, mot cach map cho ca hai phia.
+    static ApplicationHistoryEntryResponse toHistoryResponse(ApplicationStatusHistory h) {
         return new ApplicationHistoryEntryResponse(h.getId(), h.getFromStatus(), h.getToStatus(), h.getNote(), h.getChangedAt());
     }
 }

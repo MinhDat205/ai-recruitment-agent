@@ -3,6 +3,7 @@ package com.recruitment.notification;
 import com.recruitment.job.Job;
 import com.recruitment.jobapplication.ApplicationStatus;
 import java.util.Map;
+import java.util.UUID;
 
 // Chi xay noi dung tu du lieu DA LOAD SAN (Job, ten ung vien) - KHONG tu truy van DB, de test don
 // vi khong can Spring context. KHONG doc scoring_runs/criterion_scores o dau trong file nay -
@@ -31,27 +32,32 @@ final class NotificationContentBuilder {
                 "/candidate/applications");
     }
 
-    // Link tro ve /hr/jobs - frontend chua co trang chi tiet danh sach ung vien theo tung job
-    // (ApplicationOwnerService backend da san sang tu truoc nhung chua co route/trang goi toi),
-    // day la gioi han pham vi co chu dich cua FR-C03, khong phai thieu sot.
-    static Content forApplicationSubmitted(Job job, String candidateName) {
+    // FR-H09 R-N1 - ca 3 thong bao cua HR deu gan voi MOT don (NotificationEventListener luu
+    // applicationId vao entity_id) nen link tro thang trang ho so don /hr/applications/{id}. Thong
+    // bao da co trong DB truoc FR-H09 giu nguyen link cu /hr/jobs (R-N2, khong migration). Chi doi
+    // link - tieu de, noi dung giu nguyen (R-N3).
+    static Content forApplicationSubmitted(Job job, String candidateName, UUID applicationId) {
         return new Content(
                 "Có đơn ứng tuyển mới",
                 "Ứng viên " + candidateName + " vừa ứng tuyển vị trí \"" + job.getTitle() + "\"",
-                "/hr/jobs");
+                hrApplicationLink(applicationId));
     }
 
-    static Content forApplicationWithdrawn(Job job, String candidateName) {
+    static Content forApplicationWithdrawn(Job job, String candidateName, UUID applicationId) {
         return new Content(
                 "Ứng viên đã rút đơn",
                 "Ứng viên " + candidateName + " đã rút đơn ứng tuyển vị trí \"" + job.getTitle() + "\"",
-                "/hr/jobs");
+                hrApplicationLink(applicationId));
     }
 
-    static Content forAggregationFinished(Job job) {
+    static Content forAggregationFinished(Job job, UUID applicationId) {
         return new Content(
                 "Đã chấm điểm xong một đợt hồ sơ",
                 "Một đợt chấm điểm cho vị trí \"" + job.getTitle() + "\" đã hoàn tất, mời bạn xem kết quả",
-                "/hr/jobs");
+                hrApplicationLink(applicationId));
+    }
+
+    private static String hrApplicationLink(UUID applicationId) {
+        return "/hr/applications/" + applicationId;
     }
 }

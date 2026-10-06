@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
@@ -59,6 +60,9 @@ class NotificationEventListenerIntegrationTest {
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     private record Fixture(UUID hrOwnerId, UUID jobId, UUID candidateId, UUID resumeId) {
     }
@@ -157,5 +161,74 @@ class NotificationEventListenerIntegrationTest {
         assertThat(notification.getBody()).doesNotContainIgnoringCase("score");
         assertThat(notification.getBody()).doesNotContainIgnoringCase("điểm");
         assertThat(notification.getBody()).doesNotContainIgnoringCase("rubric");
+    }
+
+    // ---- FR-H09 R-N1 (T12): link thong bao HR tro thang trang ho so don ----
+
+    @Test
+    void apply_hrNotificationLinksToApplicationDetailPage() {
+        Fixture fixture = createOpenJobWithCandidateResume();
+
+        ApplicationResponse application = applicationService.apply(
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+
+        Notification notification = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(fixture.hrOwnerId(), PageRequest.of(0, 10))
+                .getContent()
+                .get(0);
+        assertThat(notification.getType()).isEqualTo(NotificationType.APPLICATION_SUBMITTED);
+        assertThat(notification.getLink()).isEqualTo("/hr/applications/" + application.id());
+    }
+
+    @Test
+    void withdraw_hrNotificationLinksToApplicationDetailPage() {
+        Fixture fixture = createOpenJobWithCandidateResume();
+        ApplicationResponse application = applicationService.apply(
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+
+        applicationService.withdraw(fixture.candidateId(), application.id());
+
+        List<Notification> notifications = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(fixture.hrOwnerId(), PageRequest.of(0, 10))
+                .getContent();
+        assertThat(notifications)
+                .extracting(Notification::getLink)
+                .containsOnly("/hr/applications/" + application.id());
+    }
+
+    // AggregationFinishedEvent la @EventListener dong bo (khong AFTER_COMMIT) - publish thang tu test,
+    // lop test nay khong @Transactional nen listener tu mo transaction rieng va commit that.
+    @Test
+    void aggregationFinished_hrNotificationLinksToApplicationDetailPage() {
+        Fixture fixture = createOpenJobWithCandidateResume();
+        ApplicationResponse application = applicationService.apply(
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+
+        eventPublisher.publishEvent(new AggregationFinishedEvent(UUID.randomUUID(), application.id(), fixture.jobId()));
+
+        List<Notification> scoringNotifications = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(fixture.hrOwnerId(), PageRequest.of(0, 10))
+                .getContent()
+                .stream()
+                .filter(n -> n.getType() == NotificationType.SCORING_FINISHED)
+                .toList();
+        assertThat(scoringNotifications).hasSize(1);
+        assertThat(scoringNotifications.get(0).getLink()).isEqualTo("/hr/applications/" + application.id());
+    }
+
+    // R-N1: thong bao cua UNG VIEN khong doi link (FR-U08 xu ly sau).
+    @Test
+    void changeStatus_candidateNotificationLinkUnchanged() {
+        Fixture fixture = createOpenJobWithCandidateResume();
+        ApplicationResponse application = applicationService.apply(
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+
+        applicationStatusService.changeStatus(fixture.hrOwnerId(), application.id(), ApplicationStatus.REJECTED);
+
+        Notification notification = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(fixture.candidateId(), PageRequest.of(0, 10))
+                .getContent()
+                .get(0);
+        assertThat(notification.getLink()).isEqualTo("/candidate/applications");
     }
 }
