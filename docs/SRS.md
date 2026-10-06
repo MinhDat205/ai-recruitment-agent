@@ -34,7 +34,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H06 | AI Explainable Scoring | HR (xem) — AI thực hiện | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H07 | Quản lý Pipeline & Quyết định Tuyển dụng | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H08 | Dashboard, Thống kê & Lịch sử Đánh giá | HR | Đã hoàn thành | Mục 2 bên dưới |
-| FR-H09 | Trang hồ sơ đơn ứng tuyển | HR | Chưa đặc tả | [features/HR/H09/REQUIREMENT.md](features/HR/H09/REQUIREMENT.md) |
+| FR-H09 | Trang hồ sơ đơn ứng tuyển | HR | Đã hoàn thành | [features/HR/H09/REQUIREMENT.md](features/HR/H09/REQUIREMENT.md) |
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR | Chưa đặc tả | [features/HR/H10/REQUIREMENT.md](features/HR/H10/REQUIREMENT.md) |
 | FR-H11 | AI tạo tin tuyển dụng | HR | Chưa đặc tả | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
 | FR-H12 | Giấy mời nhiều khung giờ | HR | Chưa đặc tả | [features/HR/H12/REQUIREMENT.md](features/HR/H12/REQUIREMENT.md) |

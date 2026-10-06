@@ -729,7 +729,33 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
 
 **Phase 2.2 — Hồ sơ đơn & trao đổi**
 > Chỉ bắt đầu khi `refactor/ui-md3-legacy` (Phase 2.1b) đã tick.
-- [ ] `feat/fr-h09-application-detail` — FR-H09 · Trang hồ sơ đơn ứng tuyển
+- [x] `feat/fr-h09-application-detail` — FR-H09 · Trang hồ sơ đơn ứng tuyển — **HOÀN THÀNH**
+  (07/10/2026, 7 đợt — xem `docs/walkthrough/fr-h09-application-detail.md`). Trang `/hr/applications/:id`
+  với 3 tab (CV & điểm, Giải thích, Lịch sử) và thanh thao tác FR-H07; 5 endpoint chỉ đọc mới dưới
+  `/api/hr/applications/{id}` (E1 đầu trang, E2 CV đã trích xuất, E3 điểm + hạng, E4 giải thích, E5 lịch
+  sử), đơn công ty khác trả 403 như các endpoint cũ cùng nhóm; hạng tính bằng đúng một công thức FR-H05
+  dùng chung với danh sách theo Job; bỏ Sheet "Hồ sơ ứng viên" ở tab Ứng viên, thêm liên kết "Xem hồ sơ"
+  ở tab Ứng viên và `/hr/candidates`; thông báo HR mới trỏ `/hr/applications/{id}`. Đặc tả sửa và duyệt
+  lại 2 lần trong lúc code (thêm `scoredAt` vào E4, đợt 5; sửa hàm `Test-Get` ở khối PowerShell mục 7.2,
+  đợt 7). Không migration. Nợ kỹ thuật:
+  - API danh sách theo Job (`GET /api/hr/jobs/{jobId}/applications`) vẫn trả `criterionScores`/
+    `explanation`/`explanationStatus` dù danh sách không còn hiển thị (Sheet đã bỏ) — payload thừa, giữ
+    vì FR-H09 không đổi API cũ.
+  - E3 và E4 mỗi lần gọi nạp lại cả danh sách đơn của tin (`ApplicationOwnerService.rankApplications`,
+    số query cố định, không N+1) để hạng luôn bằng hạng ở danh sách — tốn hơn khi tin có rất nhiều đơn;
+    mở cả hai tab là hai lượt nạp.
+  - `/api/hr/applications/{id}` với id sai định dạng trả 400 mặc định của Spring
+    (`MethodArgumentTypeMismatchException` chưa có handler trong `GlobalExceptionHandler`), body không
+    theo dạng `{"error": ...}` chuẩn hoá; frontend coi 400/403/404 như nhau (R-T13).
+  - Thư giới thiệu (`job_applications.cover_letter`, `TEXT`) không giới hạn độ dài ở cả form lẫn backend.
+  - Máy dev không có `rg` trong PATH — các lệnh `rg` ở REQUIREMENT mục 7.3 đã chạy bằng công cụ tìm kiếm
+    tương đương (cùng ripgrep, cùng pattern).
+  - Frontend chưa có test tự động — mọi hành vi trang mới chỉ kiểm bằng build/lint + soát tay.
+  - Helper test `uniqueEmail(prefix)` ghép `prefix-UUID`: prefix > 27 ký tự làm phần trước `@` vượt 64
+    ký tự → `@Email` từ chối (400). Đã gặp ở 3 test FR-H09, sửa bằng prefix ngắn + comment; các lớp
+    test khác dùng cùng mẫu vẫn có thể vấp lại.
+  - Ngày "lượt chấm hoàn tất ngày …"/"Nộp ngày …" định dạng theo giờ trình duyệt (`toLocaleString`), giống
+    danh sách cũ; chưa cố định múi giờ Việt Nam.
 - [ ] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển
 - [ ] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển
 - [ ] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn

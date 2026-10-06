@@ -104,6 +104,8 @@ class ApplicationHrDetailControllerIntegrationTest {
     @PersistenceContext
     private EntityManager entityManager;
 
+    // Phan truoc @ = prefix + "-" + UUID (36 ky tu) phai <= 64 ky tu (gioi han cua @Email) -> prefix
+    // toi da 27 ky tu, ke ca hau to helper tu noi them (vd "-other-hr").
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
     }
@@ -375,7 +377,7 @@ class ApplicationHrDetailControllerIntegrationTest {
     @Test
     void getDetail_otherCompanyApplication_returns403() throws Exception {
         Fixture fixture = createApplication("detail-other-company", "Vo Van Ung Vien", null);
-        String otherHrToken = createOtherCompanyHr("detail-other-company");
+        String otherHrToken = createOtherCompanyHr("detail-other-co");
 
         MvcResult result = getDetail(otherHrToken, fixture.applicationId());
 
@@ -399,7 +401,7 @@ class ApplicationHrDetailControllerIntegrationTest {
     @Test
     void getDetail_candidateToken_returns403() throws Exception {
         Fixture fixture = createApplication("detail-candidate-token", "Dang Van Ung Vien", null);
-        String candidateToken = registerAndLoginCandidate("detail-candidate-token-other", "Ung Vien Khac");
+        String candidateToken = registerAndLoginCandidate("detail-cand-other", "Ung Vien Khac");
 
         MvcResult result = getDetail(candidateToken, fixture.applicationId());
 
@@ -476,7 +478,7 @@ class ApplicationHrDetailControllerIntegrationTest {
     @Test
     void getHistory_otherCompanyApplication_returns403() throws Exception {
         Fixture fixture = createApplication("history-other-company", "Ly Van Ung Vien", null);
-        String otherHrToken = createOtherCompanyHr("history-other-company");
+        String otherHrToken = createOtherCompanyHr("history-other-co");
 
         MvcResult result = getHistory(otherHrToken, fixture.applicationId());
 

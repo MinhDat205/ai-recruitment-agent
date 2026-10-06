@@ -1,6 +1,6 @@
 # FR-H09 — Giao diện
 
-Trạng thái: ĐÃ DUYỆT 06/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (07/10/2026). Duyệt: 06/10/2026.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 2 (điều hướng HR), 3 (component), 4 (ràng buộc
 màn hình xếp hạng/giải thích), 5 (rỗng/tải/lỗi), 6 (tương phản). Mã quy tắc `R-…` là của
@@ -8,7 +8,7 @@ màn hình xếp hạng/giải thích), 5 (rỗng/tải/lỗi), 6 (tương phả
 
 ## 1. Trạng thái
 
-ĐÃ DUYỆT 06/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (07/10/2026). Duyệt: 06/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

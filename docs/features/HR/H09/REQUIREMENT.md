@@ -1,6 +1,6 @@
 # FR-H09 — Trang hồ sơ đơn ứng tuyển
 
-Trạng thái: ĐÃ DUYỆT 06/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (07/10/2026). Duyệt: 06/10/2026.
 
 - Nhóm: HR
 - Tóm tắt: Một màn hình `/hr/applications/:id` cho một đơn: tab "CV & điểm", "Giải thích", "Lịch sử"
@@ -392,8 +392,14 @@ function Test-Get([string]$Path, [string]$Token) {
     } catch {
         $resp = $_.Exception.Response
         if ($null -eq $resp) { 'KHONG KET NOI DUOC {0}' -f $Path; return }
-        $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
-        '{0} {1} {2}' -f [int]$resp.StatusCode, $Path, $reader.ReadToEnd()
+        # PowerShell 5.1 da doc san than loi vao ErrorDetails voi response 401/403 cua Spring Security
+        # (luong response khi do da rong) - doc ErrorDetails truoc, rong moi doc luong response.
+        $text = $_.ErrorDetails.Message
+        if (-not $text) {
+            $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+            $text = $reader.ReadToEnd()
+        }
+        '{0} {1} {2}' -f [int]$resp.StatusCode, $Path, $text
     }
 }
 
