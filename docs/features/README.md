@@ -269,7 +269,7 @@ Chỉ cho ứng viên đã đăng nhập; chưa gửi email gợi ý định k�
 - **Phase:** 2.2 · **Nhánh:** `feat/fr-h09-application-detail` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H09/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-H04, FR-H05, FR-H06, FR-H07
-- **Màn hình (UI_GUIDE mục 7):** ★`/hr/applications/:id` — điểm vào từ tab Ứng viên của `/hr/jobs/:id/edit`, từ `/hr/candidates`, từ kho ứng viên và thông báo.
+- **Màn hình (UI_GUIDE mục 7):** ★`/hr/applications/:id` — điểm vào từ tab Ứng viên của `/hr/jobs/:id/edit`, từ `/hr/candidates` và thông báo (kho ứng viên thêm ở H15).
 
 **Mục đích**
 
@@ -277,9 +277,10 @@ Gom mọi thông tin và thao tác về một đơn ứng tuyển vào một mà
 
 **Người dùng thao tác**
 
-- Từ danh sách xếp hạng của Job, danh sách Ứng viên, Kho ứng viên hoặc thông báo → mở hồ sơ đơn.
-- Các tab: CV & điểm (file CV, CV đã trích xuất, điểm từng tiêu chí, evidence), Giải thích (FR-H06), Sàng lọc (H10), Câu hỏi phỏng vấn (H13), Trao đổi (C06), Hỏi đáp CV (C08), Lịch sử trạng thái.
-- Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07), Thêm vào kho (H15).
+- Từ danh sách xếp hạng của Job, danh sách Ứng viên hoặc thông báo → mở hồ sơ đơn.
+- Ba tab: CV & điểm (file CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí, evidence, nút Chấm điểm hồ sơ), Giải thích (FR-H06), Lịch sử trạng thái.
+- Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07).
+- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Câu hỏi phỏng vấn (H13), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
 
 **Hệ thống**
 
@@ -295,7 +296,7 @@ Một màn hình duy nhất cho mọi thao tác trên đơn.
 
 **Lưu ý**
 
-Các nút đổi trạng thái dùng đúng luồng và máy trạng thái của FR-H07, không tạo luồng song song. Nút Thêm vào kho bị khoá và ghi rõ lý do khi ứng viên không đồng ý lưu hồ sơ (U09).
+Các nút đổi trạng thái dùng đúng luồng và máy trạng thái của FR-H07, không tạo luồng song song. Không dựng tab rỗng hay nút khoá cho FR sau. Trang này thay Sheet "Hồ sơ ứng viên" ở tab Ứng viên của trang sửa Job — không tồn tại hai nơi xem hồ sơ song song.
 
 **Phạm vi**
 

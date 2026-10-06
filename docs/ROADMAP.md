@@ -798,6 +798,9 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 >   `candidateName` cho mọi Job), hộp thư `/hr/messages` (C06), tab Sàng lọc (H10 — câu trả lời tự do),
 >   tab Câu hỏi phỏng vấn (H13 — đoạn CV liên quan); cần soát thêm nội dung thông báo/email gửi HR.
 >   Phụ thuộc thực tế ngoài H09/H14/C08: FR-C06, FR-H13, FR-H15.
+> - FR-H16 phải ghi đè R-V1 của FR-H09 (`/hr/applications/:id` cho tải CV gốc ở mọi trạng thái trích
+>   xuất): ở chế độ ẩn danh không tải được CV gốc; đồng thời che thư giới thiệu (R-L của FR-H09) — FR-H09
+>   hiện thư nguyên văn và đã ghi việc che vào "Ngoài phạm vi".
 
 **Xong khi:** bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu
 ứng viên nhập.
