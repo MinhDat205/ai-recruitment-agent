@@ -36,7 +36,7 @@ export function ExplanationTab({ applicationId }: { applicationId: string }) {
           type="button"
           variant="outline"
           size="sm"
-          className="mx-4 w-fit"
+          className="w-fit"
           disabled={isReloading}
           onClick={() => explanationQuery.refetch()}
         >
@@ -45,7 +45,7 @@ export function ExplanationTab({ applicationId }: { applicationId: string }) {
         </Button>
       )}
       {explanation !== null && scoredAt && (
-        <p className="mx-4 text-sm text-m3-on-surface-variant">
+        <p className="text-sm text-m3-on-surface-variant">
           Báo cáo của lượt chấm hoàn tất ngày {formatDateVi(scoredAt)}.
         </p>
       )}

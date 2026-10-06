@@ -1,23 +1,15 @@
 import { useState } from 'react'
 import { AlertCircle, Download, FileText, RotateCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
-import {
-  ApplicationStatusConfirmDialog,
-  type ApplicationStatusConfirmTarget,
-} from '../applications/ApplicationStatusConfirmDialog'
-import type { ApplicationStatus } from '../applications/types'
-import { InterviewInvitationDialog } from '../interviewinvitation/InterviewInvitationDialog'
 import { extractErrorMessage } from '../../lib/httpError'
 import { EMPTY_VALUE_PLACEHOLDER, formatTotalScore } from '../../lib/score'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
-import { CriterionScoreBreakdown } from './CriterionScoreBreakdown'
 import { downloadApplicationResume } from './downloadApplicationResume'
-import { ExplanationReport } from './ExplanationReport'
 import { useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
 import { scoringDisabledReason } from './scoringRules'
 import { ScoringRunStatusBadge } from './ScoringRunStatusBadge'
@@ -56,21 +48,6 @@ function resumeDownloadDisabledReason(application: ApplicationHrListItem): strin
     return 'CV của ứng viên chưa được AI trích xuất xong, vui lòng chờ xử lý xong rồi thử lại.'
   }
   return undefined
-}
-
-// FR-H07 (E1, Dot 3) - nut hanh dong hop le theo DUNG may trang thai backend
-// (ApplicationStatusService.ALLOWED_TRANSITIONS): PENDING -> {INTERVIEW_INVITED, REJECTED},
-// INTERVIEW_INVITED -> {HIRED, REJECTED}. Day CHI la tien dung UI (an nut sai luong) - backend van
-// la chot chan that su, goi sai van bi 400 du UI co an nut hay khong (muc 4 de bai). KHONG doc
-// totalScore/rank/criterionScores o day - nut hien/an CHI phu thuoc status, khong phu thuoc diem so.
-function nextActionsFor(status: ApplicationStatus): { canInvite: boolean; canReject: boolean; canHire: boolean } {
-  if (status === 'PENDING') {
-    return { canInvite: true, canReject: true, canHire: false }
-  }
-  if (status === 'INTERVIEW_INVITED') {
-    return { canInvite: false, canReject: true, canHire: true }
-  }
-  return { canInvite: false, canReject: false, canHire: false }
 }
 
 // Tin hieu tien do NGAN GON duoi o Tong diem (Dot 5b) - thay cho cot "Luot cham gan nhat" rieng da
@@ -130,25 +107,17 @@ function ApplicationRow({
   application,
   onScore,
   isScoring,
-  onInvite,
-  onReject,
-  onHire,
 }: {
   application: ApplicationHrListItem
   onScore: () => void
   isScoring: boolean
-  onInvite: () => void
-  onReject: () => void
-  onHire: () => void
 }) {
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [isDownloadingResume, setDownloadingResume] = useState(false)
   const [resumeDownloadError, setResumeDownloadError] = useState<string | null>(null)
 
   // Chi can goi lay chi tiet lot cham (criteriaScored/criteriaTotal, errorMessage) khi don NAY dang
   // co hoac da tung co mot lot cham - tranh goi thua cho don chua bao gio duoc bam "Cham diem ho
-  // so". Hook nay khong phu thuoc sheetOpen - tiep tuc poll binh thuong du khu vuc chi tiet dang mo
-  // hay dong (yeu cau Dot 5b).
+  // so".
   const hasRun = application.latestScoringRunId !== null
   const {
     data: runs,
@@ -158,13 +127,6 @@ function ApplicationRow({
   const latestRun = runs?.[0]
   const disabledReason = scoringDisabledReason(application)
   const resumeDisabledReason = resumeDownloadDisabledReason(application)
-  const hasCriterionScores = application.criterionScores.length > 0
-  // Bao cao tong hop (D4/FR-H06) co the co du lieu de hien (explanation hoac tin hieu PENDING/
-  // FAILED) ke ca khi criterionScores rong (ly thuyet: rubric khong co tieu chi nao) - nut "Xem
-  // danh gia cua AI" van phai mo duoc trong truong hop do, khong chi phu thuoc hasCriterionScores.
-  const hasExplanationInfo = application.explanation !== null || application.explanationStatus !== null
-  const hasEvaluationToShow = hasCriterionScores || hasExplanationInfo
-  const actions = nextActionsFor(application.status)
 
   // Tai blob dung chung voi trang ho so don (downloadApplicationResume.ts, FR-H09 R-C4) - xem comment
   // o do ve ly do bat buoc tai qua axios. Dieu kien khoa nut van o day (resumeDownloadDisabledReason).
@@ -209,11 +171,10 @@ function ApplicationRow({
       <TableCell className="text-right">
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {/* Xem CV goc (FR-H06, Dot 5b): dat CANH nut "Xem danh gia cua AI" theo dung yeu cau -
-                phuc vu doi chieu evidence trong bao cao AI voi van ban CV that (nguyen tac
-                Explainable AI, xem ResumeHrService). Tai xuong (khong mo tab moi) - xem comment
-                handleDownloadResume/downloadApplicationResumeRequest ve ly do bat buoc ky thuat
-                (Authorization header). */}
+            {/* Xem CV goc (FR-H06, Dot 5b): dat CANH nut "Xem ho so" - phuc vu doi chieu evidence
+                trong bao cao AI voi van ban CV that (nguyen tac Explainable AI, xem ResumeHrService).
+                Tai xuong (khong mo tab moi) - xem comment handleDownloadResume/
+                downloadApplicationResumeRequest ve ly do bat buoc ky thuat (Authorization header). */}
             <Button
               type="button"
               variant="outline"
@@ -225,71 +186,15 @@ function ApplicationRow({
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Xem CV gốc
             </Button>
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-              <SheetTrigger asChild>
-                {/* FR-H07 (E1, Dot 3): nut nay tung bi disable khi chua co ket qua cham diem (Dot
-                    5b) - BO disable o day vi Sheet gio la loi vao CHUNG cho ca "xem danh gia" LAN
-                    "hai nut hanh dong" (Moi phong van/Tu choi/Trung tuyen). CLAUDE.md muc 7 cam ro:
-                    "khong duoc them rang buoc kieu chi cho moi phong van khi da cham diem xong" -
-                    disable o day se vo tinh tao dung rang buoc do. Truong hop chua co danh gia hien
-                    thong bao trung tinh BEN TRONG Sheet (xem hasEvaluationToShow ben duoi), khong
-                    con chan tu nut trigger. */}
-                <Button type="button" variant="outline" size="sm">
-                  <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                  Xem hồ sơ
-                </Button>
-              </SheetTrigger>
-              {/* Panel rong (sm:max-w-xl md:max-w-2xl, xem components/ui/sheet.tsx) thay vi mo rong
-                  ngay trong bang (thiet ke cu, Dot 5) - noi dung nay (reasoning/evidence/summary
-                  tieng Viet dai) khi bi ep vao chieu rong cot bang se hoac tran ngang hoac xuong
-                  dong gay lien tuc. Dung MOT panel rieng, doc lap chieu rong voi bang, giai quyet
-                  tan goc thay vi vá bang overflow-wrap. Noi dung ben trong GIU NGUYEN, khong them
-                  du lieu moi - dung y het CriterionScoreBreakdown/ExplanationReport cua Dot 5. */}
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Hồ sơ ứng viên — {application.candidateName}</SheetTitle>
-                  <SheetDescription>
-                    Điểm từng tiêu chí và báo cáo tổng hợp từ lượt chấm điểm gần nhất đã hoàn tất.
-                  </SheetDescription>
-                  <ApplicationStatusBadge status={application.status} />
-                </SheetHeader>
-                <SheetBody>
-                  {hasEvaluationToShow ? (
-                    <>
-                      {hasCriterionScores && <CriterionScoreBreakdown criterionScores={application.criterionScores} />}
-                      <ExplanationReport
-                        explanation={application.explanation}
-                        explanationStatus={application.explanationStatus}
-                      />
-                    </>
-                  ) : (
-                    <p className="p-4 text-sm text-m3-on-surface-variant">Đơn này chưa có kết quả chấm điểm để xem.</p>
-                  )}
-                </SheetBody>
-                {/* FR-H07 (E1, Dot 3) - hai hanh dong theo DUNG trang thai hien tai cua don (xem
-                    nextActionsFor). CHI phu thuoc application.status, KHONG doc totalScore/rank o
-                    day - an nut chi la tien dung UI, backend van la chot chan that (muc 4 de bai). */}
-                {(actions.canInvite || actions.canReject || actions.canHire) && (
-                  <div className="flex justify-end gap-2 border-t border-m3-outline-variant px-6 py-4">
-                    {actions.canInvite && (
-                      <Button type="button" variant="outline" onClick={onInvite}>
-                        Mời phỏng vấn
-                      </Button>
-                    )}
-                    {actions.canHire && (
-                      <Button type="button" variant="outline" onClick={onHire}>
-                        Trúng tuyển
-                      </Button>
-                    )}
-                    {actions.canReject && (
-                      <Button type="button" variant="outline" onClick={onReject}>
-                        Từ chối
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </SheetContent>
-            </Sheet>
+            {/* FR-H09 R-E1, R-P3 - lien ket toi trang ho so don (diem, giai thich, lich su va nut quyet
+                dinh FR-H07 chi con o trang do). Giu vi tri, icon va kieu cua nut "Xem ho so" cu; khong
+                khoa theo ket qua cham (CLAUDE.md muc 7: khong rang buoc "chi moi phong van khi da cham"). */}
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/hr/applications/${application.id}`}>
+                <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                Xem hồ sơ
+              </Link>
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -316,8 +221,6 @@ function ApplicationRow({
 
 export function ApplicationsTab({ jobId }: { jobId: string }) {
   const [sort, setSort] = useState<ApplicationSortOption>('total_score,desc')
-  const [inviteTarget, setInviteTarget] = useState<ApplicationHrListItem | null>(null)
-  const [confirmTarget, setConfirmTarget] = useState<ApplicationStatusConfirmTarget | null>(null)
 
   const {
     data: applications,
@@ -392,9 +295,6 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
                     createScoringRunMutation.isPending && createScoringRunMutation.variables === application.id
                   }
                   onScore={() => createScoringRunMutation.mutate(application.id)}
-                  onInvite={() => setInviteTarget(application)}
-                  onReject={() => setConfirmTarget({ application, targetStatus: 'REJECTED' })}
-                  onHire={() => setConfirmTarget({ application, targetStatus: 'HIRED' })}
                 />
               ))}
             </TableBody>
@@ -407,20 +307,6 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
           {extractErrorMessage(createScoringRunMutation.error, 'Tạo lượt chấm điểm thất bại, vui lòng thử lại.')}
         </p>
       )}
-
-      <InterviewInvitationDialog
-        application={inviteTarget}
-        jobId={jobId}
-        onOpenChange={(open) => !open && setInviteTarget(null)}
-      />
-
-      {/* Hop xac nhan Tu choi/Trung tuyen da chuyen sang features/applications (FR-H09 R-A4), noi dung
-          chu va hanh vi giu nguyen. */}
-      <ApplicationStatusConfirmDialog
-        target={confirmTarget}
-        jobId={jobId}
-        onOpenChange={(open) => !open && setConfirmTarget(null)}
-      />
     </div>
   )
 }

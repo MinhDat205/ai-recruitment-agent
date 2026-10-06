@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FileText } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { formatScore } from '../../lib/score'
@@ -72,6 +73,14 @@ export function CandidatesTable({
                 <TableCell className="text-right text-m3-on-surface">{formatScore(item.totalScore)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {/* FR-H09 R-E2 - loi vao trang ho so don, dat DAU nhom thao tac, cung kieu voi lien ket
+                        "Xem ho so" o tab Ung vien cua trang sua Job. */}
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/hr/applications/${item.id}`}>
+                        <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                        Xem hồ sơ
+                      </Link>
+                    </Button>
                     <Button type="button" variant="outline" size="sm" onClick={() => setAuditTarget(item)}>
                       <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                       Lịch sử đánh giá
