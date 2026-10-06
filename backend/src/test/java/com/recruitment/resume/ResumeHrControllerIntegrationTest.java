@@ -18,6 +18,7 @@ import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,6 +33,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 // Mau y het ApplicationOwnerControllerIntegrationTest (cung bo helper dang ky/dang nhap/tao du
 // lieu, khong tach thanh tien ich dung chung - dung tien le cua toan bo cac test file trong du an).
@@ -60,6 +63,11 @@ class ResumeHrControllerIntegrationTest {
 
     @Autowired
     private JobApplicationRepository jobApplicationRepository;
+
+    @Autowired
+    private ResumeParsedDataRepository resumeParsedDataRepository;
+
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID() + "@example.com";
@@ -328,5 +336,167 @@ class ResumeHrControllerIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(404);
         assertThat(result.getResponse().getContentAsString()).contains("RESUME_NOT_FOUND");
+    }
+
+    // ---- FR-H09 E2: GET /api/hr/applications/{id}/resume/parsed ----
+
+    private String createOpenJobOwnedBy(String hrToken, String prefix) throws Exception {
+        createCompany(hrToken, uniqueName("Cong ty " + prefix));
+        String jobId = createJob(hrToken, uniqueName("Job " + prefix));
+        addCriterion(hrToken, jobId, """
+                {"name":"Tieu chi","weight":100}
+                """);
+        openJob(hrToken, jobId);
+        return jobId;
+    }
+
+    // Ghi thang mot dong resume_parsed_data + dat CV sang DONE (khong chay pipeline trich xuat that,
+    // khong LLM trong test) - mau ghi truc tiep cua ApplicationOwnerControllerIntegrationTest.
+    private void markResumeParsed(String resumeId, String skill) {
+        Resume resume = resumeRepository.findById(UUID.fromString(resumeId)).orElseThrow();
+        resume.setParseStatus(ParseStatus.DONE);
+        resumeRepository.save(resume);
+
+        ResumeParsedData data = new ResumeParsedData();
+        data.setResumeId(resume.getId());
+        data.setRawText("Ung vien co kinh nghiem " + skill + " trong CV");
+        data.setData(new ResumeParsedPayload(
+                new ResumeParsedPayload.Contact("Nguyen Van A", "a@example.com", null, null, null),
+                List.of(),
+                List.of(),
+                List.of(skill),
+                List.of(),
+                List.of(), null, null, null));
+        data.setModel("claude-sonnet-4-6");
+        data.setPromptVersion("resume-parse-v1");
+        resumeParsedDataRepository.saveAndFlush(data);
+    }
+
+    private void setResumeParseStatus(String resumeId, ParseStatus parseStatus) {
+        Resume resume = resumeRepository.findById(UUID.fromString(resumeId)).orElseThrow();
+        resume.setParseStatus(parseStatus);
+        resumeRepository.save(resume);
+    }
+
+    private MvcResult getParsedForApplication(String hrToken, String applicationId) throws Exception {
+        return mockMvc
+                .perform(get("/api/hr/applications/" + applicationId + "/resume/parsed")
+                        .header("Authorization", "Bearer " + hrToken))
+                .andReturn();
+    }
+
+    private JsonNode body(MvcResult result) throws Exception {
+        return JSON.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));
+    }
+
+    // T5 (duong) - CV DONE: HR nhan DUNG response ma chinh ung vien nhan o
+    // /api/candidates/resumes/{id}/parsed (mot mapper dung chung, Q2).
+    @Test
+    void parsedForApplication_resumeDone_matchesCandidateEndpointResponse() throws Exception {
+        String hrToken = registerAndLoginHr("hr-parsed-done");
+        String jobId = createOpenJobOwnedBy(hrToken, "parsed-done");
+        String candidateToken = registerAndLoginCandidate("cand-parsed-done", "Ung Vien Da Trich Xuat");
+        String resumeId = uploadResume(candidateToken, VALID_PDF_CONTENT);
+        String applicationId = apply(candidateToken, jobId, resumeId);
+        markResumeParsed(resumeId, "Java");
+
+        MvcResult hrResult = getParsedForApplication(hrToken, applicationId);
+        MvcResult candidateResult = mockMvc
+                .perform(get("/api/candidates/resumes/" + resumeId + "/parsed")
+                        .header("Authorization", "Bearer " + candidateToken))
+                .andReturn();
+
+        assertThat(hrResult.getResponse().getStatus()).isEqualTo(200);
+        assertThat(candidateResult.getResponse().getStatus()).isEqualTo(200);
+        assertThat(body(hrResult)).isEqualTo(body(candidateResult));
+        // Khong tra raw_text cho HR (R-D2) - DTO dung lai khong co field nay.
+        assertThat(body(hrResult).has("rawText")).isFalse();
+    }
+
+    // T5 (am) - CV con PENDING (chua co dong resume_parsed_data) -> 404 RESUME_PARSED_DATA_NOT_FOUND.
+    @Test
+    void parsedForApplication_resumePending_returns404ParsedDataNotFound() throws Exception {
+        String hrToken = registerAndLoginHr("hr-parsed-pending");
+        String jobId = createOpenJobOwnedBy(hrToken, "parsed-pending");
+        String candidateToken = registerAndLoginCandidate("cand-parsed-pending", "Ung Vien Cho Trich Xuat");
+        String resumeId = uploadResume(candidateToken, VALID_PDF_CONTENT);
+        String applicationId = apply(candidateToken, jobId, resumeId);
+
+        MvcResult result = getParsedForApplication(hrToken, applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(404);
+        assertThat(body(result).get("error").asString()).isEqualTo("RESUME_PARSED_DATA_NOT_FOUND");
+    }
+
+    // T5 (am) - CV FAILED (khong co dong resume_parsed_data) -> 404 RESUME_PARSED_DATA_NOT_FOUND.
+    @Test
+    void parsedForApplication_resumeFailed_returns404ParsedDataNotFound() throws Exception {
+        String hrToken = registerAndLoginHr("hr-parsed-failed");
+        String jobId = createOpenJobOwnedBy(hrToken, "parsed-failed");
+        String candidateToken = registerAndLoginCandidate("cand-parsed-failed", "Ung Vien Trich Xuat Loi");
+        String resumeId = uploadResume(candidateToken, VALID_PDF_CONTENT);
+        String applicationId = apply(candidateToken, jobId, resumeId);
+        setResumeParseStatus(resumeId, ParseStatus.FAILED);
+
+        MvcResult result = getParsedForApplication(hrToken, applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(404);
+        assertThat(body(result).get("error").asString()).isEqualTo("RESUME_PARSED_DATA_NOT_FOUND");
+    }
+
+    // T6 - ung vien doi CV chinh SAU khi nop: HR van thay CV da nop (job_applications.resume_id), khong
+    // phai CV chinh hien tai (R-D2).
+    @Test
+    void parsedForApplication_candidateChangedPrimaryAfterApplying_returnsAppliedResume() throws Exception {
+        String hrToken = registerAndLoginHr("hr-parsed-primary");
+        String jobId = createOpenJobOwnedBy(hrToken, "parsed-primary");
+        String candidateToken = registerAndLoginCandidate("cand-parsed-primary", "Ung Vien Doi CV Chinh");
+        String appliedResumeId = uploadResume(candidateToken, VALID_PDF_CONTENT);
+        String applicationId = apply(candidateToken, jobId, appliedResumeId);
+        markResumeParsed(appliedResumeId, "Java");
+
+        String newerResumeId = uploadResume(candidateToken, VALID_PDF_CONTENT);
+        markResumeParsed(newerResumeId, "Kotlin");
+        mockMvc
+                .perform(patch("/api/candidates/resumes/" + newerResumeId + "/primary")
+                        .header("Authorization", "Bearer " + candidateToken))
+                .andExpect(status().isOk());
+
+        MvcResult result = getParsedForApplication(hrToken, applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode json = body(result);
+        assertThat(json.get("resumeId").asString()).isEqualTo(appliedResumeId);
+        assertThat(json.get("data").get("skills").get(0).asString()).isEqualTo("Java");
+    }
+
+    // T2 (E2) - don cua cong ty khac -> 403 (dung loadOwnedApplication co san, R-Q3).
+    @Test
+    void parsedForApplication_byHrOfAnotherCompany_returns403() throws Exception {
+        String ownerToken = registerAndLoginHr("hr-parsed-owner");
+        String jobId = createOpenJobOwnedBy(ownerToken, "parsed-owner");
+        String candidateToken = registerAndLoginCandidate("cand-parsed-owner", "Ung Vien Cong Ty Khac");
+        String resumeId = uploadResume(candidateToken, VALID_PDF_CONTENT);
+        String applicationId = apply(candidateToken, jobId, resumeId);
+        markResumeParsed(resumeId, "Java");
+        String otherHrToken = registerAndLoginHr("hr-parsed-other");
+        createCompany(otherHrToken, uniqueName("Cong ty Khac E2"));
+
+        MvcResult result = getParsedForApplication(otherHrToken, applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+        assertThat(body(result).get("error").asString()).isEqualTo("FORBIDDEN");
+    }
+
+    // T2 (E2) - don khong ton tai -> 404 APPLICATION_NOT_FOUND.
+    @Test
+    void parsedForApplication_applicationNotFound_returns404() throws Exception {
+        String hrToken = registerAndLoginHr("hr-parsed-missing");
+        createCompany(hrToken, uniqueName("Cong ty E2 Khong Co Don"));
+
+        MvcResult result = getParsedForApplication(hrToken, UUID.randomUUID().toString());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(404);
+        assertThat(body(result).get("error").asString()).isEqualTo("APPLICATION_NOT_FOUND");
     }
 }

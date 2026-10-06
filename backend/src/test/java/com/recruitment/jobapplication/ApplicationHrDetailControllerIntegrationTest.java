@@ -8,13 +8,36 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.recruitment.TestcontainersConfiguration;
+import com.recruitment.job.Job;
+import com.recruitment.job.JobRepository;
+import com.recruitment.resume.ParseStatus;
+import com.recruitment.resume.Resume;
+import com.recruitment.resume.ResumeFileType;
+import com.recruitment.resume.ResumeRepository;
+import com.recruitment.scoring.CriterionScore;
+import com.recruitment.scoring.CriterionScoreRepository;
+import com.recruitment.scoring.EvidenceEntry;
+import com.recruitment.scoring.ExplanationPoint;
+import com.recruitment.scoring.RubricSnapshot;
+import com.recruitment.scoring.ScoreExplanation;
+import com.recruitment.scoring.ScoreExplanationAttemptRepository;
+import com.recruitment.scoring.ScoreExplanationRepository;
+import com.recruitment.scoring.ScoringRun;
+import com.recruitment.scoring.ScoringRunRepository;
+import com.recruitment.scoring.ScoringRunStatus;
+import com.recruitment.user.Role;
+import com.recruitment.user.User;
+import com.recruitment.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,8 +55,9 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-// FR-H09 E1 (GET /api/hr/applications/{id}) va E5 (GET .../history) - T1, T2 (phan E1/E5), T3, T4,
-// T10, T11 (E1), T14 cua REQUIREMENT.md muc 7.1. Bo helper dang ky/dang nhap/tao du lieu mau y het
+// FR-H09 E1 (GET /api/hr/applications/{id}), E3 (.../scores), E4 (.../explanation), E5 (.../history) -
+// T1-T4, T7-T11, T14 cua REQUIREMENT.md muc 7.1 (E2 o ResumeHrControllerIntegrationTest, T13 o
+// HrApplicationCrossEndpointAccessIntegrationTest). Bo helper dang ky/dang nhap/tao du lieu mau y het
 // ApplicationStatusControllerIntegrationTest (tien le cua du an: khong tach tien ich test dung chung).
 // @Transactional: moi @Test rollback rieng. Vi vay moi dong application_status_history tao trong
 // cung mot test nhan CUNG changed_at (CLAUDE.md muc 3c) - test thu tu lich su (T10) phai lui thoi
@@ -52,6 +76,30 @@ class ApplicationHrDetailControllerIntegrationTest {
 
     @Autowired
     private ApplicationStatusHistoryRepository statusHistoryRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JobRepository jobRepository;
+
+    @Autowired
+    private ResumeRepository resumeRepository;
+
+    @Autowired
+    private JobApplicationRepository jobApplicationRepository;
+
+    @Autowired
+    private ScoringRunRepository scoringRunRepository;
+
+    @Autowired
+    private CriterionScoreRepository criterionScoreRepository;
+
+    @Autowired
+    private ScoreExplanationRepository scoreExplanationRepository;
+
+    @Autowired
+    private ScoreExplanationAttemptRepository scoreExplanationAttemptRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -446,6 +494,319 @@ class ApplicationHrDetailControllerIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(404);
         assertThat(body(result).get("error").asString()).isEqualTo("APPLICATION_NOT_FOUND");
+    }
+
+    // ---- E3/E4: helper ghi thang du lieu cham (khong chay pipeline that, khong LLM trong test) - mau
+    // y het ApplicationOwnerServiceTest. Don tao truc tiep bang repository (job chi can ton tai, khong
+    // can OPEN/rubric that - scoring_runs/job_applications khong FK toi rubrics). ----
+
+    private UUID createApplicationEntity(String jobId) {
+        Job job = jobRepository.findById(UUID.fromString(jobId)).orElseThrow();
+
+        User candidate = new User();
+        candidate.setEmail(uniqueEmail("cand-entity"));
+        candidate.setPasswordHash("$2a$10$fakehashfaketestfaketestfaketestfaketestfaketest");
+        candidate.setRole(Role.CANDIDATE);
+        candidate.setFullName(uniqueName("Ung Vien"));
+        candidate = userRepository.save(candidate);
+
+        Resume resume = new Resume();
+        resume.setCandidateId(candidate.getId());
+        resume.setFileUrl("resumes/" + UUID.randomUUID() + ".pdf");
+        resume.setFileName("cv.pdf");
+        resume.setFileType(ResumeFileType.PDF);
+        resume.setFileSize(1024L);
+        resume.setPrimary(true);
+        resume.setParseStatus(ParseStatus.DONE);
+        resume = resumeRepository.save(resume);
+
+        JobApplication application = new JobApplication();
+        application.setJobId(job.getId());
+        application.setCandidateId(candidate.getId());
+        application.setResumeId(resume.getId());
+        application.setRecruitmentCycle(job.getRecruitmentCycle());
+        application.setStatus(ApplicationStatus.PENDING);
+        application.setAiConsent(true);
+        application.setAiConsentAt(Instant.now());
+        return jobApplicationRepository.saveAndFlush(application).getId();
+    }
+
+    private record ScoredJob(String hrToken, String jobId) {
+    }
+
+    private ScoredJob createJobOwnedByNewHr(String prefix) throws Exception {
+        String hrToken = registerAndLoginHr(prefix + "-hr");
+        createCompany(hrToken, uniqueName("Cong ty " + prefix));
+        return new ScoredJob(hrToken, createJob(hrToken, uniqueName("Job " + prefix)));
+    }
+
+    private UUID createDoneRun(UUID applicationId, RubricSnapshot snapshot, BigDecimal totalScore) {
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.DONE);
+        run.setStartedAt(Instant.now());
+        run.setFinishedAt(Instant.now());
+        run.setRubricSnapshot(snapshot);
+        run.setTotalScore(totalScore);
+        return scoringRunRepository.saveAndFlush(run).getId();
+    }
+
+    private UUID createDoneRunWithTotalScore(UUID applicationId, BigDecimal totalScore) {
+        return createDoneRun(applicationId, new RubricSnapshot("Rubric Test", List.of()), totalScore);
+    }
+
+    private void createFailedRun(UUID applicationId) {
+        ScoringRun run = new ScoringRun();
+        run.setApplicationId(applicationId);
+        run.setStatus(ScoringRunStatus.FAILED);
+        run.setStartedAt(Instant.now());
+        run.setFinishedAt(Instant.now());
+        scoringRunRepository.saveAndFlush(run);
+    }
+
+    private void insertCriterionScore(UUID runId, String name, BigDecimal weight, int maxScore, BigDecimal score) {
+        CriterionScore criterionScore = new CriterionScore();
+        criterionScore.setScoringRunId(runId);
+        criterionScore.setCriterionNameSnapshot(name);
+        criterionScore.setWeightSnapshot(weight);
+        criterionScore.setMaxScoreSnapshot(maxScore);
+        criterionScore.setScore(score);
+        criterionScore.setReasoning("Ly do gia lap trong test");
+        criterionScore.setEvidence(List.of(new EvidenceEntry("doan trich gia lap", "experience")));
+        criterionScoreRepository.saveAndFlush(criterionScore);
+    }
+
+    private void createExplanation(UUID runId, String summary) {
+        ScoreExplanation explanation = new ScoreExplanation();
+        explanation.setScoringRunId(runId);
+        explanation.setSummary(summary);
+        explanation.setStrengths(List.of(new ExplanationPoint("Kinh nghiem Java", "Diem manh gia lap")));
+        explanation.setWeaknesses(List.of());
+        explanation.setMetCriteria(List.of("Kinh nghiem Java"));
+        explanation.setMissingCriteria(List.of());
+        explanation.setModel("claude-sonnet-4-6");
+        explanation.setPromptVersion("score-explanation-v1");
+        scoreExplanationRepository.saveAndFlush(explanation);
+    }
+
+    // Goi upsert nguyen tu THAT (khong ghi entity truc tiep) - attempt_count phan anh dung "da thu N lan".
+    private void recordFailedAttempts(UUID runId, int times) {
+        for (int i = 0; i < times; i++) {
+            scoreExplanationAttemptRepository.recordFailedAttempt(runId, "LLM_ERROR: loi gia lap trong test");
+        }
+    }
+
+    private MvcResult getScores(String token, UUID applicationId) throws Exception {
+        return mockMvc
+                .perform(get("/api/hr/applications/" + applicationId + "/scores")
+                        .header("Authorization", "Bearer " + token))
+                .andReturn();
+    }
+
+    private MvcResult getExplanation(String token, UUID applicationId) throws Exception {
+        return mockMvc
+                .perform(get("/api/hr/applications/" + applicationId + "/explanation")
+                        .header("Authorization", "Bearer " + token))
+                .andReturn();
+    }
+
+    // ---- E3: case duong / bien ----
+
+    // T7 - chua co lot nao: moi field null, criterionScores rong (khong suy dien 0).
+    @Test
+    void getScores_noScoringRun_returnsNullsAndEmptyCriteria() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("scores-none");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+
+        MvcResult result = getScores(scoredJob.hrToken(), applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode json = body(result);
+        assertThat(json.get("scoringRunId").isNull()).isTrue();
+        assertThat(json.get("scoredAt").isNull()).isTrue();
+        assertThat(json.get("totalScore").isNull()).isTrue();
+        assertThat(json.get("rank").isNull()).isTrue();
+        assertThat(json.get("criterionScores").size()).isZero();
+    }
+
+    // T7 - chi co lot FAILED: nhu chua cham (khong lay diem tu lot chua DONE).
+    @Test
+    void getScores_onlyFailedRun_returnsNulls() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("scores-failed");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+        createFailedRun(applicationId);
+
+        MvcResult result = getScores(scoredJob.hrToken(), applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode json = body(result);
+        assertThat(json.get("scoringRunId").isNull()).isTrue();
+        assertThat(json.get("totalScore").isNull()).isTrue();
+        assertThat(json.get("rank").isNull()).isTrue();
+        assertThat(json.get("criterionScores").size()).isZero();
+    }
+
+    // T7 - lot DONE cu + lot FAILED moi hon: diem/tieu chi lay tu lot DONE (R-D3), E4 cung lot do (R-D6).
+    @Test
+    void getScores_doneRunThenNewerFailedRun_returnsDoneRunScores() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("scores-done-failed");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+        RubricSnapshot snapshot = new RubricSnapshot("Rubric Test", List.of(
+                new RubricSnapshot.CriterionSnapshot(UUID.randomUUID(), "Kinh nghiem Java", null, new BigDecimal("100.00"), 5, null)));
+        UUID doneRunId = createDoneRun(applicationId, snapshot, new BigDecimal("80.000"));
+        insertCriterionScore(doneRunId, "Kinh nghiem Java", new BigDecimal("100.00"), 5, new BigDecimal("4.00"));
+        createFailedRun(applicationId);
+
+        MvcResult scores = getScores(scoredJob.hrToken(), applicationId);
+        MvcResult explanation = getExplanation(scoredJob.hrToken(), applicationId);
+
+        assertThat(scores.getResponse().getStatus()).isEqualTo(200);
+        JsonNode json = body(scores);
+        assertThat(json.get("scoringRunId").asString()).isEqualTo(doneRunId.toString());
+        assertThat(json.get("scoredAt").isNull()).isFalse();
+        assertThat(json.get("totalScore").decimalValue()).isEqualByComparingTo("80.000");
+        assertThat(json.get("rank").asInt()).isEqualTo(1);
+        assertThat(json.get("criterionScores").size()).isEqualTo(1);
+        JsonNode criterion = json.get("criterionScores").get(0);
+        assertThat(criterion.get("criterionNameSnapshot").asString()).isEqualTo("Kinh nghiem Java");
+        assertThat(criterion.get("evidence").get(0).get("quote").asString()).isEqualTo("doan trich gia lap");
+        assertThat(body(explanation).get("scoringRunId").asString()).isEqualTo(doneRunId.toString());
+    }
+
+    // T8 - hang o trang chi tiet BANG hang o danh sach theo Job (mot cong thuc FR-H05, R-D4), ke ca
+    // hoa diem kieu 1-2-2-4 va don chua cham (rank null).
+    @Test
+    void getScores_rankEqualsJobListRank_includingTiesAndUnscored() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("scores-rank");
+        UUID first = createApplicationEntity(scoredJob.jobId());
+        createDoneRunWithTotalScore(first, new BigDecimal("90.000"));
+        UUID tiedA = createApplicationEntity(scoredJob.jobId());
+        createDoneRunWithTotalScore(tiedA, new BigDecimal("80.000"));
+        UUID tiedB = createApplicationEntity(scoredJob.jobId());
+        createDoneRunWithTotalScore(tiedB, new BigDecimal("80.000"));
+        UUID fourth = createApplicationEntity(scoredJob.jobId());
+        createDoneRunWithTotalScore(fourth, new BigDecimal("70.000"));
+        UUID unscored = createApplicationEntity(scoredJob.jobId());
+
+        MvcResult listResult = mockMvc
+                .perform(get("/api/hr/jobs/" + scoredJob.jobId() + "/applications")
+                        .header("Authorization", "Bearer " + scoredJob.hrToken()))
+                .andReturn();
+        assertThat(listResult.getResponse().getStatus()).isEqualTo(200);
+        Map<String, JsonNode> listRankById = new HashMap<>();
+        for (JsonNode item : body(listResult)) {
+            listRankById.put(item.get("id").asString(), item.get("rank"));
+        }
+
+        Map<UUID, Integer> expected = new HashMap<>();
+        expected.put(first, 1);
+        expected.put(tiedA, 2);
+        expected.put(tiedB, 2);
+        expected.put(fourth, 4);
+        expected.put(unscored, null);
+        for (Map.Entry<UUID, Integer> entry : expected.entrySet()) {
+            JsonNode detailRank = body(getScores(scoredJob.hrToken(), entry.getKey())).get("rank");
+            JsonNode listRank = listRankById.get(entry.getKey().toString());
+            assertThat(detailRank).as("rank chi tiet = rank danh sach, don %s", entry.getKey()).isEqualTo(listRank);
+            if (entry.getValue() == null) {
+                assertThat(detailRank.isNull()).isTrue();
+            } else {
+                assertThat(detailRank.asInt()).isEqualTo(entry.getValue());
+            }
+        }
+    }
+
+    // ---- E4: case duong / bien ----
+
+    @Test
+    void getExplanation_noDoneRun_returnsAllNull() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("explanation-none");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+        createFailedRun(applicationId);
+
+        MvcResult result = getExplanation(scoredJob.hrToken(), applicationId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode json = body(result);
+        assertThat(json.get("scoringRunId").isNull()).isTrue();
+        assertThat(json.get("explanationStatus").isNull()).isTrue();
+        assertThat(json.get("explanation").isNull()).isTrue();
+    }
+
+    // T9 - bien max-attempts = 3 (application-test.yml): 2 lan (nguong-1) -> PENDING, 3 (dung nguong)
+    // -> FAILED, 4 (nguong+1) -> FAILED.
+    @Test
+    void getExplanation_attemptsBelowAtAndAboveMax_returnsPendingThenFailed() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("explanation-attempts");
+        Map<Integer, String> expectedStatusByAttempts = Map.of(2, "PENDING", 3, "FAILED", 4, "FAILED");
+        for (Map.Entry<Integer, String> entry : expectedStatusByAttempts.entrySet()) {
+            UUID applicationId = createApplicationEntity(scoredJob.jobId());
+            UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("60.000"));
+            recordFailedAttempts(runId, entry.getKey());
+
+            JsonNode json = body(getExplanation(scoredJob.hrToken(), applicationId));
+
+            assertThat(json.get("explanationStatus").asString())
+                    .as("%s lan thu", entry.getKey())
+                    .isEqualTo(entry.getValue());
+            assertThat(json.get("explanation").isNull()).isTrue();
+            assertThat(json.get("scoringRunId").asString()).isEqualTo(runId.toString());
+        }
+    }
+
+    // T9 - co giai thich: explanationStatus null, scoringRunId trung E3 (R-D6).
+    @Test
+    void getExplanation_withExplanation_returnsReportFromSameRunAsScores() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("explanation-done");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+        UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("75.000"));
+        createExplanation(runId, "Tom tat gia lap trong test");
+
+        JsonNode explanation = body(getExplanation(scoredJob.hrToken(), applicationId));
+        JsonNode scores = body(getScores(scoredJob.hrToken(), applicationId));
+
+        assertThat(explanation.get("explanationStatus").isNull()).isTrue();
+        assertThat(explanation.get("explanation").get("summary").asString()).isEqualTo("Tom tat gia lap trong test");
+        assertThat(explanation.get("scoringRunId").asString()).isEqualTo(runId.toString());
+        assertThat(scores.get("scoringRunId").asString()).isEqualTo(runId.toString());
+    }
+
+    // T11 (E3, E4) - khong co field gan nhan phan quyet (CLAUDE.md muc 7).
+    @Test
+    void getScoresAndExplanation_responsesHaveNoVerdictLikeFields() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("scores-no-verdict");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+        UUID runId = createDoneRunWithTotalScore(applicationId, new BigDecimal("75.000"));
+        createExplanation(runId, "Tom tat");
+
+        for (JsonNode json : List.of(
+                body(getScores(scoredJob.hrToken(), applicationId)),
+                body(getExplanation(scoredJob.hrToken(), applicationId)),
+                body(getExplanation(scoredJob.hrToken(), applicationId)).get("explanation"))) {
+            for (String forbidden : List.of("verdict", "label", "isQualified", "passed", "recommendation")) {
+                assertThat(json.has(forbidden)).as("field %s", forbidden).isFalse();
+            }
+        }
+    }
+
+    // ---- E3/E4: case am ----
+
+    // T2 (E3, E4) - don cua cong ty khac -> 403; don khong ton tai -> 404 APPLICATION_NOT_FOUND.
+    @Test
+    void getScoresAndExplanation_otherCompanyOrMissing_returns403Or404() throws Exception {
+        ScoredJob scoredJob = createJobOwnedByNewHr("scores-access");
+        UUID applicationId = createApplicationEntity(scoredJob.jobId());
+        String otherHrToken = createOtherCompanyHr("scores-access");
+
+        for (MvcResult result : List.of(getScores(otherHrToken, applicationId), getExplanation(otherHrToken, applicationId))) {
+            assertThat(result.getResponse().getStatus()).isEqualTo(403);
+            assertThat(body(result).get("error").asString()).isEqualTo("FORBIDDEN");
+        }
+        UUID missing = UUID.randomUUID();
+        for (MvcResult result : List.of(getScores(otherHrToken, missing), getExplanation(otherHrToken, missing))) {
+            assertThat(result.getResponse().getStatus()).isEqualTo(404);
+            assertThat(body(result).get("error").asString()).isEqualTo("APPLICATION_NOT_FOUND");
+        }
     }
 
     // CLAUDE.md muc 3c: ca lop @Transactional -> moi dong lich su cung changed_at. Lui tung dong

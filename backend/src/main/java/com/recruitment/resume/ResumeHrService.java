@@ -4,12 +4,14 @@ import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
+import com.recruitment.common.exception.ResumeParsedDataNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
+import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import com.recruitment.storage.StorageService;
 import java.util.UUID;
 import org.springframework.core.io.Resource;
@@ -34,18 +36,24 @@ public class ResumeHrService {
     private final CompanyRepository companyRepository;
     private final ResumeRepository resumeRepository;
     private final StorageService storageService;
+    private final ResumeParsedDataRepository resumeParsedDataRepository;
+    private final ResumeParsedDataResponseMapper resumeParsedDataResponseMapper;
 
     public ResumeHrService(
             JobApplicationRepository jobApplicationRepository,
             JobRepository jobRepository,
             CompanyRepository companyRepository,
             ResumeRepository resumeRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            ResumeParsedDataRepository resumeParsedDataRepository,
+            ResumeParsedDataResponseMapper resumeParsedDataResponseMapper) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.resumeRepository = resumeRepository;
         this.storageService = storageService;
+        this.resumeParsedDataRepository = resumeParsedDataRepository;
+        this.resumeParsedDataResponseMapper = resumeParsedDataResponseMapper;
     }
 
     public ResumeDownload downloadForApplication(UUID ownerId, UUID applicationId) {
@@ -74,6 +82,20 @@ public class ResumeHrService {
         // nay duoc RFC 5987/6266 hoa dung dan o tang controller (ContentDisposition.filename(...,
         // UTF_8)) - cung co che voi ResumeCandidateController.download, khong can xu ly gi them o day.
         return new ResumeDownload(resource, resume.getFileName(), contentType);
+    }
+
+    // FR-H09 E2 - CV da trich xuat cua DUNG CV ung vien da nop vao don nay (job_applications.resume_id,
+    // khong phai CV chinh hien tai - R-D2). Kiem quyen bang chinh loadOwnedApplication ben duoi
+    // (R-Q3: 404 don khong ton tai, 403 don cua cong ty khac). Chua co dong resume_parsed_data (CV
+    // PENDING/PROCESSING/FAILED) -> 404 RESUME_PARSED_DATA_NOT_FOUND, giong het phia ung vien.
+    // Response map qua ResumeParsedDataResponseMapper dung chung - khong them field, khong tra
+    // raw_text (R-D2).
+    public ResumeParsedDataResponse getParsedDataForApplication(UUID ownerId, UUID applicationId) {
+        JobApplication application = loadOwnedApplication(applicationId, ownerId);
+        ResumeParsedData data = resumeParsedDataRepository
+                .findByResumeId(application.getResumeId())
+                .orElseThrow(() -> new ResumeParsedDataNotFoundException(application.getResumeId()));
+        return resumeParsedDataResponseMapper.toResponse(data);
     }
 
     // Mau y HET ScoringRunService.loadOwnedApplication (khong trich xuat dung chung - dung tien le

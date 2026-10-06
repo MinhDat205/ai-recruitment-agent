@@ -2,8 +2,10 @@ package com.recruitment.jobapplication;
 
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.jobapplication.HrApplicationAccess.OwnedApplication;
+import com.recruitment.jobapplication.dto.ApplicationExplanationResponse;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationHrDetailResponse;
+import com.recruitment.jobapplication.dto.ApplicationScoresResponse;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.user.User;
@@ -23,16 +25,19 @@ public class ApplicationHrDetailService {
     private final ResumeRepository resumeRepository;
     private final UserRepository userRepository;
     private final ApplicationStatusHistoryRepository statusHistoryRepository;
+    private final ApplicationOwnerService applicationOwnerService;
 
     public ApplicationHrDetailService(
             HrApplicationAccess hrApplicationAccess,
             ResumeRepository resumeRepository,
             UserRepository userRepository,
-            ApplicationStatusHistoryRepository statusHistoryRepository) {
+            ApplicationStatusHistoryRepository statusHistoryRepository,
+            ApplicationOwnerService applicationOwnerService) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.statusHistoryRepository = statusHistoryRepository;
+        this.applicationOwnerService = applicationOwnerService;
     }
 
     // E1 (R-D1). resumeId luon suy ra o server tu don (khong nhan tu client) - CV cua DUNG don nay,
@@ -59,6 +64,29 @@ public class ApplicationHrDetailService {
                 resume.getParseStatus(),
                 resume.getParseError(),
                 resume.getFileName());
+    }
+
+    // E3 (R-D3..R-D5) - diem cua lot DONE moi nhat + hang, tinh bang dung code FR-H05 cua danh sach
+    // theo Job (Q1). Chi doc: khong tao lot cham, khong goi LLM (R-S5, REQUIREMENT muc 5).
+    @Transactional(readOnly = true)
+    public ApplicationScoresResponse getScores(UUID ownerId, UUID applicationId) {
+        OwnedApplication owned = hrApplicationAccess.loadOwned(ownerId, applicationId);
+        ApplicationEvaluation evaluation = applicationOwnerService.evaluateApplication(owned.job(), applicationId);
+        return new ApplicationScoresResponse(
+                evaluation.scoringRunId(),
+                evaluation.scoredAt(),
+                evaluation.totalScore(),
+                evaluation.rank(),
+                evaluation.criterionScores());
+    }
+
+    // E4 (R-D6) - giai thich cua CUNG lot DONE voi E3 (cung evaluateApplication -> cung scoringRunId).
+    @Transactional(readOnly = true)
+    public ApplicationExplanationResponse getExplanation(UUID ownerId, UUID applicationId) {
+        OwnedApplication owned = hrApplicationAccess.loadOwned(ownerId, applicationId);
+        ApplicationEvaluation evaluation = applicationOwnerService.evaluateApplication(owned.job(), applicationId);
+        return new ApplicationExplanationResponse(
+                evaluation.scoringRunId(), evaluation.explanationStatus(), evaluation.explanation());
     }
 
     // E5 (R-D7) - dung lai DTO + cach map cua lich su phia ung vien (khong co changed_by).

@@ -1,7 +1,9 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.jobapplication.dto.ApplicationExplanationResponse;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationHrDetailResponse;
+import com.recruitment.jobapplication.dto.ApplicationScoresResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
@@ -28,6 +30,21 @@ public class ApplicationHrDetailController {
     public ApplicationHrDetailResponse getDetail(Authentication authentication, @PathVariable UUID applicationId) {
         UUID ownerId = UUID.fromString(authentication.getName());
         return applicationHrDetailService.getDetail(ownerId, applicationId);
+    }
+
+    // E3 - phan diem cua tab "CV & diem".
+    @GetMapping("/scores")
+    public ApplicationScoresResponse getScores(Authentication authentication, @PathVariable UUID applicationId) {
+        UUID ownerId = UUID.fromString(authentication.getName());
+        return applicationHrDetailService.getScores(ownerId, applicationId);
+    }
+
+    // E4 - tab Giai thich.
+    @GetMapping("/explanation")
+    public ApplicationExplanationResponse getExplanation(
+            Authentication authentication, @PathVariable UUID applicationId) {
+        UUID ownerId = UUID.fromString(authentication.getName());
+        return applicationHrDetailService.getExplanation(ownerId, applicationId);
     }
 
     // E5 - tab Lich su.
