@@ -24,12 +24,15 @@ final class NotificationContentBuilder {
 
     record Content(String title, String body, String link) {}
 
-    static Content forStatusChanged(Job job, ApplicationStatus toStatus) {
+    // FR-U08 R-N1 - thong bao doi trang thai cua UNG VIEN tro thang trang chi tiet don
+    // /candidate/applications/{id}. Thong bao da co trong DB truoc FR-U08 giu nguyen link cu
+    // /candidate/applications (R-N2, khong migration). Chi doi link - tieu de, noi dung giu nguyen (R-N3).
+    static Content forStatusChanged(Job job, ApplicationStatus toStatus, UUID applicationId) {
         String label = STATUS_LABELS.getOrDefault(toStatus, toStatus.name());
         return new Content(
                 "Cập nhật đơn ứng tuyển",
                 "Đơn ứng tuyển vị trí \"" + job.getTitle() + "\" của bạn đã chuyển sang trạng thái: " + label,
-                "/candidate/applications");
+                candidateApplicationLink(applicationId));
     }
 
     // FR-H09 R-N1 - ca 3 thong bao cua HR deu gan voi MOT don (NotificationEventListener luu
@@ -59,5 +62,9 @@ final class NotificationContentBuilder {
 
     private static String hrApplicationLink(UUID applicationId) {
         return "/hr/applications/" + applicationId;
+    }
+
+    private static String candidateApplicationLink(UUID applicationId) {
+        return "/candidate/applications/" + applicationId;
     }
 }

@@ -56,7 +56,7 @@ public class NotificationEventListener {
     public void onApplicationStatusChanged(ApplicationStatusChangedEvent event) {
         try {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
-            Content content = NotificationContentBuilder.forStatusChanged(job, event.toStatus());
+            Content content = NotificationContentBuilder.forStatusChanged(job, event.toStatus(), event.applicationId());
             save(event.candidateId(), NotificationType.APPLICATION_STATUS_CHANGED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao doi trang thai don: applicationId={}", event.applicationId(), e);

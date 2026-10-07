@@ -216,9 +216,11 @@ class NotificationEventListenerIntegrationTest {
         assertThat(scoringNotifications.get(0).getLink()).isEqualTo("/hr/applications/" + application.id());
     }
 
-    // R-N1: thong bao cua UNG VIEN khong doi link (FR-U08 xu ly sau).
+    // FR-U08 T10 (R-N1) - thong bao doi trang thai cua UNG VIEN tro trang chi tiet don. Thay test cu
+    // changeStatus_candidateNotificationLinkUnchanged (FR-H09 viet de giu cho cho FR-U08) - ngoai le da duyet
+    // R-N4. Link thong bao HR da khoa o 3 test *_hrNotificationLinksToApplicationDetailPage phia tren.
     @Test
-    void changeStatus_candidateNotificationLinkUnchanged() {
+    void changeStatus_candidateNotificationLinksToApplicationDetailPage() {
         Fixture fixture = createOpenJobWithCandidateResume();
         ApplicationResponse application = applicationService.apply(
                 fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
@@ -229,6 +231,7 @@ class NotificationEventListenerIntegrationTest {
                 .findByUserIdOrderByCreatedAtDesc(fixture.candidateId(), PageRequest.of(0, 10))
                 .getContent()
                 .get(0);
-        assertThat(notification.getLink()).isEqualTo("/candidate/applications");
+        assertThat(notification.getType()).isEqualTo(NotificationType.APPLICATION_STATUS_CHANGED);
+        assertThat(notification.getLink()).isEqualTo("/candidate/applications/" + application.id());
     }
 }
