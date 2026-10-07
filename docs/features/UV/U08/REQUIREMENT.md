@@ -1,6 +1,6 @@
 # FR-U08 — Trang chi tiết đơn ứng tuyển
 
-Trạng thái: ĐÃ DUYỆT 07/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (07/10/2026). Duyệt: 07/10/2026.
 
 - Nhóm: Ứng viên
 - Tóm tắt: Một màn hình `/candidate/applications/:id` cho một đơn của chính ứng viên: tab "Thông tin

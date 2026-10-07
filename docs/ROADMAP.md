@@ -603,13 +603,11 @@ tương ứng ở đây.
   backend tính (R-M), không bao giờ loại job khỏi kết quả; mở rộng điều kiện cứng `categoryCode`/
   `locationCode` của FR-U07 sang tối đa 3 mã/loại, dùng chung cho cả `GET /api/public/jobs` và gợi
   ý. Nợ kỹ thuật:
-  - [index.css:124-127](../frontend/src/index.css) — rule `a { color: inherit; text-decoration: none; }`
-    nằm ngoài mọi `@layer`, CSS Cascade Layers khiến nó LUÔN thắng mọi utility class Tailwind
-    (`@layer utilities`) đặt trực tiếp trên `<a>`/`<Link>`, bất kể specificity — chữ liên kết thành
-    màu kế thừa (đen) thay vì màu token. Đã vá cục bộ ở `RecommendedJobs.tsx` (chuyển màu/gạch chân
-    sang `<span>` con), còn ảnh hưởng `JobApplyForm.tsx:68,79` và `NotificationDropdown.tsx:57`.
-    Cách sửa gốc: bọc `a {...}` trong `@layer base { ... }` ở `index.css` — chưa làm ở FR-U15; **đã
-    xếp vào `refactor/ui-md3-legacy` đợt 1** (Phase 2.1b).
+  - ~~Rule `a { color: inherit; text-decoration: none; }` ở `index.css` nằm ngoài mọi `@layer`, đè màu
+    mọi `<a>`/`<Link>` có class màu trực tiếp.~~ **ĐÃ SỬA** ở `refactor/ui-md3-legacy` đợt 1 (Phase 2.1b):
+    rule nay nằm trong `@layer base` (`index.css:135-139`), class màu đặt thẳng trên `<Link>` có hiệu
+    lực; bản vá `<span>` ở `RecommendedJobs.tsx` đã gỡ. Ghi chú lịch sử, không còn là nợ (xác nhận lại ở
+    FR-U08, 07/10/2026).
   - Trang chi tiết việc làm (`/jobs/:id`) hiện mã thô `FULL_TIME`/`ONSITE` thay vì nhãn tiếng Việt
     cho hình thức làm việc/loại hợp đồng — tái xác nhận lại khi soát tay FR-U15 (từ "Xem tất cả" mở
     job gợi ý); đã ghi nhận trước ở Phase 2.1b đợt 2 (PublicJobDetailPage) (`refactor/ui-md3-legacy`), không phải
@@ -756,7 +754,38 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
     test khác dùng cùng mẫu vẫn có thể vấp lại.
   - Ngày "lượt chấm hoàn tất ngày …"/"Nộp ngày …" định dạng theo giờ trình duyệt (`toLocaleString`), giống
     danh sách cũ; chưa cố định múi giờ Việt Nam.
-- [ ] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển
+- [x] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển — **HOÀN THÀNH**
+  (07/10/2026, 6 đợt + đợt 5b sửa sau soát tay — xem `docs/walkthrough/fr-u08-application-detail.md`; nhánh
+  xếp chồng lên `feat/fr-h09-application-detail`). Trang `/candidate/applications/:id` với tab "Thông tin đơn"
+  (giấy mời, tóm tắt tin + tình trạng tin, CV đã nộp + thư giới thiệu, CV đã trích xuất) và "Lịch sử", nút
+  Rút đơn; một endpoint mới `GET /api/candidates/applications/{id}` (đơn của người khác và đơn không tồn tại
+  cùng 404; 403 của endpoint giấy mời giữ nguyên, có test khoá hai mã); tình trạng tin 5 giá trị dùng chung
+  `findOpenJobById`, gộp xoá mềm và nháp thành `UNAVAILABLE`; trang danh sách chỉ còn liên kết "Xem chi tiết";
+  thông báo đổi trạng thái mới của ứng viên trỏ trang chi tiết; gộp 3 bản `formatSalary` thành một. Full suite
+  819/819. Không migration. "Rút đồng ý lưu hồ sơ" chuyển sang FR-U09/FR-H15 (SRS, README, UI_GUIDE đã sửa ở
+  commit đặc tả). Có chạm 1 file FR-H09 (`HrApplicationDetailPage.tsx`, `TabsList` thêm `overflow-y-hidden`).
+  Nợ kỹ thuật:
+  - **LỖI MẤT DỮ LIỆU — ưu tiên cao, sửa ở một nhánh `fix/` riêng TRƯỚC DEMO** (phát hiện khi soát tay FR-U08,
+    không thuộc FR-U08): form sửa tin phía HR (`HrJobEditPage.tsx:128-129,142-143,264,285`, tab "Thông tin tin
+    tuyển dụng") hiện hai ô "Loại hình làm việc"/"Hình thức làm việc" trống dù DB có giá trị (seed-test J1,
+    cả 6 tin của bộ demo). Bấm "Lưu thay đổi" gửi PUT thiếu hai field (`toUndef('')` → `undefined`),
+    `JobOwnerService.java:262-263` ghi đè thành `null` — mất dữ liệu; tin `REMOTE` không có tỉnh/thành còn có
+    thể bị chặn 409 "thiếu danh mục" khi đang `OPEN`. Nguyên nhân khả nghi (đọc mã `@radix-ui/react-select`
+    2.3.7, **chưa tái hiện bằng cách chạy**): giá trị form đổi từ `''` sang mã thật SAU khi Select đã mount,
+    `<select>` ẩn của Radix chưa có `<option>` tương ứng nên phát `onValueChange('')`. Code có từ FR-H02 (PR #4,
+    `1d2df62`), `chore/hardening` đợt 6 (`14d0836`) có chạm. Đề xuất sửa: bỏ qua giá trị rỗng ở
+    `onValueChange` của 2 Select (`if (v) field.onChange(v)` — hai danh sách không có lựa chọn rỗng); áp cùng
+    cách cho `HrJobCreatePage.tsx:305,326` (FR-H11 điền form bằng code sẽ gặp đúng lỗi này); thêm bước soát tay
+    "mở form sửa J1 thấy đủ hai ô, lưu không đổi gì thì DB giữ nguyên".
+  - `NotificationList` (trang "Xem tất cả" thông báo, `NotificationList.tsx:60-67`) không điều hướng theo
+    `link`, chỉ đánh dấu đã đọc; chỉ chuông có điều hướng. Ảnh hưởng cả HR. Email thông báo không có link.
+  - Cảnh báo Vite "Some chunks are larger than 500 kB" ở `npm run build` (bundle ~1,18 MB, có từ trước) —
+    cân nhắc chia nhỏ bằng `import()` động.
+  - `retryUnlessClientError` có hai bản (`features/applicationDetail/queries.ts` và
+    `features/candidateApplicationDetail/queries.ts`) vì trang ứng viên không được import từ thư mục phía HR.
+  - Danh sách đơn của ứng viên không lọc đơn vào tin đã xoá mềm (hành vi cũ, giữ nguyên); trang chi tiết hiện
+    tin đó là "Không còn đăng".
+  - Frontend chưa có test tự động.
 - [ ] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển
 - [ ] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn
 
