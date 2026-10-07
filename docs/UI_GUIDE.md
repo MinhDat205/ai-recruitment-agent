@@ -337,8 +337,8 @@ thêm lúc code.
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |
-| `/candidate/applications` | "Đơn ứng tuyển" | Hiện có | FR-U03 |
-| ★`/candidate/applications/:id` | Chi tiết đơn ứng tuyển | ★Mới | FR-U08; FR-U10 (chọn giờ); FR-U09 (câu trả lời); FR-C06 (trao đổi); rút đồng ý |
+| `/candidate/applications` | "Đơn ứng tuyển" | Hiện có | FR-U03; FR-U08 (liên kết "Xem chi tiết") |
+| ★`/candidate/applications/:id` | Chi tiết đơn ứng tuyển — tab "Thông tin đơn" (giấy mời, tóm tắt tin, CV đã nộp, thư giới thiệu, CV đã trích xuất), "Lịch sử"; nút Rút đơn. Tab/nút của FR sau do chính FR đó thêm | ★Mới | FR-U08; FR-U03, FR-U06; FR-U10 (chọn giờ); FR-U09 (câu trả lời, rút đồng ý); FR-C06 (trao đổi) |
 | ★`/candidate/messages` | "Tin nhắn" | ★Mới | FR-C06 (hộp thư) |
 | `/candidate/notifications` | Thông báo | Hiện có | FR-C03 |
 | `/jobs/:id/apply` | Nộp đơn ứng tuyển | Hiện có | FR-U02, FR-U09 |

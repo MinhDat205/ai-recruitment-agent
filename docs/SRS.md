@@ -124,8 +124,8 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | Mã | Tên | Tóm tắt | Actor | Phụ thuộc |
 | --- | --- | --- | --- | --- |
 | FR-U07 | Bộ lọc tìm việc nâng cao | Lọc theo ngành nghề, khu vực, lương, hình thức, thời gian đăng; giữ bộ lọc trên URL | Ứng viên | FR-C02, FR-C05 |
-| FR-U08 | Trang chi tiết đơn ứng tuyển | Một màn hình gom trạng thái, lịch sử, giấy mời, câu trả lời sàng lọc, trao đổi, rút đơn, rút đồng ý | Ứng viên | FR-U03, FR-U06 |
-| FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Khi nộp đơn: trả lời câu hỏi sàng lọc; tuỳ chọn cho công ty lưu hồ sơ (mặc định không) | Ứng viên | FR-U02, FR-H10 |
+| FR-U08 | Trang chi tiết đơn ứng tuyển | Một màn hình gom trạng thái, lịch sử, giấy mời, câu trả lời sàng lọc, trao đổi, rút đơn (rút đồng ý do FR-U09 thêm) | Ứng viên | FR-U03, FR-U06 |
+| FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Khi nộp đơn: trả lời câu hỏi sàng lọc; tuỳ chọn cho công ty lưu hồ sơ (mặc định không); rút đồng ý ở trang chi tiết đơn | Ứng viên | FR-U02, FR-H10 |
 | FR-U10 | Chọn khung giờ phỏng vấn | Ứng viên chọn một khung giờ trong giấy mời; HR được thông báo | Ứng viên | FR-H12, FR-U08 |
 | FR-U11 | Thống kê ứng tuyển cá nhân | Số đơn theo trạng thái, tỷ lệ được mời phỏng vấn, biểu đồ theo thời gian | Ứng viên | FR-U03 |
 | FR-U12 | Tạo CV (CV builder) | Tạo CV từ form, xuất PDF, dùng như CV upload; AI chỉ gợi ý diễn đạt, không thêm nội dung | Ứng viên | FR-U01, FR-C04 |
