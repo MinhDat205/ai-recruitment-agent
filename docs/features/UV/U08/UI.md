@@ -47,14 +47,14 @@ py-8 md:px-6` trên nền `m3-surface-container`; toàn bộ nội dung trong **
 │                                                                          │
 │ Nhân viên Hành chính văn phòng                          [Rút đơn]        │
 │ Công ty TNHH Thử Nghiệm Ánh Dương                                        │
-│ [Đã mời phỏng vấn]  Nộp ngày 06/10/2026 00:36                            │
+│ [Đã mời phỏng vấn]  Nộp ngày 00:36 06/10/2026                            │
 │                                                                          │
 │ ┌──────────────┬──────────┐                                              │
 │ │ Thông tin đơn│ Lịch sử  │                                              │
 │ └──────────────┴──────────┘                                              │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ Giấy mời phỏng vấn                                                       │
-│ [CalendarClock] 14/10/2026 09:00                                         │
+│ [CalendarClock] 09:00 14/10/2026                                         │
 │ Địa điểm: Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng                   │
 │ Thư mời phỏng vấn vị trí Nhân viên Hành chính văn phòng - Công ty …      │
 │ Kính gửi Quốc Huy,                                                       │
@@ -112,10 +112,10 @@ R-T10  Trích xuất CV thất bại.
 ```
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ┃ Nộp đơn → [Chờ duyệt]                                                  │
-│ ┃ 06/10/2026 00:36                                                       │
+│ ┃ 00:36 06/10/2026                                                       │
 │ ┃                                                                        │
 │ ┃ [Chờ duyệt] → [Đã mời phỏng vấn]                                       │
-│ ┃ 06/10/2026 00:40                                                       │
+│ ┃ 00:40 06/10/2026                                                       │
 ```
 
 `ApplicationHistoryTimeline` nguyên trạng (R-C5).
@@ -125,7 +125,7 @@ R-T10  Trích xuất CV thất bại.
 ```
 │ Chuyên viên Tuyển dụng                                                   │
 │ Công ty TNHH Thử Nghiệm Ánh Dương                                        │
-│ [Trúng tuyển]  Nộp ngày 15/07/2026 10:00                                 │
+│ [Trúng tuyển]  Nộp ngày 10:00 15/07/2026                                 │
 ```
 
 Không nút, không dòng chữ thay thế.
@@ -144,7 +144,7 @@ Chiều rộng nội dung: 375 − 2×16 (`px-4` của khung trang) − 2×16 (p
 │ Công ty TNHH Thử Nghiệm Ánh  │
 │ Dương                        │
 │ [Đã mời phỏng vấn]           │
-│ Nộp ngày 06/10/2026 00:36    │
+│ Nộp ngày 00:36 06/10/2026    │
 │ ┌──────────────────────────┐ │
 │ │         Rút đơn          │ │
 │ └──────────────────────────┘ │
@@ -153,7 +153,7 @@ Chiều rộng nội dung: 375 − 2×16 (`px-4` của khung trang) − 2×16 (p
 │ └──────────────┴─────────┘   │
 ├──────────────────────────────┤
 │ Giấy mời phỏng vấn           │
-│ 14/10/2026 09:00             │
+│ 09:00 14/10/2026             │
 │ Địa điểm: Tầng 3, 45 Bạch    │
 │ Đằng, Quận Hải Châu, Đà Nẵng │
 │ (tiêu đề, nội dung xuống     │
@@ -287,7 +287,7 @@ Không có trạng thái "AI đang xử lý": trang không gọi AI.
 | Khoá | Chuỗi |
 |---|---|
 | Liên kết quay lại | "← Đơn ứng tuyển của tôi" |
-| Ngày nộp | "Nộp ngày {dd/MM/yyyy HH:mm}" (`formatDateTimeVi`) |
+| Ngày nộp | "Nộp ngày {HH:mm dd/MM/yyyy}" (`formatDateTimeVi` — `toLocaleString('vi-VN')` đặt giờ trước ngày, giống cột "Ngày nộp" của trang danh sách). Thời gian giấy mời và mốc lịch sử dùng cùng tuỳ chọn định dạng nên cũng là "HH:mm dd/MM/yyyy" |
 | Tab | "Thông tin đơn" · "Lịch sử" |
 | Nút | "Rút đơn" |
 | Hộp xác nhận rút đơn | Nguyên văn hiện có: tiêu đề "Rút đơn ứng tuyển?"; nội dung "Hành động này không thể hoàn tác. Sau khi rút, bạn sẽ không thể nộp lại đơn cho vị trí {jobTitle} trong đợt tuyển hiện tại."; nút "Huỷ" · "Xác nhận rút đơn" · "Đang rút đơn..."; lỗi fallback "Rút đơn thất bại, vui lòng thử lại." |

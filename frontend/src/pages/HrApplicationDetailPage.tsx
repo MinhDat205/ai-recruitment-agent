@@ -130,8 +130,9 @@ function ApplicationDetailContent({
       <CardHeader className="gap-4">
         <ApplicationDetailHeader detail={detail} />
         {/* Cung cau hinh TabsList voi trang sua Job; max-w-full overflow-x-auto + justify-start de chi
-            TabsList cuon ngang o 375px, khong cuon ca trang (UI.md muc 8). */}
-        <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto">
+            TabsList cuon ngang o 375px, khong cuon ca trang (UI.md muc 8). overflow-y-hidden (FR-U08 soat tay):
+            overflow-x khac visible lam overflow-y bi tinh thanh auto, lo thanh cuon doc canh tab cuoi. */}
+        <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto overflow-y-hidden">
           <TabsTrigger value="cv">CV & điểm</TabsTrigger>
           <TabsTrigger value="explanation">Giải thích</TabsTrigger>
           <TabsTrigger value="history">Lịch sử</TabsTrigger>

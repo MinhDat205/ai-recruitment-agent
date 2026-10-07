@@ -137,8 +137,9 @@ function CandidateApplicationDetailContent({
       <CardHeader className="gap-4">
         <CandidateApplicationHeader detail={detail} />
         {/* Cung cau hinh TabsList voi trang ho so don phia HR; max-w-full overflow-x-auto + justify-start de
-            chi TabsList cuon ngang o 375px, khong cuon ca trang (UI.md muc 8). */}
-        <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto">
+            chi TabsList cuon ngang o 375px, khong cuon ca trang (UI.md muc 8). overflow-y-hidden: overflow-x
+            khac visible lam overflow-y bi tinh thanh auto, lo thanh cuon doc (hai mui ten) canh tab cuoi. */}
+        <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto overflow-y-hidden">
           <TabsTrigger value="info">Thông tin đơn</TabsTrigger>
           <TabsTrigger value="history">Lịch sử</TabsTrigger>
         </TabsList>
