@@ -8,7 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.recruitment.catalog.CatalogRegistry;
 import com.recruitment.common.exception.ApplicationNotFoundException;
+import com.recruitment.company.CompanyRepository;
 import com.recruitment.common.exception.ApplicationNotWithdrawableException;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
@@ -47,6 +49,14 @@ class ApplicationServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    // FR-U08: hai dependency moi cua ApplicationService (chi getMyApplicationDetail dung) - cac test o day
+    // khong cham toi, mock chi de dung duoc constructor.
+    @Mock
+    private CompanyRepository companyRepository;
+
+    @Mock
+    private CatalogRegistry catalogRegistry;
+
     private ApplicationService newService() {
         return new ApplicationService(
                 applicationRepository,
@@ -54,7 +64,9 @@ class ApplicationServiceTest {
                 jobRepository,
                 resumeRepository,
                 applicationStatusRecorder,
-                eventPublisher);
+                eventPublisher,
+                companyRepository,
+                catalogRegistry);
     }
 
     @Test

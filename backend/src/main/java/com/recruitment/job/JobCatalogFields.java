@@ -5,7 +5,9 @@ import com.recruitment.catalog.CatalogRegistry;
 // Sau truong danh muc cua response Job (FR-C05 R-J2, R-J7), tinh o MOT cho cho ca JobOwnerService
 // (HR) lan JobPublicService (cong khai, F1). legacy* chi khac null khi Job "chua chuan hoa": khong co
 // ma nhung con gia tri cu. Co ma thi legacy* = null du cot cu van con gia tri (cot cu giu nguyen o DB).
-record JobCatalogFields(
+// public (FR-U08 R-C6): chi tiet don phia ung vien (package jobapplication) dung CHINH cach tinh nay, khong
+// viet bo chuyen ma -> nhan thu hai. Khong doi logic.
+public record JobCatalogFields(
         String categoryCode,
         String categoryLabel,
         String locationCode,
@@ -13,7 +15,7 @@ record JobCatalogFields(
         String legacyCategory,
         String legacyLocation) {
 
-    static JobCatalogFields of(Job job, CatalogRegistry catalog) {
+    public static JobCatalogFields of(Job job, CatalogRegistry catalog) {
         String categoryCode = job.getCategoryCode();
         String locationCode = job.getLocationCode();
         return new JobCatalogFields(

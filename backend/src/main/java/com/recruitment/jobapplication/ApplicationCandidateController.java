@@ -1,5 +1,6 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.jobapplication.dto.ApplicationCandidateDetailResponse;
 import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
@@ -41,6 +42,14 @@ public class ApplicationCandidateController {
     public ResponseEntity<List<ApplicationSummaryResponse>> getMyApplications(Authentication authentication) {
         UUID candidateId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(applicationService.getMyApplications(candidateId));
+    }
+
+    // FR-U08 E1 - chi tiet mot don cua chinh ung vien; don cua nguoi khac/khong ton tai -> 404 (R-Q2).
+    @GetMapping("/{id}")
+    public ResponseEntity<ApplicationCandidateDetailResponse> getMyApplicationDetail(
+            Authentication authentication, @PathVariable UUID id) {
+        UUID candidateId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(applicationService.getMyApplicationDetail(candidateId, id));
     }
 
     @GetMapping("/{id}/history")
