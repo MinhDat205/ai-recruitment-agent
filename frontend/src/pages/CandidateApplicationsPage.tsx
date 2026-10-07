@@ -1,27 +1,15 @@
-import { isAxiosError } from 'axios'
-import { CalendarClock } from 'lucide-react'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CandidateLayout } from '../components/layout/CandidateLayout'
 import { ApplicationHistoryTimeline } from '../features/applications/ApplicationHistoryTimeline'
 import { ApplicationStatusBadge } from '../features/applications/ApplicationStatusBadge'
-import {
-  useApplicationHistoryQuery,
-  useMyApplicationsQuery,
-  useWithdrawApplicationMutation,
-} from '../features/applications/queries'
+import { useApplicationHistoryQuery, useMyApplicationsQuery } from '../features/applications/queries'
 import type { ApplicationSummary } from '../features/applications/types'
-import { useInterviewInvitationQuery } from '../features/interviewinvitation/queries'
+import { WithdrawApplicationDialog } from '../features/applications/WithdrawApplicationDialog'
+import { InterviewInvitationDetails } from '../features/interviewinvitation/InterviewInvitationDetails'
 
 function formatAppliedAt(iso: string): string {
   return new Date(iso).toLocaleString('vi-VN', {
@@ -31,78 +19,6 @@ function formatAppliedAt(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-// Gio Viet Nam, hien day-thang-nam + gio-phut - dung format voi formatAppliedAt/formatChangedAt
-// (ApplicationHistoryTimeline.tsx) de nhat quan toan trang.
-function formatScheduledAt(iso: string): string {
-  return new Date(iso).toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
-}
-
-// Dialog xem giay moi phong van - noi dung do HR soan, hien NGUYEN VAN (whitespace-pre-wrap giu
-// xuong dong), khong render/tom tat lai gi them.
-function InterviewInvitationDetailDialog({ applicationId }: { applicationId: string }) {
-  const {
-    data: invitation,
-    isLoading,
-    isError,
-    error: invitationError,
-  } = useInterviewInvitationQuery(applicationId, true)
-
-  if (isLoading) {
-    return <p className="text-sm text-m3-on-surface-variant">Đang tải giấy mời...</p>
-  }
-
-  if (isError) {
-    // 404 INTERVIEW_INVITATION_NOT_FOUND: don co the bi REJECTED thang tu PENDING (khong qua
-    // phong van) - khong phai loi, chi la khong co giay moi nao de xem. Loi khac (mang, 500...)
-    // moi hien canh bao do.
-    if (isAxiosError(invitationError) && invitationError.response?.status === 404) {
-      return <p className="text-sm text-m3-on-surface-variant">Đơn này chưa có giấy mời phỏng vấn.</p>
-    }
-    return <p className="text-sm text-m3-error">Không tải được giấy mời, vui lòng thử lại.</p>
-  }
-
-  if (!invitation) {
-    return null
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-sm">
-        <CalendarClock className="h-4 w-4 shrink-0 text-m3-primary" aria-hidden="true" />
-        <span className="font-medium text-m3-on-surface">{formatScheduledAt(invitation.scheduledAt)}</span>
-      </div>
-      {invitation.location && (
-        <p className="text-sm text-m3-on-surface-variant">
-          <span className="font-medium text-m3-on-surface">Địa điểm: </span>
-          {invitation.location}
-        </p>
-      )}
-      <p className="text-sm font-medium text-m3-on-surface">{invitation.subject}</p>
-      <p className="whitespace-pre-wrap text-sm text-m3-on-surface">{invitation.renderedContent}</p>
-    </div>
-  )
-}
-
-// Backend tra loi qua ErrorResponse { error, message } (xem GlobalExceptionHandler), giong
-// pattern extractErrorMessage trong JobApplyForm.tsx - khong tach util dung chung vi pham vi
-// chi gioi han trong file nay.
-function extractErrorMessage(err: unknown, fallback: string): string {
-  if (isAxiosError(err)) {
-    const data = err.response?.data as { message?: unknown } | undefined
-    if (data && typeof data.message === 'string' && data.message.length > 0) {
-      return data.message
-    }
-  }
-  return fallback
 }
 
 const WITHDRAWABLE_STATUSES: ApplicationSummary['status'][] = ['PENDING', 'INTERVIEW_INVITED']
@@ -124,21 +40,6 @@ export function CandidateApplicationsPage() {
   const [selected, setSelected] = useState<ApplicationSummary | null>(null)
   const [withdrawTarget, setWithdrawTarget] = useState<ApplicationSummary | null>(null)
   const [invitationTarget, setInvitationTarget] = useState<ApplicationSummary | null>(null)
-  const withdrawMutation = useWithdrawApplicationMutation()
-
-  const closeWithdrawDialog = () => {
-    setWithdrawTarget(null)
-    withdrawMutation.reset()
-  }
-
-  const confirmWithdraw = () => {
-    if (!withdrawTarget) {
-      return
-    }
-    withdrawMutation.mutate(withdrawTarget.id, {
-      onSuccess: () => setWithdrawTarget(null),
-    })
-  }
 
   return (
     <CandidateLayout>
@@ -218,37 +119,23 @@ export function CandidateApplicationsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={withdrawTarget !== null} onOpenChange={(open) => !open && closeWithdrawDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rút đơn ứng tuyển?</DialogTitle>
-            <DialogDescription>
-              Hành động này không thể hoàn tác. Sau khi rút, bạn sẽ không thể nộp lại đơn cho vị trí{' '}
-              <span className="font-medium text-m3-on-surface">{withdrawTarget?.jobTitle}</span> trong đợt tuyển hiện tại.
-            </DialogDescription>
-          </DialogHeader>
-          {withdrawMutation.isError && (
-            <p className="text-sm text-m3-error">
-              {extractErrorMessage(withdrawMutation.error, 'Rút đơn thất bại, vui lòng thử lại.')}
-            </p>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeWithdrawDialog} disabled={withdrawMutation.isPending}>
-              Huỷ
-            </Button>
-            <Button type="button" onClick={confirmWithdraw} disabled={withdrawMutation.isPending}>
-              {withdrawMutation.isPending ? 'Đang rút đơn...' : 'Xác nhận rút đơn'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <WithdrawApplicationDialog application={withdrawTarget} onClose={() => setWithdrawTarget(null)} />
 
       <Dialog open={invitationTarget !== null} onOpenChange={(open) => !open && setInvitationTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Giấy mời phỏng vấn{invitationTarget ? ` — ${invitationTarget.jobTitle}` : ''}</DialogTitle>
           </DialogHeader>
-          {invitationTarget && <InterviewInvitationDetailDialog applicationId={invitationTarget.id} />}
+          {/* FR-U08 R-C2: component chung KHONG render gi khi chua co giay moi (404); hop thoai nay giu cau
+              cu bang notFoundFallback cho toi khi bi bo o dot 5 (R-P3). */}
+          {invitationTarget && (
+            <InterviewInvitationDetails
+              applicationId={invitationTarget.id}
+              notFoundFallback={
+                <p className="text-sm text-m3-on-surface-variant">Đơn này chưa có giấy mời phỏng vấn.</p>
+              }
+            />
+          )}
         </DialogContent>
       </Dialog>
     </CandidateLayout>

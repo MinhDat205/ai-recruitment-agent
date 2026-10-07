@@ -2,21 +2,9 @@ import { Building2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatDeadline } from '@/lib/date'
 import { jobCategoryText, jobLocationText } from './catalogDisplay'
+import { formatSalary } from './formatSalary'
 import { UnnormalizedBadge } from './UnnormalizedBadge'
 import type { JobSummary } from './types'
-
-function formatSalary(job: JobSummary): string | null {
-  if (job.salaryMin == null && job.salaryMax == null) {
-    return null
-  }
-  const currency = job.salaryCurrency ?? 'VND'
-  const format = (value: number) => value.toLocaleString('vi-VN')
-  if (job.salaryMin != null && job.salaryMax != null) {
-    return `${format(job.salaryMin)} - ${format(job.salaryMax)} ${currency}`
-  }
-  const value = job.salaryMin ?? job.salaryMax
-  return value != null ? `${format(value)} ${currency}` : null
-}
 
 // R-S5: tien te khac VND, so sanh khong phan biet hoa/thuong va khoang trang (cung quy tac
 // JobPublicService dung o backend). Chi co nghia khi tin CO luong - Thoa thuan khong co gi de so.

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { JobLocationCell } from '../features/jobs/JobLocationCell'
 import { JobRowActions } from '../features/jobs/JobRowActions'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
+import { formatSalary } from '../features/jobs/formatSalary'
 import { EMPLOYMENT_TYPE_LABELS, JOB_STATUS_LABELS, JOB_STATUS_OPTIONS } from '../features/jobs/jobLabels'
 import { useHrJobsQuery } from '../features/jobs/ownerQueries'
 import type { JobStatus } from '../features/jobs/ownerTypes'
@@ -16,18 +17,6 @@ import { formatDeadline } from '@/lib/date'
 
 const PAGE_SIZE = 10
 const ALL_STATUS = 'ALL'
-
-function formatSalary(min: number | null, max: number | null, currency: string | null): string {
-  if (min == null && max == null) {
-    return '—'
-  }
-  const cur = currency ?? 'VND'
-  const fmt = (value: number) => value.toLocaleString('vi-VN')
-  if (min != null && max != null) {
-    return `${fmt(min)} - ${fmt(max)} ${cur}`
-  }
-  return `${fmt((min ?? max) as number)} ${cur}`
-}
 
 export function HrJobListPage() {
   const [statusFilter, setStatusFilter] = useState<JobStatus | typeof ALL_STATUS>(ALL_STATUS)
@@ -121,7 +110,8 @@ export function HrJobListPage() {
                       {job.employmentType ? (EMPLOYMENT_TYPE_LABELS[job.employmentType] ?? job.employmentType) : '—'}
                     </TableCell>
                     <TableCell className="text-m3-on-surface-variant">
-                      {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)}
+                      {/* FR-U08 R-C4: ham chung tra null khi khong co luong - giu ky tu "—" cu cua cot nay */}
+                      {formatSalary(job) ?? '—'}
                     </TableCell>
                     <TableCell className="text-m3-on-surface-variant">{formatDeadline(job.deadline)}</TableCell>
                     <TableCell className="text-m3-on-surface-variant">{job.recruitmentCycle}</TableCell>
