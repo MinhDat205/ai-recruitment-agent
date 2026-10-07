@@ -1,6 +1,5 @@
 import { isAxiosError } from 'axios'
 import { CalendarClock } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { useInterviewInvitationQuery } from './queries'
 
 // Gio Viet Nam, hien day-thang-nam + gio-phut - dung format voi formatAppliedAt/formatChangedAt
@@ -16,18 +15,11 @@ function formatScheduledAt(iso: string): string {
   })
 }
 
-interface InterviewInvitationDetailsProps {
-  applicationId: string
-  // Hien gi khi don chua co giay moi (404 INTERVIEW_INVITATION_NOT_FOUND). Mac dinh KHONG render gi (FR-U08
-  // R-T5 - trang chi tiet don an ca khoi). Hop thoai "Xem giay moi" o trang danh sach truyen cau cu vao day
-  // cho toi khi hop thoai do bi bo (FR-U08 R-P3).
-  notFoundFallback?: ReactNode
-}
-
 // FR-U08 R-C2 - phan than giay moi phong van, tach nguyen van tu CandidateApplicationsPage
 // (InterviewInvitationDetailDialog cu). Noi dung do HR soan, hien NGUYEN VAN (whitespace-pre-wrap giu xuong
-// dong), khong render/tom tat lai gi them.
-export function InterviewInvitationDetails({ applicationId, notFoundFallback = null }: InterviewInvitationDetailsProps) {
+// dong), khong render/tom tat lai gi them. Don chua co giay moi (404) -> KHONG render gi (R-T5); khoi bao
+// ngoai (InvitationSection) tu an ca tieu de.
+export function InterviewInvitationDetails({ applicationId }: { applicationId: string }) {
   const {
     data: invitation,
     isLoading,
@@ -44,7 +36,7 @@ export function InterviewInvitationDetails({ applicationId, notFoundFallback = n
     // phong van) - khong phai loi, chi la khong co giay moi nao de xem. Loi khac (mang, 500...)
     // moi hien canh bao do.
     if (isAxiosError(invitationError) && invitationError.response?.status === 404) {
-      return notFoundFallback
+      return null
     }
     return <p className="text-sm text-m3-error">Không tải được giấy mời, vui lòng thử lại.</p>
   }

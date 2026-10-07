@@ -269,8 +269,10 @@ Nguồn trạng thái là field backend trả về; frontend không suy từ d�
 - **R-G2.** Trang không hiện bất kỳ điểm số, thứ hạng, tiêu chí, giải thích AI, ghi chú nội bộ nào.
 - **R-G3.** Thư giới thiệu và giấy mời là lời của người (ứng viên/HR), không phải nội dung AI: văn bản thuần,
   giữ xuống dòng, không `dangerouslySetInnerHTML`, không khối "Do AI tạo".
-- **R-G4.** Dữ liệu tóm tắt tin bị thiếu (ngành nghề, khu vực, hình thức, hạn nộp) hiện "Chưa có dữ liệu",
-  không ẩn dòng (UI_GUIDE mục 4). Lương không công bố hiện "Không công bố".
+- **R-G4.** Dữ liệu tóm tắt tin bị thiếu (ngành nghề, khu vực, hình thức, chế độ làm việc) hiện "Chưa có dữ
+  liệu", không ẩn dòng (UI_GUIDE mục 4). Lương không công bố hiện "Không công bố". Hạn nộp `null` **không**
+  phải thiếu dữ liệu — tin không đặt hạn là không giới hạn (R-D4 cũng coi hạn `NULL` là `OPEN`): hiện "Không
+  giới hạn" bằng `formatDeadline` có sẵn (`lib/date.ts`), như trang tin công khai và thẻ việc làm.
 
 ### 3.9 Thay đổi code dùng chung (R-C)
 

@@ -190,7 +190,7 @@ Nút "Rút đơn" ở điện thoại nằm **trong luồng trang** ngay dưới
 
 | File | Vai trò |
 |---|---|
-| `frontend/src/pages/CandidateApplicationDetailPage.tsx` | Trang; đọc `:id`, `?tab=`; gọi E1; render đầu trang + `Tabs`; R-T1/R-T2 |
+| `frontend/src/pages/CandidateApplicationDetailPage.tsx` | Trang; đọc `:id`, `?tab=`; gọi E1; render đầu trang + `Tabs`; R-T1/R-T2. Tab "Lịch sử" là hàm cục bộ `HistoryTab` trong chính file này (gọi `useApplicationHistoryQuery` + `ApplicationHistoryTimeline`), không có file riêng |
 | `frontend/src/features/candidateApplicationDetail/api.ts` | Gọi E1 |
 | `frontend/src/features/candidateApplicationDetail/queries.ts` | Hook E1 (khoá theo `applicationId`, không thử lại với 4xx); hàm trả danh sách khoá cần làm mới sau rút đơn |
 | `frontend/src/features/candidateApplicationDetail/types.ts` | Kiểu `ApplicationCandidateDetail`, `JobAvailability` |
@@ -263,6 +263,7 @@ Theo field backend trả về (REQUIREMENT mục 3.4); dưới đây là cách h
 | **R-T8** tin `OPEN` | Khối tin | Nhãn "Đang mở" + liên kết "Xem tin tuyển dụng →" (`/jobs/{jobId}`) |
 | **R-D5** tin khác `OPEN` | Khối tin | Nhãn tương ứng (mục 7), không liên kết |
 | Thiếu dữ liệu tóm tắt | Khối tin | Ô giá trị "Chưa có dữ liệu"; lương null → "Không công bố" (R-G4) |
+| Hạn nộp null | Khối tin | "Không giới hạn" qua `formatDeadline` — không phải thiếu dữ liệu (R-G4) |
 | **R-T9** CV `PENDING`/`PROCESSING` | Khối CV đã trích xuất | Câu chờ (mục 7) |
 | **R-T10** CV `FAILED` | Khối CV đã trích xuất | "Trích xuất CV thất bại." + `parseError` nguyên văn + câu hướng dẫn có liên kết "Hồ sơ và CV"; **không** nút |
 | **R-T11** CV `DONE` đang tải `/parsed` | Khối CV đã trích xuất | `ResumeParsedDataSkeleton` |
@@ -295,7 +296,8 @@ Không có trạng thái "AI đang xử lý": trang không gọi AI.
 | Khối 2 | "Tin tuyển dụng" |
 | Nhãn tóm tắt | "Ngành nghề" · "Khu vực" · "Hình thức" · "Làm việc" · "Mức lương" · "Hạn nộp" |
 | Lương null | "Không công bố" |
-| Ô thiếu | "Chưa có dữ liệu" |
+| Hạn nộp null | "Không giới hạn" (có sẵn trong `formatDeadline`, `lib/date.ts`) |
+| Ô thiếu (ngành nghề, khu vực, hình thức, làm việc) | "Chưa có dữ liệu" |
 | Tình trạng tin (đúng 5 giá trị, R-D4) | `OPEN` "Đang mở" · `EXPIRED` "Đã hết hạn nộp" · `PAUSED` "Tạm dừng" · `CLOSED` "Đã đóng" · `UNAVAILABLE` "Không còn đăng" (gộp tin đã xoá và tin đưa về nháp — ứng viên không cần biết HR đã xoá tin hay đưa về nháp) |
 | Chú thích | "Thông tin tin tuyển dụng là bản hiện tại, có thể đã thay đổi sau khi bạn nộp đơn." |
 | Liên kết tin | "Xem tin tuyển dụng →" |

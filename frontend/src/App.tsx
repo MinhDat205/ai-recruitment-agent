@@ -3,6 +3,7 @@ import { AuthProvider } from './features/auth/AuthContext'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { RequireCandidateProfileOnboarding } from './features/candidateProfile/RequireCandidateProfileOnboarding'
 import { RequireCompany } from './features/companies/RequireCompany'
+import { CandidateApplicationDetailPage } from './pages/CandidateApplicationDetailPage'
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CandidateJobListPage } from './pages/CandidateJobListPage'
@@ -69,6 +70,7 @@ function App() {
             <Route path="/candidate/dashboard" element={<CandidateHomePage />} />
             <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/applications" element={<CandidateApplicationsPage />} />
+            <Route path="/candidate/applications/:id" element={<CandidateApplicationDetailPage />} />
             <Route path="/candidate/notifications" element={<CandidateNotificationsPage />} />
             <Route
               path="/candidate/resumes/:id/improvement-suggestions"
