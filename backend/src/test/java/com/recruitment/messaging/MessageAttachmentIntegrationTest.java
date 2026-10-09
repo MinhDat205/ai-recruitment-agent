@@ -419,6 +419,37 @@ class MessageAttachmentIntegrationTest {
         assertThat(countMessages(f.applicationId())).isZero();
     }
 
+    // Muc 12 L4 - getBytes() nem IOException. Builder multipart() cua spring-test 7.0.8 chi goi request.addFile(file)
+    // (khong goi getBytes), nen loi chi xay ra khi MessageService doc tep.
+    private static final class UnreadableMultipartFile extends MockMultipartFile {
+
+        UnreadableMultipartFile(String name, String originalFilename, String contentType, byte[] content) {
+            super(name, originalFilename, contentType, content);
+        }
+
+        @Override
+        public byte[] getBytes() throws IOException {
+            throw new IOException("Gia lap loi doc tep");
+        }
+    }
+
+    @Test
+    void unreadableFile_isRejectedWithReadError_andNothingIsStored() throws Exception {
+        Fixture f = createApplication("c06-t11-ioerr");
+        long filesBefore = countStoredAttachments();
+
+        MvcResult result = mockMvc
+                .perform(multipart(f.hrPath())
+                        .file(new UnreadableMultipartFile("file", "a.pdf", "application/pdf", PDF))
+                        .param("body", "Kèm tệp")
+                        .header("Authorization", "Bearer " + f.hrToken()))
+                .andReturn();
+
+        assertAttachmentError(result, "Không đọc được tệp đính kèm");
+        assertThat(countMessages(f.applicationId())).isZero();
+        assertThat(countStoredAttachments()).isEqualTo(filesBefore);
+    }
+
     // ---- T12 - nguong 5MB ----
 
     @Test

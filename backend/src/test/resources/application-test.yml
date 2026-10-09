@@ -18,6 +18,8 @@ app:
     enabled: false
   notification:
     enabled: false
+  # FR-C06 muc 12 L5 - khai CUNG (khong doc FRONTEND_BASE_URL) de T21 khong phu thuoc bien moi truong cua may.
+  frontend-base-url: http://localhost:5173
   cv-improvement:
     enabled: false
   job-embedding:

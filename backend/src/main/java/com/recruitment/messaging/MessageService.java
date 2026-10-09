@@ -19,6 +19,8 @@ import com.recruitment.messaging.dto.ConversationCandidateResponse;
 import com.recruitment.messaging.dto.ConversationHrResponse;
 import com.recruitment.messaging.dto.MessageResponse;
 import com.recruitment.messaging.dto.MessageThreadResponse;
+import com.recruitment.notification.ConversationReadEvent;
+import com.recruitment.notification.MessageSentEvent;
 import com.recruitment.storage.FileSignatures;
 import com.recruitment.storage.StorageService;
 import java.io.ByteArrayInputStream;
@@ -28,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -56,18 +59,21 @@ public class MessageService {
     private final CompanyRepository companyRepository;
     private final ApplicationMessageRepository messageRepository;
     private final StorageService storageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MessageService(
             HrApplicationAccess hrApplicationAccess,
             JobApplicationRepository jobApplicationRepository,
             CompanyRepository companyRepository,
             ApplicationMessageRepository messageRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            ApplicationEventPublisher eventPublisher) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.jobApplicationRepository = jobApplicationRepository;
         this.companyRepository = companyRepository;
         this.messageRepository = messageRepository;
         this.storageService = storageService;
+        this.eventPublisher = eventPublisher;
     }
 
     // ---- M1 ----
@@ -95,16 +101,15 @@ public class MessageService {
     }
 
     // ---- M3 ----
-    // Chi danh dau tin nhan. Danh dau thong bao NEW_MESSAGE (R-R3, muc 12 L2) them o dot 4.
 
     @Transactional
     public void markReadAsHr(UUID ownerId, UUID applicationId) {
-        markRead(loadForHr(ownerId, applicationId), MessageSenderRole.HR);
+        markRead(loadForHr(ownerId, applicationId), ownerId, MessageSenderRole.HR);
     }
 
     @Transactional
     public void markReadAsCandidate(UUID candidateId, UUID applicationId) {
-        markRead(loadForCandidate(candidateId, applicationId), MessageSenderRole.CANDIDATE);
+        markRead(loadForCandidate(candidateId, applicationId), candidateId, MessageSenderRole.CANDIDATE);
     }
 
     // ---- M4 ----
@@ -232,7 +237,18 @@ public class MessageService {
         if (hasFile) {
             attach(message, file);
         }
-        return toResponse(messageRepository.saveAndFlush(message), senderRole);
+        ApplicationMessage saved = messageRepository.saveAndFlush(message);
+
+        // R-N1 - publish TRONG transaction ghi tin; listener AFTER_COMMIT + REQUIRES_NEW tao thong bao cho ben
+        // nhan, loi o do khong lam hong viec gui tin. Doan trich tinh o day bang MOT ham duy nhat (R-N2).
+        eventPublisher.publishEvent(new MessageSentEvent(
+                application.getId(),
+                application.getJobId(),
+                application.getCandidateId(),
+                senderRole == MessageSenderRole.HR,
+                MessageExcerpt.of(saved.getBody()),
+                saved.getAttachmentKey() != null));
+        return toResponse(saved, senderRole);
     }
 
     // R-F2-R-F6, R-F9, muc 12 L4 - thu tu kiem: 0 byte -> qua 5MB -> sai loai. Loai CHI theo magic bytes, khong
@@ -315,9 +331,12 @@ public class MessageService {
                 resource, message.getAttachmentName(), message.getAttachmentType().mediaType());
     }
 
-    private void markRead(JobApplication application, MessageSenderRole callerRole) {
+    private void markRead(JobApplication application, UUID callerId, MessageSenderRole callerRole) {
         // R-R4 - moi trang thai don, ke ca WITHDRAWN. Chi tin cua ben kia (R-R1).
         messageRepository.markReadFromSender(application.getId(), callerRole.other().name());
+        // R-R3 (muc 12 L2) - danh dau da doc thong bao NEW_MESSAGE cua nguoi goi cho don nay. Listener chay DONG
+        // BO trong transaction nay (khong REQUIRES_NEW): loi o do lam ca M3 that bai, khong tach doi trang thai.
+        eventPublisher.publishEvent(new ConversationReadEvent(callerId, application.getId()));
     }
 
     // R-M8 - backend tinh, frontend khong tu suy.

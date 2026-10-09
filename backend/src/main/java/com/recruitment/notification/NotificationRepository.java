@@ -32,4 +32,17 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
             value = "UPDATE notifications SET email_status = 'FAILED' WHERE id = :id AND email_status = 'PENDING'",
             nativeQuery = true)
     int markFailedIfPending(@Param("id") UUID id);
+
+    // FR-C06 R-N4 - con thong bao (vd NEW_MESSAGE) CHUA DOC cua nguoi nhan cho don nay khong.
+    boolean existsByUserIdAndTypeAndEntityIdAndReadFalse(UUID userId, NotificationType type, UUID entityId);
+
+    // FR-C06 R-R3 - danh dau da doc theo (userId, type, entityId): dat CA is_read lan read_at nhu
+    // NotificationService.markRead. Chi dong con chua doc - goi lai khong doi read_at da co.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+            value = "UPDATE notifications SET is_read = TRUE, read_at = now()"
+                    + " WHERE user_id = :userId AND type = :type AND entity_id = :entityId AND is_read = FALSE",
+            nativeQuery = true)
+    int markReadByUserAndTypeAndEntity(
+            @Param("userId") UUID userId, @Param("type") String type, @Param("entityId") UUID entityId);
 }

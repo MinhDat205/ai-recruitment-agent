@@ -38,18 +38,30 @@ public class NotificationMailOrchestrator {
     private final NotificationMailStateService stateService;
     private final JavaMailSender mailSender;
     private final String mailFrom;
+    private final String frontendBaseUrl;
 
     public NotificationMailOrchestrator(
             NotificationRepository notificationRepository,
             UserRepository userRepository,
             NotificationMailStateService stateService,
             JavaMailSender mailSender,
-            @Value("${app.notification.mail-from:noreply@ai-recruitment-agent.local}") String mailFrom) {
+            @Value("${app.notification.mail-from:noreply@ai-recruitment-agent.local}") String mailFrom,
+            @Value("${app.frontend-base-url}") String frontendBaseUrl) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.stateService = stateService;
         this.mailSender = mailSender;
         this.mailFrom = mailFrom;
+        this.frontendBaseUrl = frontendBaseUrl;
+    }
+
+    // FR-C06 R-N5 - CHI NEW_MESSAGE co dong lien ket: body + hai dau xuong dong + "Xem và trả lời tại: {url}".
+    // Email cua 4 loai thong bao cu giu NGUYEN body (khong them lien ket - REQUIREMENT muc 6).
+    private String mailText(Notification notification) {
+        if (notification.getType() != NotificationType.NEW_MESSAGE || notification.getLink() == null) {
+            return notification.getBody();
+        }
+        return notification.getBody() + "\n\nXem và trả lời tại: " + frontendBaseUrl + notification.getLink();
     }
 
     public void processOne(UUID notificationId) {
@@ -71,7 +83,7 @@ public class NotificationMailOrchestrator {
         message.setFrom(mailFrom);
         message.setTo(recipient.getEmail());
         message.setSubject(notification.getTitle());
-        message.setText(notification.getBody());
+        message.setText(mailText(notification));
 
         try {
             mailSender.send(message);

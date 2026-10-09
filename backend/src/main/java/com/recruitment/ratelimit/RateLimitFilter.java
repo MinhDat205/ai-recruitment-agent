@@ -49,12 +49,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // FR-C05 R-R3 - trich xuat lai CV (@PostMapping("/{id}/reparse") cua ResumeCandidateController): moi
     // yeu cau thanh cong = 1 luot goi LLM o job nen, cung nhom llm-action theo userId.
     private static final String RESUME_REPARSE_PATTERN = "/api/candidates/resumes/*/reparse";
+    // FR-C06 R-L1 - gui tin nhan (M2) hai phia: @PostMapping KHONG them path tren
+    // @RequestMapping(".../applications/{applicationId}/messages") cua MessageHrController/
+    // MessageCandidateController. Nhom rieng "message" theo userId, KHONG dung chung bucket voi llm-action.
+    private static final String HR_MESSAGE_SEND_PATTERN = "/api/hr/applications/*/messages";
+    private static final String CANDIDATE_MESSAGE_SEND_PATTERN = "/api/candidates/applications/*/messages";
 
     private final RateLimitBucketStore bucketStore;
     private final long authCapacity;
     private final long authRefillPerMinute;
     private final long llmActionCapacity;
     private final long llmActionRefillPerMinute;
+    private final long messageCapacity;
+    private final long messageRefillPerMinute;
 
     // @Autowired bat buoc: class nay co HAI constructor (constructor nay + constructor package-private
     // duoi day danh cho test) - thieu @Autowired, Spring khong tu chon duoc constructor nao va roi
@@ -66,13 +73,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @Value("${app.rate-limit.auth.capacity:10}") long authCapacity,
             @Value("${app.rate-limit.auth.refill-per-minute:10}") long authRefillPerMinute,
             @Value("${app.rate-limit.llm-action.capacity:20}") long llmActionCapacity,
-            @Value("${app.rate-limit.llm-action.refill-per-minute:20}") long llmActionRefillPerMinute) {
+            @Value("${app.rate-limit.llm-action.refill-per-minute:20}") long llmActionRefillPerMinute,
+            @Value("${app.rate-limit.message.capacity:20}") long messageCapacity,
+            @Value("${app.rate-limit.message.refill-per-minute:20}") long messageRefillPerMinute) {
         this(
                 new RateLimitBucketStore(maxTrackedKeys),
                 authCapacity,
                 authRefillPerMinute,
                 llmActionCapacity,
-                llmActionRefillPerMinute);
+                llmActionRefillPerMinute,
+                messageCapacity,
+                messageRefillPerMinute);
     }
 
     // Goi rieng cho test - truyen thang RateLimitBucketStore da dung TimeMeter gia (xem
@@ -82,12 +93,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
             long authCapacity,
             long authRefillPerMinute,
             long llmActionCapacity,
-            long llmActionRefillPerMinute) {
+            long llmActionRefillPerMinute,
+            long messageCapacity,
+            long messageRefillPerMinute) {
         this.bucketStore = bucketStore;
         this.authCapacity = authCapacity;
         this.authRefillPerMinute = authRefillPerMinute;
         this.llmActionCapacity = llmActionCapacity;
         this.llmActionRefillPerMinute = llmActionRefillPerMinute;
+        this.messageCapacity = messageCapacity;
+        this.messageRefillPerMinute = messageRefillPerMinute;
     }
 
     @Override
@@ -126,7 +141,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.flushBuffer();
     }
 
-    // Chi ap dung cho DUNG 4+2 endpoint da duyet (POST). Moi request khac (bao gom GET toi cung
+    // Chi ap dung cho DUNG cac endpoint da duyet (POST): auth, llm-action, va 2 mau gui tin nhan (FR-C06). Moi request khac (bao gom GET toi cung
     // duong dan, hoac POST toi duong dan khac) tra null - khong bi rate limit.
     private RateLimitTarget classify(HttpServletRequest request) {
         if (!"POST".equals(request.getMethod())) {
@@ -151,6 +166,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
             }
             return new RateLimitTarget(
                     "llm:" + authentication.getName(), llmActionCapacity, llmActionRefillPerMinute);
+        }
+
+        if (PATH_MATCHER.match(HR_MESSAGE_SEND_PATTERN, path) || PATH_MATCHER.match(CANDIDATE_MESSAGE_SEND_PATTERN, path)) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                // Cung ly do nhom llm-action o tren: de chain phia sau tu tra 401/403.
+                return null;
+            }
+            return new RateLimitTarget(
+                    "message:" + authentication.getName(), messageCapacity, messageRefillPerMinute);
         }
 
         return null;

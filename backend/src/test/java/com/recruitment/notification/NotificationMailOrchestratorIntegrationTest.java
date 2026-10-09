@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -172,5 +173,58 @@ class NotificationMailOrchestratorIntegrationTest {
         JobApplication reloadedApplication =
                 jobApplicationRepository.findById(fixture.applicationId()).orElseThrow();
         assertThat(reloadedApplication.getStatus()).isEqualTo(ApplicationStatus.PENDING);
+    }
+
+    // ---- FR-C06 T21 - dong lien ket CHI cho NEW_MESSAGE (R-N5) ----
+
+    private Notification seedPending(UUID recipientId, UUID applicationId, NotificationType type, String body, String link) {
+        Notification n = new Notification();
+        n.setUserId(recipientId);
+        n.setType(type);
+        n.setTitle("Tieu de");
+        n.setBody(body);
+        n.setLink(link);
+        n.setEntityType("APPLICATION");
+        n.setEntityId(applicationId);
+        n.setRead(false);
+        n.setEmailStatus(EmailStatus.PENDING);
+        return notificationRepository.save(n);
+    }
+
+    private SimpleMailMessage sentMessage() {
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, times(1)).send(captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void processOne_newMessage_appendsReplyLinkWithFrontendBaseUrl() {
+        Fixture fixture = createFixture();
+        String body = "Cong ty X đã gửi tin nhắn về đơn ứng tuyển vị trí \"Backend Developer\": Chào bạn";
+        String link = "/candidate/applications/" + fixture.applicationId() + "?tab=messages";
+        Notification notification =
+                seedPending(fixture.recipientId(), fixture.applicationId(), NotificationType.NEW_MESSAGE, body, link);
+
+        orchestrator.processOne(notification.getId());
+
+        assertThat(sentMessage().getText())
+                .isEqualTo(body + "\n\nXem và trả lời tại: http://localhost:5173/candidate/applications/"
+                        + fixture.applicationId() + "?tab=messages");
+    }
+
+    @Test
+    void processOne_oldTypeWithLink_sendsBodyExactly_withoutReplyLink() {
+        Fixture fixture = createFixture();
+        String body = "Đơn ứng tuyển vị trí \"Backend Developer\" của bạn đã chuyển sang trạng thái: Bị từ chối";
+        Notification notification = seedPending(
+                fixture.recipientId(),
+                fixture.applicationId(),
+                NotificationType.APPLICATION_STATUS_CHANGED,
+                body,
+                "/candidate/applications/" + fixture.applicationId());
+
+        orchestrator.processOne(notification.getId());
+
+        assertThat(sentMessage().getText()).isEqualTo(body);
     }
 }

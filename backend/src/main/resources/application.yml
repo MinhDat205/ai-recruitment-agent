@@ -94,6 +94,8 @@ app:
     poll-interval-ms: 5000
     batch-size: 10
     mail-from: noreply@ai-recruitment-agent.local
+  # FR-C06 R-N5 (muc 12 L5) - dia chi frontend de ghep lien ket "Xem và trả lời tại:" trong email NEW_MESSAGE.
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   job-embedding:
     poll-interval-ms: 5000
     batch-size: 10
@@ -129,6 +131,10 @@ app:
       capacity: 10
       refill-per-minute: 10
     llm-action:
+      capacity: 20
+      refill-per-minute: 20
+    # FR-C06 R-L1 - gui tin nhan (POST M2 hai phia) theo userId, bucket rieng "message:{userId}".
+    message:
       capacity: 20
       refill-per-minute: 20
 
