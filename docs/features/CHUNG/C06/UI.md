@@ -364,6 +364,7 @@ thị đều bắt buộc có, trừ đoạn trích (tin chỉ có tệp → hi�
 | Lỗi tệp — sai loại (kiểm ở trình duyệt theo đuôi, trùng câu backend) | "Định dạng không hợp lệ, chỉ nhận PDF, DOCX, PNG, JPEG hoặc WEBP" |
 | Lỗi tệp — quá 5MB (trùng câu backend) | "Tệp đính kèm vượt quá 5MB" |
 | Lỗi tệp — 0 byte (trùng câu backend) | "Tệp đính kèm đang trống" |
+| Câu backend khi không đọc được tệp | "Không đọc được tệp đính kèm" |
 | Lỗi tải tệp | "Tải tệp thất bại, vui lòng thử lại." |
 | Câu backend 400 `MESSAGE_EMPTY` | "Tin nhắn chưa có nội dung" |
 | Câu backend 400 `MESSAGE_TOO_LONG` | "Tin nhắn vượt quá 4000 ký tự" |

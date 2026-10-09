@@ -756,3 +756,21 @@ Bản nháp đã chọn sẵn một phương án cho từng điểm; duyệt ngu
 | Q6 | Gom nhận dạng tệp của FR-U01/FR-H01 về `FileSignatures` (R-C1) | Chạm code hai FR đã xong; cổng an toàn là toàn bộ test cũ pass không sửa |
 | Q7 | Full suite backend chỉ chạy một lần ở đợt 7; đợt 3 và 4 chạy mọi lớp test có sẵn của phần bị chạm (mục 9) | Tiết kiệm thời gian/token; lỗi chéo ngoài các lớp đó chỉ lộ ở đợt 7 và phải sửa dồn |
 | Q8 | Ép đuôi tên tệp tải về theo loại đã nhận dạng; tệp ZIP vẫn lọt với nhãn DOCX (R-F6, R-F6b) | Tên tệp có thể thành `x.html.pdf`; đổi lại không ai tải về được tệp có đuôi lệch nội dung. Không kiểm cấu trúc bên trong ZIP |
+
+## 12. Làm rõ sau Plan Mode (duyệt 10/10/2026)
+
+- **L1 (mục 9).** Đợt 2 chạy T1, T5, T7, T8, T15, T24, phần M1–M3 của T2, T3, T4 và phần tin chữ của T9.
+  Đợt 3 chạy T10–T14, T16, T17, T22, T25, T6 trọn vẹn (M1, M2, M5), phần M4 của T2, T3, phần M5 của T4 và
+  phần tệp của T9. Đợt 4 chạy T18–T21, T23, T26.
+- **L2 (R-R3, mục 4.2).** M3 đánh dấu thông báo đã đọc bằng cách publish `ConversationReadEvent` (đặt ở
+  `notification/`). Listener là `@EventListener` thường, chạy đồng bộ trong **cùng** transaction của M3, không
+  `REQUIRES_NEW`, không nuốt lỗi. `messaging/` vẫn chỉ import `notification/` để publish sự kiện.
+- **L3 (đợt 2).** Tham số `file` được khai sẵn ở M2; trong đợt 2, tệp không rỗng tạm trả 400. Không test nào
+  khẳng định hành vi tạm này; đợt 3 xoá hẳn nó.
+- **L4 (R-F2, R-F3).** Thứ tự kiểm tệp: 0 byte → quá 5MB → sai loại. Không đọc được tệp (`IOException`) → 400
+  `INVALID_MESSAGE_ATTACHMENT` "Không đọc được tệp đính kèm".
+- **L5 (R-N5).** `application.yml` khai `app.frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}`;
+  `application-test.yml` khai cứng `http://localhost:5173` để T21 không phụ thuộc biến môi trường của máy.
+- **L6 (R-I1, R-F6).** Hai đơn trùng thời điểm tin mới nhất xếp theo `applicationId` giảm dần. "Ký tự điều
+  khiển" là mọi ký tự có `Character.isISOControl`.
+- **L7 (T26).** Dùng `@MockitoSpyBean`; chấp nhận lớp test này tạo một Spring context riêng.
