@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient, type Query } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type Query, type QueryKey } from '@tanstack/react-query'
 import type { ApplicationStatus } from '../applications/types'
 import { changeApplicationStatusRequest, createScoringRunRequest, listHrApplicationsRequest, listScoringRunsRequest } from './api'
 import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
@@ -20,7 +20,8 @@ export function hrApplicationsKeyPrefix(jobId: string) {
   return [HR_APPLICATIONS_KEY_PREFIX, jobId]
 }
 
-function scoringRunsKey(applicationId: string) {
+// Export (FR-H09 R-A5) - trang ho so don truyen key nay vao danh sach query can lam moi sau thao tac.
+export function scoringRunsKey(applicationId: string) {
   return ['scoring-runs', applicationId]
 }
 
@@ -64,9 +65,15 @@ function hasApplicationWithRunInProgress(applications: ApplicationHrListItem[] |
   )
 }
 
-function isLatestRunInProgress(runs: ScoringRun[] | undefined): boolean {
+// untilFinal (FR-H09 R-T14): trang ho so don can poll toi khi lot moi nhat DONE/FAILED (ca giai doan
+// RUNNING da co finishedAt, cho D3 tong hop) moi biet luc tai lai diem/giai thich - vi trang do khong co
+// vong poll danh sach theo Job ben ngoai. Mac dinh false: giu dung dieu kien cu cho ApplicationsTab.
+function isLatestRunInProgress(runs: ScoringRun[] | undefined, untilFinal = false): boolean {
   const latest = runs?.[0]
-  return Boolean(latest && latest.finishedAt === null)
+  if (!latest) {
+    return false
+  }
+  return untilFinal ? latest.status === 'PENDING' || latest.status === 'RUNNING' : latest.finishedAt === null
 }
 
 // Dung chung cho CA hai vong poll (Dot 5, yeu cau bo sung): dem thoi gian ke tu luc `inProgress`
@@ -140,11 +147,12 @@ export function useHrApplicationsQuery(jobId: string, sort: ApplicationSortOptio
 // (criteriaScored/criteriaTotal/errorMessage) da BIET DAY DU ngay khi D2 xong, D3 tong hop xong hay
 // chua khong lam thay doi gi o day. timedOut la lop chan THEM cho truong hop finishedAt khong bao
 // gio den (xem MAX_POLL_DURATION_MS).
-export function useScoringRunsQuery(applicationId: string, enabled: boolean) {
+export function useScoringRunsQuery(applicationId: string, enabled: boolean, options: { untilFinal?: boolean } = {}) {
+  const untilFinal = options.untilFinal ?? false
   const queryClient = useQueryClient()
   const cachedData = queryClient.getQueryData<ScoringRun[]>(scoringRunsKey(applicationId))
   const { timedOut, resumePolling: resetStallTimer } = useStallGuardedRefetch(
-    isLatestRunInProgress(cachedData),
+    isLatestRunInProgress(cachedData, untilFinal),
     MAX_POLL_DURATION_MS,
   )
 
@@ -153,7 +161,7 @@ export function useScoringRunsQuery(applicationId: string, enabled: boolean) {
     queryFn: () => listScoringRunsRequest(applicationId),
     enabled,
     refetchInterval: (q: Query<ScoringRun[]>) =>
-      !timedOut && isLatestRunInProgress(q.state.data) ? POLL_INTERVAL_MS : false,
+      !timedOut && isLatestRunInProgress(q.state.data, untilFinal) ? POLL_INTERVAL_MS : false,
   })
 
   return {
@@ -166,26 +174,34 @@ export function useScoringRunsQuery(applicationId: string, enabled: boolean) {
   }
 }
 
-export function useCreateScoringRunMutation(jobId: string) {
+// extraInvalidateKeys (FR-H09 R-S4): query THEM can lam moi sau khi tao luot, ngoai danh sach theo
+// Job va lot cham cua don - trang ho so don truyen candidatesKeyPrefix() + query E1/E3/E4 cua trang.
+// Mac dinh rong: ApplicationsTab giu nguyen hanh vi cu. Day la hook DUY NHAT nhan jobId; hook trung
+// ten o features/candidates/queries.ts (khong nhan jobId) giu nguyen, khong tao hook thu ba.
+export function useCreateScoringRunMutation(jobId: string, extraInvalidateKeys: QueryKey[] = []) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (applicationId: string) => createScoringRunRequest(applicationId),
     onSuccess: (_data, applicationId) => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
       queryClient.invalidateQueries({ queryKey: scoringRunsKey(applicationId) })
+      extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     },
   })
 }
 
 // FR-H07 (E1, Dot 3) - Tu choi/Trung tuyen (REJECTED/HIRED). Mau y het useCreateScoringRunMutation:
 // invalidate danh sach de badge trang thai + nut hanh dong cap nhat theo trang thai moi.
-export function useChangeApplicationStatusMutation(jobId: string) {
+// extraInvalidateKeys (FR-H09 R-A5): trang ho so don truyen them dau trang, tab Lich su va
+// /hr/candidates; mac dinh rong - danh sach theo Job giu nguyen hanh vi cu.
+export function useChangeApplicationStatusMutation(jobId: string, extraInvalidateKeys: QueryKey[] = []) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ applicationId, status }: { applicationId: string; status: ApplicationStatus }) =>
       changeApplicationStatusRequest(applicationId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
+      extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     },
   })
 }

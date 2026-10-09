@@ -603,13 +603,11 @@ tương ứng ở đây.
   backend tính (R-M), không bao giờ loại job khỏi kết quả; mở rộng điều kiện cứng `categoryCode`/
   `locationCode` của FR-U07 sang tối đa 3 mã/loại, dùng chung cho cả `GET /api/public/jobs` và gợi
   ý. Nợ kỹ thuật:
-  - [index.css:124-127](../frontend/src/index.css) — rule `a { color: inherit; text-decoration: none; }`
-    nằm ngoài mọi `@layer`, CSS Cascade Layers khiến nó LUÔN thắng mọi utility class Tailwind
-    (`@layer utilities`) đặt trực tiếp trên `<a>`/`<Link>`, bất kể specificity — chữ liên kết thành
-    màu kế thừa (đen) thay vì màu token. Đã vá cục bộ ở `RecommendedJobs.tsx` (chuyển màu/gạch chân
-    sang `<span>` con), còn ảnh hưởng `JobApplyForm.tsx:68,79` và `NotificationDropdown.tsx:57`.
-    Cách sửa gốc: bọc `a {...}` trong `@layer base { ... }` ở `index.css` — chưa làm ở FR-U15; **đã
-    xếp vào `refactor/ui-md3-legacy` đợt 1** (Phase 2.1b).
+  - ~~Rule `a { color: inherit; text-decoration: none; }` ở `index.css` nằm ngoài mọi `@layer`, đè màu
+    mọi `<a>`/`<Link>` có class màu trực tiếp.~~ **ĐÃ SỬA** ở `refactor/ui-md3-legacy` đợt 1 (Phase 2.1b):
+    rule nay nằm trong `@layer base` (`index.css:135-139`), class màu đặt thẳng trên `<Link>` có hiệu
+    lực; bản vá `<span>` ở `RecommendedJobs.tsx` đã gỡ. Ghi chú lịch sử, không còn là nợ (xác nhận lại ở
+    FR-U08, 07/10/2026).
   - Trang chi tiết việc làm (`/jobs/:id`) hiện mã thô `FULL_TIME`/`ONSITE` thay vì nhãn tiếng Việt
     cho hình thức làm việc/loại hợp đồng — tái xác nhận lại khi soát tay FR-U15 (từ "Xem tất cả" mở
     job gợi ý); đã ghi nhận trước ở Phase 2.1b đợt 2 (PublicJobDetailPage) (`refactor/ui-md3-legacy`), không phải
@@ -729,8 +727,65 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
 
 **Phase 2.2 — Hồ sơ đơn & trao đổi**
 > Chỉ bắt đầu khi `refactor/ui-md3-legacy` (Phase 2.1b) đã tick.
-- [ ] `feat/fr-h09-application-detail` — FR-H09 · Trang hồ sơ đơn ứng tuyển
-- [ ] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển
+- [x] `feat/fr-h09-application-detail` — FR-H09 · Trang hồ sơ đơn ứng tuyển — **HOÀN THÀNH**
+  (07/10/2026, 7 đợt — xem `docs/walkthrough/fr-h09-application-detail.md`). Trang `/hr/applications/:id`
+  với 3 tab (CV & điểm, Giải thích, Lịch sử) và thanh thao tác FR-H07; 5 endpoint chỉ đọc mới dưới
+  `/api/hr/applications/{id}` (E1 đầu trang, E2 CV đã trích xuất, E3 điểm + hạng, E4 giải thích, E5 lịch
+  sử), đơn công ty khác trả 403 như các endpoint cũ cùng nhóm; hạng tính bằng đúng một công thức FR-H05
+  dùng chung với danh sách theo Job; bỏ Sheet "Hồ sơ ứng viên" ở tab Ứng viên, thêm liên kết "Xem hồ sơ"
+  ở tab Ứng viên và `/hr/candidates`; thông báo HR mới trỏ `/hr/applications/{id}`. Đặc tả sửa và duyệt
+  lại 2 lần trong lúc code (thêm `scoredAt` vào E4, đợt 5; sửa hàm `Test-Get` ở khối PowerShell mục 7.2,
+  đợt 7). Không migration. Nợ kỹ thuật:
+  - API danh sách theo Job (`GET /api/hr/jobs/{jobId}/applications`) vẫn trả `criterionScores`/
+    `explanation`/`explanationStatus` dù danh sách không còn hiển thị (Sheet đã bỏ) — payload thừa, giữ
+    vì FR-H09 không đổi API cũ.
+  - E3 và E4 mỗi lần gọi nạp lại cả danh sách đơn của tin (`ApplicationOwnerService.rankApplications`,
+    số query cố định, không N+1) để hạng luôn bằng hạng ở danh sách — tốn hơn khi tin có rất nhiều đơn;
+    mở cả hai tab là hai lượt nạp.
+  - `/api/hr/applications/{id}` với id sai định dạng trả 400 mặc định của Spring
+    (`MethodArgumentTypeMismatchException` chưa có handler trong `GlobalExceptionHandler`), body không
+    theo dạng `{"error": ...}` chuẩn hoá; frontend coi 400/403/404 như nhau (R-T13).
+  - Thư giới thiệu (`job_applications.cover_letter`, `TEXT`) không giới hạn độ dài ở cả form lẫn backend.
+  - Máy dev không có `rg` trong PATH — các lệnh `rg` ở REQUIREMENT mục 7.3 đã chạy bằng công cụ tìm kiếm
+    tương đương (cùng ripgrep, cùng pattern).
+  - Frontend chưa có test tự động — mọi hành vi trang mới chỉ kiểm bằng build/lint + soát tay.
+  - Helper test `uniqueEmail(prefix)` ghép `prefix-UUID`: prefix > 27 ký tự làm phần trước `@` vượt 64
+    ký tự → `@Email` từ chối (400). Đã gặp ở 3 test FR-H09, sửa bằng prefix ngắn + comment; các lớp
+    test khác dùng cùng mẫu vẫn có thể vấp lại.
+  - Ngày "lượt chấm hoàn tất ngày …"/"Nộp ngày …" định dạng theo giờ trình duyệt (`toLocaleString`), giống
+    danh sách cũ; chưa cố định múi giờ Việt Nam.
+- [x] `feat/fr-u08-application-detail` — FR-U08 · Trang chi tiết đơn ứng tuyển — **HOÀN THÀNH**
+  (07/10/2026, 6 đợt + đợt 5b sửa sau soát tay — xem `docs/walkthrough/fr-u08-application-detail.md`; nhánh
+  xếp chồng lên `feat/fr-h09-application-detail`). Trang `/candidate/applications/:id` với tab "Thông tin đơn"
+  (giấy mời, tóm tắt tin + tình trạng tin, CV đã nộp + thư giới thiệu, CV đã trích xuất) và "Lịch sử", nút
+  Rút đơn; một endpoint mới `GET /api/candidates/applications/{id}` (đơn của người khác và đơn không tồn tại
+  cùng 404; 403 của endpoint giấy mời giữ nguyên, có test khoá hai mã); tình trạng tin 5 giá trị dùng chung
+  `findOpenJobById`, gộp xoá mềm và nháp thành `UNAVAILABLE`; trang danh sách chỉ còn liên kết "Xem chi tiết";
+  thông báo đổi trạng thái mới của ứng viên trỏ trang chi tiết; gộp 3 bản `formatSalary` thành một. Full suite
+  819/819. Không migration. "Rút đồng ý lưu hồ sơ" chuyển sang FR-U09/FR-H15 (SRS, README, UI_GUIDE đã sửa ở
+  commit đặc tả). Có chạm 1 file FR-H09 (`HrApplicationDetailPage.tsx`, `TabsList` thêm `overflow-y-hidden`).
+  Nợ kỹ thuật:
+  - **LỖI MẤT DỮ LIỆU — ưu tiên cao, sửa ở một nhánh `fix/` riêng TRƯỚC DEMO** (phát hiện khi soát tay FR-U08,
+    không thuộc FR-U08): form sửa tin phía HR (`HrJobEditPage.tsx:128-129,142-143,264,285`, tab "Thông tin tin
+    tuyển dụng") hiện hai ô "Loại hình làm việc"/"Hình thức làm việc" trống dù DB có giá trị (seed-test J1,
+    cả 6 tin của bộ demo). Bấm "Lưu thay đổi" gửi PUT thiếu hai field (`toUndef('')` → `undefined`),
+    `JobOwnerService.java:262-263` ghi đè thành `null` — mất dữ liệu; tin `REMOTE` không có tỉnh/thành còn có
+    thể bị chặn 409 "thiếu danh mục" khi đang `OPEN`. Nguyên nhân khả nghi (đọc mã `@radix-ui/react-select`
+    2.3.7, **chưa tái hiện bằng cách chạy**): giá trị form đổi từ `''` sang mã thật SAU khi Select đã mount,
+    `<select>` ẩn của Radix chưa có `<option>` tương ứng nên phát `onValueChange('')`. Code có từ FR-H02 (PR #4,
+    `1d2df62`), `chore/hardening` đợt 6 (`14d0836`) có chạm. Đề xuất sửa: bỏ qua giá trị rỗng ở
+    `onValueChange` của 2 Select (`if (v) field.onChange(v)` — hai danh sách không có lựa chọn rỗng); áp cùng
+    cách cho `HrJobCreatePage.tsx:305,326` (FR-H11 điền form bằng code sẽ gặp đúng lỗi này); thêm bước soát tay
+    "mở form sửa J1 thấy đủ hai ô, lưu không đổi gì thì DB giữ nguyên".
+  - `NotificationList` (trang "Xem tất cả" thông báo, `NotificationList.tsx:60-67`) không điều hướng theo
+    `link`, chỉ đánh dấu đã đọc; chỉ chuông có điều hướng. Ảnh hưởng cả HR. Email thông báo không có link.
+  - Cảnh báo Vite "Some chunks are larger than 500 kB" ở `npm run build` (bundle ~1,18 MB, có từ trước) —
+    cân nhắc chia nhỏ bằng `import()` động.
+  - `retryUnlessClientError` có hai bản (`features/applicationDetail/queries.ts` và
+    `features/candidateApplicationDetail/queries.ts`) vì trang ứng viên không được import từ thư mục phía HR.
+  - Danh sách đơn của ứng viên không lọc đơn vào tin đã xoá mềm (hành vi cũ, giữ nguyên); trang chi tiết hiện
+    tin đó là "Không còn đăng".
+  - Frontend chưa có test tự động.
 - [ ] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển
 - [ ] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn
 
@@ -798,6 +853,9 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 >   `candidateName` cho mọi Job), hộp thư `/hr/messages` (C06), tab Sàng lọc (H10 — câu trả lời tự do),
 >   tab Câu hỏi phỏng vấn (H13 — đoạn CV liên quan); cần soát thêm nội dung thông báo/email gửi HR.
 >   Phụ thuộc thực tế ngoài H09/H14/C08: FR-C06, FR-H13, FR-H15.
+> - FR-H16 phải ghi đè R-V1 của FR-H09 (`/hr/applications/:id` cho tải CV gốc ở mọi trạng thái trích
+>   xuất): ở chế độ ẩn danh không tải được CV gốc; đồng thời che thư giới thiệu (R-L của FR-H09) — FR-H09
+>   hiện thư nguyên văn và đã ghi việc che vào "Ngoài phạm vi".
 
 **Xong khi:** bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu
 ứng viên nhập.

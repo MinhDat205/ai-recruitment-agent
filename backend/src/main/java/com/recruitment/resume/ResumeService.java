@@ -1,7 +1,5 @@
 package com.recruitment.resume;
 
-import com.recruitment.catalog.CatalogRegistry;
-import com.recruitment.catalog.dto.CatalogResponse;
 import com.recruitment.common.exception.InvalidResumeFileException;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.common.exception.ResumeParsedDataNotFoundException;
@@ -40,7 +38,8 @@ public class ResumeService {
     private final StorageService storageService;
     private final ResumeParsingStateService resumeParsingStateService;
     private final ResumeReparseRequestRepository resumeReparseRequestRepository;
-    private final CatalogRegistry catalogRegistry;
+    // FR-H09 Q2: cach map ResumeParsedData -> DTO tach sang mapper dung chung voi phia HR (E2).
+    private final ResumeParsedDataResponseMapper resumeParsedDataResponseMapper;
 
     public ResumeService(
             ResumeRepository resumeRepository,
@@ -48,13 +47,13 @@ public class ResumeService {
             StorageService storageService,
             ResumeParsingStateService resumeParsingStateService,
             ResumeReparseRequestRepository resumeReparseRequestRepository,
-            CatalogRegistry catalogRegistry) {
+            ResumeParsedDataResponseMapper resumeParsedDataResponseMapper) {
         this.resumeRepository = resumeRepository;
         this.resumeParsedDataRepository = resumeParsedDataRepository;
         this.storageService = storageService;
         this.resumeParsingStateService = resumeParsingStateService;
         this.resumeReparseRequestRepository = resumeReparseRequestRepository;
-        this.catalogRegistry = catalogRegistry;
+        this.resumeParsedDataResponseMapper = resumeParsedDataResponseMapper;
     }
 
     public List<ResumeResponse> listMine(UUID candidateId) {
@@ -148,7 +147,7 @@ public class ResumeService {
         ResumeParsedData data = resumeParsedDataRepository
                 .findByResumeId(resumeId)
                 .orElseThrow(() -> new ResumeParsedDataNotFoundException(resumeId));
-        return toParsedDataResponse(data);
+        return resumeParsedDataResponseMapper.toResponse(data);
     }
 
     // FR-C05 R-R1..R-R3 - ung vien yeu cau trich xuat lai CV schema cu cua chinh minh. Chi TAO yeu cau
@@ -215,38 +214,6 @@ public class ResumeService {
             throw new ResumeRetryNotAllowedException();
         }
         return toResponse(resumeRepository.findById(resumeId).orElseThrow());
-    }
-
-    private ResumeParsedDataResponse toParsedDataResponse(ResumeParsedData data) {
-        ResumeParsedPayload payload = data.getData();
-        return new ResumeParsedDataResponse(
-                data.getResumeId(),
-                payload,
-                data.getParsedAt(),
-                ResumeSchemaVersions.of(data.getPromptVersion()),
-                payload.currentTitle(),
-                catalogItem(data.getIndustryCode(), catalogRegistry.industryLabel(data.getIndustryCode())),
-                catalogItem(data.getRegionCode(), catalogRegistry.provinceLabel(data.getRegionCode())),
-                payload.locationText(),
-                toExperience(data));
-    }
-
-    private static CatalogResponse.Item catalogItem(String code, String label) {
-        return code == null || label == null ? null : new CatalogResponse.Item(code, label);
-    }
-
-    // null khi chua tinh (job nen chua toi). years do backend quy doi (R-E8).
-    private static ResumeParsedDataResponse.Experience toExperience(ResumeParsedData data) {
-        if (data.getExperienceComputedAt() == null) {
-            return null;
-        }
-        Integer months = data.getExperienceMonths();
-        return new ResumeParsedDataResponse.Experience(
-                months,
-                months == null ? null : ExperienceCalculator.toYears(months),
-                data.getExperienceEntriesCounted(),
-                data.getExperienceEntriesSkipped(),
-                ExperienceCalculator.referenceMonth(data.getExperienceComputedAt()).toString());
     }
 
     private static Optional<ResumeFileType> detectFileType(byte[] content) {

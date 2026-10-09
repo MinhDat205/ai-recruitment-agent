@@ -1,11 +1,17 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.catalog.CatalogRegistry;
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.ApplicationNotWithdrawableException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
+import com.recruitment.company.Company;
+import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
+import com.recruitment.job.JobCatalogFields;
 import com.recruitment.job.JobRepository;
+import com.recruitment.jobapplication.dto.ApplicationCandidateDetailResponse;
+import com.recruitment.jobapplication.dto.ApplicationCandidateDetailResponse.JobAvailability;
 import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
@@ -30,6 +36,8 @@ public class ApplicationService {
     private final ResumeRepository resumeRepository;
     private final ApplicationStatusRecorder applicationStatusRecorder;
     private final ApplicationEventPublisher eventPublisher;
+    private final CompanyRepository companyRepository;
+    private final CatalogRegistry catalogRegistry;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
@@ -37,13 +45,17 @@ public class ApplicationService {
             JobRepository jobRepository,
             ResumeRepository resumeRepository,
             ApplicationStatusRecorder applicationStatusRecorder,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            CompanyRepository companyRepository,
+            CatalogRegistry catalogRegistry) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
         this.resumeRepository = resumeRepository;
         this.applicationStatusRecorder = applicationStatusRecorder;
         this.eventPublisher = eventPublisher;
+        this.companyRepository = companyRepository;
+        this.catalogRegistry = catalogRegistry;
     }
 
     @Transactional
@@ -131,6 +143,80 @@ public class ApplicationService {
                 .toList();
     }
 
+    // FR-U08 E1 - chi tiet MOT don cua chinh ung vien. Chi doc job_applications, jobs, companies, resumes
+    // (R-D1): KHONG doc scoring_runs/criterion_scores/score_explanations/interview_invitations/lich su.
+    @Transactional(readOnly = true)
+    public ApplicationCandidateDetailResponse getMyApplicationDetail(UUID candidateId, UUID applicationId) {
+        // R-Q2: don khong ton tai HOAC cua nguoi khac deu cung 404 APPLICATION_NOT_FOUND - cung pattern
+        // getMyApplicationHistory/withdraw, KHONG theo 403 cua endpoint giay moi.
+        JobApplication application = applicationRepository
+                .findByIdAndCandidateId(applicationId, candidateId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        // findById KHONG loc deleted_at/status (Job khong co @SQLRestriction): don vao tin da dong/xoa mem van
+        // mo duoc (R-D4). Ba dong duoi luon ton tai: job_id/resume_id la FK ON DELETE RESTRICT (V1), companies
+        // khong co xoa - thieu la loi du lieu, khong phai truong hop nghiep vu.
+        Job job = jobRepository
+                .findById(application.getJobId())
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay tin cua don: " + applicationId));
+        Company company = companyRepository
+                .findById(job.getCompanyId())
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay cong ty cua tin: " + job.getId()));
+        // R-D2: CV DA NOP vao don (job_applications.resume_id), KHONG phai CV chinh hien tai.
+        Resume resume = resumeRepository
+                .findById(application.getResumeId())
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay CV cua don: " + applicationId));
+
+        JobCatalogFields catalog = JobCatalogFields.of(job, catalogRegistry);
+        ApplicationCandidateDetailResponse.JobInfo jobInfo = new ApplicationCandidateDetailResponse.JobInfo(
+                job.getId(),
+                job.getTitle(),
+                company.getId(),
+                company.getName(),
+                availabilityOf(job),
+                catalog.categoryCode(),
+                catalog.categoryLabel(),
+                catalog.locationCode(),
+                catalog.locationLabel(),
+                catalog.legacyCategory(),
+                catalog.legacyLocation(),
+                job.getEmploymentType(),
+                job.getWorkMode(),
+                job.getSalaryMin(),
+                job.getSalaryMax(),
+                job.getSalaryCurrency(),
+                job.getDeadline());
+        ApplicationCandidateDetailResponse.ResumeInfo resumeInfo = new ApplicationCandidateDetailResponse.ResumeInfo(
+                resume.getId(), resume.getFileName(), resume.getParseStatus(), resume.getParseError());
+
+        return new ApplicationCandidateDetailResponse(
+                application.getId(),
+                application.getStatus(),
+                application.getAppliedAt(),
+                application.getUpdatedAt(),
+                application.getCoverLetter(),
+                jobInfo,
+                resumeInfo);
+    }
+
+    // R-D4 - xet theo thu tu, dung o dong dau tien khop. OPEN dung CHINH findOpenJobById (cung dieu kien voi
+    // trang tin cong khai, ke ca han nop theo CURRENT_DATE cua DB) - KHONG tu viet dieu kien ngay o Java.
+    private JobAvailability availabilityOf(Job job) {
+        if (job.getDeletedAt() != null) {
+            return JobAvailability.UNAVAILABLE;
+        }
+        if (jobRepository.findOpenJobById(job.getId()).isPresent()) {
+            return JobAvailability.OPEN;
+        }
+        return switch (job.getStatus()) {
+            // status OPEN, chua xoa nhung findOpenJobById rong -> chi con ly do qua han nop.
+            case OPEN -> JobAvailability.EXPIRED;
+            case PAUSED -> JobAvailability.PAUSED;
+            case CLOSED -> JobAvailability.CLOSED;
+            case DRAFT -> JobAvailability.UNAVAILABLE;
+        };
+    }
+
     private static ApplicationResponse toResponse(JobApplication a) {
         return new ApplicationResponse(
                 a.getId(),
@@ -155,7 +241,9 @@ public class ApplicationService {
                 v.getUpdatedAt());
     }
 
-    private static ApplicationHistoryEntryResponse toHistoryResponse(ApplicationStatusHistory h) {
+    // Package-private (khong private): ApplicationHrDetailService (FR-H09 E5) dung lai dung cach map
+    // nay cho lich su phia HR - mot DTO, mot cach map cho ca hai phia.
+    static ApplicationHistoryEntryResponse toHistoryResponse(ApplicationStatusHistory h) {
         return new ApplicationHistoryEntryResponse(h.getId(), h.getFromStatus(), h.getToStatus(), h.getNote(), h.getChangedAt());
     }
 }

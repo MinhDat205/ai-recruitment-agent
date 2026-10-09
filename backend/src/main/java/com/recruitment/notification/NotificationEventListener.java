@@ -56,7 +56,7 @@ public class NotificationEventListener {
     public void onApplicationStatusChanged(ApplicationStatusChangedEvent event) {
         try {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
-            Content content = NotificationContentBuilder.forStatusChanged(job, event.toStatus());
+            Content content = NotificationContentBuilder.forStatusChanged(job, event.toStatus(), event.applicationId());
             save(event.candidateId(), NotificationType.APPLICATION_STATUS_CHANGED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao doi trang thai don: applicationId={}", event.applicationId(), e);
@@ -70,7 +70,8 @@ public class NotificationEventListener {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
             Company company = companyRepository.findById(job.getCompanyId()).orElseThrow();
             User candidate = userRepository.findById(event.candidateId()).orElseThrow();
-            Content content = NotificationContentBuilder.forApplicationSubmitted(job, candidate.getFullName());
+            Content content = NotificationContentBuilder.forApplicationSubmitted(
+                    job, candidate.getFullName(), event.applicationId());
             save(company.getOwnerId(), NotificationType.APPLICATION_SUBMITTED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao don moi: applicationId={}", event.applicationId(), e);
@@ -84,7 +85,8 @@ public class NotificationEventListener {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
             Company company = companyRepository.findById(job.getCompanyId()).orElseThrow();
             User candidate = userRepository.findById(event.candidateId()).orElseThrow();
-            Content content = NotificationContentBuilder.forApplicationWithdrawn(job, candidate.getFullName());
+            Content content = NotificationContentBuilder.forApplicationWithdrawn(
+                    job, candidate.getFullName(), event.applicationId());
             save(company.getOwnerId(), NotificationType.APPLICATION_WITHDRAWN, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao rut don: applicationId={}", event.applicationId(), e);
@@ -97,7 +99,7 @@ public class NotificationEventListener {
         try {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
             Company company = companyRepository.findById(job.getCompanyId()).orElseThrow();
-            Content content = NotificationContentBuilder.forAggregationFinished(job);
+            Content content = NotificationContentBuilder.forAggregationFinished(job, event.applicationId());
             save(company.getOwnerId(), NotificationType.SCORING_FINISHED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao cham diem xong: scoringRunId={}", event.scoringRunId(), e);

@@ -34,7 +34,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H06 | AI Explainable Scoring | HR (xem) — AI thực hiện | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H07 | Quản lý Pipeline & Quyết định Tuyển dụng | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H08 | Dashboard, Thống kê & Lịch sử Đánh giá | HR | Đã hoàn thành | Mục 2 bên dưới |
-| FR-H09 | Trang hồ sơ đơn ứng tuyển | HR | Chưa đặc tả | [features/HR/H09/REQUIREMENT.md](features/HR/H09/REQUIREMENT.md) |
+| FR-H09 | Trang hồ sơ đơn ứng tuyển | HR | Đã hoàn thành | [features/HR/H09/REQUIREMENT.md](features/HR/H09/REQUIREMENT.md) |
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR | Chưa đặc tả | [features/HR/H10/REQUIREMENT.md](features/HR/H10/REQUIREMENT.md) |
 | FR-H11 | AI tạo tin tuyển dụng | HR | Chưa đặc tả | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
 | FR-H12 | Giấy mời nhiều khung giờ | HR | Chưa đặc tả | [features/HR/H12/REQUIREMENT.md](features/HR/H12/REQUIREMENT.md) |
@@ -49,7 +49,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U05 | AI CV Improvement | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
 | FR-U06 | Rút đơn Ứng tuyển | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
 | FR-U07 | Bộ lọc tìm việc nâng cao | Ứng viên | Đã hoàn thành | [features/UV/U07/REQUIREMENT.md](features/UV/U07/REQUIREMENT.md) |
-| FR-U08 | Trang chi tiết đơn ứng tuyển | Ứng viên | Chưa đặc tả | [features/UV/U08/REQUIREMENT.md](features/UV/U08/REQUIREMENT.md) |
+| FR-U08 | Trang chi tiết đơn ứng tuyển | Ứng viên | Đã hoàn thành | [features/UV/U08/REQUIREMENT.md](features/UV/U08/REQUIREMENT.md) |
 | FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Ứng viên | Chưa đặc tả | [features/UV/U09/REQUIREMENT.md](features/UV/U09/REQUIREMENT.md) |
 | FR-U10 | Chọn khung giờ phỏng vấn | Ứng viên | Chưa đặc tả | [features/UV/U10/REQUIREMENT.md](features/UV/U10/REQUIREMENT.md) |
 | FR-U11 | Thống kê ứng tuyển cá nhân | Ứng viên | Chưa đặc tả | [features/UV/U11/REQUIREMENT.md](features/UV/U11/REQUIREMENT.md) |
@@ -97,7 +97,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 
 | Mã | Tên | Tóm tắt | Actor | Phụ thuộc |
 | --- | --- | --- | --- | --- |
-| FR-H09 | Trang hồ sơ đơn ứng tuyển | Một màn hình gom CV, điểm, giải thích, sàng lọc, câu hỏi PV, trao đổi, hỏi đáp CV và các nút quyết định | HR | FR-H04, FR-H05, FR-H06, FR-H07 |
+| FR-H09 | Trang hồ sơ đơn ứng tuyển | Một màn hình cho một đơn: tab CV & điểm (CV gốc, thư giới thiệu, CV đã trích xuất, điểm + evidence, chấm điểm), Giải thích, Lịch sử và các nút quyết định FR-H07; tab/nút của FR sau do chính FR đó thêm | HR | FR-H04, FR-H05, FR-H06, FR-H07 |
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR đặt câu hỏi ngắn/lựa chọn/có-không cho Job; không tự loại, không đưa vào chấm điểm | HR | FR-H02 |
 | FR-H11 | AI tạo tin tuyển dụng | Từ mô tả tự do sinh bản nháp Job, gợi ý tiêu chí rubric và câu hỏi sàng lọc; trọng số do HR nhập | HR | FR-H02, FR-H03, FR-C05, FR-H10 |
 | FR-H12 | Giấy mời nhiều khung giờ | Giấy mời có 1–5 khung giờ để ứng viên chọn; thêm thao tác gửi lại giấy mời | HR | FR-H07, FR-C03 |
@@ -124,8 +124,8 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | Mã | Tên | Tóm tắt | Actor | Phụ thuộc |
 | --- | --- | --- | --- | --- |
 | FR-U07 | Bộ lọc tìm việc nâng cao | Lọc theo ngành nghề, khu vực, lương, hình thức, thời gian đăng; giữ bộ lọc trên URL | Ứng viên | FR-C02, FR-C05 |
-| FR-U08 | Trang chi tiết đơn ứng tuyển | Một màn hình gom trạng thái, lịch sử, giấy mời, câu trả lời sàng lọc, trao đổi, rút đơn, rút đồng ý | Ứng viên | FR-U03, FR-U06 |
-| FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Khi nộp đơn: trả lời câu hỏi sàng lọc; tuỳ chọn cho công ty lưu hồ sơ (mặc định không) | Ứng viên | FR-U02, FR-H10 |
+| FR-U08 | Trang chi tiết đơn ứng tuyển | Một màn hình gom trạng thái, lịch sử, giấy mời, câu trả lời sàng lọc, trao đổi, rút đơn (rút đồng ý do FR-U09 thêm) | Ứng viên | FR-U03, FR-U06 |
+| FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Khi nộp đơn: trả lời câu hỏi sàng lọc; tuỳ chọn cho công ty lưu hồ sơ (mặc định không); rút đồng ý ở trang chi tiết đơn | Ứng viên | FR-U02, FR-H10 |
 | FR-U10 | Chọn khung giờ phỏng vấn | Ứng viên chọn một khung giờ trong giấy mời; HR được thông báo | Ứng viên | FR-H12, FR-U08 |
 | FR-U11 | Thống kê ứng tuyển cá nhân | Số đơn theo trạng thái, tỷ lệ được mời phỏng vấn, biểu đồ theo thời gian | Ứng viên | FR-U03 |
 | FR-U12 | Tạo CV (CV builder) | Tạo CV từ form, xuất PDF, dùng như CV upload; AI chỉ gợi ý diễn đạt, không thêm nội dung | Ứng viên | FR-U01, FR-C04 |

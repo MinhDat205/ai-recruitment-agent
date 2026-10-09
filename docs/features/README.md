@@ -269,7 +269,7 @@ Chỉ cho ứng viên đã đăng nhập; chưa gửi email gợi ý định k�
 - **Phase:** 2.2 · **Nhánh:** `feat/fr-h09-application-detail` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H09/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-H04, FR-H05, FR-H06, FR-H07
-- **Màn hình (UI_GUIDE mục 7):** ★`/hr/applications/:id` — điểm vào từ tab Ứng viên của `/hr/jobs/:id/edit`, từ `/hr/candidates`, từ kho ứng viên và thông báo.
+- **Màn hình (UI_GUIDE mục 7):** ★`/hr/applications/:id` — điểm vào từ tab Ứng viên của `/hr/jobs/:id/edit`, từ `/hr/candidates` và thông báo (kho ứng viên thêm ở H15).
 
 **Mục đích**
 
@@ -277,9 +277,10 @@ Gom mọi thông tin và thao tác về một đơn ứng tuyển vào một mà
 
 **Người dùng thao tác**
 
-- Từ danh sách xếp hạng của Job, danh sách Ứng viên, Kho ứng viên hoặc thông báo → mở hồ sơ đơn.
-- Các tab: CV & điểm (file CV, CV đã trích xuất, điểm từng tiêu chí, evidence), Giải thích (FR-H06), Sàng lọc (H10), Câu hỏi phỏng vấn (H13), Trao đổi (C06), Hỏi đáp CV (C08), Lịch sử trạng thái.
-- Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07), Thêm vào kho (H15).
+- Từ danh sách xếp hạng của Job, danh sách Ứng viên hoặc thông báo → mở hồ sơ đơn.
+- Ba tab: CV & điểm (file CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí, evidence, nút Chấm điểm hồ sơ), Giải thích (FR-H06), Lịch sử trạng thái.
+- Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07).
+- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Câu hỏi phỏng vấn (H13), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
 
 **Hệ thống**
 
@@ -295,7 +296,7 @@ Một màn hình duy nhất cho mọi thao tác trên đơn.
 
 **Lưu ý**
 
-Các nút đổi trạng thái dùng đúng luồng và máy trạng thái của FR-H07, không tạo luồng song song. Nút Thêm vào kho bị khoá và ghi rõ lý do khi ứng viên không đồng ý lưu hồ sơ (U09).
+Các nút đổi trạng thái dùng đúng luồng và máy trạng thái của FR-H07, không tạo luồng song song. Không dựng tab rỗng hay nút khoá cho FR sau. Trang này thay Sheet "Hồ sơ ứng viên" ở tab Ứng viên của trang sửa Job — không tồn tại hai nơi xem hồ sơ song song.
 
 **Phạm vi**
 
@@ -314,13 +315,13 @@ Gom mọi thông tin và thao tác của ứng viên trên một đơn vào mộ
 
 **Người dùng thao tác**
 
-Từ Đơn của tôi hoặc thông báo → mở chi tiết đơn → xem thông tin Job, CV đã nộp, trạng thái và lịch sử (FR-U03), giấy mời và chọn khung giờ (U10), câu trả lời sàng lọc đã gửi (U09), trạng thái đồng ý lưu hồ sơ kèm nút Rút đồng ý, tab Trao đổi (C06), nút Rút đơn (FR-U06).
+Từ Đơn của tôi hoặc thông báo → mở chi tiết đơn → xem thông tin Job, CV đã nộp, trạng thái và lịch sử (FR-U03), giấy mời và chọn khung giờ (U10), câu trả lời sàng lọc đã gửi và trạng thái đồng ý lưu hồ sơ kèm nút Rút đồng ý (U09), tab Trao đổi (C06), nút Rút đơn (FR-U06).
 
 **Hệ thống**
 
 - Bổ sung API chi tiết đơn phía ứng viên, kiểm tra quyền sở hữu.
 - Không trả điểm, rubric, giải thích AI, ghi chú, câu hỏi phỏng vấn hay thông tin kho.
-- Rút đồng ý: đặt lại cờ đồng ý lưu hồ sơ của đơn, ghi thời điểm, xoá đơn khỏi mọi kho ứng viên (H15). Rút đồng ý là một chiều, không bật lại được cho đơn đã nộp.
+- Rút đồng ý (FR-U09 thêm vào trang này; phần xoá khỏi kho do FR-H15): đặt lại cờ đồng ý lưu hồ sơ của đơn, ghi thời điểm, xoá đơn khỏi mọi kho ứng viên. Rút đồng ý là một chiều, không bật lại được cho đơn đã nộp.
 
 **AI**
 
@@ -332,7 +333,7 @@ Một màn hình duy nhất cho mọi thao tác của ứng viên trên đơn.
 
 **Lưu ý**
 
-Ứng viên chỉ xem được đơn của chính mình. Rút đồng ý không ảnh hưởng trạng thái, điểm số hay việc xét tuyển của đơn.
+Ứng viên chỉ xem được đơn của chính mình.
 
 **Phạm vi**
 
@@ -490,7 +491,7 @@ Không dùng AI.
 
 **Lưu ý**
 
-Ô đồng ý lưu hồ sơ mặc định không tick và không bắt buộc; không tick vẫn nộp đơn bình thường và không ảnh hưởng điểm, xếp hạng hay việc xét tuyển. Đồng ý tính theo từng đơn: hai đơn vào cùng công ty có thể có lựa chọn khác nhau.
+Ô đồng ý lưu hồ sơ mặc định không tick và không bắt buộc; không tick vẫn nộp đơn bình thường và không ảnh hưởng điểm, xếp hạng hay việc xét tuyển. Đồng ý tính theo từng đơn: hai đơn vào cùng công ty có thể có lựa chọn khác nhau. Rút đồng ý không ảnh hưởng trạng thái, điểm số hay việc xét tuyển của đơn.
 
 **Phạm vi**
 
@@ -746,7 +747,7 @@ Giúp HR giữ lại ứng viên tiềm năng đã nộp đơn để dùng cho c
 - Kho thuộc công ty. Mỗi mục trong kho trỏ tới một đơn ứng tuyển (qua đó tới CV, Job); một đơn có thể thuộc nhiều kho, không trùng trong cùng một kho.
 - Chỉ thêm được đơn mà ứng viên đã đồng ý lưu hồ sơ (U09); kiểm tra ở backend.
 - Bộ lọc là truy vấn xác định trên dữ liệu chuẩn hoá của C05. Mục thiếu dữ liệu cho điều kiện đang lọc hiển thị nhãn "thiếu dữ liệu", không bị loại âm thầm. Kết quả có phân trang và giữ thứ tự sắp xếp HR chọn.
-- Khi ứng viên rút đồng ý (U08), mục bị xoá khỏi mọi kho kèm ghi chú và bản tóm tắt.
+- Khi ứng viên rút đồng ý (U09), mục bị xoá khỏi mọi kho kèm ghi chú và bản tóm tắt.
 - Bản tóm tắt AI được dựng qua K1, gọi theo K3 và lưu kèm siêu dữ liệu K4.
 
 **AI**

@@ -496,9 +496,12 @@ FROM (VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 13. Thong bao - khop 1-1 voi su kien that (NotificationEventListener +
---     NotificationContentBuilder): moi don nop -> HR; rut don -> HR; moi lan HR
---     doi trang thai -> ung vien. Khong co SCORING_FINISHED vi khong co luot DONE.
+-- 13. Thong bao - khop 1-1 voi su kien that (NotificationEventListener): moi don
+--     nop -> HR; rut don -> HR; moi lan HR doi trang thai -> ung vien. Khong co
+--     SCORING_FINISHED vi khong co luot DONE. Tieu de/noi dung theo
+--     NotificationContentBuilder; RIENG link cua thong bao HR la link CU '/hr/jobs'
+--     (truoc FR-H09) - CO Y giu nguyen de soat FR-H09 R-N2 (thong bao cu van mo
+--     duoc). Thong bao HR tao moi tu FR-H09 tro '/hr/applications/{id}'.
 --     email_status = 'SKIPPED' cho moi dong - khong gui thu that.
 -- ---------------------------------------------------------------------------
 

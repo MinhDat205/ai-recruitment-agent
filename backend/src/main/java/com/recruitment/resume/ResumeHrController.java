@@ -1,5 +1,6 @@
 package com.recruitment.resume;
 
+import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.springframework.core.io.Resource;
@@ -38,5 +39,12 @@ public class ResumeHrController {
                 .contentType(download.contentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(download.resource());
+    }
+
+    // FR-H09 E2 - CV da trich xuat cua don, cho tab "CV & diem" (R-D2). Kiem quyen o ResumeHrService.
+    @GetMapping("/parsed")
+    public ResumeParsedDataResponse getParsedData(Authentication authentication, @PathVariable UUID applicationId) {
+        UUID ownerId = UUID.fromString(authentication.getName());
+        return resumeHrService.getParsedDataForApplication(ownerId, applicationId);
     }
 }

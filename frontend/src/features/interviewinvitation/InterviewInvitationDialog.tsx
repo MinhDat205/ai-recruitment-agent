@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { QueryKey } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect } from 'react'
@@ -9,7 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import type { ApplicationHrListItem } from '../scoring/types'
 import { useInterviewInvitationPreviewQuery, useSendInterviewInvitationMutation } from './queries'
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -43,16 +43,25 @@ function buildScheduledAtIso(datetimeLocalValue: string): string {
   return new Date(datetimeLocalValue).toISOString()
 }
 
+// FR-H09 R-A4: prop toi thieu { id, candidateName } (truoc la ca ApplicationHrListItem) de trang ho so
+// don dung duoc ma khong can dong cua danh sach theo Job. invalidateQueryKeys: query THEM can lam moi
+// sau khi gui thanh cong (mac dinh rong). Form, kiem tra va API khong doi.
 interface InterviewInvitationDialogProps {
-  application: ApplicationHrListItem | null
+  application: { id: string; candidateName: string } | null
   jobId: string
   onOpenChange: (open: boolean) => void
+  invalidateQueryKeys?: QueryKey[]
 }
 
-export function InterviewInvitationDialog({ application, jobId, onOpenChange }: InterviewInvitationDialogProps) {
+export function InterviewInvitationDialog({
+  application,
+  jobId,
+  onOpenChange,
+  invalidateQueryKeys,
+}: InterviewInvitationDialogProps) {
   const open = application !== null
   const previewQuery = useInterviewInvitationPreviewQuery(application?.id, open)
-  const sendMutation = useSendInterviewInvitationMutation(jobId)
+  const sendMutation = useSendInterviewInvitationMutation(jobId, invalidateQueryKeys)
 
   const {
     register,

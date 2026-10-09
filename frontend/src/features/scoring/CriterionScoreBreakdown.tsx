@@ -28,9 +28,11 @@ function CriterionRow({ item }: { item: CriterionScoreItem }) {
 
   return (
     <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
+      {/* FR-H09 (UI.md muc 8): duoi sm xep doc - ten tieu chi o tren, diem/trong so o duoi - de khong tran
+          ngang o 375px. Tu sm tro len giu nguyen bo cuc mot hang nhu truoc. */}
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left text-sm"
+        className="flex w-full flex-col items-start gap-1 px-4 py-2.5 text-left text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
         onClick={() => setReasoningExpanded((expanded) => !expanded)}
         aria-expanded={reasoningExpanded}
       >

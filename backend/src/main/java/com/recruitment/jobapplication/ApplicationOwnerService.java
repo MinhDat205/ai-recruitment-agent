@@ -80,9 +80,48 @@ public class ApplicationOwnerService {
 
     public List<ApplicationHrListItemResponse> listApplications(UUID ownerId, UUID jobId, ApplicationSortOption sort) {
         Job job = loadOwnedJob(jobId, ownerId);
+        RankedRows ranked = rankApplications(job);
+        List<RankableRow> ordered =
+                sort == ApplicationSortOption.APPLIED_AT_DESC ? ranked.rows() : sortByRank(ranked.rows());
+
+        return ordered.stream()
+                .map(row -> row.toResponse(ranked.rankByApplicationId().get(row.applicationId())))
+                .toList();
+    }
+
+    // FR-H09 Q1 (R-D3..R-D6) - ket qua cham diem cua MOT don cho trang ho so don (E3 diem, E4 giai
+    // thich), tinh bang DUNG rankApplications() cua danh sach theo Job: mot cong thuc xep hang duy
+    // nhat (FR-H05), hang o trang chi tiet luon bang hang o danh sach; diem, tieu chi va giai thich
+    // cung lay tu MOT lot DONE moi nhat. Danh doi da chot: nap ca danh sach don cua tin (so query co
+    // dinh nhu listApplications, khong N+1) de tinh hang.
+    //
+    // KHONG kiem quyen o day - noi goi (ApplicationHrDetailService) da kiem qua HrApplicationAccess
+    // va truyen Job da nap. applicationId khong thuoc job (khong xay ra khi di qua HrApplicationAccess)
+    // -> IllegalStateException, khong im lang tra rong.
+    public ApplicationEvaluation evaluateApplication(Job job, UUID applicationId) {
+        RankedRows ranked = rankApplications(job);
+        RankableRow row = ranked.rows().stream()
+                .filter(r -> r.applicationId().equals(applicationId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Don " + applicationId + " khong thuoc job " + job.getId()));
+        return new ApplicationEvaluation(
+                row.latestDoneRunId(),
+                row.latestDoneRunFinishedAt(),
+                row.totalScore(),
+                ranked.rankByApplicationId().get(applicationId),
+                row.criterionScores(),
+                row.explanationStatus(),
+                row.explanation());
+    }
+
+    // Phan dung chung cua listApplications/evaluateApplication: dung moi dong (diem, tieu chi, giai
+    // thich cua lot DONE moi nhat) + hang 1-2-2-4. Tach nguyen van tu listApplications cu (FR-H09 Q1),
+    // khong doi so query hay logic.
+    private RankedRows rankApplications(Job job) {
         List<JobApplication> applications = jobApplicationRepository.findByJobIdOrderByAppliedAtDesc(job.getId());
         if (applications.isEmpty()) {
-            return List.of();
+            return new RankedRows(List.of(), Map.of());
         }
         List<UUID> applicationIds = applications.stream().map(JobApplication::getId).toList();
 
@@ -165,12 +204,7 @@ public class ApplicationOwnerService {
                         explanationAttemptCountByRunId))
                 .toList();
 
-        Map<UUID, Integer> rankByApplicationId = assignRanks(rows);
-        List<RankableRow> ordered = sort == ApplicationSortOption.APPLIED_AT_DESC ? rows : sortByRank(rows);
-
-        return ordered.stream()
-                .map(row -> row.toResponse(rankByApplicationId.get(row.applicationId())))
-                .toList();
+        return new RankedRows(rows, assignRanks(rows));
     }
 
     private RankableRow toRankableRow(
@@ -209,6 +243,10 @@ public class ApplicationOwnerService {
                     : ApplicationHrListItemResponse.ExplanationStatus.PENDING;
         }
 
+        // FR-H09 Q1: id + finished_at cua lot DONE dang cho diem - E3/E4 tra ve de frontend biet diem
+        // va giai thich cung mot lot. finished_at doc tu entity da nap san (doneRunById), khong them query.
+        ScoringRun doneRun = latestDoneRun == null ? null : doneRunById.get(latestDoneRun.getId());
+
         return new RankableRow(
                 application.getId(),
                 candidateNameById.get(application.getCandidateId()),
@@ -217,6 +255,8 @@ public class ApplicationOwnerService {
                 latestRun == null ? null : latestRun.getId(),
                 latestRun == null ? null : ScoringRunStatus.valueOf(latestRun.getStatus()),
                 latestRun == null ? null : latestRun.getFinishedAt(),
+                latestDoneRun == null ? null : latestDoneRun.getId(),
+                doneRun == null ? null : doneRun.getFinishedAt(),
                 totalScore,
                 criterionScores,
                 explanationStatus,
@@ -328,6 +368,8 @@ public class ApplicationOwnerService {
             UUID latestScoringRunId,
             ScoringRunStatus latestScoringRunStatus,
             Instant latestScoringRunFinishedAt,
+            UUID latestDoneRunId,
+            Instant latestDoneRunFinishedAt,
             BigDecimal totalScore,
             List<ApplicationHrListItemResponse.CriterionScoreItem> criterionScores,
             ApplicationHrListItemResponse.ExplanationStatus explanationStatus,
@@ -350,5 +392,8 @@ public class ApplicationOwnerService {
                     explanation,
                     status);
         }
+    }
+
+    private record RankedRows(List<RankableRow> rows, Map<UUID, Integer> rankByApplicationId) {
     }
 }

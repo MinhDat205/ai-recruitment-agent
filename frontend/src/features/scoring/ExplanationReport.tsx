@@ -64,11 +64,14 @@ export function ExplanationReport({
   }
 
   return (
-    <div className="mx-4 mb-4 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4">
+    // FR-H09: bo le ngoai mx-4 mb-4 (vet cua Sheet cu) - component nay chi con dung o tab Giai thich cua
+    // trang ho so don, noi tu dat khoang cach; khoi thang le voi cac trang thai khac cua tab.
+    <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4">
       {explanation === null ? (
         // PENDING/FAILED: cau chu THUAN TUY mo ta trang thai xu ly ky thuat, khong do loi cho ung
-        // vien, khong goi y hanh dong (nut "Cham diem ho so" da co san o bang ngoai neu HR muon thu
-        // lai - khong can nhac lai o day).
+        // vien, khong goi y hanh dong (HR muon cham lai thi dung nut "Cham diem ho so" o tab "CV & diem"
+        // cua trang ho so don; PENDING co nut "Tai lai" do ExplanationTab dat ben duoi - khong nhac lai
+        // o day).
         <p className="text-sm text-m3-on-surface-variant">
           {explanationStatus === 'PENDING'
             ? 'Báo cáo tổng hợp của AI đang được xử lý.'

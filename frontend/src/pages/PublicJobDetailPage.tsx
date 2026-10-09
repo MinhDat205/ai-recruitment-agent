@@ -5,26 +5,10 @@ import { PublicLayout } from '../components/layout/PublicLayout'
 import { useAuth } from '../features/auth/useAuth'
 import { ApplyButton } from '../features/jobs/ApplyButton'
 import { jobLocationText } from '../features/jobs/catalogDisplay'
+import { formatSalary } from '../features/jobs/formatSalary'
 import { EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS } from '../features/jobs/jobLabels'
 import { useJobDetailQuery } from '../features/jobs/queries'
 import { formatDeadline } from '../lib/date'
-
-function formatSalary(job: {
-  salaryMin: number | null
-  salaryMax: number | null
-  salaryCurrency: string | null
-}): string | null {
-  if (job.salaryMin == null && job.salaryMax == null) {
-    return null
-  }
-  const currency = job.salaryCurrency ?? 'VND'
-  const format = (value: number) => value.toLocaleString('vi-VN')
-  if (job.salaryMin != null && job.salaryMax != null) {
-    return `${format(job.salaryMin)} - ${format(job.salaryMax)} ${currency}`
-  }
-  const value = job.salaryMin ?? job.salaryMax
-  return value != null ? `${format(value)} ${currency}` : null
-}
 
 export function PublicJobDetailPage() {
   const { id } = useParams<{ id: string }>()
