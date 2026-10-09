@@ -362,8 +362,8 @@ Cho HR và ứng viên trao đổi trực tiếp quanh một đơn ứng tuyển
 - Mỗi đơn ứng tuyển có tối đa một cuộc trao đổi, tạo khi có tin đầu tiên; cả hai bên đều có thể bắt đầu.
 - Chỉ HR sở hữu Job và ứng viên chủ đơn được đọc/gửi.
 - Lưu nguyên văn tin, người gửi, thời điểm và trạng thái đã đọc.
-- Đính kèm dùng lại cơ chế lưu file và kiểm định dạng bằng magic bytes của FR-U01 (PDF, DOCX, ảnh; có giới hạn dung lượng). File chỉ tải được khi đã đăng nhập và có quyền trên cuộc trao đổi.
-- Mỗi tin mới phát thông báo cho bên nhận qua FR-C03 (web + email). Email chứa nội dung tin và liên kết, không đính kèm file.
+- Đính kèm (mỗi tin tối đa một tệp, 5MB) dùng lại cơ chế lưu file và kiểm định dạng bằng magic bytes của FR-U01 và FR-H01 (PDF, DOCX, PNG, JPEG, WEBP). File chỉ tải được khi đã đăng nhập và có quyền trên cuộc trao đổi.
+- Tin mới phát thông báo cho bên nhận qua FR-C03 (web + email), gộp lại khi bên nhận còn thông báo tin nhắn chưa đọc của cùng đơn. Email chứa đoạn trích nội dung tin và liên kết, không đính kèm file.
 - Giao diện tự tải lại định kỳ khi đang mở cuộc trao đổi.
 
 **AI**
@@ -924,7 +924,7 @@ Bật theo Job; chưa ẩn danh trong email/tin nhắn gửi ứng viên; không
 | Bộ lọc ứng viên là chức năng riêng (HR 1) | Gộp vào Kho ứng viên (H15), chỉ xuất hiện trong kho. Bộ lọc sẵn có ở danh sách xếp hạng theo Job giữ nguyên. |
 | Chatbot hỏi trên cả danh sách CV (HR 9) | Ngữ cảnh quá lớn, dễ trộn trích dẫn giữa các CV. Chỉ hỏi trên một CV (C08). |
 | Chat thời gian thực (HR 2) | Thay bằng tự tải lại định kỳ, tránh thêm hạ tầng WebSocket. |
-| Kênh email nhanh tách riêng (HR 2, UV 2) | Email là tin nhắn trong cuộc trao đổi, được gửi thêm qua email bằng hạ tầng thông báo FR-C03 (C06, C07). |
+| Kênh email nhanh tách riêng (HR 2, UV 2) | Không có kênh email riêng: tin nhắn nằm trong cuộc trao đổi; bên nhận được báo qua thông báo FR-C03, email chỉ chứa đoạn trích và liên kết (C06, C07). |
 | Chatbot trả lời "CV có phù hợp không", "nên bổ sung kỹ năng gì" (UV 6) | Câu thứ nhất là phán quyết, thay bằng đối chiếu từng yêu cầu. Câu thứ hai trùng FR-U05, được chuyển sang đó. |
 | Không đưa thông tin nhân thân vào chấm AI (HR 11) | Sẽ phải đổi đầu vào chấm và kiểm tra evidence đã hoàn thành ở FR-H04. Ẩn danh chỉ áp dụng khi hiển thị. |
 | AI nhận diện thông tin nhân thân (HR 11) | Thay bằng thay chuỗi xác định các giá trị liên hệ đã biết. |

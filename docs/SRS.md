@@ -174,6 +174,8 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U01 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc |
 | FR-U02 | FR-U09 | Trả lời câu hỏi sàng lọc; tuỳ chọn đồng ý cho công ty lưu hồ sơ |
 | FR-U04 | FR-U15 | Gợi ý được cả khi chưa có CV (dựa trên hồ sơ); hiển thị ở trang Việc làm; một nguồn gợi ý duy nhất, dùng chung bộ máy với FR-U13 |
+| FR-U01 | FR-C06 | Nhận dạng loại tệp chuyển sang bộ dùng chung; hành vi không đổi |
+| FR-H01 | FR-C06 | Nhận dạng loại tệp logo chuyển sang bộ dùng chung; hành vi không đổi |
 
 # 5. Ngoài phạm vi
 
