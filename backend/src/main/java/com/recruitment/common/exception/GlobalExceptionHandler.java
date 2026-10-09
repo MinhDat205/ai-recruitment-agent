@@ -260,6 +260,35 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("NO_PRIMARY_RESUME_PARSED", ex.getMessage()));
     }
 
+    // FR-C06 R-M1 - tin khong co chu va khong co tep.
+    @ExceptionHandler(MessageEmptyException.class)
+    public ResponseEntity<ErrorResponse> handleMessageEmpty(MessageEmptyException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("MESSAGE_EMPTY", ex.getMessage()));
+    }
+
+    // FR-C06 R-M3 - noi dung sau chuan hoa qua 4000 ky tu.
+    @ExceptionHandler(MessageTooLongException.class)
+    public ResponseEntity<ErrorResponse> handleMessageTooLong(MessageTooLongException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("MESSAGE_TOO_LONG", ex.getMessage()));
+    }
+
+    // FR-C06 R-F2/R-F3 - mot ma loi chung cho tep dinh kem, cau thong bao khac nhau qua getMessage().
+    @ExceptionHandler(InvalidMessageAttachmentException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidMessageAttachment(InvalidMessageAttachmentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_MESSAGE_ATTACHMENT", ex.getMessage()));
+    }
+
+    // FR-C06 R-M4 - 409 (khong phai 400): request hop le nhung don khong con o trang thai cho phep gui tin,
+    // cung ly do voi ApplicationNotWithdrawableException.
+    @ExceptionHandler(ConversationReadOnlyException.class)
+    public ResponseEntity<ErrorResponse> handleConversationReadOnly(ConversationReadOnlyException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CONVERSATION_READ_ONLY", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
