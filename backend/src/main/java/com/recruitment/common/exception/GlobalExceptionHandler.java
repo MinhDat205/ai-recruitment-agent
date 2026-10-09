@@ -281,6 +281,20 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_MESSAGE_ATTACHMENT", ex.getMessage()));
     }
 
+    // FR-C06 R-Q4 - tin khong ton tai hoac thuoc don khac.
+    @ExceptionHandler(MessageNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMessageNotFound(MessageNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("MESSAGE_NOT_FOUND", ex.getMessage()));
+    }
+
+    // FR-C06 R-F8 - tin khong co tep, hoac tep khong con trong kho.
+    @ExceptionHandler(MessageAttachmentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMessageAttachmentNotFound(MessageAttachmentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("MESSAGE_ATTACHMENT_NOT_FOUND", ex.getMessage()));
+    }
+
     // FR-C06 R-M4 - 409 (khong phai 400): request hop le nhung don khong con o trang thai cho phep gui tin,
     // cung ly do voi ApplicationNotWithdrawableException.
     @ExceptionHandler(ConversationReadOnlyException.class)

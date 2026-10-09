@@ -9,6 +9,7 @@ import com.recruitment.common.exception.ResumeRetryNotAllowedException;
 import com.recruitment.resume.dto.ResumeParsedDataResponse;
 import com.recruitment.resume.dto.ResumeReparseStatusResponse;
 import com.recruitment.resume.dto.ResumeResponse;
+import com.recruitment.storage.FileSignatures;
 import com.recruitment.storage.StorageService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -29,9 +30,6 @@ public class ResumeService {
 
     private static final String RESUME_SUBDIRECTORY = "resumes";
     private static final long MAX_RESUME_SIZE_BYTES = 10L * 1024 * 1024;
-
-    private static final byte[] PDF_SIGNATURE = {0x25, 0x50, 0x44, 0x46};
-    private static final byte[] DOCX_SIGNATURE = {0x50, 0x4B, 0x03, 0x04};
 
     private final ResumeRepository resumeRepository;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
@@ -216,26 +214,14 @@ public class ResumeService {
         return toResponse(resumeRepository.findById(resumeId).orElseThrow());
     }
 
+    // FR-C06 R-C1 - nhan dang dung chung o FileSignatures; CV VAN chi nhan PDF/DOCX - anh (PNG/JPEG/WEBP) nhan
+    // dang duoc nhung bi tu choi o day voi dung cau loi cu.
     private static Optional<ResumeFileType> detectFileType(byte[] content) {
-        if (matchesAt(content, PDF_SIGNATURE)) {
-            return Optional.of(ResumeFileType.PDF);
-        }
-        if (matchesAt(content, DOCX_SIGNATURE)) {
-            return Optional.of(ResumeFileType.DOCX);
-        }
-        return Optional.empty();
-    }
-
-    private static boolean matchesAt(byte[] content, byte[] signature) {
-        if (content.length < signature.length) {
-            return false;
-        }
-        for (int i = 0; i < signature.length; i++) {
-            if (content[i] != signature[i]) {
-                return false;
-            }
-        }
-        return true;
+        return FileSignatures.detect(content).flatMap(type -> switch (type) {
+            case PDF -> Optional.of(ResumeFileType.PDF);
+            case DOCX -> Optional.of(ResumeFileType.DOCX);
+            case PNG, JPEG, WEBP -> Optional.empty();
+        });
     }
 
     private static String originalFileName(MultipartFile file) {

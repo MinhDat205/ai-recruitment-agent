@@ -2,7 +2,11 @@ package com.recruitment.messaging;
 
 import com.recruitment.messaging.dto.MessageResponse;
 import com.recruitment.messaging.dto.MessageThreadResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -49,5 +53,19 @@ public class MessageCandidateController {
     public ResponseEntity<Void> markRead(Authentication authentication, @PathVariable UUID applicationId) {
         messageService.markReadAsCandidate(UUID.fromString(authentication.getName()), applicationId);
         return ResponseEntity.noContent().build();
+    }
+
+    // M4 - xem MessageHrController.downloadAttachment.
+    @GetMapping("/{messageId}/attachment")
+    public ResponseEntity<Resource> downloadAttachment(
+            Authentication authentication, @PathVariable UUID applicationId, @PathVariable UUID messageId) {
+        AttachmentDownload download = messageService.downloadAttachmentAsCandidate(
+                UUID.fromString(authentication.getName()), applicationId, messageId);
+        ContentDisposition disposition =
+                ContentDisposition.attachment().filename(download.fileName(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok()
+                .contentType(download.contentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(download.resource());
     }
 }

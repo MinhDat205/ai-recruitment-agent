@@ -5,6 +5,7 @@ import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InvalidLogoFileException;
 import com.recruitment.company.dto.CompanyRequest;
 import com.recruitment.company.dto.CompanyResponse;
+import com.recruitment.storage.FileSignatures;
 import com.recruitment.storage.StorageService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,11 +21,6 @@ public class CompanyOwnerService {
 
     private static final String LOGO_SUBDIRECTORY = "logos";
     private static final long MAX_LOGO_SIZE_BYTES = 2L * 1024 * 1024;
-
-    private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
-    private static final byte[] RIFF_SIGNATURE = {0x52, 0x49, 0x46, 0x46};
-    private static final byte[] WEBP_SIGNATURE = {0x57, 0x45, 0x42, 0x50};
 
     private final CompanyRepository companyRepository;
     private final StorageService storageService;
@@ -130,28 +126,13 @@ public class CompanyOwnerService {
                 c.getUpdatedAt());
     }
 
+    // FR-C06 R-C1 - nhan dang dung chung o FileSignatures; logo VAN chi nhan PNG/JPEG/WEBP voi duoi luu cu
+    // png/jpg/webp (= DetectedFileType.extension()). PDF/DOCX nhan dang duoc nhung bi tu choi o day voi dung cau
+    // loi cu.
     private static Optional<String> detectImageExtension(byte[] content) {
-        if (matchesAt(content, 0, PNG_SIGNATURE)) {
-            return Optional.of("png");
-        }
-        if (matchesAt(content, 0, JPEG_SIGNATURE)) {
-            return Optional.of("jpg");
-        }
-        if (matchesAt(content, 0, RIFF_SIGNATURE) && matchesAt(content, 8, WEBP_SIGNATURE)) {
-            return Optional.of("webp");
-        }
-        return Optional.empty();
-    }
-
-    private static boolean matchesAt(byte[] content, int offset, byte[] signature) {
-        if (content.length < offset + signature.length) {
-            return false;
-        }
-        for (int i = 0; i < signature.length; i++) {
-            if (content[offset + i] != signature[i]) {
-                return false;
-            }
-        }
-        return true;
+        return FileSignatures.detect(content).flatMap(type -> switch (type) {
+            case PNG, JPEG, WEBP -> Optional.of(type.extension());
+            case PDF, DOCX -> Optional.empty();
+        });
     }
 }
