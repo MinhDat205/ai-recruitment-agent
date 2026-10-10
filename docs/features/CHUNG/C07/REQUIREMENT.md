@@ -2,8 +2,8 @@
 
 > Trạng thái: ĐÃ DUYỆT 10/10/2026
 >
-> Làm rõ sau Plan Mode 10/10/2026: L1–L8 (L1: R-K3-2, R-K3-3; L2–L8: mục 4.2, R-K3-4, R-K3-5, R-I5, R-K1, T16,
-> T16b, T17, mục 8, mục 9) — chi tiết ở mục 12.
+> Làm rõ sau Plan Mode 10/10/2026: L1–L9 (L1: R-K3-2, R-K3-3; L2–L8: mục 4.2, R-K3-4, R-K3-5, R-I5, R-K1, T16,
+> T16b, T17, mục 8, mục 9; L9: mục 4.2, mục 8) — chi tiết ở mục 12.
 
 - Nhóm: Chung
 - Tóm tắt: trong khung soạn tin của FR-C06, HR hoặc ứng viên bấm "Soạn bằng AI", chọn tình huống (hoặc tự mô
@@ -287,7 +287,7 @@ Không bảng, không cột, không index mới. Số migration giữ nguyên `V
 | Package | Nội dung | Ghi chú |
 |---|---|---|
 | `aicontext/` (mới) | K1: `ContextViewer`, `ConversationContext`, `ConversationContextAssembler` | Phụ thuộc theo R-K1-4 |
-| `ai/sync/` (mới) | K3: `SyncAiCaller`, `SyncAiResult` (record `(T entity, String model)` — kiểu trả về "kết quả + tên model" của K3), `AiSyncExecutorConfig` (executor R-K3-5) | Không import package nghiệp vụ nào; import `common/exception/` (chiều cho phép, như `CriterionScoringErrorCode`) |
+| `ai/sync/` (mới) | K3: `SyncAiCaller`, `SyncAiResult` (record `(T entity, String model)` — kiểu trả về "kết quả + tên model" của K3), `AiSyncExecutorConfig` (dựng executor R-K3-5 và bean `SyncAiCaller`; executor **không** là bean Spring, do `SyncAiCaller` sở hữu và đóng bằng `shutdownNow()` — L9) | Không import package nghiệp vụ nào; import `common/exception/` (chiều cho phép, như `CriterionScoringErrorCode`) |
 | `ai/messagedraft/` (mới) | `MessageDraftService` (nhận `ConversationContext` + tình huống + giọng + mục đích, dựng user message theo R-I3, gọi K3), `MessageDraftPayload(String draft)` | Không repository, không entity, không `@Transactional` — mẫu `CvImprovementService` |
 | `ai/client/` | `MessageDraftChatClientConfig` (bean `messageDraftChatClient`) | Mẫu `CvImprovementChatClientConfig` |
 | `messagedraft/` (mới) | 2 controller (HR, ứng viên), `MessageDraftFacade` (quyền → R-S → K1 → `MessageDraftService`), `DraftScenario`, `DraftTone`, `DraftUnavailableReason`, `dto/` | Không `@Transactional` ở facade |
@@ -574,6 +574,8 @@ hoặc lệch "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sử
 - Đặt `AiSyncErrorCode`/`AiSyncFailedException` trong `ai/sync/` rồi cho `GlobalExceptionHandler` import `ai/` (L2).
 - Cắt/thay ký tự tin nhắn ngay trong K1 — K1 trả dữ liệu thô (L7).
 - Dùng luồng ảo cho executor K3, hoặc thêm hàng đợi cho executor (R-K3-5, L4: cận ≤ ~45 s dựa trên luồng thường).
+- Khai executor của K3 (hay bất kỳ `java.util.concurrent.Executor` nào) thành bean Spring — tắt `applicationTaskExecutor`
+  của cả ứng dụng (L9).
 - Đưa tin nhắn/mục đích vào system message, hoặc nối chuỗi thẳng không thẻ, không thay `<`/`>` (R-I2, R-I3).
 - Viết kiểm quyền mới, hoặc "đồng bộ" 403 phía HR thành 404 (R-Q1).
 - Đặt endpoint dưới `/messages` của `messaging/` rồi cho `messaging/` import `ai/` (mục 4.2).
@@ -681,3 +683,11 @@ giữa các đợt chỉ `.\mvnw.cmd test-compile` + các lớp ở cột Kiểm
   (`GlobalExceptionHandler` không có handler nào khớp `HttpMessageNotReadableException`; resolver duyệt advice theo
   `OrderComparator` và lấy handler khớp đầu tiên — spring-webmvc 7.0.8), thêm để không phụ thuộc thứ tự nếu sau này
   `GlobalExceptionHandler` có handler bắt `Exception`.
+- **L9 (mục 4.2, mục 8; duyệt sau đợt 2).** Executor của K3 **không** khai thành bean Spring: `AiSyncExecutorConfig`
+  dựng `ThreadPoolExecutor` và truyền vào bean `SyncAiCaller`; `SyncAiCaller` sở hữu executor và đóng bằng
+  `shutdownNow()` khi context tắt (`@Bean(destroyMethod = "close")`). Lý do: `ThreadPoolExecutor` là một
+  `java.util.concurrent.Executor`, mà `TaskExecutorConfigurations$OnExecutorCondition$ExecutorBeanCondition` của Spring
+  Boot 4.1 mang `@ConditionalOnMissingBean(value = java.util.concurrent.Executor)` (`javap -v` trên
+  `spring-boot-autoconfigure-4.1.0.jar`) — khai bean `Executor` sẽ tắt `applicationTaskExecutor` của cả ứng dụng. Hiện
+  code chưa dùng bean đó (tìm `@Async|TaskExecutor|applicationTaskExecutor` trong `backend/src/main` → 0), nhưng K3
+  không được đổi bean graph toàn cục.

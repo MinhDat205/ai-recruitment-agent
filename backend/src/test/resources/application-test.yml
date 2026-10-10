@@ -36,6 +36,12 @@ app:
   # bang tay), mau ResumeParsingScheduler/app.resume-parsing.enabled da co.
   rate-limit:
     enabled: false
+  # FR-C07 L6 - han moi lan goi K3 NHO hon production (2 s thay vi 15 s) de T16b co the dung 504 qua A2 bang mock cho
+  # 3 s ma khong ton 15 s that; cac test khac mock tra ngay nen khong bi anh huong. T16 (unit) truyen 300 ms qua
+  # constructor SyncAiCaller, khong doc khoa nay. max-concurrent-calls giu nhu production (L5).
+  ai-sync:
+    attempt-timeout-ms: 2000
+    max-concurrent-calls: 8
   # Dot 4 (chore/hardening) - gia tri NHO de test nhanh (khong phai 30s/2 phut that cua production).
   # max-attempts giu nguyen 3 (giong production) vi test can kiem dung nguong nghiep vu that (vd
   # "dung 3 lan thi FAILED"). backoff-ms nho (50ms/100ms, khong phai 30000/120000) va

@@ -54,6 +54,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // MessageCandidateController. Nhom rieng "message" theo userId, KHONG dung chung bucket voi llm-action.
     private static final String HR_MESSAGE_SEND_PATTERN = "/api/hr/applications/*/messages";
     private static final String CANDIDATE_MESSAGE_SEND_PATTERN = "/api/candidates/applications/*/messages";
+    // FR-C07 R-K3-8 - soan nhap bang AI (A2) hai phia: nhom "ai-sync" theo userId, DUNG CHUNG cho moi endpoint K3 (FR
+    // sau them mau duong dan vao nhom nay). Mau "*/messages" o tren KHONG khop ".../messages/ai-draft" (AntPathMatcher,
+    // "*" chi mot doan) nen hai nhom khong chong nhau. GET .../ai-draft/scenarios (A1) khong bi gioi han.
+    private static final String HR_AI_DRAFT_PATTERN = "/api/hr/applications/*/messages/ai-draft";
+    private static final String CANDIDATE_AI_DRAFT_PATTERN = "/api/candidates/applications/*/messages/ai-draft";
 
     private final RateLimitBucketStore bucketStore;
     private final long authCapacity;
@@ -62,6 +67,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final long llmActionRefillPerMinute;
     private final long messageCapacity;
     private final long messageRefillPerMinute;
+    private final long aiSyncCapacity;
+    private final long aiSyncRefillPerMinute;
 
     // @Autowired bat buoc: class nay co HAI constructor (constructor nay + constructor package-private
     // duoi day danh cho test) - thieu @Autowired, Spring khong tu chon duoc constructor nao va roi
@@ -75,7 +82,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @Value("${app.rate-limit.llm-action.capacity:20}") long llmActionCapacity,
             @Value("${app.rate-limit.llm-action.refill-per-minute:20}") long llmActionRefillPerMinute,
             @Value("${app.rate-limit.message.capacity:20}") long messageCapacity,
-            @Value("${app.rate-limit.message.refill-per-minute:20}") long messageRefillPerMinute) {
+            @Value("${app.rate-limit.message.refill-per-minute:20}") long messageRefillPerMinute,
+            @Value("${app.rate-limit.ai-sync.capacity:5}") long aiSyncCapacity,
+            @Value("${app.rate-limit.ai-sync.refill-per-minute:2}") long aiSyncRefillPerMinute) {
         this(
                 new RateLimitBucketStore(maxTrackedKeys),
                 authCapacity,
@@ -83,7 +92,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 llmActionCapacity,
                 llmActionRefillPerMinute,
                 messageCapacity,
-                messageRefillPerMinute);
+                messageRefillPerMinute,
+                aiSyncCapacity,
+                aiSyncRefillPerMinute);
     }
 
     // Goi rieng cho test - truyen thang RateLimitBucketStore da dung TimeMeter gia (xem
@@ -95,7 +106,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
             long llmActionCapacity,
             long llmActionRefillPerMinute,
             long messageCapacity,
-            long messageRefillPerMinute) {
+            long messageRefillPerMinute,
+            long aiSyncCapacity,
+            long aiSyncRefillPerMinute) {
         this.bucketStore = bucketStore;
         this.authCapacity = authCapacity;
         this.authRefillPerMinute = authRefillPerMinute;
@@ -103,6 +116,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.llmActionRefillPerMinute = llmActionRefillPerMinute;
         this.messageCapacity = messageCapacity;
         this.messageRefillPerMinute = messageRefillPerMinute;
+        this.aiSyncCapacity = aiSyncCapacity;
+        this.aiSyncRefillPerMinute = aiSyncRefillPerMinute;
     }
 
     @Override
@@ -141,7 +156,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.flushBuffer();
     }
 
-    // Chi ap dung cho DUNG cac endpoint da duyet (POST): auth, llm-action, va 2 mau gui tin nhan (FR-C06). Moi request khac (bao gom GET toi cung
+    // Chi ap dung cho DUNG cac endpoint da duyet (POST): auth, llm-action, 2 mau gui tin nhan (FR-C06) va 2 mau soan
+    // nhap bang AI (FR-C07, nhom ai-sync). Moi request khac (bao gom GET toi cung
     // duong dan, hoac POST toi duong dan khac) tra null - khong bi rate limit.
     private RateLimitTarget classify(HttpServletRequest request) {
         if (!"POST".equals(request.getMethod())) {
@@ -176,6 +192,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
             }
             return new RateLimitTarget(
                     "message:" + authentication.getName(), messageCapacity, messageRefillPerMinute);
+        }
+
+        if (PATH_MATCHER.match(HR_AI_DRAFT_PATTERN, path) || PATH_MATCHER.match(CANDIDATE_AI_DRAFT_PATTERN, path)) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                // Cung ly do nhom llm-action o tren: de chain phia sau tu tra 401/403.
+                return null;
+            }
+            return new RateLimitTarget(
+                    "ai-sync:" + authentication.getName(), aiSyncCapacity, aiSyncRefillPerMinute);
         }
 
         return null;

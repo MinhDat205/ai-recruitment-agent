@@ -121,6 +121,11 @@ app:
     # quet rieng 60s, tach khoi poll-interval-ms xu ly chinh.
     stale-timeout-ms: 900000
     reaper-poll-interval-ms: 60000
+  # FR-C07 K3 (goi AI dong bo trong request nguoi dung) - R-K3-1: moi lan goi ChatModel toi da 15 s (bao ca cac lan
+  # SDK tu thu lai ngam); R-K3-5/L5: executor rieng toi da 8 luong, khong hang doi, het luong -> 503.
+  ai-sync:
+    attempt-timeout-ms: 15000
+    max-concurrent-calls: 8
 
   # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
   # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint
@@ -137,6 +142,11 @@ app:
     message:
       capacity: 20
       refill-per-minute: 20
+    # FR-C07 R-K3-8 - goi AI dong bo (POST .../messages/ai-draft hai phia) theo userId, bucket rieng "ai-sync:{userId}",
+    # dung chung cho moi endpoint K3 ve sau.
+    ai-sync:
+      capacity: 5
+      refill-per-minute: 2
 
 logging:
   level:
