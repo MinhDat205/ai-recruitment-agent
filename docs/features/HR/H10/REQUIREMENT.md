@@ -1,6 +1,9 @@
 # FR-H10 — Câu hỏi sàng lọc theo Job
 
 > Trạng thái: ĐÃ DUYỆT 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
+>
+> Làm rõ sau Plan Mode 10/10/2026: L1–L6 (L1: R-Q10, mục 0 a14, mục 4.2, mục 8; L2: T5; L3: mục 4.2, bảng R-B;
+> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9) — chi tiết ở mục 12.
 
 - Nhóm: HR
 - Tóm tắt: HR đặt tối đa 10 câu hỏi sàng lọc cho một Job (trả lời ngắn, một lựa chọn, có/không; đánh dấu
@@ -35,6 +38,7 @@
 | a11 | Tiền lệ "chốt độ dài ở DB" | **Có** | `chk_app_msg_body_length` (`V12__application_messages.sql`). Ngược lại `cover_letter` không có giới hạn ở đâu (FR-H09 mục 0.f) |
 | a12 | Migration kế tiếp | **V13** | Cao nhất là `V12__application_messages.sql`; V9 là migration Java (`V9__normalize_job_catalog_codes.java`, commit `f136a55`) |
 | a13 | Mỗi công ty một HR | **Đúng** | `uq_company_per_owner` (`V2__company_unique_owner.sql`) — không có hai HR cùng sửa một Job, chỉ có hai tab của cùng một người |
+| a14 | Không chỗ nào sắp xếp theo hay hiển thị `jobs.updated_at` (L1 — câu `UPDATE` tăng `screening_revision` làm trigger `trg_jobs_updated_at` đổi cột này) | **Đúng — không bị ảnh hưởng** | Soát 10/10/2026 bằng `grep -rn -i "updated_at\|updatedAt"` trên `backend/src/main/java`, `frontend/src`. Backend: `jobs.updated_at` chỉ được map ở `Job.java:94-95` và trả ra ở `JobOwnerService.java:308` (`JobOwnerResponse.java:32`); `ORDER BY updated_at` duy nhất là của `candidate_profiles` (`CandidateProfileRepository.java:38`), không phải `jobs`; không có `Sort.by(...updated...)` hay `OrderByUpdated…`. `V9__normalize_job_catalog_codes.java:50,90` chỉ tắt/bật trigger trong migration. Frontend: `updatedAt` của Job chỉ được khai kiểu ở `features/jobs/ownerTypes.ts:26`; `grep "updatedAt" --include=*.tsx` → 0 dòng (không màn hình nào hiển thị) |
 
 ### (b) Mâu thuẫn đã chốt (10/10/2026)
 
@@ -114,9 +118,18 @@ lời là thông tin tham khảo cho HR; không phải đầu vào của AI, kh�
   khôi phục được qua giao diện.
 - **R-Q9.** Sửa được ở mọi trạng thái Job (`DRAFT`, `OPEN`, `PAUSED`, `CLOSED`), kể cả khi Job đã có đơn (Q1).
   Không khoá theo `rubrics.is_locked`.
-- **R-Q10.** Mọi thao tác ghi (thêm, sửa, xoá, đổi thứ tự) khoá hàng `jobs` của Job đó
-  (`PESSIMISTIC_WRITE`) trong transaction ngắn, rồi mới đếm/xếp thứ tự — để hai tab cùng thêm câu không vượt
-  10 câu và không trùng `display_order`. Transaction không chứa lời gọi ngoài nào.
+- **R-Q10.** Mọi thao tác ghi (thêm, sửa, xoá, đổi thứ tự) chạy trong **một** transaction ngắn theo đúng thứ tự:
+  (1) kiểm quyền (R-A2); (2) kiểm đầu vào (R-Q3, R-Q4, R-Q4b); (3) khoá hàng `jobs` của Job đó **bằng chính câu**
+  `UPDATE jobs SET screening_revision = screening_revision + 1 WHERE id = :jobId` (khoá hàng giữ tới commit — đây
+  cũng là bước tăng revision của R-Q11); (4) sau đó mới đếm, tìm, kiểm tập id và ghi câu hỏi. Transaction thứ hai
+  cùng Job chặn ở bước (3) cho tới khi transaction thứ nhất commit/rollback, nên hai tab cùng thêm câu không vượt
+  10 câu và không trùng `display_order`. Không dùng `@Lock`/`PESSIMISTIC_WRITE` hay `SELECT … FOR UPDATE` riêng.
+  Transaction không chứa lời gọi ngoài nào. Ràng buộc kèm theo:
+  - **R-Q10a.** Sau câu `UPDATE` ở bước (3), không dùng lại entity `Job` đã nạp trước đó trong cùng persistence
+    context: câu `UPDATE` khai `@Modifying(clearAutomatically = true)` (xoá persistence context), hoặc method
+    không nạp entity `Job` mà chỉ cần `companyId` qua truy vấn riêng. Cần gì của Job sau bước (3) thì đọc lại.
+  - **R-Q10b.** Câu `UPDATE` này làm trigger `trg_jobs_updated_at` đổi `jobs.updated_at`; đã soát không chỗ nào
+    sắp xếp theo hay hiển thị cột này (mục 0, a14).
 - **R-Q11.** **Cả bốn** thao tác ghi — thêm (S2), sửa (S3), xoá (S4), đổi thứ tự (S5) — tăng
   `jobs.screening_revision` đúng 1, trong **cùng** transaction với thay đổi câu hỏi (Q7). Thao tác thất bại
   (400/403/404) rollback, không tăng. GET (S1) không tăng, chỉ trả giá trị hiện tại. FR-H10 không tự dùng giá trị
@@ -199,6 +212,8 @@ lời là thông tin tham khảo cho HR; không phải đầu vào của AI, kh�
 | Form trả lời ở `/jobs/:id/apply`, kiểm câu bắt buộc **ở backend**, kiểm hình dạng/độ dài | | ✔ | |
 | Ghi bản chụp + đặt `screening_captured_at` **trong cùng transaction** của `ApplicationService.apply` | | ✔ | |
 | Phụ thuộc gói `jobapplication/` → `screening/` (để `ApplicationService.apply` ghi bản chụp) | không có (mục 4.2) | ✔ được phép | |
+| Đọc `job_applications.screening_captured_at` | ✔ bằng native query trong `screening/`, **không** sửa entity `JobApplication` | | |
+| Thêm field `screeningCapturedAt` vào entity `JobApplication` (để ghi) | | ✔ | |
 | Dùng `screening_revision` để trả 409 khi bộ câu hỏi đổi giữa lúc ứng viên đang điền (Q7) | | ✔ | |
 | Ứng viên xem lại câu trả lời của mình ở `/candidate/applications/:id` | | ✔ | |
 | Gợi ý câu hỏi sàng lọc bằng AI | | | ✔ |
@@ -265,6 +280,11 @@ ALTER TABLE job_applications ADD COLUMN screening_captured_at TIMESTAMPTZ;   -- 
 ALTER TABLE jobs ADD COLUMN screening_revision INT NOT NULL DEFAULT 0;        -- Q7
 ```
 
+Không thêm index nào cho `application_screening_answers`: `uq_screening_answer_order (application_id,
+display_order)` đã tạo index trên đúng hai cột S6 lọc và sắp xếp (L5). Dòng "đăng ký trigger" ở trên được viết
+thành câu `CREATE TRIGGER trg_job_screening_questions_updated_at … EXECUTE FUNCTION set_updated_at()` riêng trong V13,
+không sửa V1.
+
 Không backfill dữ liệu. Phần DB **không** chốt (R-S6): câu trả lời `SINGLE_CHOICE` thuộc `options_snapshot`;
 `SHORT_TEXT` bắt buộc khác rỗng sau khi bỏ khoảng trắng; độ dài tính sau khi bỏ khoảng trắng — FR-U09 kiểm ở
 service.
@@ -282,9 +302,11 @@ Phụ thuộc gói: `screening/` được phép import `jobapplication/HrApplica
 đã có tiền lệ (`jobapplication/ApplicationOwnerService` import `scoring.*`; `messaging/MessageService` import
 `jobapplication.*`). Không có kiểm tĩnh nào chặn chiều này.
 
-Không thêm field nào vào `Job` entity cho `screening_revision`: đọc/tăng bằng truy vấn trong
-`ScreeningQuestionRepository`/`JobRepository` (`@Modifying(clearAutomatically = true)`). `ddl-auto: validate`
-không đòi entity phải ánh xạ mọi cột.
+Không thêm field nào vào `Job` entity cho `screening_revision`: đọc/tăng bằng native query trong
+`ScreeningQuestionRepository` (không sửa `JobRepository`); câu tăng khai `@Modifying(clearAutomatically = true)`
+(R-Q10, R-Q10a). Không thêm field nào vào `JobApplication` entity cho `screening_captured_at`: S6 đọc bằng native
+query trong `ApplicationScreeningAnswerRepository` (L3); FR-U09 thêm field vào entity khi làm đường ghi (bảng R-B).
+`ddl-auto: validate` không đòi entity phải ánh xạ mọi cột.
 
 ### 4.3 Endpoint
 
@@ -339,7 +361,8 @@ phải `labels`. `Item` không có `questionId` (không cần cho HR, tránh g�
 ### 4.5 Seed kiểm thử tay (Q9) — `db/seed/seed-test.sql`
 
 Thêm ở đợt 3. UUID dùng hai tiền tố mới `ee` (câu hỏi) và `ef` (bản chụp), nối tiếp `e0..ed` đang dùng — sửa
-comment đầu file "tiền tố riêng e0..ed" thành "e0..ef". Giờ hiển thị là giờ Việt Nam (UTC+7). Seed demo không đổi
+comment đầu file "tiền tố riêng e0..ed" thành "e0..ef", và câu "UUID tiền tố `e0…`–`ed…`" ở `db/seed/README.md:255`
+thành "`e0…`–`ef…`" (L4). Giờ hiển thị là giờ Việt Nam (UTC+7). Seed demo không đổi
 (mọi đơn demo là `NOT_CAPTURED`).
 
 **Câu hỏi của tin CSKH `e2000000-0000-0000-0000-000000000001`** (`created_at` = `2026-09-01 02:00:00+00`, lúc
@@ -403,7 +426,7 @@ câu hỏi bằng AI là của FR-H11. Câu trả lời không vào ngữ cảnh
 | T2 | Nội dung câu hỏi (R-Q3, R-Q4b): `"questionText": null`, thiếu hẳn khoá `questionText` trong JSON, `""`, chỉ khoảng trắng → mỗi ca `400 INVALID_SCREENING_QUESTION` "Vui lòng nhập nội dung câu hỏi." (không 500, không `NullPointerException`); 299, 300 ký tự → 201; `" " + 300 ký tự + " "` → 201 và S1 trả đúng 300 ký tự (đã bỏ khoảng trắng); 301 ký tự → 400 "Nội dung câu hỏi tối đa 300 ký tự."; `" " + 301 ký tự` → 400 | biên |
 | T3 | Phương án `SINGLE_CHOICE` (R-Q4, R-Q4b), mọi lỗi là `400 INVALID_SCREENING_QUESTION` với đúng câu ở bảng R-Q4b: 1 phương án → 400; 2 → 201; 10 → 201; 11 → 400; phương án 99, 100 ký tự → 201; `" " + 100 ký tự + " "` → 201 và S1 trả đúng 100 ký tự; 101 ký tự → 400; một phương án là `null`, `""` hoặc chỉ khoảng trắng → 400 "Phương án không được để trống."; `SINGLE_CHOICE` với `"options": null`, thiếu hẳn khoá `options`, hoặc `[]` → 400 "Câu hỏi một lựa chọn cần từ 2 đến 10 phương án." (mọi ca không 500, không `NullPointerException`); hai phương án trùng sau trim/không phân biệt hoa thường → 400; `SHORT_TEXT`/`YES_NO` kèm phương án → 400 | biên + âm |
 | T4 | Giới hạn câu: có 9 câu → thêm được câu 10; có 10 → câu 11 trả `400 SCREENING_QUESTION_LIMIT_REACHED`; xoá 1 câu → thêm lại được | biên |
-| T5 | Hai request S2 song song khi Job có 9 câu → đúng một thành công, Job có đúng 10 câu, `display_order` không trùng (R-Q10). Đặt ở lớp test **không** có `@Transactional` toàn lớp; dữ liệu chuẩn bị và mỗi request tự commit riêng, dọn dữ liệu sau test (CLAUDE.md §3c — transaction bọc toàn lớp làm hai luồng không thấy dữ liệu của nhau) | âm |
+| T5 | Hai request S2 song song khi Job có 9 câu → đúng một thành công, Job có đúng 10 câu, `display_order` không trùng (R-Q10). Đặt ở lớp test **không** có `@Transactional` toàn lớp; dữ liệu chuẩn bị và mỗi request tự commit riêng (CLAUDE.md §3c — transaction bọc toàn lớp làm hai luồng không thấy dữ liệu của nhau). Dùng dữ liệu ngẫu nhiên riêng của test (email, công ty, Job mới), chỉ khẳng định trên Job của chính test, không dọn sau test — theo tiền lệ các test không `@Transactional` hiện có (`ScoringRunOrchestratorTest`, `ScoreExplanationOrchestratorTest`) | âm |
 | T6 | S5: đúng hoán vị → 200 theo thứ tự mới; thiếu id, thừa id, trùng id, id của Job khác, id đã xoá → `400 INVALID_SCREENING_ORDER` | dương + âm |
 | T7 | S4 xoá mềm: hàng còn trong DB với `deleted_at` khác `NULL`; S1 không trả câu đó; S3/S4 lại với id đó → 404 | dương + âm |
 | T8 | Quyền S1–S5: HR công ty khác → 403; Job không tồn tại → 404 `JOB_NOT_FOUND`; HR chưa có công ty → 404 `COMPANY_NOT_FOUND` **kể cả khi jobId không tồn tại** (thứ tự R-A2); câu hỏi của Job khác trên đường dẫn → 404 `SCREENING_QUESTION_NOT_FOUND`; token ứng viên → 403; không token → 401 | âm |
@@ -542,7 +565,11 @@ Chạy `reset-test-data.sql` sau khi soát.
 - Kiểm quyền theo thứ tự cũ của `RubricOwnerService` (tra Job trước) — T8 sẽ đỏ; hoặc chép method nạp Job
   vào từng handler; hoặc tự viết kiểm quyền cho S6 thay vì `HrApplicationAccess.loadOwned` (R-A2, R-A3).
 - Trả 404 cho Job/đơn của công ty khác "cho an toàn" — quy ước nhóm route này là 403 (R-A2, R-A3).
-- Đếm số câu bằng `SELECT` rồi `INSERT` không khoá hàng `jobs` — hai tab thêm cùng lúc thành 11 câu (R-Q10, T5).
+- Đếm số câu bằng `SELECT` rồi `INSERT` không khoá hàng `jobs` — hai tab thêm cùng lúc thành 11 câu (R-Q10, T5);
+  chạy câu `UPDATE … screening_revision` **sau** khi đếm/tìm thay vì trước; thêm `@Lock(PESSIMISTIC_WRITE)` song song
+  với câu `UPDATE` (R-Q10).
+- Dùng lại entity `Job` nạp trước câu `UPDATE` rồi `save` nó — ghi đè trạng thái cũ của persistence context (R-Q10a).
+- Thêm field `screeningCapturedAt` vào `JobApplication` ở FR-H10 (L3, bảng R-B).
 - Chỉ tăng `screening_revision` ở một vài thao tác, hoặc tăng ngoài transaction của thao tác (R-Q11, T17).
 - Đặt tab "Sàng lọc" sai chỗ, đổi thứ tự các tab cũ, hoặc nhúng câu trả lời vào tab "CV & điểm" (Q6, M2).
 - Sửa `ApplicationService.apply`, `JobApplyForm.tsx`, hay thêm endpoint `/api/candidates/**` "cho trọn luồng"
@@ -559,17 +586,20 @@ Chạy `reset-test-data.sql` sau khi soát.
 
 ## 9. Kế hoạch đợt code
 
-Mỗi đợt: dừng → báo cáo diff → chờ duyệt → một commit. Giữa các đợt chỉ `.\mvnw.cmd test-compile` + các lớp ở
-cột Kiểm; full suite đúng một lần ở đợt cuối (như FR-C07 mục 9).
+Mỗi đợt: code xong toàn bộ đợt → chạy kiểm ở cột Kiểm → dừng → báo cáo diff → chờ duyệt → một commit (L6):
+- Đợt 2, 3: `.\mvnw.cmd test-compile` rồi **chỉ** các lớp test của đợt đó bằng `-Dtest` (cùng các lớp cũ ghi ở cột
+  Kiểm); không chạy full suite.
+- Đợt 4, 5: `npm run build` + `npm run lint` (CLAUDE.md §5).
+- Đợt 6: `.\mvnw.cmd test` toàn bộ **đúng một lần**, cùng `npm run build` + `npm run lint`.
 
 | Đợt | Nội dung | Kiểm |
 |---|---|---|
-| 1 | Plan Mode: đối chiếu lại mục 0 trên HEAD lúc đó; chốt cách khoá hàng `jobs` (R-Q10) bằng `javap`/source Spring Data; chốt danh sách file | — |
+| 1 | Plan Mode: đối chiếu lại mục 0 trên HEAD lúc đó; chốt cách khoá hàng `jobs` (R-Q10 — đã chốt bằng câu `UPDATE`, mục 12 L1); chốt danh sách file | — |
 | 2 | V13; entity, repository, enum; S1–S5 + mã lỗi; T1–T9, T15, T16 (phần S1/S2), T17 | test-compile; `-Dtest` lớp mới + `RubricOwner*Test`, `JobOwner*Test` |
-| 3 | S6; T10–T14, T16 (phần S6); seed Q9 + cập nhật `reset-test-data.sql` | test-compile; `-Dtest` lớp mới + `ScoringRunOrchestratorTest`, lớp test `ApplicationOwner*`, `ApplicationHrDetail*` |
+| 3 | S6; T10–T14, T16 (phần S6); seed Q9 + cập nhật `reset-test-data.sql` + sửa `db/seed/README.md:255` (L4) | test-compile; `-Dtest` lớp mới + `ScoringRunOrchestratorTest`, lớp test `ApplicationOwner*`, `ApplicationHrDetail*` |
 | 4 | Frontend: tab "Câu hỏi sàng lọc" ở trang sửa Job (`features/screening`) | build + lint |
 | 5 | Frontend: tab "Sàng lọc" ở trang hồ sơ đơn | build + lint; lệnh 7.3 |
-| 6 | Đợt cuối: full `.\mvnw.cmd test`, khối 7.2 (dán output), kiểm tĩnh 7.1, `srs-guard`, `walkthrough`, trạng thái `ĐÃ HOÀN THÀNH`, tài liệu mục 10 | full suite; 7.2; 7.3 |
+| 6 | Đợt cuối: full `.\mvnw.cmd test`, khối 7.2 (dán output), kiểm tĩnh 7.1, `srs-guard`, `walkthrough`, trạng thái `ĐÃ HOÀN THÀNH`, tài liệu mục 10 | full `mvnw test` (một lần); build + lint; 7.2; 7.3 |
 
 ## 10. Tài liệu dùng chung sẽ sửa (ở đợt cuối, không sửa trong commit đặc tả)
 
@@ -597,3 +627,23 @@ Phần thân đã viết theo các phương án dưới đây.
 | Q8 | Chặn từ khoá nhân thân ở backend? | Không chặn; lưu ý luôn hiện ở form (R-P1, R-P2) | Danh sách từ dễ chặn nhầm, dễ lách; không được dùng AI để nhận diện (SRS mục 5) |
 | Q9 | Seed để soát tay | Mục 4.5: 3 câu SQ1–SQ3 cho tin CSKH; bản chụp cho A1, A9; A2 đã chụp 0 dòng; cập nhật `reset-test-data.sql`; không đụng seed demo | Câu trả lời là dữ liệu ứng viên, không phải output AI; cần để soát `CAPTURED`/`NO_QUESTIONS` trước FR-U09 |
 | Q10 | Job đã xoá mềm hay `CLOSED` có sửa được câu hỏi? | Như tab Rubric: không chặn riêng | Job không `OPEN` thì không nhận đơn; giữ một hành vi chung cho các tab của trang sửa Job |
+
+## 12. Làm rõ sau Plan Mode (duyệt 10/10/2026)
+
+- **L1 (R-Q10, R-Q10a, R-Q10b; mục 0 a14, mục 4.2, mục 8).** Bỏ `PESSIMISTIC_WRITE`: codebase chưa có `@Lock` nào
+  (`grep -rn "@Lock\|PESSIMISTIC"` trên `backend/src/main` → 0 dòng). Khoá hàng `jobs` bằng chính câu
+  `UPDATE jobs SET screening_revision = screening_revision + 1 WHERE id = :jobId`, chạy sau kiểm quyền và kiểm đầu
+  vào, trước khi đếm/tìm/ghi câu hỏi — một câu vừa khoá vừa tăng revision (R-Q11), lỗi ở bước sau rollback cả lần
+  tăng. Sau câu `UPDATE` không dùng lại entity `Job` đã nạp trong cùng persistence context. Đã soát `jobs.updated_at`
+  (trigger đổi cột này khi `UPDATE`): không chỗ nào sắp xếp theo hay hiển thị (mục 0, a14).
+- **L2 (T5).** Bỏ "dọn dữ liệu sau test": T5 dùng dữ liệu ngẫu nhiên riêng, chỉ khẳng định trên Job của chính test,
+  theo tiền lệ `ScoringRunOrchestratorTest`, `ScoreExplanationOrchestratorTest` (không `@Transactional`, không
+  `@AfterEach`).
+- **L3 (mục 4.2, bảng R-B).** `screening_captured_at` đọc bằng native query trong `screening/`, không sửa
+  `JobApplication.java` (hiện không map cột này). FR-U09 thêm field vào entity khi làm đường ghi.
+- **L4 (mục 4.5, mục 9).** Đợt 3 sửa thêm `db/seed/README.md:255` ("UUID tiền tố `e0…`–`ed…`" → "`e0…`–`ef…`").
+- **L5 (mục 4.1).** Không thêm index cho `application_screening_answers`: `uq_screening_answer_order
+  (application_id, display_order)` đã đủ cho S6. Trigger `updated_at` của `job_screening_questions` viết thành câu
+  `CREATE TRIGGER` riêng trong V13.
+- **L6 (mục 9).** Đợt 2, 3 chỉ chạy các lớp test của đợt đó; đợt 4, 5 chạy `npm run build` + `npm run lint`;
+  `.\mvnw.cmd test` toàn bộ chỉ chạy ở đợt 6.
