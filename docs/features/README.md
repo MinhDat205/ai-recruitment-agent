@@ -396,7 +396,7 @@ Giúp hai bên soạn nhanh tin nhắn/email nhất quán, không phải viết 
 
 **Người dùng thao tác**
 
-- Trong khung soạn tin của C06 bấm Soạn bằng AI → chọn tình huống có sẵn hoặc tự mô tả mục đích → chọn giọng văn (trang trọng/thân thiện) → bản nháp được điền vào khung soạn → chỉnh sửa → bấm Gửi như tin thường.
+- Trong khung soạn tin của C06 bấm Soạn bằng AI → chọn tình huống có sẵn hoặc tự mô tả mục đích → chọn giọng văn (trang trọng/thân thiện) → xem trước bản nháp trong khối "Do AI tạo", bấm "Dùng bản nháp" mới điền vào khung soạn → chỉnh sửa → bấm Gửi như tin thường.
 - Tình huống phía HR: đề nghị bổ sung thông tin, nhắc lịch phỏng vấn, cảm ơn đã ứng tuyển, thông báo kết quả, tự mô tả.
 - Tình huống phía Ứng viên: hỏi tiến độ, cảm ơn sau phỏng vấn, xin dời lịch phỏng vấn, tự mô tả.
 
