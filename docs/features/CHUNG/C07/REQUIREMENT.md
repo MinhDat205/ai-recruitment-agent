@@ -623,4 +623,18 @@ giữa các đợt chỉ `.\mvnw.cmd test-compile` + các lớp ở cột Kiểm
   request; SDK tự thử lại ngầm tối đa 2 lần với lỗi mạng/408/409/429/5xx và không tắt được khi dùng bean `ChatModel`
   duy nhất. Chọn phương án A có chỉnh: "thử lại tối đa 1 lần" hiểu ở tầng K3 (≤ 2 lần gọi `ChatModel`), K3 chỉ thử
   lại khi output hỏng; lỗi tạm thời của nhà cung cấp → 503 ngay. Giới hạn đã biết: lời gọi bị bỏ chạy ngầm tới
-  ~100 s, giữ luồng executor. Kết quả xác minh `Future.cancel(true)` với OkHttp: *chờ Plan Mode ghi*.
+  ~100 s, giữ luồng executor. Kết quả xác minh `Future.cancel(true)` với OkHttp
+  (`javap`, OkHttp 4.12.0, Okio 3.6.0, `anthropic-java-core-2.40.1`, `spring-ai-anthropic-2.0.0`):
+  - **Không dừng ngay request đang chạy.** `okio.InputStreamSource.read` gọi `Timeout.throwIfReached()` **trước**
+    `InputStream.read` chặn; luồng thường đang chặn trong `Socket` read không bị interrupt gỡ ra. Request kết thúc khi
+    có phản hồi hoặc chạm `callTimeout` 30 s (`SpringAiAnthropicHttpClient$Builder.timeout(Duration)` →
+    `Timeout.request` → `OkHttpClient.Builder.callTimeout`).
+  - **Nhưng chặn các lần SDK thử lại sau đó.** `Timeout.throwIfReached()` dùng `Thread.isInterrupted()` (không xoá
+    cờ) và ném `InterruptedIOException`; `RetryingHttpClient.execute` chỉ bắt lỗi quanh lời gọi HTTP (offset 79–121),
+    còn `Sleeper.sleep` (offset 188) nằm ngoài vùng bắt; `DefaultSleeper.sleep` gọi thẳng `Thread.sleep` → ném
+    `InterruptedException` ngay vì cờ ngắt còn → lời gọi kết thúc, không thử lại nữa. Đang chờ giữa hai lần thử thì
+    dừng ngay lập tức.
+  - **Cận thực tế:** lời gọi bị bỏ dừng khi lần HTTP đang chạy kết thúc (≤ 30 s kể từ lúc lần đó bắt đầu). Giả định
+    executor của K3 dùng luồng thường; chưa soát hết các lớp Spring AI phía trên (`AnthropicChatModel.internalCall`,
+    observation, `ChatClient`) xem có lớp nào nuốt `InterruptedException` không → giữ "~100 s" ở R-K3-5 làm cận bảo
+    thủ; K3 không dựa vào `cancel(true)` để bảo đảm đúng đắn.
