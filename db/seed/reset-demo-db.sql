@@ -78,8 +78,8 @@ $guard3$;
 
 \echo 'Ca ba chot chan da qua - bat dau TRUNCATE...'
 
--- Liet ke tuong minh toan bo 21 bang nghiep vu, lay dung tu danh sach
--- CREATE TABLE trong V1__init_schema.sql + V5__/V6__ (khong doan so bang).
+-- Liet ke tuong minh toan bo 22 bang nghiep vu, lay dung tu danh sach
+-- CREATE TABLE trong V1__init_schema.sql + V5__/V6__/V12__ (khong doan so bang).
 -- TRUNCATE CASCADE quet theo MOI FK tro toi bang bi truncate, bat ke FK khai
 -- ON DELETE RESTRICT/CASCADE/SET NULL - liet ke day du de nguoi doc script
 -- biet chinh xac pham vi anh huong, khong phai suy doan tu CASCADE.
@@ -92,6 +92,8 @@ TRUNCATE TABLE
     resumes, resume_parsed_data, job_embeddings, resume_reparse_requests,
     -- Don ung tuyen & pipeline HR
     job_applications, application_status_history, interview_invitations,
+    -- Tin nhan theo don (FR-C06, V12)
+    application_messages,
     -- Cham diem AI
     scoring_runs, criterion_scores, score_explanations, score_explanation_attempts,
     -- Goi y viec lam (F1/FR-U04, da go bo dem o FR-U15 dot 4 - khong con bang

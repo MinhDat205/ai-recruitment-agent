@@ -7,7 +7,7 @@
 --
 -- Doc lap voi bo demo (seed-demo-structural.sql / seed-demo-ai-output.sql):
 -- nap duoc tren DB chi co schema, va nap cung DB voi hai tang demo khong va
--- cham - UUID tien to rieng e0..ec (demo tang 1 dung d0..d6, tang 2 UUID
+-- cham - UUID tien to rieng e0..ed (demo tang 1 dung d0..d6, tang 2 UUID
 -- ngau nhien), email rieng, ten cong ty rieng.
 --
 -- Idempotent: moi INSERT co ON CONFLICT (id) DO NOTHING, chay lai nhieu lan
@@ -559,6 +559,47 @@ INSERT INTO notifications (id, user_id, type, title, body, link, entity_type, en
      'APPLICATION', 'e8000000-0000-0000-0000-000000000009', FALSE, NULL, 'SKIPPED', '2026-09-15 02:00:01+00')
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- 14. Tin nhan theo don (FR-C06 R-S1) - chi tin chu, khong tep, KHONG co dong
+--     thong bao NEW_MESSAGE di kem. read_at = luc BEN NHAN doc (NULL = chua doc).
+--     A2 (INTERVIEW_INVITED): HR -> UV da doc, UV -> HR da doc, HR -> UV CHUA doc
+--        -> Quoc Huy co 1 tin chua doc; luong hai chieu.
+--     A3 (WITHDRAWN): UV -> HR da doc, HR -> UV da doc -> cuoc trao doi chi con xem.
+--        Hai tin dat 12/08 va 13/08, giua luc nop (12/08 03:00) va luc rut don
+--        (14/08 13:00) - backend chan gui tin vao don da rut (R-M4, L8).
+--     A9 (Tran Bao Ngoc): UV -> HR CHUA doc -> HR co 1 tin chua doc.
+--     A1 khong co tin (trang thai rong).
+--     Tin moi nhat: A3 13/08, A2 07/10, A9 08/10 -> hop thu HR xep A9, A2, A3;
+--     hop thu Quoc Huy xep A2, A3. Gio UTC 02:00-09:00 = gio hanh chinh VN, de
+--     ngay hien thi giong nhau o ca UTC lan gio VN.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO application_messages (id, application_id, sender_id, sender_role, body, read_at, created_at) VALUES
+    -- A2
+    ('ed000000-0000-0000-0000-000000000001', 'e8000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000001', 'HR',
+     'Chào Quốc Huy, cảm ơn bạn đã nhận lời mời phỏng vấn vị trí Nhân viên Hành chính văn phòng. '
+     || 'Bạn vui lòng mang theo bản sao bằng tốt nghiệp khi đến phỏng vấn nhé.',
+     '2026-10-06 03:00:00+00', '2026-10-06 02:15:00+00'),
+    ('ed000000-0000-0000-0000-000000000002', 'e8000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000002', 'CANDIDATE',
+     'Dạ em chào anh/chị, em đã nhận được thư mời.' || E'\n' || 'Em sẽ chuẩn bị đầy đủ giấy tờ ạ.',
+     '2026-10-06 04:00:00+00', '2026-10-06 03:05:00+00'),
+    ('ed000000-0000-0000-0000-000000000003', 'e8000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000001', 'HR',
+     'Buổi phỏng vấn có thể bắt đầu sớm hơn 30 phút so với lịch trong thư mời. Bạn có sắp xếp được không?',
+     NULL, '2026-10-07 02:30:00+00'),
+    -- A3
+    ('ed000000-0000-0000-0000-000000000004', 'e8000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000002', 'CANDIDATE',
+     'Em vừa nhận được lời mời làm việc ở nơi khác nên có thể em sẽ rút đơn vị trí Chuyên viên Pháp chế. '
+     || 'Em báo trước để anh/chị tiện sắp xếp ạ.',
+     '2026-08-13 02:00:00+00', '2026-08-12 08:00:00+00'),
+    ('ed000000-0000-0000-0000-000000000005', 'e8000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000001', 'HR',
+     'Cảm ơn bạn đã báo trước. Nếu bạn quyết định rút đơn, chúc bạn thành công với công việc mới.',
+     '2026-08-13 04:00:00+00', '2026-08-13 02:10:00+00'),
+    -- A9
+    ('ed000000-0000-0000-0000-000000000006', 'e8000000-0000-0000-0000-000000000009', 'e0000000-0000-0000-0000-000000000005', 'CANDIDATE',
+     'Em chào anh/chị, buổi phỏng vấn trực tuyến dùng Google Meet phải không ạ? Em cần chuẩn bị gì trước buổi phỏng vấn ạ?',
+     NULL, '2026-10-08 03:20:00+00')
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;
 
 -- ---------------------------------------------------------------------------
@@ -566,7 +607,7 @@ COMMIT;
 -- companies 1, jobs 6, rubrics 6, rubric_criteria 18, interview_templates 6,
 -- resumes 6, resume_parsed_data 1, job_applications 9,
 -- application_status_history 16, interview_invitations 3, scoring_runs 2,
--- notifications 16.
+-- notifications 16, application_messages 6.
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'e0000000-%'
 UNION ALL SELECT 'candidate_profiles', count(*) FROM candidate_profiles WHERE id::text LIKE 'e6000000-%'
@@ -581,4 +622,5 @@ UNION ALL SELECT 'job_applications', count(*) FROM job_applications WHERE id::te
 UNION ALL SELECT 'application_status_history', count(*) FROM application_status_history WHERE id::text LIKE 'e9000000-%'
 UNION ALL SELECT 'interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'ea000000-%'
 UNION ALL SELECT 'scoring_runs', count(*) FROM scoring_runs WHERE id::text LIKE 'eb000000-%'
-UNION ALL SELECT 'notifications', count(*) FROM notifications WHERE id::text LIKE 'ec000000-%';
+UNION ALL SELECT 'notifications', count(*) FROM notifications WHERE id::text LIKE 'ec000000-%'
+UNION ALL SELECT 'application_messages', count(*) FROM application_messages WHERE id::text LIKE 'ed000000-%';

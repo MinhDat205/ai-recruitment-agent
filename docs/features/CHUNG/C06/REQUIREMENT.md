@@ -774,3 +774,6 @@ Bản nháp đã chọn sẵn một phương án cho từng điểm; duyệt ngu
 - **L6 (R-I1, R-F6).** Hai đơn trùng thời điểm tin mới nhất xếp theo `applicationId` giảm dần. "Ký tự điều
   khiển" là mọi ký tự có `Character.isISOControl`.
 - **L7 (T26).** Dùng `@MockitoSpyBean`; chấp nhận lớp test này tạo một Spring context riêng.
+- **L8 (R-S1).** Hai tin của A3 đặt vào 12/08/2026 và 13/08/2026, trước ngày A3 rút đơn (14/08/2026), vì
+  backend chặn gửi tin vào đơn đã rút (R-M4); mốc "A3 ngày 05/10/2026" ở R-S1 bị thay bằng mốc này. Thứ tự
+  hộp thư không đổi: HR xếp A9, A2, A3; Quốc Huy xếp A2, A3.

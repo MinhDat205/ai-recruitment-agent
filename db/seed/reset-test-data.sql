@@ -90,6 +90,7 @@ DELETE FROM criterion_scores           WHERE scoring_run_id IN (SELECT id FROM t
 DELETE FROM scoring_runs               WHERE id IN (SELECT id FROM t_runs);
 
 -- 3. Con cua job_applications, roi chinh don
+DELETE FROM application_messages       WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM interview_invitations      WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM application_status_history WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM job_applications           WHERE id IN (SELECT id FROM t_apps);
