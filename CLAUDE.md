@@ -63,8 +63,9 @@ Monorepo: `backend/` (Spring Boot) + `frontend/` (React) + 1 PostgreSQL. Không 
 
 Chia package theo TÍNH NĂNG, không theo tầng: `auth/`, `user/`, `company/`, `job/`,
 `interviewtemplate/`, `interviewinvitation/`, `rubric/`, `resume/`, `jobapplication/`,
-`jobrecommendation/`, `scoring/`, `dashboard/`, `notification/`, `ratelimit/`, `storage/`,
-`common/`, `ai/client/`, `ai/criterion/`, `ai/explanation/`, `ai/cvimprovement/`, `ai/embedding/`.
+`jobrecommendation/`, `scoring/`, `dashboard/`, `notification/`, `messaging/`, `ratelimit/`,
+`storage/`, `common/`, `ai/client/`, `ai/criterion/`, `ai/explanation/`, `ai/cvimprovement/`,
+`ai/embedding/`.
 Mỗi mã FR nằm gọn trong một package; package mới chỉ tạo khi FR thật sự cần.
 
 ## 3b. Bẫy đã trả giá — đọc trước khi động vào Spring AI

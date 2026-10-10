@@ -1,6 +1,6 @@
 # FR-C06 — Nhắn tin theo đơn ứng tuyển
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH (10/10/2026). Duyệt: 10/10/2026.
 
 - Nhóm: Chung
 - Tóm tắt: HR và ứng viên nhắn tin quanh **một** đơn ứng tuyển: tab "Trao đổi" ở trang hồ sơ đơn (HR) và

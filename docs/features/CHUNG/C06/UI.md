@@ -1,6 +1,6 @@
 # FR-C06 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH (10/10/2026). Duyệt: 10/10/2026.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 2 (điều hướng), 3 (component), 4 (ràng buộc), 5 (rỗng/
 tải/lỗi), 6 (tương phản). Mã quy tắc `R-…` và mã endpoint `M1`–`M5` là của `REQUIREMENT.md` cùng thư mục. File
@@ -8,7 +8,7 @@ này không chép lại quy tắc chung, chỉ chốt cách áp cho các màn h�
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH (10/10/2026). Duyệt: 10/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

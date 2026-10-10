@@ -786,7 +786,33 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
   - Danh sách đơn của ứng viên không lọc đơn vào tin đã xoá mềm (hành vi cũ, giữ nguyên); trang chi tiết hiện
     tin đó là "Không còn đăng".
   - Frontend chưa có test tự động.
-- [ ] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển
+- [x] `feat/fr-c06-messaging` — FR-C06 · Nhắn tin theo đơn ứng tuyển — **HOÀN THÀNH**
+  (10/10/2026, 7 đợt — xem `docs/walkthrough/fr-c06-messaging.md`). Package mới `messaging/`: bảng
+  `application_messages` (khoá cuộc trao đổi là `applicationId`, không có bảng cuộc trao đổi riêng); 5 endpoint
+  mỗi phía (M1 đọc tin, M2 gửi tin chữ và/hoặc một tệp ≤ 5MB, M3 đánh dấu đã đọc, M4 tải tệp `attachment`,
+  M5 hộp thư), kiểm quyền dùng lại `HrApplicationAccess.loadOwned` (đơn công ty khác 403) và
+  `findByIdAndCandidateId` (404); đơn `WITHDRAWN` chỉ còn xem (409 `CONVERSATION_READ_ONLY`). Thông báo
+  `NEW_MESSAGE` cho bên nhận (`AFTER_COMMIT` + `REQUIRES_NEW`), gộp khi bên nhận còn thông báo chưa đọc của
+  cùng đơn, email có thêm dòng liên kết (chỉ loại này); mở tab "Trao đổi" đánh dấu cả tin lẫn thông báo đã
+  đọc. Nhận dạng tệp bằng magic bytes gom về `storage/FileSignatures`, CV (FR-U01) và logo (FR-H01) chuyển
+  sang dùng chung, hành vi và test cũ không đổi. Nhóm giới hạn tần suất `message` (20 tin/phút/người). Frontend:
+  tab "Trao đổi" ở hai trang đơn (tự tải lại 10 giây), hộp thư `/hr/messages`, `/candidate/messages` (30 giây),
+  tự dừng sau 20 phút; `formatFileSize`, `useStallGuardedPolling` chuyển về `lib/`. Seed test thêm 6 tin (mục 14).
+  Full suite 892/892. Migration `V12__application_messages.sql`. Đặc tả làm rõ 8 điểm sau Plan Mode (L1–L8,
+  duyệt 10/10/2026; L8 dời hai tin seed của A3 về trước ngày rút đơn). Nợ kỹ thuật:
+  - Gộp thông báo chỉ có tác dụng khi bên nhận chưa mở cuộc trao đổi: hai bên cùng mở tab "Trao đổi" thì vẫn
+    khoảng một thông báo và một email mỗi tin (R-N4b, chấp nhận ở đặc tả).
+  - Chữ ký DOCX trùng mọi tệp ZIP: `.zip`/`.xlsx`/`.jar` lọt với nhãn DOCX và tải về với đuôi `.docx` (R-F6b);
+    không mở ZIP để kiểm cấu trúc — cùng giới hạn với CV của FR-U01.
+  - Tệp lưu trước, ghi DB sau: ghi DB lỗi thì tệp mồ côi nằm lại trong kho, không dọn (R-F9). Tệp đính kèm gửi
+    lúc soát tay không được `reset-test-data.sql` dọn khỏi `backend/uploads/message-attachments/` (SQL không xoá
+    được tệp trên đĩa).
+  - `app.frontend-base-url` có dấu `/` ở cuối sẽ tạo liên kết email có hai dấu `//` (ghép chuỗi thẳng, không
+    chuẩn hoá).
+  - Hộp thư mở với `?page=` vượt tổng số trang hiện trạng thái rỗng thay vì đưa về trang cuối.
+  - Frontend chưa có test tự động.
+  - `NotificationList` (trang "Xem tất cả") vẫn chưa điều hướng theo `link` (nợ cũ ghi ở FR-U08) — bấm thông
+    báo `NEW_MESSAGE` ở trang đó không mở tab "Trao đổi"; chỉ chuông mới mở.
 - [ ] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026; đây chưa phải đặc tả, chốt ở REQUIREMENT.md của từng FR):
