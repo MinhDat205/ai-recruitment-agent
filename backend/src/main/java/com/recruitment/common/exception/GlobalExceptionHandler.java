@@ -98,6 +98,31 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RUBRIC_CRITERION_NOT_FOUND", ex.getMessage()));
     }
 
+    // FR-H10 - bon ma loi cua cau hoi sang loc (REQUIREMENT R-Q1, R-Q4b, R-Q6, R-A2).
+    @ExceptionHandler(ScreeningQuestionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleScreeningQuestionNotFound(ScreeningQuestionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("SCREENING_QUESTION_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ScreeningQuestionLimitReachedException.class)
+    public ResponseEntity<ErrorResponse> handleScreeningQuestionLimitReached(ScreeningQuestionLimitReachedException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("SCREENING_QUESTION_LIMIT_REACHED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidScreeningQuestionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidScreeningQuestion(InvalidScreeningQuestionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_SCREENING_QUESTION", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidScreeningOrderException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidScreeningOrder(InvalidScreeningOrderException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_SCREENING_ORDER", ex.getMessage()));
+    }
+
     @ExceptionHandler(RubricLockedException.class)
     public ResponseEntity<ErrorResponse> handleRubricLocked(RubricLockedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("RUBRIC_LOCKED", ex.getMessage()));
