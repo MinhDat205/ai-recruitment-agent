@@ -3,7 +3,7 @@
 > Trạng thái: ĐÃ DUYỆT 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
 >
 > Làm rõ sau Plan Mode 10/10/2026: L1–L6 (L1: R-Q10, mục 0 a14, mục 4.2, mục 8; L2: T5; L3: mục 4.2, bảng R-B;
-> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9) — chi tiết ở mục 12.
+> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15) — chi tiết ở mục 12.
 
 - Nhóm: HR
 - Tóm tắt: HR đặt tối đa 10 câu hỏi sàng lọc cho một Job (trả lời ngắn, một lựa chọn, có/không; đánh dấu
@@ -226,64 +226,109 @@ lời là thông tin tham khảo cho HR; không phải đầu vào của AI, kh�
 
 ### 4.1 Migration `V13__screening_questions.sql` (Q5)
 
+Khối dưới đây là **nguyên văn** file V13 (đã sửa theo L7, mục 12).
+
 ```sql
--- FR-H10 - bo cau hoi sang loc theo Job. Xoa mem (deleted_at), CLAUDE.md §4.
+-- FR-H10 - Cau hoi sang loc theo Job (REQUIREMENT.md muc 4.1).
+--
+-- Quy uoc CHECK (L7): Postgres coi CHECK ra NULL la DAT. Moi CHECK duoi day da xet tung cot tham gia la NULL: cot
+-- KHONG duoc NULL thi khai NOT NULL o dinh nghia cot hoac IS NOT NULL trong CHECK; cot DUOC NULL co chu dich thi CHECK
+-- xu ly NULL tuong minh (IS NULL / IS NOT NULL) va ghi ly do ngay canh cot.
+
+-- Bo cau hoi sang loc theo Job. Xoa mem bang deleted_at (CLAUDE.md §4, R-Q8). Gioi han do dai (300 ky tu) tinh SAU khi
+-- bo khoang trang hai dau va kiem o service (R-Q4b); gia tri luu da bo khoang trang nen CHECK duoi day la chot chan cuoi
+-- tren gia tri da luu.
 CREATE TABLE job_screening_questions (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id         UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
     question_type  VARCHAR(20) NOT NULL CHECK (question_type IN ('SHORT_TEXT','SINGLE_CHOICE','YES_NO')),
     question_text  VARCHAR(300) NOT NULL CHECK (char_length(btrim(question_text)) > 0),
-    options        JSONB,          -- mang chuoi, chi SINGLE_CHOICE
+    -- NULL co chu dich: SHORT_TEXT/YES_NO khong co phuong an. SINGLE_CHOICE bat buoc khac NULL (IS NOT NULL trong
+    -- chk_screening_question_options - thieu no thi NULL lot qua vi jsonb_typeof(NULL) = 'array' ra NULL).
+    options        JSONB,
     is_required    BOOLEAN NOT NULL DEFAULT FALSE,
     display_order  INT NOT NULL,
+    -- NULL co chu dich: cau dang hoat dong (R-Q8). Khong tham gia CHECK nao.
     deleted_at     TIMESTAMPTZ,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chk_screening_question_options CHECK (
-        (question_type = 'SINGLE_CHOICE' AND jsonb_typeof(options) = 'array'
+        (question_type = 'SINGLE_CHOICE' AND options IS NOT NULL AND jsonb_typeof(options) = 'array'
              AND jsonb_array_length(options) BETWEEN 2 AND 10)
         OR (question_type <> 'SINGLE_CHOICE' AND options IS NULL))
 );
 CREATE INDEX idx_screening_question_job ON job_screening_questions(job_id, display_order)
     WHERE deleted_at IS NULL;
--- dang ky trigger set_updated_at cho bang nay (ham o V1__init_schema.sql:362-367, khoi dang ky trigger cho
--- cac bang cu o :369-378 - V13 tu CREATE TRIGGER rieng, khong sua V1)
 
--- FR-H10 - ban chup cau hoi + cau tra loi theo don. BAT BIEN: khong updated_at, khong trigger (R-S2).
--- Duong ghi thuoc FR-U09.
+-- Ham set_updated_at() o V1__init_schema.sql:362-367; khoi dang ky trigger cho cac bang cu o :369-378 khong sua.
+CREATE TRIGGER trg_job_screening_questions_updated_at BEFORE UPDATE ON job_screening_questions
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Ban chup cau hoi + cau tra loi theo don (R-S). BAT BIEN: khong updated_at, khong trigger (R-S2).
+-- Duong ghi thuoc FR-U09; FR-H10 chi doc.
+-- Khong them index rieng: uq_screening_answer_order (application_id, display_order) da du cho S6 (L5).
 CREATE TABLE application_screening_answers (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     application_id          UUID NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
-    question_id             UUID REFERENCES job_screening_questions(id) ON DELETE SET NULL, -- chi de truy vet
+    -- NULL co chu dich: chi de truy vet (R-S3); khong tham gia CHECK nao.
+    question_id             UUID REFERENCES job_screening_questions(id) ON DELETE SET NULL,
     display_order           INT NOT NULL,
     question_type_snapshot  VARCHAR(20) NOT NULL
                             CHECK (question_type_snapshot IN ('SHORT_TEXT','SINGLE_CHOICE','YES_NO')),
     question_text_snapshot  VARCHAR(300) NOT NULL,
+    -- NULL co chu dich: SHORT_TEXT/YES_NO. SINGLE_CHOICE bat buoc khac NULL (IS NOT NULL trong
+    -- chk_screening_answer_options).
     options_snapshot        JSONB,
     required_snapshot       BOOLEAN NOT NULL,
+    -- NULL co chu dich: cau khong bat buoc ung vien bo trong (R-S1), va moi cau YES_NO (chk_screening_answer_shape).
+    -- CHECK do dai xu ly NULL tuong minh (answer_text IS NULL OR ...).
     answer_text             TEXT CHECK (answer_text IS NULL OR char_length(answer_text) <= 500),
+    -- NULL co chu dich: cau YES_NO khong bat buoc bo trong, va moi cau khong phai YES_NO (chk_screening_answer_shape).
     answer_yes_no           BOOLEAN,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_screening_answer_order UNIQUE (application_id, display_order),
     CONSTRAINT chk_screening_answer_options CHECK (
-        (question_type_snapshot = 'SINGLE_CHOICE' AND jsonb_typeof(options_snapshot) = 'array'
+        (question_type_snapshot = 'SINGLE_CHOICE' AND options_snapshot IS NOT NULL
+             AND jsonb_typeof(options_snapshot) = 'array'
              AND jsonb_array_length(options_snapshot) BETWEEN 2 AND 10)
         OR (question_type_snapshot <> 'SINGLE_CHOICE' AND options_snapshot IS NULL)),
+    -- Chi dung IS NULL tren cot duoc NULL + cot NOT NULL -> bieu thuc khong bao gio ra NULL.
     CONSTRAINT chk_screening_answer_shape CHECK (
         (question_type_snapshot = 'YES_NO' AND answer_text IS NULL)
         OR (question_type_snapshot <> 'YES_NO' AND answer_yes_no IS NULL)),
+    -- required_snapshot NOT NULL, hai cot tra loi chi xet IS NOT NULL -> khong bao gio ra NULL.
     CONSTRAINT chk_screening_answer_required CHECK (
         NOT required_snapshot OR answer_text IS NOT NULL OR answer_yes_no IS NOT NULL)
 );
 
-ALTER TABLE job_applications ADD COLUMN screening_captured_at TIMESTAMPTZ;   -- NULL cho moi don cu (R-S4)
-ALTER TABLE jobs ADD COLUMN screening_revision INT NOT NULL DEFAULT 0;        -- Q7
+-- NULL co chu dich = don chua di qua buoc chup cua FR-U09 (moi don cu, R-S4). Khong backfill, khong CHECK.
+ALTER TABLE job_applications ADD COLUMN screening_captured_at TIMESTAMPTZ;
+
+-- Tang 1 o moi thao tac ghi bo cau hoi, trong cung transaction (R-Q10, R-Q11, Q7). Khong map vao entity Job.
+ALTER TABLE jobs ADD COLUMN screening_revision INT NOT NULL DEFAULT 0;
 ```
 
 Không thêm index nào cho `application_screening_answers`: `uq_screening_answer_order (application_id,
-display_order)` đã tạo index trên đúng hai cột S6 lọc và sắp xếp (L5). Dòng "đăng ký trigger" ở trên được viết
-thành câu `CREATE TRIGGER trg_job_screening_questions_updated_at … EXECUTE FUNCTION set_updated_at()` riêng trong V13,
-không sửa V1.
+display_order)` đã tạo index trên đúng hai cột S6 lọc và sắp xếp (L5). Trigger `updated_at` của
+`job_screening_questions` là câu `CREATE TRIGGER` riêng trong V13, không sửa V1.
+
+**Soát CHECK theo logic ba trị (L7).** Postgres coi CHECK ra `NULL` là đạt. Kết quả soát từng ràng buộc khi mỗi cột
+tham gia là `NULL`:
+
+| Ràng buộc | Cột có thể `NULL` | Kết luận |
+|---|---|---|
+| `job_screening_questions.question_type` `CHECK (… IN …)` | không (`NOT NULL`) | Đúng |
+| `job_screening_questions.question_text` `CHECK (char_length(btrim(…)) > 0)` | không (`NOT NULL`) | Đúng |
+| `chk_screening_question_options` | `options` (có chủ đích với `SHORT_TEXT`/`YES_NO`) | **Lỗ hổng, đã sửa:** `SINGLE_CHOICE` + `options NULL` → `jsonb_typeof(NULL) = 'array'` ra `NULL`, cả CHECK ra `NULL` → lọt. Thêm `options IS NOT NULL` vào vế `SINGLE_CHOICE` |
+| `application_screening_answers.question_type_snapshot` `CHECK (… IN …)` | không (`NOT NULL`) | Đúng |
+| `application_screening_answers.answer_text` `CHECK (answer_text IS NULL OR char_length(…) <= 500)` | `answer_text` (có chủ đích: câu bỏ trống, câu `YES_NO`) | Đúng — `NULL` xử lý tường minh bằng `IS NULL` |
+| `chk_screening_answer_options` | `options_snapshot` (có chủ đích với `SHORT_TEXT`/`YES_NO`) | **Lỗ hổng, đã sửa:** cùng lỗi với `chk_screening_question_options`. Thêm `options_snapshot IS NOT NULL` |
+| `chk_screening_answer_shape` | `answer_text`, `answer_yes_no` (có chủ đích) | Đúng — hai cột chỉ xét bằng `IS NULL`, `question_type_snapshot` `NOT NULL` → không bao giờ ra `NULL` |
+| `chk_screening_answer_required` | `answer_text`, `answer_yes_no` (có chủ đích) | Đúng — `required_snapshot` `NOT NULL`, hai cột chỉ xét bằng `IS NOT NULL` → không bao giờ ra `NULL` |
+| `uq_screening_answer_order` (UNIQUE) | không (`application_id`, `display_order` `NOT NULL`) | Đúng — UNIQUE coi `NULL` là khác nhau, nhưng hai cột không `NULL` được |
+
+Cột được `NULL` có chủ đích nhưng không tham gia CHECK nào: `deleted_at`, `question_id`,
+`job_applications.screening_captured_at` — lý do ghi trong comment của V13.
 
 Không backfill dữ liệu. Phần DB **không** chốt (R-S6): câu trả lời `SINGLE_CHOICE` thuộc `options_snapshot`;
 `SHORT_TEXT` bắt buộc khác rỗng sau khi bỏ khoảng trắng; độ dài tính sau khi bỏ khoảng trắng — FR-U09 kiểm ở
@@ -436,7 +481,7 @@ câu hỏi bằng AI là của FR-H11. Câu trả lời không vào ngữ cảnh
 | T12 | Quyền S6: như FR-H09 T2–T4 (403 công ty khác, 404 `APPLICATION_NOT_FOUND`, 404 `COMPANY_NOT_FOUND`, 403 ứng viên, 401) | âm |
 | T13 | **Không vào ngữ cảnh AI chấm điểm và giải thích:** đơn có bản chụp chứa chuỗi đánh dấu duy nhất (vd `SCREENING-MARKER-7f3a`) ở nội dung câu hỏi, phương án và câu trả lời; Job có câu hỏi đang hoạt động chứa cùng chuỗi. `ChatModel` mock, bắt **mọi** `Prompt` bằng `ArgumentCaptor`, hai nhánh: (a) **FR-H04** — `ScoringRunOrchestrator.processOne` đi qua `CriterionScoringService.score`; (b) **FR-H06** — `ScoreExplanationOrchestrator.processOne` cho lượt `DONE` của chính đơn đó. Mỗi nhánh khẳng định: bắt được ≥ 1 prompt (nhánh thật sự gọi `ChatModel`, không "qua" bằng 0 prompt) **và** không message nào (system lẫn user) của prompt nào chứa chuỗi đánh dấu | âm |
 | T14 | **Không đổi tổng điểm/hạng:** hai đơn cùng Job có `criterion_scores` giống hệt, một đơn có bản chụp (trả lời "Có"), một đơn `NOT_CAPTURED` → `totalScore` bằng nhau và cùng `rank` ở `GET /api/hr/jobs/{jobId}/applications` và ở E3 của FR-H09; thêm/xoá dòng bản chụp rồi gọi lại → không đổi | dương |
-| T15 | Ràng buộc DB (insert thẳng, không qua service): `answer_text` 499, 500 ký tự → insert được; 501 ký tự → `DataIntegrityViolationException`. Mỗi trường hợp sau cũng → `DataIntegrityViolationException`: `YES_NO` có `answer_text`; câu bắt buộc không có trả lời; `job_screening_questions` `SINGLE_CHOICE` với `options` 1 phần tử; bản chụp `SINGLE_CHOICE` có `options_snapshot` `NULL` hoặc 1 phần tử; bản chụp `SHORT_TEXT`/`YES_NO` có `options_snapshot` khác `NULL` | biên + âm |
+| T15 | Ràng buộc DB (insert thẳng, không qua service): `answer_text` 499, 500 ký tự → insert được; 501 ký tự → `DataIntegrityViolationException`. Mỗi trường hợp sau cũng → `DataIntegrityViolationException`: `YES_NO` có `answer_text`; câu bắt buộc không có trả lời; `job_screening_questions` `SINGLE_CHOICE` với `options` 1 phần tử; bản chụp `SINGLE_CHOICE` có `options_snapshot` `NULL` hoặc 1 phần tử; bản chụp `SHORT_TEXT`/`YES_NO` có `options_snapshot` khác `NULL`; `job_screening_questions` `SINGLE_CHOICE` với `options` `NULL` (L7); `job_screening_questions` `SHORT_TEXT` có `options` khác `NULL`. Mỗi nhóm có ca đối chứng hợp lệ insert được | biên + âm |
 | T16 | JSON của S1, S2, S6 không chứa khoá `verdict`/`label`/`isQualified`/`passed`/`recommendation` | âm |
 | T17 | **`screening_revision` (R-Q11):** đọc giá trị ban đầu, rồi lần lượt S2 thêm → +1, S3 sửa → +1, S5 đổi thứ tự → +1, S4 xoá → +1 (mỗi bước đọc cả qua S1 lẫn truy vấn thẳng cột `jobs.screening_revision`); thao tác thất bại (S2 nội dung rỗng → 400, S3 id không tồn tại → 404, S5 sai tập id → 400, HR công ty khác gọi S2 → 403) → không đổi; gọi S1 nhiều lần → không đổi | dương + âm |
 
@@ -647,3 +692,10 @@ Phần thân đã viết theo các phương án dưới đây.
   `CREATE TRIGGER` riêng trong V13.
 - **L6 (mục 9).** Đợt 2, 3 chỉ chạy các lớp test của đợt đó; đợt 4, 5 chạy `npm run build` + `npm run lint`;
   `.\mvnw.cmd test` toàn bộ chỉ chạy ở đợt 6.
+- **L7 (mục 4.1, T15; duyệt trong đợt 2).** T15 lộ lỗ hổng logic ba trị trong hai CHECK đã duyệt: bản chụp
+  `SINGLE_CHOICE` với `options_snapshot = NULL` insert được, vì `jsonb_typeof(NULL) = 'array'` ra `NULL`, vế sau ra
+  `FALSE`, `NULL OR FALSE` ra `NULL`, và Postgres coi CHECK ra `NULL` là đạt. Sửa `chk_screening_question_options` và
+  `chk_screening_answer_options`: thêm `options IS NOT NULL` / `options_snapshot IS NOT NULL` vào vế `SINGLE_CHOICE`.
+  Soát lại mọi CHECK còn lại của V13 (bảng ở mục 4.1): không lỗ hổng nào khác. Comment của V13 ghi lý do cho từng cột
+  được `NULL` có chủ đích. T15 thêm ca `job_screening_questions` `SINGLE_CHOICE` + `options NULL` → bị chặn. Khối SQL
+  ở mục 4.1 thay bằng nguyên văn file V13.
