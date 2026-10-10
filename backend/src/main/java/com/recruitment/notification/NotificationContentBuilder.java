@@ -2,23 +2,12 @@ package com.recruitment.notification;
 
 import com.recruitment.job.Job;
 import com.recruitment.jobapplication.ApplicationStatus;
-import java.util.Map;
 import java.util.UUID;
 
 // Chi xay noi dung tu du lieu DA LOAD SAN (Job, ten ung vien) - KHONG tu truy van DB, de test don
 // vi khong can Spring context. KHONG doc scoring_runs/criterion_scores o dau trong file nay -
 // thong bao cho ung vien tuyet doi khong duoc lo diem/nhan xet noi bo cua HR (CLAUDE.md muc 8).
 final class NotificationContentBuilder {
-
-    // Khop DUNG wording o frontend/src/features/applications/applicationLabels.ts
-    // (APPLICATION_STATUS_LABELS) - doi mot ben phai doi ca hai, khong tach hang so dung chung
-    // giua backend/frontend (khac ngon ngu, khong the import).
-    private static final Map<ApplicationStatus, String> STATUS_LABELS = Map.of(
-            ApplicationStatus.PENDING, "Chờ duyệt",
-            ApplicationStatus.INTERVIEW_INVITED, "Đã mời phỏng vấn",
-            ApplicationStatus.HIRED, "Trúng tuyển",
-            ApplicationStatus.REJECTED, "Bị từ chối",
-            ApplicationStatus.WITHDRAWN, "Đã rút đơn");
 
     private static final String MESSAGES_TAB_QUERY = "?tab=messages";
 
@@ -30,7 +19,8 @@ final class NotificationContentBuilder {
     // /candidate/applications/{id}. Thong bao da co trong DB truoc FR-U08 giu nguyen link cu
     // /candidate/applications (R-N2, khong migration). Chi doi link - tieu de, noi dung giu nguyen (R-N3).
     static Content forStatusChanged(Job job, ApplicationStatus toStatus, UUID applicationId) {
-        String label = STATUS_LABELS.getOrDefault(toStatus, toStatus.name());
+        // FR-C07 (muc 4.2) - nhan lay tu ApplicationStatus.labelVi(), khong con map rieng o day; noi dung khong doi.
+        String label = toStatus.labelVi();
         return new Content(
                 "Cập nhật đơn ứng tuyển",
                 "Đơn ứng tuyển vị trí \"" + job.getTitle() + "\" của bạn đã chuyển sang trạng thái: " + label,
