@@ -338,7 +338,7 @@ thêm lúc code.
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |
 | `/candidate/applications` | "Đơn ứng tuyển" | Hiện có | FR-U03; FR-U08 (liên kết "Xem chi tiết") |
-| ★`/candidate/applications/:id` | Chi tiết đơn ứng tuyển — tab "Thông tin đơn" (giấy mời, tóm tắt tin, CV đã nộp, thư giới thiệu, CV đã trích xuất), "Lịch sử", "Trao đổi"; nút Rút đơn. Tab/nút của FR sau do chính FR đó thêm | ★Mới | FR-U08; FR-U03, FR-U06; FR-U10 (chọn giờ); FR-U09 (câu trả lời, rút đồng ý); FR-C06 (trao đổi) |
+| ★`/candidate/applications/:id` | Chi tiết đơn ứng tuyển — tab "Thông tin đơn" (giấy mời, tóm tắt tin, CV đã nộp, thư giới thiệu, CV đã trích xuất), "Lịch sử", "Trao đổi"; nút Rút đơn. Tab/nút của FR sau do chính FR đó thêm | ★Mới | FR-U08; FR-U03, FR-U06; FR-U10 (chọn giờ); FR-U09 (câu trả lời, rút đồng ý); FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi) |
 | ★`/candidate/messages` | "Tin nhắn" | ★Mới | FR-C06 (hộp thư) |
 | `/candidate/notifications` | Thông báo | Hiện có | FR-C03 |
 | `/jobs/:id/apply` | Nộp đơn ứng tuyển | Hiện có | FR-U02, FR-U09 |
@@ -354,7 +354,7 @@ thêm lúc code.
 | `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, ★FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá); FR-H09 |
 | ★`/hr/jobs/:id/compare` | So sánh ứng viên | ★Mới | FR-H14 |
 | `/hr/candidates` | "Ứng viên" | Hiện có | FR-H08, FR-H09 |
-| ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển. Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi) |
+| ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển. Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi) |
 | ★`/hr/talent-pools`, ★`/hr/talent-pools/:id` | "Kho ứng viên" | ★Mới | FR-H15 |
 | ★`/hr/messages` | "Tin nhắn" | ★Mới | FR-C06 |
 | `/hr/company` | "Hồ sơ công ty" | Hiện có | FR-H01 |

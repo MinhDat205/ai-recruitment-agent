@@ -65,7 +65,7 @@ Chia package theo TÍNH NĂNG, không theo tầng: `auth/`, `user/`, `company/`,
 `interviewtemplate/`, `interviewinvitation/`, `rubric/`, `resume/`, `jobapplication/`,
 `jobrecommendation/`, `scoring/`, `dashboard/`, `notification/`, `messaging/`, `ratelimit/`,
 `storage/`, `common/`, `ai/client/`, `ai/criterion/`, `ai/explanation/`, `ai/cvimprovement/`,
-`ai/embedding/`.
+`ai/embedding/`, `aicontext/` (K1), `ai/sync/` (K3), `ai/messagedraft/`, `messagedraft/` (FR-C07).
 Mỗi mã FR nằm gọn trong một package; package mới chỉ tạo khi FR thật sự cần.
 
 ## 3b. Bẫy đã trả giá — đọc trước khi động vào Spring AI
@@ -118,7 +118,7 @@ trong `ResumeParsingStateService.java`/`ScoringRunStateService.java`.
 
 | Mã | Trách nhiệm | Xây lần đầu ở | Dùng bởi |
 |---|---|---|---|
-| K1 | Bộ gom ngữ cảnh CV theo vai trò: gom CV đã trích xuất, JD, rubric, kết quả chấm, dữ liệu đơn thành ngữ cảnh gửi AI, lọc theo vai trò người gọi. Phía ứng viên không bao giờ nhận điểm, rubric, giải thích AI hay ghi chú HR; chặn bằng code, không bằng lời dặn trong prompt | FR-C07 | C07, C08, H13, H15 |
+| K1 | Bộ gom ngữ cảnh theo vai trò (`aicontext/`): gom dữ liệu đơn, CV đã trích xuất, JD, rubric, kết quả chấm thành ngữ cảnh gửi AI, lọc theo vai trò người gọi. Phía ứng viên không bao giờ nhận điểm, rubric, giải thích AI hay ghi chú HR; chặn bằng **kiểu dữ liệu** (record chỉ có thành phần cho phép), không bằng lời dặn trong prompt. **Đã có:** phần ngữ cảnh cuộc trao đổi (`ConversationContext` + `ConversationContextAssembler`, FR-C07). **Chưa có:** phần CV/JD/rubric/điểm — C08/H13/H15 tự thêm record riêng (dữ liệu chỉ cho HR nằm ở record dựng bằng method nhận `ContextViewer.HR` cố định), không thêm field vào `ConversationContext` | FR-C07 | C07, C08, H13, H15 |
 | K2 | Bộ kiểm tra trích dẫn nguyên văn: tách từ phần kiểm evidence trong `CriterionScoringService` (FR-H04) thành thành phần dùng chung; FR-H04 chuyển sang dùng nó, hành vi không đổi, toàn bộ test cũ vẫn pass | FR-C08 | FR-H04, C08, H13 |
 | K3 | Gọi AI đồng bộ có giới hạn (xem ngoại lệ ở §7) | FR-C07 | C07, C08, H11, H13, H15, U12, U13 |
 | K4 | Siêu dữ liệu kết quả AI được lưu: model, phiên bản prompt, thời điểm sinh | FR-H11 | H11, H13, H15 |
@@ -219,7 +219,9 @@ trò của `mvn test` với backend, chạy sau mỗi lần sửa code frontend,
 - Không gọi LLM/embedding đồng bộ trong request của người dùng — luôn qua job nền. Ngoại lệ DUY
   NHẤT (K3), chỉ khi đặc tả đã duyệt của FR yêu cầu: FR-C07, FR-C08, FR-H11, FR-H13, FR-H15 (tóm
   tắt), FR-U12 (gợi ý diễn đạt), FR-U13 (tách câu truy vấn + embedding câu truy vấn). Điều kiện bắt
-  buộc: có thời gian chờ tối đa; thử lại tối đa 1 lần; rate limit theo userId; không mở transaction
+  buộc: có thời gian chờ tối đa; thử lại tối đa 1 lần **ở tầng K3** và chỉ khi output hỏng (lỗi nhà cung cấp
+  không thử lại ở K3, vì SDK Anthropic đã tự thử lại ngầm và không tắt được qua `ChatModel` — FR-C07 L1); rate limit
+  theo userId; không mở transaction
   trong lúc chờ LLM; lỗi trả mã lỗi chuẩn hoá kèm câu tiếng Việt có dấu, không lưu kết quả lỗi; test
   vẫn mock ChatModel/EmbeddingModel. FR ngoài danh sách muốn gọi đồng bộ thì dừng lại hỏi.
 - Test KHÔNG được gọi API LLM thật. Mock ở tầng `ChatModel` với default-answer throw để test nào

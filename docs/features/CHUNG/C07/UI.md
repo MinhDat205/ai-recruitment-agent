@@ -1,6 +1,6 @@
 # FR-C07 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH (10/10/2026). Duyệt: 10/10/2026.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 3 (Segmented button, Linear progress, Dialog), 4 ("Nội dung do
 AI tạo"), 5 (thao tác AI đồng bộ), 6 (tương phản). Mã `R-…`, `A1`/`A2`, `Q…` là của `REQUIREMENT.md` cùng thư mục.
@@ -9,7 +9,7 @@ FR-C07 thêm vào.
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH (10/10/2026). Duyệt: 10/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

@@ -1,10 +1,10 @@
 # FR-C07 — AI soạn nháp tin nhắn
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH (10/10/2026). Duyệt: 10/10/2026.
 >
-> Làm rõ sau Plan Mode 10/10/2026: L1–L12 (L1: R-K3-2, R-K3-3; L2–L8: mục 4.2, R-K3-4, R-K3-5, R-I5, R-K1, T16,
-> T16b, T17, mục 8, mục 9; L9: mục 4.2, mục 8; L10: T13; L11: mục 4.2, mục 7.1; L12: UI.md mục 5d) — chi tiết ở mục
-> 12.
+> Làm rõ sau Plan Mode 10/10/2026: L1–L13 (L1: R-K3-2, R-K3-3; L2–L8: mục 4.2, R-K3-4, R-K3-5, R-I5, R-K1, T16,
+> T16b, T17, mục 8, mục 9; L9: mục 4.2, mục 8; L10: T13; L11: mục 4.2, mục 7.1; L12: UI.md mục 5d; L13: mục 5, mục
+> 7.2) — chi tiết ở mục 12.
 
 - Nhóm: Chung
 - Tóm tắt: trong khung soạn tin của FR-C06, HR hoặc ứng viên bấm "Soạn bằng AI", chọn tình huống (hoặc tự mô
@@ -424,8 +424,8 @@ trong `ApplicationStatus.java`; tìm `HttpMessageNotReadableException` trong `Gl
 ### 7.2 Kiểm bằng HTTP — Windows PowerShell 5.1 (thay cho curl)
 
 Nạp **cả** seed demo và seed test. Backend chạy ở `localhost:8080` (rate limit **bật**, profile thường). Dán cả
-khối vào **một** cửa sổ PowerShell. Nhóm 1–8 dừng trước bước gọi AI nên **không** cần khoá API thật; nhóm 9 tuỳ
-chọn. Khối không ghi gì vào DB.
+khối vào **một** cửa sổ PowerShell. Nhóm 1–8 dừng trước bước gọi AI nên **không** cần khoá API thật; nhóm 9 gọi
+AI thật nên cần khoá (L13). Khối không ghi gì vào DB.
 
 ```powershell
 $base = 'http://localhost:8080'
@@ -448,7 +448,9 @@ function Test-Call([string]$Method, [string]$Path, [string]$Token, $Json) {
         } else {
             $r = Invoke-WebRequest -UseBasicParsing -Method $Method -Uri "$base$Path" -Headers $headers
         }
-        '{0} {1} {2} {3}' -f [int]$r.StatusCode, $Method, $Path, $r.Content
+        # Doc body theo UTF-8: $r.Content cua PowerShell 5.1 giai ma ISO-8859-1 khi header khong co charset (L13).
+        $content = [Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray())
+        '{0} {1} {2} {3}' -f [int]$r.StatusCode, $Method, $Path, $content
     } catch {
         $resp = $_.Exception.Response
         if ($null -eq $resp) { 'KHONG KET NOI DUOC {0} {1}' -f $Method, $Path; return }
@@ -512,8 +514,8 @@ Test-Call 'Post' "/api/hr/applications/$a1/messages/ai-draft" $tokenLan '{bad'
 '--- 8b. Gioi han tan suat: HR demo da dung 1 luot o nhom 2 (mong doi 403 x4 roi 429 x2)'
 1..6 | ForEach-Object { Test-Call 'Post' "/api/hr/applications/$a1/messages/ai-draft" $tokenHrDemo $thank }
 
-'--- 9. TUY CHON, can ANTHROPIC_API_KEY that: HR soan nhac lich cho A2 (mong doi 200 {"draft":...})'
-# Test-Call 'Post' "/api/hr/applications/$a2/messages/ai-draft" $tokenHr @{ scenario = 'INTERVIEW_REMINDER'; tone = 'FORMAL' }
+'--- 9. Can ANTHROPIC_API_KEY that: HR soan nhac lich cho A2 (mong doi 200 {"draft":...}, tieng Viet dung dau)'
+Test-Call 'Post' "/api/hr/applications/$a2/messages/ai-draft" $tokenHr @{ scenario = 'INTERVIEW_REMINDER'; tone = 'FORMAL' }
 ```
 
 Mong đợi: nhóm 1 hai dòng `200`; nhóm 2 hai dòng `403`; nhóm 3, 4 mỗi nhóm hai dòng `404 … APPLICATION_NOT_FOUND`;
@@ -521,7 +523,8 @@ nhóm 5 `403`, `403`, `401 … UNAUTHENTICATED`; nhóm 6 `409 … CONVERSATION_R
 DRAFT_SCENARIO_UNAVAILABLE`; nhóm 8 `400 … INVALID_DRAFT_REQUEST`; nhóm 8c `400 … INVALID_DRAFT_REQUEST` (body lỗi không
 có `APPLICATION_NOT_FOUND`) rồi `403`; nhóm 8b bốn dòng `403` rồi hai dòng `429 … RATE_LIMIT_EXCEEDED` (filter đứng
 trước kiểm quyền nên lượt bị 403 vẫn trừ hạn mức — cùng hành vi nhóm `message`; nạp lại 2 lượt/phút nên nếu từ nhóm 2
-tới nhóm 8b quá 30 giây thì thấy năm dòng `403` rồi một dòng `429` — vẫn đạt).
+tới nhóm 8b quá 30 giây thì thấy năm dòng `403` rồi một dòng `429` — vẫn đạt); nhóm 9 `200 {"draft": …}`, chữ
+tiếng Việt đúng dấu.
 
 **Bắt buộc ở đợt code cuối:** chạy thật khối trên, dán **nguyên văn** output vào báo cáo đợt. Lệnh sai cú pháp
 hoặc lệch "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục này, chờ duyệt lại.
@@ -721,3 +724,12 @@ giữa các đợt chỉ `.\mvnw.cmd test-compile` + các lớp ở cột Kiểm
   - "Bỏ qua" bỏ bản nháp và quay về phần chọn tình huống, khối vẫn mở; đóng khối là nút [X].
   - "Thử lại" chỉ hiện với 429, 5xx và lỗi mạng/quá 35 s. Lỗi 400 và 409 `DRAFT_SCENARIO_UNAVAILABLE` chỉ hiện câu
     của backend (409 này kèm tải lại A1 để cập nhật khoá).
+- **L13 (mục 5, mục 7.2; duyệt ở đợt 6).** (a) Dòng cấm thông tin nhân thân trong `message-draft-v1.st` liệt kê đúng các
+  từ mà lệnh soát nguyên tắc 13 của `srs-guard` tìm trong `ai/prompt/` (kỳ vọng 0 dòng tuyệt đối), nên được viết lại
+  không liệt kê: "KHÔNG nhắc tới bất kỳ thông tin cá nhân, nhân thân nào của bất kỳ ai, ngoài họ tên ứng viên và tên
+  công ty có trong <ngu_canh>." Lệnh soát ra 0 dòng; **không** sửa skill `srs-guard` để thêm ngoại lệ. Giữ
+  `PROMPT_VERSION = message-draft-v1` vì prompt chưa phát hành. (b) Khối 7.2: nhánh thành công của `Test-Call` đọc body
+  bằng `[Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray())` thay cho `$r.Content` — `Invoke-WebRequest` của
+  PowerShell 5.1 giải mã `.Content` theo ISO-8859-1 khi header `Content-Type` không có `charset`, làm vỡ chữ tiếng Việt
+  của bản nháp (nhánh lỗi đọc qua `ErrorDetails.Message` nên không bị). Nhóm 9 bỏ dấu `#`, thành bước bắt buộc của
+  đợt cuối (cần khoá API thật).

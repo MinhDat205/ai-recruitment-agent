@@ -813,7 +813,28 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
   - Frontend chưa có test tự động.
   - `NotificationList` (trang "Xem tất cả") vẫn chưa điều hướng theo `link` (nợ cũ ghi ở FR-U08) — bấm thông
     báo `NEW_MESSAGE` ở trang đó không mở tab "Trao đổi"; chỉ chuông mới mở.
-- [ ] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn
+- [x] `feat/fr-c07-ai-draft` — FR-C07 · AI soạn nháp tin nhắn — **HOÀN THÀNH**
+  (10/10/2026, 6 đợt — xem `docs/walkthrough/fr-c07-ai-draft.md`). Nút "Soạn bằng AI" trong khung soạn tin của
+  FR-C06: chọn tình huống theo vai trò (HR 4, ứng viên 3, cả hai "Tự mô tả") và giọng văn, AI trả một bản nháp tiếng
+  Việt trong khối "Do AI tạo"; người dùng bấm "Dùng bản nháp", sửa, tự bấm "Gửi" của C06. Không lưu bản nháp, không tự
+  gửi, không đổi trạng thái đơn, không đánh dấu tin "do AI soạn". Backend: A1 (`GET …/messages/ai-draft/scenarios`,
+  tình huống nào đang dùng được và vì sao) và A2 (`POST …/messages/ai-draft`) mỗi phía, kiểm quyền dùng lại hai cơ chế
+  của C06; điều kiện tình huống kiểm ở backend (409 `DRAFT_SCENARIO_UNAVAILABLE`). Xây **K1** (`aicontext/`:
+  `ConversationContext` chặn dữ liệu chấm điểm bằng kiểu, 3 lớp test T9/T10/T11) và **K3** (`ai/sync/SyncAiCaller`:
+  hạn 15 s mỗi lần, thử lại 1 lần chỉ khi output hỏng, executor 8 luồng không hàng đợi và không là bean Spring, tự
+  chặn khi bị gọi trong transaction; lỗi → 504/503/502), nhóm hạn mức `ai-sync` (5 lượt, nạp 2/phút/người), bean
+  `messageDraftChatClient` trần 800 token. Dữ liệu người dùng chỉ ở user message, trong thẻ, đã thay `<`/`>`.
+  `ApplicationStatus.labelVi()` thay map nhãn riêng của thông báo. Không migration (vẫn `V12`). Full suite 975/975.
+  Đặc tả làm rõ 13 điểm (L1–L13, duyệt 10/10/2026). Nợ kỹ thuật:
+  - SDK Anthropic tự thử lại ngầm (`maxRetries = 2`) không tắt được theo từng request qua `ChatModel`: trong hạn 15 s
+    một lần gọi K3 có thể là tới 3 request HTTP thật.
+  - Lời gọi bị K3 bỏ chạy ngầm tối đa khoảng 45 s và giữ một luồng executor — suy từ bytecode, chưa đo thực nghiệm;
+    nhà cung cấp chậm kéo dài thì 8 luồng có thể bị giữ hết, mọi người dùng nhận 503 tới khi lời gọi ngầm kết thúc.
+  - Trần 800 token đầu ra là ước lượng (khoảng 2–2,5 ký tự tiếng Việt/token, 60–80 token/giây), chưa đo.
+  - `RateLimitFilter` chưa có test qua filter chain thật cho nhóm `ai-sync` (chỉ test đơn vị; test profile tắt rate
+    limit).
+  - Không khoá tình huống theo giờ phỏng vấn đã qua hay chưa (ngoài phạm vi ở đặc tả).
+  - Frontend chưa có test tự động.
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026; đây chưa phải đặc tả, chốt ở REQUIREMENT.md của từng FR):
 > - FR-H09/FR-U08 chỉ dựng khung và phần đã có dữ liệu. H09: tab CV & điểm, Giải thích, Lịch sử, thanh
