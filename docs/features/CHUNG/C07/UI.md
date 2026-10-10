@@ -232,7 +232,7 @@ Không sửa: `MessagesTab`, `MessageList`, `MessageBubble`, `api.ts`/`queries.t
 | Nhãn lựa chọn bị khoá | — | `text-m3-on-surface-variant` | Không dùng `opacity` làm chữ dưới 4.5:1 |
 | Segmented — đang chọn | `bg-m3-primary-container` | `text-m3-on-primary-container` (6.23:1), viền `border-m3-outline`, icon `Check` | Chọn được nhận ra bằng icon, không chỉ màu |
 | Segmented — không chọn | `bg-m3-surface` | `text-m3-on-surface`, viền `border-m3-outline` | Viền điều khiển ≥ 3:1 |
-| Thanh tiến trình | Rãnh `bg-m3-surface-container-highest` | Thanh `bg-m3-primary` + `animate-pulse` | Không thêm keyframe mới vào `index.css` |
+| Thanh tiến trình | Rãnh `bg-m3-surface-container-highest` | Thanh `bg-m3-primary` rộng 1/3 + `animate-m3-linear-progress` + `motion-reduce:animate-none` | Linear progress không xác định theo UI_GUIDE mục 1h (token khai sẵn ở `@theme` của `index.css`, mẫu `features/resumes/LinearProgress.tsx`) — REQUIREMENT L12 |
 | Khối "Do AI tạo" | `bg-m3-surface-container-high` | `border border-m3-outline-variant`; chữ **chỉ** `text-m3-on-surface` (13.06:1), nhãn "Do AI tạo" cũng `m3-on-surface` | UI_GUIDE mục 4: không dùng `m3-on-surface-variant` trong khối này |
 | Dòng nhắc sau khi dùng nháp | (thẻ trắng) | Icon `Sparkles` + chữ `text-m3-on-surface-variant`, `text-sm` | |
 | Câu lỗi | (thẻ trắng) | Icon `AlertCircle` `text-m3-error` + chữ `text-m3-on-surface` | Như câu lỗi khung soạn C06 |

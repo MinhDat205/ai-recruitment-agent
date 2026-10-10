@@ -2,8 +2,9 @@
 
 > Trạng thái: ĐÃ DUYỆT 10/10/2026
 >
-> Làm rõ sau Plan Mode 10/10/2026: L1–L11 (L1: R-K3-2, R-K3-3; L2–L8: mục 4.2, R-K3-4, R-K3-5, R-I5, R-K1, T16,
-> T16b, T17, mục 8, mục 9; L9: mục 4.2, mục 8; L10: T13; L11: mục 4.2, mục 7.1) — chi tiết ở mục 12.
+> Làm rõ sau Plan Mode 10/10/2026: L1–L12 (L1: R-K3-2, R-K3-3; L2–L8: mục 4.2, R-K3-4, R-K3-5, R-I5, R-K1, T16,
+> T16b, T17, mục 8, mục 9; L9: mục 4.2, mục 8; L10: T13; L11: mục 4.2, mục 7.1; L12: UI.md mục 5d) — chi tiết ở mục
+> 12.
 
 - Nhóm: Chung
 - Tóm tắt: trong khung soạn tin của FR-C06, HR hoặc ứng viên bấm "Soạn bằng AI", chọn tình huống (hoặc tự mô
@@ -709,3 +710,14 @@ giữa các đợt chỉ `.\mvnw.cmd test-compile` + các lớp ở cột Kiểm
   `messagedraft/` → `ai/messagedraft/`. `DraftUnavailableReason` ở lại `messagedraft/`; hàm điều kiện R-S3 (trả
   `DraftUnavailableReason`) nằm ở `MessageDraftFacade`, không ở `DraftScenario`. Kiểm tĩnh: tìm
   `import com.recruitment.messagedraft` trong `ai/` → 0 dòng.
+- **L12 (UI.md mục 5d; duyệt sau đợt 5).** Thanh tiến trình của khối soạn nháp dùng `animate-m3-linear-progress`
+  (linear progress không xác định theo UI_GUIDE mục 1h; token và keyframe đã khai sẵn trong `@theme` gốc của
+  `index.css`, cùng mẫu `features/resumes/LinearProgress.tsx`), kèm `motion-reduce:animate-none` — thay cho
+  `animate-pulse` ở bản UI.md trước. Bốn chi tiết frontend chốt ở đợt 5:
+  - Nút trong khối soạn nháp có `min-h-10` (vùng chạm 40px, UI.md mục 9; nút `size="sm"` mặc định chỉ cao 28px). Nút
+    "Soạn bằng AI" giữ cùng cỡ với "Đính kèm tệp".
+  - `features/messageDraft` khai kiểu `DraftSide = 'hr' | 'candidate'` riêng (cùng giá trị `MessageSide`) để không
+    import `features/messages` — phụ thuộc một chiều `features/messages` → `features/messageDraft` (UI.md mục 5b).
+  - "Bỏ qua" bỏ bản nháp và quay về phần chọn tình huống, khối vẫn mở; đóng khối là nút [X].
+  - "Thử lại" chỉ hiện với 429, 5xx và lỗi mạng/quá 35 s. Lỗi 400 và 409 `DRAFT_SCENARIO_UNAVAILABLE` chỉ hiện câu
+    của backend (409 này kèm tải lại A1 để cập nhật khoá).
