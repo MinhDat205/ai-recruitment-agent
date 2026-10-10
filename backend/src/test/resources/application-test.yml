@@ -42,6 +42,10 @@ app:
   ai-sync:
     attempt-timeout-ms: 2000
     max-concurrent-calls: 8
+  # FR-C07 muc 5 - cung khoa, cung gia tri voi production: test khong goi model that, khai de bean dung duoc va T16b
+  # khang dinh duoc maxTokens da dat vao options cua loi goi.
+  message-draft:
+    max-output-tokens: 800
   # Dot 4 (chore/hardening) - gia tri NHO de test nhanh (khong phai 30s/2 phut that cua production).
   # max-attempts giu nguyen 3 (giong production) vi test can kiem dung nguong nghiep vu that (vd
   # "dung 3 lan thi FAILED"). backoff-ms nho (50ms/100ms, khong phai 30000/120000) va

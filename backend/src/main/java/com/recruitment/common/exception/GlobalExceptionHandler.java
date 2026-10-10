@@ -303,6 +303,34 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("CONVERSATION_READ_ONLY", ex.getMessage()));
     }
 
+    // FR-C07 R-S3 - tinh huong chua dung duoc voi trang thai hien tai cua don.
+    @ExceptionHandler(DraftScenarioUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleDraftScenarioUnavailable(DraftScenarioUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("DRAFT_SCENARIO_UNAVAILABLE", ex.getMessage()));
+    }
+
+    // FR-C07 R-S1/R-S4/R-S5 - mot ma loi chung, cau co dinh khac nhau qua getMessage(). Body JSON hong (R-Q3b) KHONG di
+    // qua day ma qua MessageDraftExceptionAdvice (chi ap cho hai controller soan nhap).
+    @ExceptionHandler(InvalidDraftRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDraftRequest(InvalidDraftRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_DRAFT_REQUEST", ex.getMessage()));
+    }
+
+    // FR-C07 R-K3-6 - loi K3 (goi AI dong bo). Body chi gom ma + cau co dinh cua AiSyncErrorCode - KHONG ex.getMessage()
+    // cua exception goc hay output tho LLM (exception goc chi duoc SyncAiCaller ghi o log.debug).
+    @ExceptionHandler(AiSyncFailedException.class)
+    public ResponseEntity<ErrorResponse> handleAiSyncFailed(AiSyncFailedException ex) {
+        AiSyncErrorCode errorCode = ex.errorCode();
+        HttpStatus status = switch (errorCode) {
+            case AI_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT;
+            case AI_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case AI_INVALID_OUTPUT -> HttpStatus.BAD_GATEWAY;
+        };
+        return ResponseEntity.status(status).body(new ErrorResponse(errorCode.name(), errorCode.message()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)

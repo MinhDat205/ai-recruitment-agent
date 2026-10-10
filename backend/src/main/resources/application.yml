@@ -126,6 +126,10 @@ app:
   ai-sync:
     attempt-timeout-ms: 15000
     max-concurrent-calls: 8
+  # FR-C07 muc 5 / R-K3-9 - tran token dau ra cua RIENG bean messageDraftChatClient (khong dat cho AnthropicChatModel
+  # dung chung). 800 ~ ban nhap <= 1200 ky tu tieng Viet + vo JSON, du 30%; 800 token sinh trong 10-13 s < han 15 s.
+  message-draft:
+    max-output-tokens: 800
 
   # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
   # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint
