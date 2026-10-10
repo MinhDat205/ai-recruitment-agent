@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { AlertCircle } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
@@ -9,11 +10,15 @@ import { ApplicationHistoryTimeline } from '../features/applications/Application
 import { useApplicationHistoryQuery } from '../features/applications/queries'
 import { ApplicationInfoTab } from '../features/candidateApplicationDetail/ApplicationInfoTab'
 import { CandidateApplicationHeader } from '../features/candidateApplicationDetail/CandidateApplicationHeader'
-import { useCandidateApplicationDetailQuery } from '../features/candidateApplicationDetail/queries'
+import {
+  candidateApplicationDetailKey,
+  useCandidateApplicationDetailQuery,
+} from '../features/candidateApplicationDetail/queries'
+import { MessagesTab } from '../features/messages/MessagesTab'
 
-// FR-U08 R-P1 - DUNG 2 tab, khong dung tab/khoi/nut cho FR sau (R-P2). ?tab= doc nhu trang ho so don phia HR,
-// gia tri la -> info (R-E3).
-const VALID_TABS = ['info', 'history'] as const
+// FR-U08 R-P1 - 2 tab cua FR-U08; FR-C06 R-P3 them DUNG mot tab "Trao doi" (khoa messages) vao CUOI, khong doi
+// tab mac dinh hay tab cu. ?tab= doc nhu trang ho so don phia HR, gia tri la -> info (R-E3).
+const VALID_TABS = ['info', 'history', 'messages'] as const
 type DetailTab = (typeof VALID_TABS)[number]
 
 function parseTab(value: string | null): DetailTab {
@@ -96,6 +101,7 @@ function CandidateApplicationDetailContent({
   onTabChange: (value: string) => void
 }) {
   const detailQuery = useCandidateApplicationDetailQuery(applicationId)
+  const queryClient = useQueryClient()
 
   if (detailQuery.isLoading) {
     return (
@@ -142,6 +148,7 @@ function CandidateApplicationDetailContent({
         <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto overflow-y-hidden">
           <TabsTrigger value="info">Thông tin đơn</TabsTrigger>
           <TabsTrigger value="history">Lịch sử</TabsTrigger>
+          <TabsTrigger value="messages">Trao đổi</TabsTrigger>
         </TabsList>
       </CardHeader>
 
@@ -150,6 +157,16 @@ function CandidateApplicationDetailContent({
       </TabsContent>
       <TabsContent value="history" className="p-4 sm:p-6">
         <HistoryTab applicationId={detail.id} />
+      </TabsContent>
+      <TabsContent value="messages" className="p-4 sm:p-6">
+        {/* FR-C06 - 409 CONVERSATION_READ_ONLY: lam moi E1 de badge dau trang thanh "Da rut don" (UI.md muc 6). */}
+        <MessagesTab
+          side="candidate"
+          applicationId={detail.id}
+          onReadOnlyConflict={() =>
+            queryClient.invalidateQueries({ queryKey: candidateApplicationDetailKey(detail.id) })
+          }
+        />
       </TabsContent>
     </Tabs>
   )

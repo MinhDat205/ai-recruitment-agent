@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatFileSize } from '../../lib/fileSize'
 import { downloadResumeRequest } from './api'
 import { ParseStatusBadge } from './ParseStatusBadge'
 import {
@@ -20,19 +21,6 @@ import { ResumeParsedDataDialog } from './ResumeParsedDataDialog'
 import { ResumeReparseStatus } from './ResumeReparseStatus'
 import { canReparse, REPARSE_TEXT } from './resumeReparse'
 import type { Resume } from './types'
-
-function formatFileSize(bytes: number | null): string {
-  if (bytes === null) {
-    return ''
-  }
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(0)} KB`
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 function formatUploadedAt(iso: string): string {
   return new Date(iso).toLocaleString('vi-VN', {

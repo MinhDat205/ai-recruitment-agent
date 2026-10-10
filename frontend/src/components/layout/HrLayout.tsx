@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Briefcase, Building2, LayoutDashboard, Users, type LucideIcon } from 'lucide-react'
+import { Briefcase, Building2, LayoutDashboard, MessageSquare, Users, type LucideIcon } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../features/auth/useAuth'
 import { NotificationBell } from '../../features/notifications/NotificationBell'
@@ -16,11 +16,13 @@ interface NavItem {
 // trong plan FR-H08: BO HAN "Rubric" khoi menu cap cao - rubric thuoc TUNG job, da co tab rieng
 // trong HrJobEditPage, dat o menu cap cao la dieu huong cut (khong co trang "Rubric" doc lap nao
 // de tro toi). Con lai 4 muc, tat ca da co route: "Ho so cong ty" (B1), "Tin tuyen dung" (B2),
-// "Dashboard" (F3/Dot 5), "Ung vien" (F3/Dot 6).
+// "Dashboard" (F3/Dot 5), "Ung vien" (F3/Dot 6). FR-C06 them muc thu 5 "Tin nhan" (/hr/messages).
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', shortLabel: 'Dashboard', to: '/hr', icon: LayoutDashboard },
   { label: 'Tin tuyển dụng', shortLabel: 'Tin', to: '/hr/jobs', icon: Briefcase },
   { label: 'Ứng viên', shortLabel: 'Ứng viên', to: '/hr/candidates', icon: Users },
+  // FR-C06 - hop thu. Khong co so tin chua doc tren muc nay (REQUIREMENT muc 6).
+  { label: 'Tin nhắn', shortLabel: 'Tin nhắn', to: '/hr/messages', icon: MessageSquare },
   { label: 'Hồ sơ công ty', shortLabel: 'Công ty', to: '/hr/company', icon: Building2 },
 ]
 

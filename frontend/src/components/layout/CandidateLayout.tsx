@@ -35,6 +35,12 @@ const NAV_ITEMS: NavItem[] = [
     to: '/candidate/applications',
     isActive: (path) => path.startsWith('/candidate/applications'),
   },
+  // FR-C06 - hop thu. Khong co so tin chua doc tren muc nay (REQUIREMENT muc 6).
+  {
+    label: 'Tin nhắn',
+    to: '/candidate/messages',
+    isActive: (path) => path.startsWith('/candidate/messages'),
+  },
 ]
 
 // Thong bao (E2/FR-C03) khong co muc nav rieng - chuong NotificationBell da la loi vao

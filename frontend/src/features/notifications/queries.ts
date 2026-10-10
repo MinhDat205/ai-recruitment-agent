@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useStallGuardedPolling } from '../../lib/useStallGuardedPolling'
 import { listNotificationsRequest, markNotificationReadRequest } from './api'
 
-const NOTIFICATIONS_KEY_PREFIX = 'notifications'
+// Export cho FR-C06 R-A3: tab "Trao doi" danh dau da doc xong thi lam moi chuong (khop moi bien the trang/size).
+export const NOTIFICATIONS_KEY_PREFIX = 'notifications'
 
 function notificationsKey(page: number, size: number) {
   return [NOTIFICATIONS_KEY_PREFIX, page, size]
@@ -21,27 +22,8 @@ const POLL_INTERVAL_MS = 15000
 // han, mau useStallGuardedRefetch trong scoring/queries.ts va resumes/queries.ts): dung MOT nguong
 // thoi gian lien tuc toi da, het nguong thi tu dung poll - nguoi dung mo lai chuong se tu "tai vu"
 // (resumePolling), khong can F5 ca trang.
+// useStallGuardedPolling chuyen sang lib/ (FR-C06 R-C4) - hanh vi chuong khong doi.
 const MAX_CONTINUOUS_POLL_MS = 20 * 60 * 1000
-
-function useStallGuardedPolling(timeoutMs: number) {
-  const [timedOut, setTimedOut] = useState(false)
-  const [resumeEpoch, setResumeEpoch] = useState(0)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setTimedOut(true), timeoutMs)
-    return () => {
-      clearTimeout(timer)
-      setTimedOut(false)
-    }
-  }, [timeoutMs, resumeEpoch])
-
-  function resumePolling() {
-    setTimedOut(false)
-    setResumeEpoch((epoch) => epoch + 1)
-  }
-
-  return { timedOut, resumePolling }
-}
 
 // Dung cho chuong o CA HAI header (HrLayout/PublicHeader) va dropdown ben trong no.
 export function useNotificationBellQuery() {

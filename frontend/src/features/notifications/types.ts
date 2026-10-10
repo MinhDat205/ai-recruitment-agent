@@ -3,6 +3,7 @@ export type NotificationType =
   | 'APPLICATION_SUBMITTED'
   | 'APPLICATION_WITHDRAWN'
   | 'SCORING_FINISHED'
+  | 'NEW_MESSAGE'
 
 export interface NotificationItem {
   id: string

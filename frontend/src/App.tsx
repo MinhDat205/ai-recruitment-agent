@@ -7,6 +7,7 @@ import { CandidateApplicationDetailPage } from './pages/CandidateApplicationDeta
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CandidateJobListPage } from './pages/CandidateJobListPage'
+import { CandidateMessagesPage } from './pages/CandidateMessagesPage'
 import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
 import { CandidateOnboardingPage } from './pages/CandidateOnboardingPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
@@ -18,6 +19,7 @@ import { HrHomePage } from './pages/HrHomePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
 import { HrJobEditPage } from './pages/HrJobEditPage'
 import { HrJobListPage } from './pages/HrJobListPage'
+import { HrMessagesPage } from './pages/HrMessagesPage'
 import { HrNotificationsPage } from './pages/HrNotificationsPage'
 import { JobApplyPage } from './pages/JobApplyPage'
 import { LoginPage } from './pages/LoginPage'
@@ -71,6 +73,7 @@ function App() {
             <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/applications" element={<CandidateApplicationsPage />} />
             <Route path="/candidate/applications/:id" element={<CandidateApplicationDetailPage />} />
+            <Route path="/candidate/messages" element={<CandidateMessagesPage />} />
             <Route path="/candidate/notifications" element={<CandidateNotificationsPage />} />
             <Route
               path="/candidate/resumes/:id/improvement-suggestions"
@@ -95,6 +98,7 @@ function App() {
             <Route path="/hr/jobs/new" element={<HrJobCreatePage />} />
             <Route path="/hr/jobs/:id/edit" element={<HrJobEditPage />} />
             <Route path="/hr/applications/:id" element={<HrApplicationDetailPage />} />
+            <Route path="/hr/messages" element={<HrMessagesPage />} />
           </Route>
           <Route
             path="/hr/company"
