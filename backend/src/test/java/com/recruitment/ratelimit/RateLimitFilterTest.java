@@ -43,7 +43,14 @@ class RateLimitFilterTest {
     }
 
     private RateLimitFilter newFilter(
-            long authCapacity, long authRefill, long llmCapacity, long llmRefill, long messageCapacity, long messageRefill) {
+            long authCapacity,
+            long authRefill,
+            long llmCapacity,
+            long llmRefill,
+            long messageCapacity,
+            long messageRefill,
+            long aiSyncCapacity,
+            long aiSyncRefill) {
         return new RateLimitFilter(
                 new RateLimitBucketStore(1000, new FixedTimeMeter()),
                 authCapacity,
@@ -51,7 +58,9 @@ class RateLimitFilterTest {
                 llmCapacity,
                 llmRefill,
                 messageCapacity,
-                messageRefill);
+                messageRefill,
+                aiSyncCapacity,
+                aiSyncRefill);
     }
 
     private void authenticateAs(String userId) {
@@ -63,7 +72,7 @@ class RateLimitFilterTest {
     // Request thu N+1 (N=capacity) tren CUNG mot IP toi /api/auth/login -> 429 kem header Retry-After.
     @Test
     void doFilter_loginRequestExceedingCapacity_returns429WithRetryAfterHeader() throws Exception {
-        RateLimitFilter filter = newFilter(3, 3, 20, 20, 20, 20);
+        RateLimitFilter filter = newFilter(3, 3, 20, 20, 20, 20, 20, 20);
         for (int i = 0; i < 3; i++) {
             MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
             request.setRemoteAddr("10.0.0.1");
@@ -87,7 +96,7 @@ class RateLimitFilterTest {
     // khong bi anh huong" cua Dot 5.
     @Test
     void doFilter_differentIpNotAffectedByOtherIpExhaustingLimit() throws Exception {
-        RateLimitFilter filter = newFilter(3, 3, 20, 20, 20, 20);
+        RateLimitFilter filter = newFilter(3, 3, 20, 20, 20, 20, 20, 20);
         for (int i = 0; i < 3; i++) {
             MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
             request.setRemoteAddr("10.0.0.1");
@@ -112,7 +121,7 @@ class RateLimitFilterTest {
     // user khong duoc dung chung han muc.
     @Test
     void doFilter_llmActionEndpoint_ratelimitedByUserIdNotByIp() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 2, 2, 20, 20);
+        RateLimitFilter filter = newFilter(20, 20, 2, 2, 20, 20, 20, 20);
         authenticateAs("11111111-1111-1111-1111-111111111111");
         for (int i = 0; i < 2; i++) {
             MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/candidates/resumes");
@@ -141,7 +150,7 @@ class RateLimitFilterTest {
     // trong chain that) tu tra 401/403 dung ly do.
     @Test
     void doFilter_llmActionEndpointWithoutAuthentication_passesThroughUnaffected() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20);
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20, 20, 20);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/candidates/resumes");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -153,7 +162,7 @@ class RateLimitFilterTest {
     // GET toi cung duong dan KHONG bi rate limit - chi POST toi 5 endpoint da duyet moi bi ap.
     @Test
     void doFilter_getRequestToLoginPath_notRateLimited() throws Exception {
-        RateLimitFilter filter = newFilter(1, 1, 20, 20, 20, 20);
+        RateLimitFilter filter = newFilter(1, 1, 20, 20, 20, 20, 20, 20);
         MockHttpServletRequest first = new MockHttpServletRequest("GET", "/api/auth/login");
         doFilter(filter, first, new MockHttpServletResponse());
         MockHttpServletRequest second = new MockHttpServletRequest("GET", "/api/auth/login");
@@ -168,7 +177,7 @@ class RateLimitFilterTest {
     // tien to /api/candidates/resumes.
     @Test
     void doFilter_unrelatedPath_passesThroughWithoutRateLimiting() throws Exception {
-        RateLimitFilter filter = newFilter(1, 1, 1, 1, 20, 20);
+        RateLimitFilter filter = newFilter(1, 1, 1, 1, 20, 20, 20, 20);
         authenticateAs("11111111-1111-1111-1111-111111111111");
         for (int i = 0; i < 5; i++) {
             MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/candidates/resumes");
@@ -187,7 +196,7 @@ class RateLimitFilterTest {
     // CHUNG bucket voi cac endpoint ton LLM khac cua cung user.
     @Test
     void doFilter_resumeReparseEndpoint_rateLimitedByUserId() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 2, 2, 20, 20);
+        RateLimitFilter filter = newFilter(20, 20, 2, 2, 20, 20, 20, 20);
         authenticateAs("33333333-3333-3333-3333-333333333333");
         String path = "/api/candidates/resumes/44444444-4444-4444-4444-444444444444/reparse";
         for (int i = 0; i < 2; i++) {
@@ -205,7 +214,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_resumeReparseSharesBucketWithOtherLlmActions() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20);
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20, 20, 20);
         authenticateAs("55555555-5555-5555-5555-555555555555");
         doFilter(
                 filter,
@@ -231,7 +240,7 @@ class RateLimitFilterTest {
     @Test
     void doFilter_messageSend_20thPasses_21stRejected_onBothPaths() throws Exception {
         for (String path : List.of(HR_MESSAGES_PATH, CANDIDATE_MESSAGES_PATH)) {
-            RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20);
+            RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 20, 20);
             SecurityContextHolder.clearContext();
             authenticateAs("99999999-9999-9999-9999-999999999999");
             for (int i = 0; i < 20; i++) {
@@ -249,7 +258,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_messageSend_isLimitedPerUser_andHrAndCandidatePathsShareTheUserBucket() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 20, 20, 2, 2);
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 2, 2, 20, 20);
         authenticateAs("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         doFilter(filter, new MockHttpServletRequest("POST", HR_MESSAGES_PATH), new MockHttpServletResponse());
         doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), new MockHttpServletResponse());
@@ -266,7 +275,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_messageGetAndMarkReadAndAttachment_areNotLimited() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 20, 20, 1, 1);
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 1, 1, 20, 20);
         authenticateAs("cccccccc-cccc-cccc-cccc-cccccccccccc");
         for (int i = 0; i < 5; i++) {
             for (MockHttpServletRequest request : List.of(
@@ -284,7 +293,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_messageBucketIsSeparateFromLlmActionBucket() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20);
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 20, 20);
         authenticateAs("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
         for (int i = 0; i < 20; i++) {
             doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), new MockHttpServletResponse());
@@ -301,10 +310,124 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_messageSendWithoutAuthentication_passesThroughUnaffected() throws Exception {
-        RateLimitFilter filter = newFilter(20, 20, 20, 20, 1, 1);
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 1, 1, 20, 20);
         for (int i = 0; i < 3; i++) {
             MockHttpServletResponse response = new MockHttpServletResponse();
             doFilter(filter, new MockHttpServletRequest("POST", HR_MESSAGES_PATH), response);
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+    }
+
+    // ---- FR-C07 T19 - nhom "ai-sync" (R-K3-8): POST hai mau A2, theo userId, suc chua 5 ----
+
+    private static final String HR_AI_DRAFT_PATH =
+            "/api/hr/applications/77777777-7777-7777-7777-777777777777/messages/ai-draft";
+    private static final String CANDIDATE_AI_DRAFT_PATH =
+            "/api/candidates/applications/88888888-8888-8888-8888-888888888888/messages/ai-draft";
+
+    @Test
+    void doFilter_aiDraft_5thPasses_6thRejected_onBothPaths() throws Exception {
+        for (String path : List.of(HR_AI_DRAFT_PATH, CANDIDATE_AI_DRAFT_PATH)) {
+            RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 5, 2);
+            SecurityContextHolder.clearContext();
+            authenticateAs("f1111111-1111-1111-1111-111111111111");
+            for (int i = 0; i < 5; i++) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, new MockHttpServletRequest("POST", path), response);
+                assertThat(response.getStatus()).as("%s - request thu %d phai qua duoc", path, i + 1).isEqualTo(200);
+            }
+
+            MockHttpServletResponse rejected = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", path), rejected);
+            assertThat(rejected.getStatus()).as("%s - request thu 6", path).isEqualTo(429);
+            assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+        }
+    }
+
+    @Test
+    void doFilter_aiDraft_isLimitedPerUser_andHrAndCandidatePathsShareTheUserBucket() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 2, 2);
+        authenticateAs("f2222222-2222-2222-2222-222222222222");
+        doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), new MockHttpServletResponse());
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_AI_DRAFT_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        SecurityContextHolder.clearContext();
+        authenticateAs("f3333333-3333-3333-3333-333333333333");
+        MockHttpServletResponse otherUser = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), otherUser);
+        assertThat(otherUser.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void doFilter_aiDraftScenariosGet_isNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        authenticateAs("f4444444-4444-4444-4444-444444444444");
+        for (int i = 0; i < 5; i++) {
+            for (String path : List.of(HR_AI_DRAFT_PATH + "/scenarios", CANDIDATE_AI_DRAFT_PATH + "/scenarios")) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, new MockHttpServletRequest("GET", path), response);
+                assertThat(response.getStatus()).as("GET %s", path).isEqualTo(200);
+            }
+        }
+    }
+
+    @Test
+    void doFilter_aiSyncBucketExhausted_messageAndLlmActionStillPass() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        authenticateAs("f5555555-5555-5555-5555-555555555555");
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_AI_DRAFT_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse aiSyncExhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_AI_DRAFT_PATH), aiSyncExhausted);
+        assertThat(aiSyncExhausted.getStatus()).isEqualTo(429);
+
+        MockHttpServletResponse message = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), message);
+        assertThat(message.getStatus()).as("nhom message").isEqualTo(200);
+
+        MockHttpServletResponse llmAction = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", "/api/candidates/resumes"), llmAction);
+        assertThat(llmAction.getStatus()).as("nhom llm-action").isEqualTo(200);
+    }
+
+    @Test
+    void doFilter_messageAndLlmActionBucketsExhausted_aiDraftStillPasses() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 1, 1, 5, 2);
+        authenticateAs("f6666666-6666-6666-6666-666666666666");
+        doFilter(filter, new MockHttpServletRequest("POST", HR_MESSAGES_PATH), new MockHttpServletResponse());
+        doFilter(filter, new MockHttpServletRequest("POST", "/api/candidates/resumes"), new MockHttpServletResponse());
+        MockHttpServletResponse messageExhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_MESSAGES_PATH), messageExhausted);
+        assertThat(messageExhausted.getStatus()).isEqualTo(429);
+        MockHttpServletResponse llmExhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", "/api/candidates/resumes"), llmExhausted);
+        assertThat(llmExhausted.getStatus()).isEqualTo(429);
+
+        MockHttpServletResponse aiDraft = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), aiDraft);
+        assertThat(aiDraft.getStatus()).as("nhom ai-sync").isEqualTo(200);
+    }
+
+    // M2 (POST .../messages) van thuoc nhom message, khong roi vao ai-sync: het luot message thi 429 du ai-sync con
+    // nguyen.
+    @Test
+    void doFilter_messageSendPath_staysInMessageGroup_notAiSync() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 1, 1, 20, 20);
+        authenticateAs("f7777777-7777-7777-7777-777777777777");
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), rejected);
+        assertThat(rejected.getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void doFilter_aiDraftWithoutAuthentication_passesThroughUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), response);
             assertThat(response.getStatus()).isEqualTo(200);
         }
     }

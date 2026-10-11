@@ -7,7 +7,7 @@
 --
 -- Doc lap voi bo demo (seed-demo-structural.sql / seed-demo-ai-output.sql):
 -- nap duoc tren DB chi co schema, va nap cung DB voi hai tang demo khong va
--- cham - UUID tien to rieng e0..ed (demo tang 1 dung d0..d6, tang 2 UUID
+-- cham - UUID tien to rieng e0..ef (demo tang 1 dung d0..d6, tang 2 UUID
 -- ngau nhien), email rieng, ten cong ty rieng.
 --
 -- Idempotent: moi INSERT co ON CONFLICT (id) DO NOTHING, chay lai nhieu lan
@@ -127,13 +127,15 @@ ON CONFLICT (id) DO NOTHING;
 --    J6 DRAFT  - chua dang (published_at NULL)
 --    Hai tin OPEN chua co job_embeddings -> JobEmbeddingScheduler goi OpenAI moi
 --    tin MOT lan khi backend chay (da chap nhan, khong lam gia embedding).
+--    screening_revision (FR-H10 R-Q11): J1 = 3 (3 lan them cau hoi sang loc, muc
+--    15); tin khac giu mac dinh 0.
 -- ---------------------------------------------------------------------------
 
 INSERT INTO jobs (
     id, company_id, created_by, title, description, requirements,
     category, location, category_code, location_code, employment_type, work_mode,
     salary_min, salary_max, salary_currency,
-    status, recruitment_cycle, deadline, published_at, deleted_at, created_at, updated_at
+    status, recruitment_cycle, deadline, published_at, deleted_at, created_at, updated_at, screening_revision
 ) VALUES
     ('e2000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
      'Chuyên viên Chăm sóc khách hàng',
@@ -142,42 +144,42 @@ INSERT INTO jobs (
      'Tối thiểu 1 năm kinh nghiệm chăm sóc khách hàng. Biết sử dụng phần mềm CRM là lợi thế.',
      NULL, NULL, 'CUSTOMER_SERVICE', 'DA_NANG', 'FULL_TIME', 'ONSITE',
      9000000.00, 14000000.00, 'VND',
-     'OPEN', 1, CURRENT_DATE + 30, '2026-09-01 02:00:00+00', NULL, '2026-08-30 02:00:00+00', '2026-09-01 02:00:00+00'),
+     'OPEN', 1, CURRENT_DATE + 30, '2026-09-01 02:00:00+00', NULL, '2026-08-30 02:00:00+00', '2026-09-01 02:00:00+00', 3),
     ('e2000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
      'Nhân viên Hành chính văn phòng',
      'Quản lý văn thư, lưu trữ hồ sơ, sắp xếp lịch họp và hỗ trợ công việc hành chính chung của văn phòng.',
      'Thành thạo tin học văn phòng, cẩn thận, có kỹ năng tổ chức công việc.',
      NULL, NULL, 'ADMINISTRATION', 'HA_NOI', 'FULL_TIME', 'HYBRID',
      NULL, NULL, 'VND',
-     'OPEN', 1, CURRENT_DATE + 45, '2026-09-05 02:00:00+00', NULL, '2026-09-03 02:00:00+00', '2026-09-05 02:00:00+00'),
+     'OPEN', 1, CURRENT_DATE + 45, '2026-09-05 02:00:00+00', NULL, '2026-09-03 02:00:00+00', '2026-09-05 02:00:00+00', DEFAULT),
     ('e2000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
      'Chuyên viên Pháp chế',
      'Rà soát hợp đồng, tư vấn pháp lý nội bộ và theo dõi thay đổi quy định liên quan đến hoạt động công ty.',
      'Tốt nghiệp Luật, ưu tiên có kinh nghiệm pháp chế doanh nghiệp.',
      'Luật - Pháp chế doanh nghiệp', 'Sài Gòn (gần sân bay)', NULL, NULL, 'FULL_TIME', 'ONSITE',
      15000000.00, 22000000.00, 'VND',
-     'PAUSED', 1, CURRENT_DATE + 30, '2026-08-10 02:00:00+00', NULL, '2026-08-08 02:00:00+00', '2026-08-20 02:00:00+00'),
+     'PAUSED', 1, CURRENT_DATE + 30, '2026-08-10 02:00:00+00', NULL, '2026-08-08 02:00:00+00', '2026-08-20 02:00:00+00', DEFAULT),
     ('e2000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
      'Chuyên viên Tuyển dụng',
      'Phụ trách tuyển dụng khối văn phòng: đăng tin, sàng lọc hồ sơ, sắp xếp và tham gia phỏng vấn.',
      'Tối thiểu 2 năm kinh nghiệm tuyển dụng, giao tiếp tốt.',
      NULL, NULL, 'HUMAN_RESOURCES', 'HO_CHI_MINH', 'FULL_TIME', 'ONSITE',
      12000000.00, 18000000.00, 'VND',
-     'CLOSED', 1, '2026-08-05', '2026-07-05 02:00:00+00', NULL, '2026-07-03 02:00:00+00', '2026-08-06 02:00:00+00'),
+     'CLOSED', 1, '2026-08-05', '2026-07-05 02:00:00+00', NULL, '2026-07-03 02:00:00+00', '2026-08-06 02:00:00+00', DEFAULT),
     ('e2000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
      'Nhân viên Tư vấn bảo hiểm',
      'Tư vấn sản phẩm bảo hiểm cho khách hàng cá nhân, chăm sóc hợp đồng sau bán.',
      'Giao tiếp tốt, chịu được áp lực chỉ tiêu.',
      NULL, NULL, 'INSURANCE', 'CAN_THO', 'CONTRACT', 'ONSITE',
      8000000.00, 12000000.00, 'VND',
-     'CLOSED', 1, '2026-08-08', '2026-07-08 02:00:00+00', NULL, '2026-07-06 02:00:00+00', '2026-08-09 02:00:00+00'),
+     'CLOSED', 1, '2026-08-08', '2026-07-08 02:00:00+00', NULL, '2026-07-06 02:00:00+00', '2026-08-09 02:00:00+00', DEFAULT),
     ('e2000000-0000-0000-0000-000000000006', 'e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001',
      'Giao dịch viên',
      'Thực hiện giao dịch thu chi, hướng dẫn khách hàng hoàn thiện hồ sơ tại quầy.',
      'Tốt nghiệp chuyên ngành Tài chính - Ngân hàng, cẩn thận, chính xác.',
      NULL, NULL, 'FINANCE_BANKING', 'HUE', 'FULL_TIME', 'ONSITE',
      10000000.00, 15000000.00, 'VND',
-     'DRAFT', 1, CURRENT_DATE + 60, NULL, NULL, '2026-09-20 02:00:00+00', '2026-09-20 02:00:00+00')
+     'DRAFT', 1, CURRENT_DATE + 60, NULL, NULL, '2026-09-20 02:00:00+00', '2026-09-20 02:00:00+00', DEFAULT)
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -349,41 +351,44 @@ ON CONFLICT (id) DO NOTHING;
 --    A7 Pham Van Khoa  -> J1 REJECTED
 --    A8 Pham Van Khoa  -> J2 PENDING
 --    A9 Tran Bao Ngoc  -> J1 INTERVIEW_INVITED (co giay moi)
+--    screening_captured_at (FR-H10 R-S4) = applied_at cua A1, A9 (co ban chup, muc
+--    15) va A2 (tin J2 khong co cau hoi -> NO_QUESTIONS); don khac NULL
+--    (NOT_CAPTURED - don nop truoc khi co buoc chup).
 -- ---------------------------------------------------------------------------
 
 INSERT INTO job_applications (
     id, job_id, candidate_id, resume_id, recruitment_cycle, status,
-    ai_consent, ai_consent_at, cover_letter, applied_at, updated_at
+    ai_consent, ai_consent_at, cover_letter, applied_at, updated_at, screening_captured_at
 ) VALUES
     ('e8000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000002',
      'e7000000-0000-0000-0000-000000000003', 1, 'PENDING', TRUE, '2026-10-05 17:35:00+00',
      'Tôi có hơn 4 năm làm chăm sóc khách hàng và mong muốn được làm việc tại Đà Nẵng.',
-     '2026-10-05 17:35:00+00', '2026-10-05 17:35:00+00'),
+     '2026-10-05 17:35:00+00', '2026-10-05 17:35:00+00', '2026-10-05 17:35:00+00'),
     ('e8000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000002',
      'e7000000-0000-0000-0000-000000000003', 1, 'INTERVIEW_INVITED', TRUE, '2026-10-05 17:36:00+00', NULL,
-     '2026-10-05 17:36:00+00', '2026-10-05 17:40:00+00'),
+     '2026-10-05 17:36:00+00', '2026-10-05 17:40:00+00', '2026-10-05 17:36:00+00'),
     ('e8000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000002',
      'e7000000-0000-0000-0000-000000000001', 1, 'WITHDRAWN', TRUE, '2026-08-12 03:00:00+00', NULL,
-     '2026-08-12 03:00:00+00', '2026-08-14 13:00:00+00'),
+     '2026-08-12 03:00:00+00', '2026-08-14 13:00:00+00', NULL),
     ('e8000000-0000-0000-0000-000000000004', 'e2000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000002',
      'e7000000-0000-0000-0000-000000000001', 1, 'HIRED', TRUE, '2026-07-15 03:00:00+00',
      'Mong được trao đổi thêm với anh chị về vị trí Chuyên viên Tuyển dụng.',
-     '2026-07-15 03:00:00+00', '2026-07-28 02:00:00+00'),
+     '2026-07-15 03:00:00+00', '2026-07-28 02:00:00+00', NULL),
     ('e8000000-0000-0000-0000-000000000005', 'e2000000-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000002',
      'e7000000-0000-0000-0000-000000000001', 1, 'REJECTED', TRUE, '2026-07-16 03:00:00+00', NULL,
-     '2026-07-16 03:00:00+00', '2026-07-22 02:00:00+00'),
+     '2026-07-16 03:00:00+00', '2026-07-22 02:00:00+00', NULL),
     ('e8000000-0000-0000-0000-000000000006', 'e2000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000003',
      'e7000000-0000-0000-0000-000000000004', 1, 'PENDING', TRUE, '2026-09-03 03:00:00+00', NULL,
-     '2026-09-03 03:00:00+00', '2026-09-03 03:00:00+00'),
+     '2026-09-03 03:00:00+00', '2026-09-03 03:00:00+00', NULL),
     ('e8000000-0000-0000-0000-000000000007', 'e2000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000004',
      'e7000000-0000-0000-0000-000000000005', 1, 'REJECTED', TRUE, '2026-09-05 03:00:00+00', NULL,
-     '2026-09-05 03:00:00+00', '2026-09-12 02:00:00+00'),
+     '2026-09-05 03:00:00+00', '2026-09-12 02:00:00+00', NULL),
     ('e8000000-0000-0000-0000-000000000008', 'e2000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000004',
      'e7000000-0000-0000-0000-000000000005', 1, 'PENDING', TRUE, '2026-09-08 03:00:00+00', NULL,
-     '2026-09-08 03:00:00+00', '2026-09-08 03:00:00+00'),
+     '2026-09-08 03:00:00+00', '2026-09-08 03:00:00+00', NULL),
     ('e8000000-0000-0000-0000-000000000009', 'e2000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000005',
      'e7000000-0000-0000-0000-000000000006', 1, 'INTERVIEW_INVITED', TRUE, '2026-09-07 03:00:00+00', NULL,
-     '2026-09-07 03:00:00+00', '2026-09-15 02:00:00+00')
+     '2026-09-07 03:00:00+00', '2026-09-15 02:00:00+00', '2026-09-07 03:00:00+00')
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -600,6 +605,58 @@ INSERT INTO application_messages (id, application_id, sender_id, sender_role, bo
      NULL, '2026-10-08 03:20:00+00')
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- 15. Cau hoi sang loc (FR-H10, REQUIREMENT muc 4.5) - DU LIEU UNG VIEN, khong
+--     phai output AI.
+--     Tin J1 (CSKH) co 3 cau SQ1-SQ3, tao luc dang tin; tin J2 (Hanh chinh)
+--     KHONG co cau hoi.
+--     Ban chup (bat bien, cot *_snapshot chep dung SQ1-SQ3, created_at = luc nop):
+--       A1 Quoc Huy      -> du 3 cau tra loi                  -> CAPTURED
+--       A9 Tran Bao Ngoc -> SQ3 (khong bat buoc) bo trong      -> CAPTURED
+--       A2 Quoc Huy      -> 0 dong (tin J2 khong co cau hoi)   -> NO_QUESTIONS
+--       A6 Le Thi Lan    -> screening_captured_at NULL         -> NOT_CAPTURED
+-- ---------------------------------------------------------------------------
+
+INSERT INTO job_screening_questions (
+    id, job_id, question_type, question_text, options, is_required, display_order, deleted_at, created_at, updated_at
+) VALUES
+    ('ee000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'SHORT_TEXT',
+     'Bạn có thể bắt đầu đi làm từ khi nào?', NULL, TRUE, 1, NULL,
+     '2026-09-01 02:00:00+00', '2026-09-01 02:00:00+00'),
+    ('ee000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'YES_NO',
+     'Bạn có sẵn sàng làm ca tối (18:00–22:00) không?', NULL, FALSE, 2, NULL,
+     '2026-09-01 02:00:00+00', '2026-09-01 02:00:00+00'),
+    ('ee000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000001', 'SINGLE_CHOICE',
+     'Mức lương mong muốn của bạn?', '["Dưới 10 triệu", "10–14 triệu", "Trên 14 triệu"]'::jsonb, FALSE, 3, NULL,
+     '2026-09-01 02:00:00+00', '2026-09-01 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO application_screening_answers (
+    id, application_id, question_id, display_order, question_type_snapshot, question_text_snapshot,
+    options_snapshot, required_snapshot, answer_text, answer_yes_no, created_at
+) VALUES
+    -- A1
+    ('ef000000-0000-0000-0000-000000000001', 'e8000000-0000-0000-0000-000000000001', 'ee000000-0000-0000-0000-000000000001',
+     1, 'SHORT_TEXT', 'Bạn có thể bắt đầu đi làm từ khi nào?', NULL, TRUE,
+     'Đầu tháng 11/2026, sau khi bàn giao công việc hiện tại.', NULL, '2026-10-05 17:35:00+00'),
+    ('ef000000-0000-0000-0000-000000000002', 'e8000000-0000-0000-0000-000000000001', 'ee000000-0000-0000-0000-000000000002',
+     2, 'YES_NO', 'Bạn có sẵn sàng làm ca tối (18:00–22:00) không?', NULL, FALSE,
+     NULL, FALSE, '2026-10-05 17:35:00+00'),
+    ('ef000000-0000-0000-0000-000000000003', 'e8000000-0000-0000-0000-000000000001', 'ee000000-0000-0000-0000-000000000003',
+     3, 'SINGLE_CHOICE', 'Mức lương mong muốn của bạn?', '["Dưới 10 triệu", "10–14 triệu", "Trên 14 triệu"]'::jsonb, FALSE,
+     '10–14 triệu', NULL, '2026-10-05 17:35:00+00'),
+    -- A9
+    ('ef000000-0000-0000-0000-000000000004', 'e8000000-0000-0000-0000-000000000009', 'ee000000-0000-0000-0000-000000000001',
+     1, 'SHORT_TEXT', 'Bạn có thể bắt đầu đi làm từ khi nào?', NULL, TRUE,
+     'Có thể đi làm ngay.', NULL, '2026-09-07 03:00:00+00'),
+    ('ef000000-0000-0000-0000-000000000005', 'e8000000-0000-0000-0000-000000000009', 'ee000000-0000-0000-0000-000000000002',
+     2, 'YES_NO', 'Bạn có sẵn sàng làm ca tối (18:00–22:00) không?', NULL, FALSE,
+     NULL, TRUE, '2026-09-07 03:00:00+00'),
+    ('ef000000-0000-0000-0000-000000000006', 'e8000000-0000-0000-0000-000000000009', 'ee000000-0000-0000-0000-000000000003',
+     3, 'SINGLE_CHOICE', 'Mức lương mong muốn của bạn?', '["Dưới 10 triệu", "10–14 triệu", "Trên 14 triệu"]'::jsonb, FALSE,
+     NULL, NULL, '2026-09-07 03:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;
 
 -- ---------------------------------------------------------------------------
@@ -607,7 +664,8 @@ COMMIT;
 -- companies 1, jobs 6, rubrics 6, rubric_criteria 18, interview_templates 6,
 -- resumes 6, resume_parsed_data 1, job_applications 9,
 -- application_status_history 16, interview_invitations 3, scoring_runs 2,
--- notifications 16, application_messages 6.
+-- notifications 16, application_messages 6, job_screening_questions 3,
+-- application_screening_answers 6.
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'e0000000-%'
 UNION ALL SELECT 'candidate_profiles', count(*) FROM candidate_profiles WHERE id::text LIKE 'e6000000-%'
@@ -623,4 +681,6 @@ UNION ALL SELECT 'application_status_history', count(*) FROM application_status_
 UNION ALL SELECT 'interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'ea000000-%'
 UNION ALL SELECT 'scoring_runs', count(*) FROM scoring_runs WHERE id::text LIKE 'eb000000-%'
 UNION ALL SELECT 'notifications', count(*) FROM notifications WHERE id::text LIKE 'ec000000-%'
-UNION ALL SELECT 'application_messages', count(*) FROM application_messages WHERE id::text LIKE 'ed000000-%';
+UNION ALL SELECT 'application_messages', count(*) FROM application_messages WHERE id::text LIKE 'ed000000-%'
+UNION ALL SELECT 'job_screening_questions', count(*) FROM job_screening_questions WHERE id::text LIKE 'ee000000-%'
+UNION ALL SELECT 'application_screening_answers', count(*) FROM application_screening_answers WHERE id::text LIKE 'ef000000-%';

@@ -90,6 +90,7 @@ DELETE FROM criterion_scores           WHERE scoring_run_id IN (SELECT id FROM t
 DELETE FROM scoring_runs               WHERE id IN (SELECT id FROM t_runs);
 
 -- 3. Con cua job_applications, roi chinh don
+DELETE FROM application_screening_answers WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM application_messages       WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM interview_invitations      WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM application_status_history WHERE application_id IN (SELECT id FROM t_apps);
@@ -107,6 +108,7 @@ DELETE FROM job_embeddings      WHERE job_id IN (SELECT id FROM t_jobs);
 DELETE FROM interview_templates WHERE job_id IN (SELECT id FROM t_jobs);
 DELETE FROM rubric_criteria     WHERE rubric_id IN (SELECT id FROM rubrics WHERE job_id IN (SELECT id FROM t_jobs));
 DELETE FROM rubrics             WHERE job_id IN (SELECT id FROM t_jobs);
+DELETE FROM job_screening_questions WHERE job_id IN (SELECT id FROM t_jobs);
 DELETE FROM jobs                WHERE id IN (SELECT id FROM t_jobs);
 
 -- 6. Cong ty, ho so nghe nghiep, user

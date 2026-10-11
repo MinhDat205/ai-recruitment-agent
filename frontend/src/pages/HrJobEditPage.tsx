@@ -19,6 +19,7 @@ import { CatalogField } from '../features/jobs/CatalogField'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
 import { RubricTab } from '../features/rubric/RubricTab'
 import { ApplicationsTab } from '../features/scoring/ApplicationsTab'
+import { ScreeningQuestionsTab } from '../features/screening/ScreeningQuestionsTab'
 import { EMPLOYMENT_TYPE_LABELS, EMPLOYMENT_TYPE_OPTIONS, WORK_MODE_LABELS, WORK_MODE_OPTIONS } from '../features/jobs/jobLabels'
 import {
   useHrJobQuery,
@@ -466,7 +467,7 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
   )
 }
 
-const VALID_TABS = ['job', 'template', 'rubric', 'applications'] as const
+const VALID_TABS = ['job', 'template', 'rubric', 'screening', 'applications'] as const
 
 export function HrJobEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -493,10 +494,13 @@ export function HrJobEditPage() {
                 dụng.
               </p>
             )}
-            <TabsList className="mt-2 w-fit">
+            {/* FR-H10: 5 tab - cung chuoi class voi HrApplicationDetailPage de chi TabsList cuon ngang o 375px,
+                khong cuon ca trang (UI.md muc 5b, 8). */}
+            <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto overflow-y-hidden">
               <TabsTrigger value="job">Thông tin tin tuyển dụng</TabsTrigger>
               <TabsTrigger value="template">Mẫu giấy mời phỏng vấn</TabsTrigger>
               <TabsTrigger value="rubric">Rubric chấm điểm</TabsTrigger>
+              <TabsTrigger value="screening">Câu hỏi sàng lọc</TabsTrigger>
               <TabsTrigger value="applications">Ứng viên</TabsTrigger>
             </TabsList>
           </CardHeader>
@@ -522,6 +526,9 @@ export function HrJobEditPage() {
                 </Button>
               </CardFooter>
             )}
+          </TabsContent>
+          <TabsContent value="screening">
+            <ScreeningQuestionsTab jobId={id} />
           </TabsContent>
           <TabsContent value="applications">
             <ApplicationsTab jobId={id} />

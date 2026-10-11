@@ -396,7 +396,7 @@ Giúp hai bên soạn nhanh tin nhắn/email nhất quán, không phải viết 
 
 **Người dùng thao tác**
 
-- Trong khung soạn tin của C06 bấm Soạn bằng AI → chọn tình huống có sẵn hoặc tự mô tả mục đích → chọn giọng văn (trang trọng/thân thiện) → bản nháp được điền vào khung soạn → chỉnh sửa → bấm Gửi như tin thường.
+- Trong khung soạn tin của C06 bấm Soạn bằng AI → chọn tình huống có sẵn hoặc tự mô tả mục đích → chọn giọng văn (trang trọng/thân thiện) → xem trước bản nháp trong khối "Do AI tạo", bấm "Dùng bản nháp" mới điền vào khung soạn → chỉnh sửa → bấm Gửi như tin thường.
 - Tình huống phía HR: đề nghị bổ sung thông tin, nhắc lịch phỏng vấn, cảm ơn đã ứng tuyển, thông báo kết quả, tự mô tả.
 - Tình huống phía Ứng viên: hỏi tiến độ, cảm ơn sau phỏng vấn, xin dời lịch phỏng vấn, tự mô tả.
 
@@ -436,7 +436,7 @@ Thu thập sớm các thông tin CV thường không có (thời gian đi làm �
 
 **Người dùng thao tác**
 
-Khi tạo/sửa Job → tab Câu hỏi sàng lọc → thêm câu hỏi (trả lời ngắn, một lựa chọn, có/không) → đánh dấu câu bắt buộc → sắp xếp thứ tự. HR xem câu trả lời ở tab Sàng lọc của hồ sơ đơn (H09).
+Sau khi tạo Job, ở trang sửa Job → tab Câu hỏi sàng lọc → thêm câu hỏi (trả lời ngắn, một lựa chọn, có/không) → đánh dấu câu bắt buộc → sắp xếp thứ tự. HR xem câu trả lời ở tab Sàng lọc của hồ sơ đơn (H09).
 
 **Hệ thống**
 
@@ -448,7 +448,7 @@ Không dùng AI. Gợi ý câu hỏi nằm ở H11.
 
 **Kết quả**
 
-Mỗi đơn ứng tuyển kèm câu trả lời sàng lọc, hiển thị cạnh điểm số và CV.
+Mỗi đơn ứng tuyển kèm câu trả lời sàng lọc, hiển thị ở tab Sàng lọc của trang hồ sơ đơn.
 
 **Lưu ý**
 

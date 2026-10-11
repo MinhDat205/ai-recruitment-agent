@@ -98,6 +98,31 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RUBRIC_CRITERION_NOT_FOUND", ex.getMessage()));
     }
 
+    // FR-H10 - bon ma loi cua cau hoi sang loc (REQUIREMENT R-Q1, R-Q4b, R-Q6, R-A2).
+    @ExceptionHandler(ScreeningQuestionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleScreeningQuestionNotFound(ScreeningQuestionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("SCREENING_QUESTION_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ScreeningQuestionLimitReachedException.class)
+    public ResponseEntity<ErrorResponse> handleScreeningQuestionLimitReached(ScreeningQuestionLimitReachedException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("SCREENING_QUESTION_LIMIT_REACHED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidScreeningQuestionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidScreeningQuestion(InvalidScreeningQuestionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_SCREENING_QUESTION", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidScreeningOrderException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidScreeningOrder(InvalidScreeningOrderException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_SCREENING_ORDER", ex.getMessage()));
+    }
+
     @ExceptionHandler(RubricLockedException.class)
     public ResponseEntity<ErrorResponse> handleRubricLocked(RubricLockedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("RUBRIC_LOCKED", ex.getMessage()));
@@ -301,6 +326,34 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConversationReadOnly(ConversationReadOnlyException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("CONVERSATION_READ_ONLY", ex.getMessage()));
+    }
+
+    // FR-C07 R-S3 - tinh huong chua dung duoc voi trang thai hien tai cua don.
+    @ExceptionHandler(DraftScenarioUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleDraftScenarioUnavailable(DraftScenarioUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("DRAFT_SCENARIO_UNAVAILABLE", ex.getMessage()));
+    }
+
+    // FR-C07 R-S1/R-S4/R-S5 - mot ma loi chung, cau co dinh khac nhau qua getMessage(). Body JSON hong (R-Q3b) KHONG di
+    // qua day ma qua MessageDraftExceptionAdvice (chi ap cho hai controller soan nhap).
+    @ExceptionHandler(InvalidDraftRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDraftRequest(InvalidDraftRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_DRAFT_REQUEST", ex.getMessage()));
+    }
+
+    // FR-C07 R-K3-6 - loi K3 (goi AI dong bo). Body chi gom ma + cau co dinh cua AiSyncErrorCode - KHONG ex.getMessage()
+    // cua exception goc hay output tho LLM (exception goc chi duoc SyncAiCaller ghi o log.debug).
+    @ExceptionHandler(AiSyncFailedException.class)
+    public ResponseEntity<ErrorResponse> handleAiSyncFailed(AiSyncFailedException ex) {
+        AiSyncErrorCode errorCode = ex.errorCode();
+        HttpStatus status = switch (errorCode) {
+            case AI_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT;
+            case AI_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case AI_INVALID_OUTPUT -> HttpStatus.BAD_GATEWAY;
+        };
+        return ResponseEntity.status(status).body(new ErrorResponse(errorCode.name(), errorCode.message()));
     }
 
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
