@@ -136,7 +136,7 @@ Nằm trong `Card` sẵn có của trang sửa Job (`max-w-5xl`, nền thẻ `m3
 ├──────────────────────────────────────────────────────────────────────────┤
 │ Câu trả lời sàng lọc                                                     │
 │ Câu hỏi và câu trả lời được lưu nguyên văn lúc nộp đơn                   │
-│ (28/08/2026 17:45). Chỉ để tham khảo, không dùng để chấm điểm hay        │
+│ (17:45 28/08/2026). Chỉ để tham khảo, không dùng để chấm điểm hay        │
 │ xếp hạng.                                                                │
 │                                                                          │
 │ 1. Bạn có thể bắt đầu đi làm từ khi nào?                                 │
@@ -162,7 +162,7 @@ Nằm trong `Card` sẵn có của trang sửa Job (`max-w-5xl`, nền thẻ `m3
 
 ```
 NO_QUESTIONS   Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn
-               (28/08/2026 17:45).
+               (17:45 28/08/2026).
 
 NOT_CAPTURED   Đơn này được nộp trước khi hệ thống ghi nhận câu trả lời sàng lọc, nên
                không có câu trả lời để hiển thị.
@@ -214,7 +214,7 @@ lọc" là tab thứ 3, có thể nằm một phần ngoài khung ở 375px — 
 │ ← Chuyên viên Chăm sóc…    │
 │ Quốc Huy                   │
 │ [Chờ duyệt]                │
-│ Nộp ngày 05/10/2026 09:00  │
+│ Nộp ngày 09:00 05/10/2026  │
 │ (thanh thao tác xếp dọc)   │
 │ ┌─────────┬──────────┬─────┐
 │ │CV & điểm│Giải thích│Sàng→│  (cuộn ngang: … Sàng lọc · Lịch sử · Trao đổi)
@@ -223,7 +223,7 @@ lọc" là tab thứ 3, có thể nằm một phần ngoài khung ở 375px — 
 │ Câu trả lời sàng lọc       │
 │ Câu hỏi và câu trả lời     │
 │ được lưu nguyên văn lúc    │
-│ nộp đơn (05/10/2026 09:00).│
+│ nộp đơn (09:00 05/10/2026).│
 │ Chỉ để tham khảo, không    │
 │ dùng để chấm điểm hay xếp  │
 │ hạng.                      │
@@ -356,13 +356,14 @@ Không có trạng thái "AI đang xử lý": FR-H10 không gọi AI.
 | Lỗi backend khác (câu chuẩn hoá) | `SCREENING_QUESTION_LIMIT_REACHED`: "Mỗi tin tuyển dụng có tối đa 10 câu hỏi sàng lọc." · `INVALID_SCREENING_ORDER`: "Danh sách câu hỏi đã thay đổi, vui lòng tải lại." · `SCREENING_QUESTION_NOT_FOUND`: "Không tìm thấy câu hỏi sàng lọc." |
 | Lỗi fallback | Tải: "Không tải được câu hỏi sàng lọc." · Lưu: "Lưu câu hỏi thất bại, vui lòng thử lại." · Xoá: "Xoá câu hỏi thất bại, vui lòng thử lại." · Đổi thứ tự: "Đổi thứ tự thất bại, vui lòng thử lại." |
 | Tab Sàng lọc — tiêu đề | "Câu trả lời sàng lọc" |
-| Tab Sàng lọc — chú thích | "Câu hỏi và câu trả lời được lưu nguyên văn lúc nộp đơn ({dd/MM/yyyy HH:mm}). Chỉ để tham khảo, không dùng để chấm điểm hay xếp hạng." |
+| Tab Sàng lọc — chú thích | "Câu hỏi và câu trả lời được lưu nguyên văn lúc nộp đơn ({HH:mm dd/MM/yyyy}). Chỉ để tham khảo, không dùng để chấm điểm hay xếp hạng." |
 | Trả lời Có/Không | "Có" · "Không" |
 | Không trả lời | "Ứng viên không trả lời câu này." |
-| `NO_QUESTIONS` | "Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn ({dd/MM/yyyy HH:mm})." |
+| `NO_QUESTIONS` | "Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn ({HH:mm dd/MM/yyyy})." |
 | `NOT_CAPTURED` | "Đơn này được nộp trước khi hệ thống ghi nhận câu trả lời sàng lọc, nên không có câu trả lời để hiển thị." |
 
-Ngày giờ định dạng `vi-VN` như "Nộp ngày" ở đầu trang hồ sơ đơn (FR-H09 UI.md mục 7). Câu ở dòng lưu ý 1 có chữ
+Ngày giờ định dạng `vi-VN` như "Nộp ngày" ở đầu trang hồ sơ đơn (FR-H09 UI.md mục 7): `formatDateTimeVi`,
+`HH:mm dd/MM/yyyy`, giờ theo trình duyệt (L10 ở `REQUIREMENT.md` mục 12). Câu ở dòng lưu ý 1 có chữ
 "tuổi" — hợp lệ (lời nhắc cho HR, không phải câu hỏi hay field); `srs-guard` nguyên tắc 13 lệnh 1 không khớp chữ
 có dấu.
 

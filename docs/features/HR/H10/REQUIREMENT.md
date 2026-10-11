@@ -3,7 +3,7 @@
 > Trạng thái: ĐÃ DUYỆT 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
 >
 > Làm rõ sau Plan Mode 10/10/2026: L1–L6 (L1: R-Q10, mục 0 a14, mục 4.2, mục 8; L2: T5; L3: mục 4.2, bảng R-B;
-> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10; L9: UI.md mục 9) — chi tiết ở mục 12.
+> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10; L9: UI.md mục 9; L10: UI.md 4d, 4e, 4g, mục 7, mục 4.5, 7.4) — chi tiết ở mục 12.
 
 - Nhóm: HR
 - Tóm tắt: HR đặt tối đa 10 câu hỏi sàng lọc cho một Job (trả lời ngắn, một lựa chọn, có/không; đánh dấu
@@ -426,9 +426,9 @@ Tin Hành chính `e2000000-0000-0000-0000-000000000002` **không** có câu hỏ
 
 | Đơn | id đơn | `screening_captured_at` (hiển thị) | `state` | id dòng bản chụp |
 |---|---|---|---|---|
-| A1 — Quốc Huy, tin CSKH | `e8000000-0000-0000-0000-000000000001` | `2026-10-05 17:35:00+00` (06/10/2026 00:35) | `CAPTURED` | `ef000000-0000-0000-0000-000000000001` … `-03` |
-| A9 — Trần Bảo Ngọc, tin CSKH | `e8000000-0000-0000-0000-000000000009` | `2026-09-07 03:00:00+00` (07/09/2026 10:00) | `CAPTURED` | `ef000000-0000-0000-0000-000000000004` … `-06` |
-| A2 — Quốc Huy, tin Hành chính | `e8000000-0000-0000-0000-000000000002` | `2026-10-05 17:36:00+00` (06/10/2026 00:36) | `NO_QUESTIONS` (0 dòng) | — |
+| A1 — Quốc Huy, tin CSKH | `e8000000-0000-0000-0000-000000000001` | `2026-10-05 17:35:00+00` (00:35 06/10/2026) | `CAPTURED` | `ef000000-0000-0000-0000-000000000001` … `-03` |
+| A9 — Trần Bảo Ngọc, tin CSKH | `e8000000-0000-0000-0000-000000000009` | `2026-09-07 03:00:00+00` (10:00 07/09/2026) | `CAPTURED` | `ef000000-0000-0000-0000-000000000004` … `-06` |
+| A2 — Quốc Huy, tin Hành chính | `e8000000-0000-0000-0000-000000000002` | `2026-10-05 17:36:00+00` (00:36 06/10/2026) | `NO_QUESTIONS` (0 dòng) | — |
 | A6 — Lê Thị Lan, tin CSKH | `e8000000-0000-0000-0000-000000000006` | `NULL` | `NOT_CAPTURED` | — |
 
 Các đơn test còn lại giữ `screening_captured_at = NULL`.
@@ -584,10 +584,10 @@ xuất sửa mục này, chờ duyệt lại (như FR-H09 mục 7.2).
 | Có câu hỏi đủ 3 loại | `minhdathr@gmail.com` | `/hr/jobs/e2000000-0000-0000-0000-000000000001/edit?tab=screening` (tin CSKH) | Đúng 3 câu SQ1–SQ3 của mục 4.5 theo thứ tự, "3/10 câu hỏi"; câu đầu không có "Lên", câu cuối không có "Xuống"; ba lưu ý hiện |
 | Thêm, sửa, đổi loại, xoá, đổi thứ tự | `minhdathr@gmail.com` | Tin CSKH | Lưu ngay; lỗi validation hiện dưới trường; xoá có hộp xác nhận |
 | Đủ 10 câu | `minhdathr@gmail.com` | Tin CSKH sau khi thêm đủ | Nút "Thêm câu hỏi" khoá + câu lý do thành chữ |
-| Đơn có bản chụp, trả lời đủ | `minhdathr@gmail.com` | `/hr/applications/e8000000-0000-0000-0000-000000000001?tab=screening` (A1) | `CAPTURED`; ba câu và ba câu trả lời đúng bảng A1 ở mục 4.5 ("Không" hiện như chữ thường); chú thích "…lúc nộp đơn (06/10/2026 00:35)…" |
+| Đơn có bản chụp, trả lời đủ | `minhdathr@gmail.com` | `/hr/applications/e8000000-0000-0000-0000-000000000001?tab=screening` (A1) | `CAPTURED`; ba câu và ba câu trả lời đúng bảng A1 ở mục 4.5 ("Không" hiện như chữ thường); chú thích "…lúc nộp đơn (00:35 06/10/2026)…" |
 | Đơn có bản chụp, có câu bỏ trống | `minhdathr@gmail.com` | `/hr/applications/e8000000-0000-0000-0000-000000000009?tab=screening` (A9, Trần Bảo Ngọc) | `CAPTURED`; đúng bảng A9 ở mục 4.5: "Có" cùng kiểu chữ với "Không" của A1; SQ3 hiện "Ứng viên không trả lời câu này." |
 | Bản chụp không đổi sau khi sửa câu hỏi | `minhdathr@gmail.com` | Sửa nội dung SQ1 và xoá SQ3 ở tin CSKH, rồi mở lại A1 | Tab Sàng lọc của A1 vẫn đúng bảng A1 ở mục 4.5 |
-| Đơn nộp khi Job chưa có câu hỏi | `minhdathr@gmail.com` | `/hr/applications/e8000000-0000-0000-0000-000000000002?tab=screening` (A2, tin Hành chính) | `NO_QUESTIONS`: "Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn (06/10/2026 00:36)." |
+| Đơn nộp khi Job chưa có câu hỏi | `minhdathr@gmail.com` | `/hr/applications/e8000000-0000-0000-0000-000000000002?tab=screening` (A2, tin Hành chính) | `NO_QUESTIONS`: "Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn (00:36 06/10/2026)." |
 | Đơn chưa qua bước chụp (công ty test) | `minhdathr@gmail.com` | `/hr/applications/e8000000-0000-0000-0000-000000000006?tab=screening` (A6, tin CSKH) | `NOT_CAPTURED` dù tin CSKH đang có câu hỏi |
 | Đơn cũ trước khi triển khai (demo) | `hr@demo.local` / `Demo1234` | `/hr/applications/3ec35ae2-c8ae-4100-a819-3b59f6948707?tab=screening` | `NOT_CAPTURED` |
 | 375px | cả hai | Cả hai tab | Không cuộn ngang toàn trang; `TabsList` của trang sửa Job cuộn ngang được (5 tab) |
@@ -705,3 +705,8 @@ Phần thân đã viết theo các phương án dưới đây.
 - **L9 (UI.md mục 9; duyệt trong đợt 4).** Thông báo `aria-live` sau khi đổi thứ tự câu hỏi dùng một câu cho cả
   hai chiều ↑/↓: "Đã chuyển câu "{nội dung rút gọn}" tới vị trí {n}." (trước đây "lên vị trí {n}", đọc sai khi đưa
   câu xuống). Câu này không có ở UI.md mục 7; `screeningLabels.ts` dùng đúng nguyên văn.
+- **L10 (UI.md 4d, 4e, 4g, mục 7; mục 4.5, 7.4; duyệt trong đợt 5).** Thời điểm chụp ở tab Sàng lọc dùng
+  `formatDateTimeVi` (`frontend/src/lib/date.ts`), giờ theo trình duyệt, cùng định dạng với "Nộp ngày" ở đầu trang
+  hồ sơ đơn: `HH:mm dd/MM/yyyy` (vi-VN in giờ trước ngày). UI.md mục 7 đổi `{dd/MM/yyyy HH:mm}` thành
+  `{HH:mm dd/MM/yyyy}`; mọi ví dụ ngày giờ đổi thứ tự, giữ nguyên giá trị: 4d, 4e "(17:45 28/08/2026)", 4g
+  "09:00 05/10/2026", mục 4.5 và 7.4 "(00:35 06/10/2026)", "(10:00 07/09/2026)", "(00:36 06/10/2026)".
