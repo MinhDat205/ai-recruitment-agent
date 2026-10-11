@@ -35,7 +35,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H07 | Quản lý Pipeline & Quyết định Tuyển dụng | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H08 | Dashboard, Thống kê & Lịch sử Đánh giá | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H09 | Trang hồ sơ đơn ứng tuyển | HR | Đã hoàn thành | [features/HR/H09/REQUIREMENT.md](features/HR/H09/REQUIREMENT.md) |
-| FR-H10 | Câu hỏi sàng lọc theo Job | HR | Chưa đặc tả | [features/HR/H10/REQUIREMENT.md](features/HR/H10/REQUIREMENT.md) |
+| FR-H10 | Câu hỏi sàng lọc theo Job | HR | Đã hoàn thành | [features/HR/H10/REQUIREMENT.md](features/HR/H10/REQUIREMENT.md) |
 | FR-H11 | AI tạo tin tuyển dụng | HR | Chưa đặc tả | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
 | FR-H12 | Giấy mời nhiều khung giờ | HR | Chưa đặc tả | [features/HR/H12/REQUIREMENT.md](features/HR/H12/REQUIREMENT.md) |
 | FR-H13 | Câu hỏi phỏng vấn theo CV | HR | Chưa đặc tả | [features/HR/H13/REQUIREMENT.md](features/HR/H13/REQUIREMENT.md) |
@@ -98,7 +98,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | Mã | Tên | Tóm tắt | Actor | Phụ thuộc |
 | --- | --- | --- | --- | --- |
 | FR-H09 | Trang hồ sơ đơn ứng tuyển | Một màn hình cho một đơn: tab CV & điểm (CV gốc, thư giới thiệu, CV đã trích xuất, điểm + evidence, chấm điểm), Giải thích, Lịch sử và các nút quyết định FR-H07; tab/nút của FR sau do chính FR đó thêm | HR | FR-H04, FR-H05, FR-H06, FR-H07 |
-| FR-H10 | Câu hỏi sàng lọc theo Job | HR đặt câu hỏi ngắn/lựa chọn/có-không cho Job; không tự loại, không đưa vào chấm điểm | HR | FR-H02 |
+| FR-H10 | Câu hỏi sàng lọc theo Job | HR đặt câu hỏi ngắn/lựa chọn/có-không cho Job; không tự loại, không đưa vào chấm điểm | HR | FR-H02, FR-H09 |
 | FR-H11 | AI tạo tin tuyển dụng | Từ mô tả tự do sinh bản nháp Job, gợi ý tiêu chí rubric và câu hỏi sàng lọc; trọng số do HR nhập | HR | FR-H02, FR-H03, FR-C05, FR-H10 |
 | FR-H12 | Giấy mời nhiều khung giờ | Giấy mời có 1–5 khung giờ để ứng viên chọn; thêm thao tác gửi lại giấy mời | HR | FR-H07, FR-C03 |
 | FR-H13 | Câu hỏi phỏng vấn theo CV | AI sinh câu hỏi theo từng tiêu chí rubric, kèm lý do và đoạn CV liên quan; HR sửa và lưu | HR | FR-H09 |

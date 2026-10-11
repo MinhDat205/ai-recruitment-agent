@@ -851,7 +851,22 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
 UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa điểm/rubric.
 
 **Phase 2.3 — Sàng lọc & tạo tin**
-- [ ] `feat/fr-h10-screening` — FR-H10 · Câu hỏi sàng lọc theo Job
+- [x] `feat/fr-h10-screening` — FR-H10 · Câu hỏi sàng lọc theo Job — **HOÀN THÀNH**
+  (11/10/2026, 6 đợt — xem `docs/walkthrough/fr-h10-screening.md`). Tab "Câu hỏi sàng lọc" ở trang sửa Job: HR soạn
+  tối đa 10 câu (trả lời ngắn, một lựa chọn 2–10 phương án, có/không), đánh dấu bắt buộc, đổi thứ tự bằng ↑/↓, sửa
+  và xoá mềm bất cứ lúc nào; khối lưu ý không hỏi thông tin nhân thân luôn hiện. Tab "Sàng lọc" ở trang hồ sơ đơn
+  (sau Giải thích, trước Lịch sử) chỉ đọc bản chụp câu hỏi + câu trả lời lúc nộp, ba trạng thái `CAPTURED` /
+  `NO_QUESTIONS` / `NOT_CAPTURED`. Backend S1–S6, migration `V13` (bảng câu hỏi, bảng bản chụp bất biến,
+  `job_applications.screening_captured_at`, `jobs.screening_revision`). Mỗi thao tác ghi khoá hàng `jobs` bằng chính
+  câu `UPDATE` tăng `screening_revision` (FR-U09 dùng để trả 409 khi bộ câu hỏi đổi giữa chừng). Câu trả lời không
+  vào ngữ cảnh AI, không đổi điểm/hạng (T13, T14). Không gọi AI. Full suite 1008/1008. Đặc tả làm rõ 11 điểm
+  (L1–L11, duyệt 10–11/10/2026). Nợ kỹ thuật:
+  - Đường ghi bản chụp thuộc FR-U09: đơn nộp mới sau khi triển khai FR-H10 chưa có bản chụp nên hiện
+    `NOT_CAPTURED` cho tới khi FR-U09 xong; bản chụp hiện có chỉ do seed test và test tạo.
+  - M4: `JobOwnerService.loadOwned` (`:200-209`) và `RubricOwnerService.loadOwnedRubric` (`:95-104`) còn tra Job
+    trước khi kiểm công ty, lệch khuôn `chore/hardening` mà FR-H10 dùng — HR chưa có công ty + jobId không tồn
+    tại: hai service cũ trả `JOB_NOT_FOUND`, FR-H10 trả `COMPANY_NOT_FOUND`. Sửa ở một nhánh `chore/` riêng.
+  - Frontend chưa có test tự động (trả focus sau khi đổi thứ tự, `aria-live`, segmented control chỉ soát tay).
 - [ ] `feat/fr-u09-screening-answer` — FR-U09 · Trả lời sàng lọc và đồng ý lưu hồ sơ
 - [ ] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng
 

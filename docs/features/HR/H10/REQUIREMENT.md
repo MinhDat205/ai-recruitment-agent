@@ -1,9 +1,9 @@
 # FR-H10 — Câu hỏi sàng lọc theo Job
 
-> Trạng thái: ĐÃ DUYỆT 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
+> Trạng thái: ĐÃ HOÀN THÀNH (11/10/2026). Duyệt: 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
 >
 > Làm rõ sau Plan Mode 10/10/2026: L1–L6 (L1: R-Q10, mục 0 a14, mục 4.2, mục 8; L2: T5; L3: mục 4.2, bảng R-B;
-> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10; L9: UI.md mục 9; L10: UI.md 4d, 4e, 4g, mục 7, mục 4.5, 7.4) — chi tiết ở mục 12.
+> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10; L9: UI.md mục 9; L10: UI.md 4d, 4e, 4g, mục 7, mục 4.5, 7.4; L11: mục 7.1) — chi tiết ở mục 12.
 
 - Nhóm: HR
 - Tóm tắt: HR đặt tối đa 10 câu hỏi sàng lọc cho một Job (trả lời ngắn, một lựa chọn, có/không; đánh dấu
@@ -488,7 +488,7 @@ câu hỏi bằng AI là của FR-H11. Câu trả lời không vào ngữ cảnh
 Kiểm tĩnh (chạy ở đợt cuối, kỳ vọng 0 dòng):
 
 ```bash
-rg -n "screening" backend/src/main/java/com/recruitment/ai backend/src/main/java/com/recruitment/scoring backend/src/main/java/com/recruitment/aicontext backend/src/main/resources/ai/prompt
+rg -n "com\.recruitment\.screening|screening_|Screening[A-Z]" backend/src/main/java/com/recruitment/ai backend/src/main/java/com/recruitment/scoring backend/src/main/java/com/recruitment/aicontext backend/src/main/resources/ai/prompt
 rg -n -i "screening" backend/src/main/java/com/recruitment/jobapplication/ApplicationSortOption.java frontend/src/features/candidates frontend/src/features/dashboard
 ```
 
@@ -710,3 +710,9 @@ Phần thân đã viết theo các phương án dưới đây.
   hồ sơ đơn: `HH:mm dd/MM/yyyy` (vi-VN in giờ trước ngày). UI.md mục 7 đổi `{dd/MM/yyyy HH:mm}` thành
   `{HH:mm dd/MM/yyyy}`; mọi ví dụ ngày giờ đổi thứ tự, giữ nguyên giá trị: 4d, 4e "(17:45 28/08/2026)", 4g
   "09:00 05/10/2026", mục 4.5 và 7.4 "(00:35 06/10/2026)", "(10:00 07/09/2026)", "(00:36 06/10/2026)".
+- **L11 (mục 7.1; duyệt trong đợt 6, 11/10/2026).** Lệnh kiểm tĩnh thứ nhất ở mục 7.1 đổi mẫu từ `"screening"` thành
+  `"com\.recruitment\.screening|screening_|Screening[A-Z]"`. Mẫu cũ khớp chữ tiếng Anh "resume screening" ở dòng 1
+  của `criterion-score-v1.st` và `score-explanation-v1.st` (có từ commit `81fbd85`, FR-H04/H06; FR-H10 không sửa hai
+  file này) → 2 dòng, dù R-N1 vẫn đúng. Mẫu mới bắt import package, tên bảng/cột và tên class của `screening/`, không
+  bắt chữ thường. Đối chứng ở đợt 6: 0 dòng trên bốn thư mục của lệnh (`ai/`, `scoring/`, `aicontext/`, `ai/prompt/`),
+  141 dòng khi chạy cùng mẫu trên `backend/src/main/java/com/recruitment/screening/`.

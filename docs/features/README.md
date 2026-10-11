@@ -436,7 +436,7 @@ Thu thập sớm các thông tin CV thường không có (thời gian đi làm �
 
 **Người dùng thao tác**
 
-Khi tạo/sửa Job → tab Câu hỏi sàng lọc → thêm câu hỏi (trả lời ngắn, một lựa chọn, có/không) → đánh dấu câu bắt buộc → sắp xếp thứ tự. HR xem câu trả lời ở tab Sàng lọc của hồ sơ đơn (H09).
+Sau khi tạo Job, ở trang sửa Job → tab Câu hỏi sàng lọc → thêm câu hỏi (trả lời ngắn, một lựa chọn, có/không) → đánh dấu câu bắt buộc → sắp xếp thứ tự. HR xem câu trả lời ở tab Sàng lọc của hồ sơ đơn (H09).
 
 **Hệ thống**
 
@@ -448,7 +448,7 @@ Không dùng AI. Gợi ý câu hỏi nằm ở H11.
 
 **Kết quả**
 
-Mỗi đơn ứng tuyển kèm câu trả lời sàng lọc, hiển thị cạnh điểm số và CV.
+Mỗi đơn ứng tuyển kèm câu trả lời sàng lọc, hiển thị ở tab Sàng lọc của trang hồ sơ đơn.
 
 **Lưu ý**
 
