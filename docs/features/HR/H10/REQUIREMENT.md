@@ -3,7 +3,7 @@
 > Trạng thái: ĐÃ DUYỆT 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
 >
 > Làm rõ sau Plan Mode 10/10/2026: L1–L6 (L1: R-Q10, mục 0 a14, mục 4.2, mục 8; L2: T5; L3: mục 4.2, bảng R-B;
-> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10) — chi tiết ở mục 12.
+> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10; L9: UI.md mục 9) — chi tiết ở mục 12.
 
 - Nhóm: HR
 - Tóm tắt: HR đặt tối đa 10 câu hỏi sàng lọc cho một Job (trả lời ngắn, một lựa chọn, có/không; đánh dấu
@@ -702,3 +702,6 @@ Phần thân đã viết theo các phương án dưới đây.
 - **L8 (T10; duyệt trong đợt 3).** T10 ghi dòng bản chụp bằng SQL (`JdbcTemplate`), không qua repository: entity
   `ApplicationScreeningAnswer` là `@Immutable`, không có setter, để FR-H10 không có đường ghi bản chụp nào (R-B2 cho
   phép test tạo dòng bằng repository/SQL). Câu chữ T10 đổi thành "bằng repository/SQL".
+- **L9 (UI.md mục 9; duyệt trong đợt 4).** Thông báo `aria-live` sau khi đổi thứ tự câu hỏi dùng một câu cho cả
+  hai chiều ↑/↓: "Đã chuyển câu "{nội dung rút gọn}" tới vị trí {n}." (trước đây "lên vị trí {n}", đọc sai khi đưa
+  câu xuống). Câu này không có ở UI.md mục 7; `screeningLabels.ts` dùng đúng nguyên văn.

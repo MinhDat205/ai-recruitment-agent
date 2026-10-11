@@ -382,7 +382,8 @@ có dấu.
 - Tiêu đề tab là `h2`; mỗi câu ở tab Sàng lọc là một mục của `<ol>` (thứ tự có nghĩa).
 - Danh sách câu hỏi ở tab soạn là `<ol>`; nút ↑/↓ icon-only có `aria-label` mục 7. Sau khi đổi thứ tự xong, focus
   đặt vào **cùng nút** ở vị trí mới của câu vừa di chuyển (nếu nút đó không còn — câu thành đầu/cuối — đặt vào nút
-  còn lại của câu đó); một vùng `aria-live="polite"` đọc "Đã chuyển câu "{nội dung rút gọn}" lên vị trí {n}."
+  còn lại của câu đó); một vùng `aria-live="polite"` đọc "Đã chuyển câu "{nội dung rút gọn}" tới vị trí {n}." — một câu dùng cho cả hai chiều ↑/↓ (L9 ở
+  `REQUIREMENT.md` mục 12)
 - Segmented "Loại câu hỏi": `role="radiogroup"` có `aria-labelledby` trỏ nhãn "Loại câu hỏi"; lựa chọn nhận ra
   bằng icon `Check`, không chỉ bằng màu; phím mũi tên đổi lựa chọn (như `ToneSegmentedControl`).
 - Bộ đếm ký tự gắn vào ô nội dung bằng `aria-describedby`; lỗi trường gắn `aria-invalid` + `aria-describedby`.
