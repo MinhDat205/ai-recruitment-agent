@@ -252,7 +252,7 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
 > khai và có thể xuất hiện trong gợi ý việc làm của ứng viên demo.
 
 Bộ test độc lập với hai tầng demo: nạp được trên DB chỉ có schema, hoặc nạp chung với
-demo mà không va chạm (UUID tiền tố `e0…`–`ed…`, email và tên công ty riêng). SQL viết
+demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, email và tên công ty riêng). SQL viết
 tay, idempotent (`ON CONFLICT (id) DO NOTHING`), với **một ngoại lệ**: dòng
 `resume_parsed_data` của CV R3 là output thật của pipeline trích xuất. Dòng này được chạy
 một lần rồi chép nguyên văn vào file (xem comment mục 8 trong `seed-test.sql`). Bộ test
