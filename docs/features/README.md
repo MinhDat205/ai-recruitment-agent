@@ -472,11 +472,11 @@ Là phía ứng viên của H10 và H15: ứng viên trả lời câu hỏi sàn
 
 **Người dùng thao tác**
 
-Ở form nộp đơn (FR-U02) → trả lời các câu hỏi sàng lọc của Job (H10) → tuỳ chọn tick "Cho phép công ty lưu hồ sơ của tôi để liên hệ cho các vị trí sau này" → Nộp đơn.
+Ở form nộp đơn (FR-U02) → trả lời các câu hỏi sàng lọc của Job (H10) → tuỳ chọn tick "Cho phép công ty lưu hồ sơ của tôi để liên hệ cho các vị trí sau này" → Nộp đơn. Sau khi nộp: xem lại câu trả lời và trạng thái đồng ý, rút đồng ý ở trang chi tiết đơn (FR-U08).
 
 **Hệ thống**
 
-- Chặn nộp đơn khi thiếu câu bắt buộc, kiểm tra ở backend chứ không chỉ ở frontend.
+- Chặn nộp đơn khi thiếu câu bắt buộc, kiểm tra ở backend chứ không chỉ ở frontend. Bộ câu hỏi đổi giữa lúc ứng viên đang điền → từ chối (409), ứng viên kiểm lại rồi nộp lại.
 - Lưu câu trả lời kèm bản chụp câu hỏi trong cùng giao dịch nộp đơn.
 - Thêm cờ đồng ý lưu hồ sơ và thời điểm đồng ý vào đơn ứng tuyển, tách biệt với đồng ý cho AI chấm điểm (bắt buộc, đã có).
 - Đơn đã có trước đây mặc định là không đồng ý, kể cả dữ liệu seed demo.

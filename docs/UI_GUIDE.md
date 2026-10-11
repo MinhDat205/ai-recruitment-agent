@@ -242,6 +242,9 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 - Checkbox không tick sẵn. Nút "Nộp đơn" disabled cho tới khi tick.
 - Nội dung ghi rõ CV sẽ được AI phân tích và chấm điểm để hỗ trợ HR đánh giá.
 
+**Ô đồng ý lưu hồ sơ (FR-U09)**
+- Checkbox riêng, không tick sẵn, KHÔNG chặn nút "Nộp đơn"; ghi rõ có thể rút sau ở trang chi tiết đơn. Không gộp với ô consent AI.
+
 **Nội dung do AI tạo** (bản nháp tin nhắn, tin tuyển dụng nháp, tóm tắt, câu hỏi phỏng vấn, câu trả
 lời hỏi đáp CV, gợi ý diễn đạt): luôn có nhãn "Do AI tạo" + icon (lucide `Sparkles`), nằm trong
 khối `m3-surface-container-high`, và chỉ có hiệu lực sau khi người dùng bấm (Dùng bản nháp / Lưu /
@@ -338,10 +341,10 @@ thêm lúc code.
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |
 | `/candidate/applications` | "Đơn ứng tuyển" | Hiện có | FR-U03; FR-U08 (liên kết "Xem chi tiết") |
-| ★`/candidate/applications/:id` | Chi tiết đơn ứng tuyển — tab "Thông tin đơn" (giấy mời, tóm tắt tin, CV đã nộp, thư giới thiệu, CV đã trích xuất), "Lịch sử", "Trao đổi"; nút Rút đơn. Tab/nút của FR sau do chính FR đó thêm | ★Mới | FR-U08; FR-U03, FR-U06; FR-U10 (chọn giờ); FR-U09 (câu trả lời, rút đồng ý); FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi) |
+| ★`/candidate/applications/:id` | Chi tiết đơn ứng tuyển — tab "Thông tin đơn" (giấy mời, tóm tắt tin, CV đã nộp, thư giới thiệu, câu trả lời sàng lọc, lưu hồ sơ cho đợt tuyển sau kèm nút Rút đồng ý, CV đã trích xuất), "Lịch sử", "Trao đổi"; nút Rút đơn. Tab/nút của FR sau do chính FR đó thêm | ★Mới | FR-U08; FR-U03, FR-U06; FR-U10 (chọn giờ); FR-U09 (câu trả lời, rút đồng ý); FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi) |
 | ★`/candidate/messages` | "Tin nhắn" | ★Mới | FR-C06 (hộp thư) |
 | `/candidate/notifications` | Thông báo | Hiện có | FR-C03 |
-| `/jobs/:id/apply` | Nộp đơn ứng tuyển | Hiện có | FR-U02, FR-U09 |
+| `/jobs/:id/apply` | Nộp đơn ứng tuyển — câu hỏi sàng lọc của tin, ô đồng ý lưu hồ sơ; màn thành công có liên kết "Xem đơn vừa nộp" | Hiện có | FR-U02, FR-U09 |
 | ★`/candidate/onboarding` | Khai hồ sơ nghề nghiệp (bỏ qua được) | ★Mới | FR-U14 |
 
 ### HR
