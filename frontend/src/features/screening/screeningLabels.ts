@@ -61,6 +61,21 @@ export const SCREENING_TEXT = {
   reorderError: 'Đổi thứ tự thất bại, vui lòng thử lại.',
 } as const
 
+// Tab "Sàng lọc" o trang ho so don (S6) - UI.md muc 7. date: chuoi ngay gio da dinh dang.
+export const SCREENING_ANSWER_TEXT = {
+  tab: 'Sàng lọc',
+  title: 'Câu trả lời sàng lọc',
+  caption: (date: string) =>
+    `Câu hỏi và câu trả lời được lưu nguyên văn lúc nộp đơn (${date}). Chỉ để tham khảo, không dùng để chấm điểm hay xếp hạng.`,
+  yes: 'Có',
+  no: 'Không',
+  noAnswer: 'Ứng viên không trả lời câu này.',
+  noQuestions: (date: string) =>
+    `Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn (${date}).`,
+  notCaptured:
+    'Đơn này được nộp trước khi hệ thống ghi nhận câu trả lời sàng lọc, nên không có câu trả lời để hiển thị.',
+} as const
+
 // Loi frontend (Zod) - UI.md muc 7.
 export const SCREENING_FORM_ERRORS = {
   textEmpty: 'Vui lòng nhập nội dung câu hỏi',

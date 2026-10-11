@@ -1,5 +1,10 @@
 import { http } from '../../lib/http'
-import type { ScreeningQuestionListResponse, ScreeningQuestionRequest, ScreeningQuestionResponse } from './types'
+import type {
+  ApplicationScreeningResponse,
+  ScreeningQuestionListResponse,
+  ScreeningQuestionRequest,
+  ScreeningQuestionResponse,
+} from './types'
 
 function questionsUrl(jobId: string): string {
   return `/hr/jobs/${jobId}/screening-questions`
@@ -41,5 +46,11 @@ export async function reorderScreeningQuestionsRequest(
   questionIds: string[],
 ): Promise<ScreeningQuestionListResponse> {
   const response = await http.put<ScreeningQuestionListResponse>(`${questionsUrl(jobId)}/order`, { questionIds })
+  return response.data
+}
+
+// S6 - ban chup cau tra loi cua mot don (chi doc).
+export async function getApplicationScreeningRequest(applicationId: string): Promise<ApplicationScreeningResponse> {
+  const response = await http.get<ApplicationScreeningResponse>(`/hr/applications/${applicationId}/screening-answers`)
   return response.data
 }

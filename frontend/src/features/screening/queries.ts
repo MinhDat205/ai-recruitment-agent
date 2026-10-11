@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   addScreeningQuestionRequest,
   deleteScreeningQuestionRequest,
+  getApplicationScreeningRequest,
   getScreeningQuestionsRequest,
   reorderScreeningQuestionsRequest,
   updateScreeningQuestionRequest,
@@ -54,5 +55,18 @@ export function useReorderScreeningQuestionsMutation(jobId: string) {
     mutationFn: (questionIds: string[]) => reorderScreeningQuestionsRequest(jobId, questionIds),
     onSuccess: (data) => queryClient.setQueryData(screeningQuestionsKey(jobId), data),
     onError: () => queryClient.invalidateQueries({ queryKey: screeningQuestionsKey(jobId) }),
+  })
+}
+
+export function applicationScreeningKey(applicationId: string | undefined) {
+  return ['hr-application-screening', applicationId]
+}
+
+// S6 - ban chup bat bien (R-S2) nen khong can lam moi theo thao tac nao o trang ho so don.
+export function useApplicationScreeningQuery(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: applicationScreeningKey(applicationId),
+    queryFn: () => getApplicationScreeningRequest(applicationId as string),
+    enabled: Boolean(applicationId),
   })
 }
