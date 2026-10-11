@@ -3,7 +3,7 @@
 > Trạng thái: ĐÃ DUYỆT 10/10/2026. Q1–Q10 và bốn mâu thuẫn ở mục 0.b đã chốt 10/10/2026 (mục 11).
 >
 > Làm rõ sau Plan Mode 10/10/2026: L1–L6 (L1: R-Q10, mục 0 a14, mục 4.2, mục 8; L2: T5; L3: mục 4.2, bảng R-B;
-> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15) — chi tiết ở mục 12.
+> L4: mục 4.5, mục 9; L5: mục 4.1; L6: mục 9; L7: mục 4.1, T15; L8: T10) — chi tiết ở mục 12.
 
 - Nhóm: HR
 - Tóm tắt: HR đặt tối đa 10 câu hỏi sàng lọc cho một Job (trả lời ngắn, một lựa chọn, có/không; đánh dấu
@@ -476,7 +476,7 @@ câu hỏi bằng AI là của FR-H11. Câu trả lời không vào ngữ cảnh
 | T7 | S4 xoá mềm: hàng còn trong DB với `deleted_at` khác `NULL`; S1 không trả câu đó; S3/S4 lại với id đó → 404 | dương + âm |
 | T8 | Quyền S1–S5: HR công ty khác → 403; Job không tồn tại → 404 `JOB_NOT_FOUND`; HR chưa có công ty → 404 `COMPANY_NOT_FOUND` **kể cả khi jobId không tồn tại** (thứ tự R-A2); câu hỏi của Job khác trên đường dẫn → 404 `SCREENING_QUESTION_NOT_FOUND`; token ứng viên → 403; không token → 401 | âm |
 | T9 | Sửa được khi Job `OPEN` có đơn và khi rubric `is_locked = true` (R-Q9) | dương |
-| T10 | **Bản chụp bất biến:** tạo đơn + dòng bản chụp bằng repository (giả lập FR-U09), sau đó S3 đổi nội dung + loại + phương án, S5 đổi thứ tự, S4 xoá câu → S6 của đơn đó trả **y hệt** trước khi sửa (so cả JSON) | dương |
+| T10 | **Bản chụp bất biến:** tạo đơn + dòng bản chụp bằng repository/SQL (giả lập FR-U09; dòng bản chụp ghi bằng SQL vì entity `ApplicationScreeningAnswer` là `@Immutable`, không có setter — L8), sau đó S3 đổi nội dung + loại + phương án, S5 đổi thứ tự, S4 xoá câu → S6 của đơn đó trả **y hệt** trước khi sửa (so cả JSON) | dương |
 | T11 | S6 ba trạng thái: `screening_captured_at = NULL` → `NOT_CAPTURED`, `items` rỗng; đã chụp, 0 dòng → `NO_QUESTIONS`; có dòng → `CAPTURED`, đúng `display_order`; câu không bắt buộc bỏ trống → `answerText`/`answerYesNo` `null` | dương |
 | T12 | Quyền S6: như FR-H09 T2–T4 (403 công ty khác, 404 `APPLICATION_NOT_FOUND`, 404 `COMPANY_NOT_FOUND`, 403 ứng viên, 401) | âm |
 | T13 | **Không vào ngữ cảnh AI chấm điểm và giải thích:** đơn có bản chụp chứa chuỗi đánh dấu duy nhất (vd `SCREENING-MARKER-7f3a`) ở nội dung câu hỏi, phương án và câu trả lời; Job có câu hỏi đang hoạt động chứa cùng chuỗi. `ChatModel` mock, bắt **mọi** `Prompt` bằng `ArgumentCaptor`, hai nhánh: (a) **FR-H04** — `ScoringRunOrchestrator.processOne` đi qua `CriterionScoringService.score`; (b) **FR-H06** — `ScoreExplanationOrchestrator.processOne` cho lượt `DONE` của chính đơn đó. Mỗi nhánh khẳng định: bắt được ≥ 1 prompt (nhánh thật sự gọi `ChatModel`, không "qua" bằng 0 prompt) **và** không message nào (system lẫn user) của prompt nào chứa chuỗi đánh dấu | âm |
@@ -699,3 +699,6 @@ Phần thân đã viết theo các phương án dưới đây.
   Soát lại mọi CHECK còn lại của V13 (bảng ở mục 4.1): không lỗ hổng nào khác. Comment của V13 ghi lý do cho từng cột
   được `NULL` có chủ đích. T15 thêm ca `job_screening_questions` `SINGLE_CHOICE` + `options NULL` → bị chặn. Khối SQL
   ở mục 4.1 thay bằng nguyên văn file V13.
+- **L8 (T10; duyệt trong đợt 3).** T10 ghi dòng bản chụp bằng SQL (`JdbcTemplate`), không qua repository: entity
+  `ApplicationScreeningAnswer` là `@Immutable`, không có setter, để FR-H10 không có đường ghi bản chụp nào (R-B2 cho
+  phép test tạo dòng bằng repository/SQL). Câu chữ T10 đổi thành "bằng repository/SQL".
