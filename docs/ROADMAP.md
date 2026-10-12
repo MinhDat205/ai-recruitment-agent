@@ -881,7 +881,10 @@ UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa đi�
   - `ApplicationService.withdraw` vẫn đọc entity rồi `save` (lost update với HR đổi trạng thái); FR-U09 chỉ chặn hậu quả
     lên cột đồng ý bằng `updatable = false`. Sửa ở một nhánh `chore/` riêng.
   - Nợ của FR-H10 "đơn mới hiện `NOT_CAPTURED` tới khi FR-U09 xong" đã đóng.
-- [ ] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng
+
+  - [x] `fix/job-embedding-test-isolation` — `JobEmbeddingRepositoryTest` dùng `Pageable.unpaged()`: query FIFO (`created_at ASC`) đặt job rò rỉ từ test không `@Transactional` lên trước, đẩy job của test khỏi trang 0; hai test isExcluded trước đó pass rỗng. Nợ còn lại: `findTopMatchingJobs_*` (`isEmpty`/`containsExactly`) sẽ vỡ nếu sau này có test commit `job_embeddings` thật. Không gắn mã FR.
+  
+  - [] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026):
 > - FR-U09 nhận thêm cờ đồng ý lưu hồ sơ + nút Rút đồng ý ở `/candidate/applications/:id` (xem Phase 2.2).
