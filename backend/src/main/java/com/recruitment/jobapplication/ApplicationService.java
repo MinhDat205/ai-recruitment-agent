@@ -5,6 +5,7 @@ import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.ApplicationNotWithdrawableException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
+import com.recruitment.common.exception.TalentPoolConsentNotActiveException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
@@ -16,10 +17,13 @@ import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
 import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
+import com.recruitment.jobapplication.dto.TalentPoolConsentResponse;
 import com.recruitment.notification.ApplicationSubmittedEvent;
 import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
+import com.recruitment.screening.ScreeningAnswerDraft;
+import com.recruitment.screening.ScreeningCaptureService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +42,7 @@ public class ApplicationService {
     private final ApplicationEventPublisher eventPublisher;
     private final CompanyRepository companyRepository;
     private final CatalogRegistry catalogRegistry;
+    private final ScreeningCaptureService screeningCaptureService;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
@@ -47,7 +52,8 @@ public class ApplicationService {
             ApplicationStatusRecorder applicationStatusRecorder,
             ApplicationEventPublisher eventPublisher,
             CompanyRepository companyRepository,
-            CatalogRegistry catalogRegistry) {
+            CatalogRegistry catalogRegistry,
+            ScreeningCaptureService screeningCaptureService) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
@@ -56,6 +62,7 @@ public class ApplicationService {
         this.eventPublisher = eventPublisher;
         this.companyRepository = companyRepository;
         this.catalogRegistry = catalogRegistry;
+        this.screeningCaptureService = screeningCaptureService;
     }
 
     @Transactional
@@ -72,6 +79,15 @@ public class ApplicationService {
                 .findByIdAndCandidateId(request.resumeId(), candidateId)
                 .orElseThrow(() -> new ResumeNotFoundException(request.resumeId()));
 
+        // FR-U09 R-R3, R-V - khoa hang jobs (FOR SHARE), so revision (409 SCREENING_QUESTIONS_CHANGED), kiem cau tra loi
+        // (400 INVALID_SCREENING_ANSWER) TRUOC khi INSERT don, de thu tu loi dung R-V3 (409 APPLICATION_DUPLICATE sau).
+        List<ScreeningAnswerDraft> screeningDrafts =
+                screeningCaptureService.prepare(job.getId(), request.screeningRevision(), request.answers());
+
+        // R-S2, R-K2 - MOT Instant cho moi moc thoi gian cua lan nop: dong y AI, danh dau da chup, dong y luu ho so.
+        Instant now = Instant.now();
+        boolean talentPoolConsent = Boolean.TRUE.equals(request.talentPoolConsent());
+
         JobApplication application = new JobApplication();
         application.setJobId(job.getId());
         application.setCandidateId(candidateId);
@@ -79,8 +95,11 @@ public class ApplicationService {
         application.setRecruitmentCycle(job.getRecruitmentCycle());
         application.setStatus(ApplicationStatus.PENDING);
         application.setAiConsent(request.aiConsent());
-        application.setAiConsentAt(Instant.now());
+        application.setAiConsentAt(now);
         application.setCoverLetter(request.coverLetter());
+        application.setScreeningCapturedAt(now);
+        application.setTalentPoolConsent(talentPoolConsent);
+        application.setTalentPoolConsentAt(talentPoolConsent ? now : null);
 
         // saveAndFlush: bat INSERT no ngay tai day thay vi hoan toi luc commit, de
         // DataIntegrityViolationException cua uq_application_per_cycle noi len trong pham vi
@@ -90,6 +109,9 @@ public class ApplicationService {
         // Dong lich su dau tien cua don: NULL -> PENDING, changed_by = chinh candidate (tu tao
         // don). Cung transaction voi viec tao don (goi bean khac, khong phai self-invocation).
         applicationStatusRecorder.record(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+
+        // FR-U09 R-S1 - ban chup ghi trong CUNG transaction voi don; 0 cau -> 0 dong (NO_QUESTIONS).
+        screeningCaptureService.persist(saved.getId(), screeningDrafts);
 
         // FR-C03: publish TRONG transaction chinh - NotificationEventListener xu ly sau
         // AFTER_COMMIT, nguoi nhan la HR so huu cong ty cua job (suy tu jobId o listener).
@@ -196,7 +218,37 @@ public class ApplicationService {
                 application.getUpdatedAt(),
                 application.getCoverLetter(),
                 jobInfo,
-                resumeInfo);
+                resumeInfo,
+                toTalentPoolConsentResponse(application));
+    }
+
+    // FR-U09 F4 (R-K7, R-K8) - rut dong y luu ho so cua MOT don cua chinh ung vien, o MOI trang thai don.
+    @Transactional
+    public TalentPoolConsentResponse revokeTalentPoolConsent(UUID candidateId, UUID applicationId) {
+        // R-A2: don khong ton tai HOAC cua nguoi khac -> CUNG 404, nem TRUOC khi toi cau UPDATE.
+        applicationRepository
+                .findByIdAndCandidateId(applicationId, candidateId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        // UPDATE co dieu kien (talent_pool_consent = TRUE): 0 dong = khong con dong y de rut -> 409. Khong doi status,
+        // khong ghi lich su, khong thong bao, khong event (R-K8); H15 se them viec xoa khoi kho vao CHINH transaction nay.
+        int updated = applicationRepository.revokeTalentPoolConsentIfActive(applicationId, candidateId, Instant.now());
+        if (updated == 0) {
+            throw new TalentPoolConsentNotActiveException();
+        }
+
+        // clearAutomatically da xoa persistence context: findById la SELECT that, thay gia tri vua ghi.
+        JobApplication reloaded = applicationRepository
+                .findById(applicationId)
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay don vua rut dong y: " + applicationId));
+        return toTalentPoolConsentResponse(reloaded);
+    }
+
+    private static TalentPoolConsentResponse toTalentPoolConsentResponse(JobApplication application) {
+        return new TalentPoolConsentResponse(
+                TalentPoolConsentState.of(application),
+                application.getTalentPoolConsentAt(),
+                application.getTalentPoolConsentRevokedAt());
     }
 
     // R-D4 - xet theo thu tu, dung o dong dau tien khop. OPEN dung CHINH findOpenJobById (cung dieu kien voi

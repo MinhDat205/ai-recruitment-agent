@@ -8,8 +8,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 // FR-U08 E1 - GET /api/candidates/applications/{id}. DTO RIENG cho ung vien, dung tung field cua
-// REQUIREMENT.md muc 4, KHONG them field nao. TUYET DOI khong tai dung DTO phia HR va khong co diem, hang,
-// tieu chi, giai thich AI, luot cham, sentBy/changedBy (SRS "Nguyen tac bo sung", CLAUDE.md muc 2/7).
+// REQUIREMENT.md muc 4 cua FR-U08 + DUNG mot khoa talentPoolConsent do FR-U09 them (ngoai le da duyet, R-C2 cua
+// FR-U09) - KHONG them field nao khac. TUYET DOI khong tai dung DTO phia HR va khong co diem, hang, tieu chi, giai
+// thich AI, luot cham, sentBy/changedBy (SRS "Nguyen tac bo sung", CLAUDE.md muc 2/7).
 public record ApplicationCandidateDetailResponse(
         UUID id,
         ApplicationStatus status,
@@ -17,7 +18,8 @@ public record ApplicationCandidateDetailResponse(
         Instant updatedAt,
         String coverLetter, // nguyen van, null khi khong nhap (R-D7)
         JobInfo job,
-        ResumeInfo resume) {
+        ResumeInfo resume,
+        TalentPoolConsentResponse talentPoolConsent) { // FR-U09 R-D1
 
     // Thong tin tin la ban HIEN TAI cua dong jobs, khong phai ban luc nop (R-D3).
     public record JobInfo(

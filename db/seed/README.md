@@ -340,6 +340,8 @@ hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn on
 | Hồ sơ nghề nghiệp khai đủ | Quốc Huy | Hồ sơ |
 | Hồ sơ bỏ qua onboarding | Lê Thị Lan | Hồ sơ |
 | Màn onboarding | Trần Bảo Ngọc | Đăng nhập |
+| Đồng ý lưu hồ sơ đang hiệu lực + nút "Rút đồng ý" (FR-U09) | Quốc Huy | Đơn "Chuyên viên Chăm sóc khách hàng" (A1, đơn duy nhất ở trạng thái đồng ý); 8 đơn còn lại "không đồng ý". Rút xong muốn soát lại thì chạy `reset-test-data.sql` rồi nạp lại |
+| Nộp đơn có câu hỏi sàng lọc (FR-U09) | Ứng viên demo do đặc tả FR-U09 mục 7.4 chọn (`Demo1234`) | Tin "Chuyên viên Chăm sóc khách hàng" (3 câu); đơn demo vào tin test bị `reset-test-data.sql` xoá |
 | **Màn hình điểm số, evidence, giải thích AI** | **`hr@demo.local`** (demo) | Bộ test cố ý không có điểm AI |
 
 ### 8.5. Lượt gọi API ngoài

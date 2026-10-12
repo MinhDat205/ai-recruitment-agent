@@ -1,16 +1,20 @@
 import { formatDateTimeVi } from '../../lib/date'
 import { useApplicationScreeningQuery } from '../screening/queries'
-import {
-  SCREENING_ANSWER_TEXT,
-  SCREENING_QUESTION_TYPE_LABELS,
-  SCREENING_TEXT,
-} from '../screening/screeningLabels'
-import type { ApplicationScreeningItem } from '../screening/types'
+import { ScreeningAnswerList } from '../screening/ScreeningAnswerList'
+import { SCREENING_ANSWER_TEXT } from '../screening/screeningLabels'
 import { TabLoadError } from './ScoreSection'
+
+// Chu phia HR cho danh sach dung chung (FR-U09 R-C5) - giu nguyen van UI.md muc 7 cua FR-H10.
+const HR_ANSWER_TEXTS = {
+  yes: SCREENING_ANSWER_TEXT.yes,
+  no: SCREENING_ANSWER_TEXT.no,
+  noAnswer: SCREENING_ANSWER_TEXT.noAnswer,
+}
 
 // Tab "Sàng lọc" (FR-H10 S6, UI.md 4d, 4e, 4g) - CHI DOC ban chup cau hoi + cau tra loi luc nop don. Khong nut sua/xoa,
 // khong loc, khong sap xep, khong diem, khong to mau theo cau tra loi (R-N4, UI.md muc 10). Trang thai doc tu `state`
 // cua backend, khong tu suy tu items.length (R-A3). Moi chuoi la van ban thuong, khong render HTML.
+// FR-U09 R-C5: phan danh sach chuyen sang ScreeningAnswerList dung chung; giao dien va chu cua tab khong doi.
 export function ScreeningTab({ applicationId }: { applicationId: string }) {
   const { data, isLoading, isError, refetch } = useApplicationScreeningQuery(applicationId)
 
@@ -40,46 +44,10 @@ export function ScreeningTab({ applicationId }: { applicationId: string }) {
           <p className="text-sm break-words text-m3-on-surface-variant">
             {SCREENING_ANSWER_TEXT.caption(formatDateTimeVi(data.capturedAt))}
           </p>
-          <ol className="flex flex-col">
-            {[...data.items]
-              .sort((a, b) => a.displayOrder - b.displayOrder)
-              .map((item, index) => (
-                <ScreeningAnswerItem key={item.displayOrder} item={item} position={index + 1} />
-              ))}
-          </ol>
+          <ScreeningAnswerList items={data.items} texts={HR_ANSWER_TEXTS} />
         </>
       )}
     </section>
-  )
-}
-
-// SINGLE_CHOICE: answerText la chu cua phuong an da chon trong ban chup - chi hien chu do, khong liet ke cac phuong an
-// con lai, khong danh dau (UI.md 4d). "Co", "Khong", chu phuong an va cau tra loi ngan cung kieu chu, cung mau (R-N4).
-function answerOf(item: ApplicationScreeningItem): string | null {
-  if (item.questionType === 'YES_NO') {
-    return item.answerYesNo === null ? null : item.answerYesNo ? SCREENING_ANSWER_TEXT.yes : SCREENING_ANSWER_TEXT.no
-  }
-  return item.answerText
-}
-
-function ScreeningAnswerItem({ item, position }: { item: ApplicationScreeningItem; position: number }) {
-  const answer = answerOf(item)
-  const meta = `${SCREENING_QUESTION_TYPE_LABELS[item.questionType]} · ${
-    item.required ? SCREENING_TEXT.required : SCREENING_TEXT.notRequired
-  }`
-  return (
-    <li className="flex min-w-0 gap-1 border-t border-m3-outline-variant py-4 first:border-t-0 first:pt-0">
-      <span className="shrink-0 text-m3-title-md text-m3-on-surface">{position}.</span>
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-m3-title-md break-words text-m3-on-surface">{item.questionText}</p>
-        <p className="text-m3-body-sm text-m3-on-surface-variant">{meta}</p>
-        {answer === null ? (
-          <p className="text-m3-body-md text-m3-on-surface-variant">{SCREENING_ANSWER_TEXT.noAnswer}</p>
-        ) : (
-          <p className="text-m3-body-md break-words whitespace-pre-wrap text-m3-on-surface">{answer}</p>
-        )}
-      </div>
-    </li>
   )
 }
 

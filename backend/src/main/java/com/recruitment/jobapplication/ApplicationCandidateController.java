@@ -5,6 +5,7 @@ import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
 import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
+import com.recruitment.jobapplication.dto.TalentPoolConsentResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -63,5 +64,13 @@ public class ApplicationCandidateController {
     public ResponseEntity<ApplicationResponse> withdraw(Authentication authentication, @PathVariable UUID id) {
         UUID candidateId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(applicationService.withdraw(candidateId, id));
+    }
+
+    // FR-U09 F4 - rut dong y luu ho so; don cua nguoi khac/khong ton tai -> 404, khong con dong y -> 409 (R-K7).
+    @PatchMapping("/{id}/talent-pool-consent/revoke")
+    public ResponseEntity<TalentPoolConsentResponse> revokeTalentPoolConsent(
+            Authentication authentication, @PathVariable UUID id) {
+        UUID candidateId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(applicationService.revokeTalentPoolConsent(candidateId, id));
     }
 }

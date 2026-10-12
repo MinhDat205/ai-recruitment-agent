@@ -333,7 +333,8 @@ class ApplicationCandidateDetailControllerIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
         JsonNode json = body(result);
         assertThat(keysOf(json))
-                .containsExactlyInAnyOrder("id", "status", "appliedAt", "updatedAt", "coverLetter", "job", "resume");
+                .containsExactlyInAnyOrder(
+                        "id", "status", "appliedAt", "updatedAt", "coverLetter", "job", "resume", "talentPoolConsent");
         assertThat(json.get("id").asString()).isEqualTo(fixture.applicationId());
         assertThat(json.get("status").asString()).isEqualTo("PENDING");
         assertThat(json.get("appliedAt").isNull()).isFalse();

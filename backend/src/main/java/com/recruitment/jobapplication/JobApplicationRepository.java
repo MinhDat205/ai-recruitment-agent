@@ -1,6 +1,7 @@
 package com.recruitment.jobapplication;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +33,22 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
             @Param("id") UUID id,
             @Param("oldStatus") ApplicationStatus oldStatus,
             @Param("newStatus") ApplicationStatus newStatus);
+
+    // FR-U09 R-K7 - rut dong y luu ho so: MOT cau UPDATE co dieu kien, chi SET hai cot dong y (talent_pool_consent_at
+    // giu nguyen de audit; updated_at doi do trigger V1, Q19). Dieu kien candidate_id la chot chan thu hai sau
+    // findByIdAndCandidateId; talent_pool_consent = TRUE lam rut lan hai / don NOT_GIVEN / hai tab bam cung luc ra 0 dong
+    // -> 409. KHONG doc entity roi save (B4): ba cot dong y map updatable = false nen save() khong ghi duoc chung.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+            value =
+                    """
+                    UPDATE job_applications
+                    SET talent_pool_consent = FALSE, talent_pool_consent_revoked_at = :revokedAt
+                    WHERE id = :id AND candidate_id = :candidateId AND talent_pool_consent = TRUE
+                    """,
+            nativeQuery = true)
+    int revokeTalentPoolConsentIfActive(
+            @Param("id") UUID id, @Param("candidateId") UUID candidateId, @Param("revokedAt") Instant revokedAt);
 
     // GET /api/hr/jobs/{jobId}/applications (Dot 5, ApplicationOwnerService) - danh sach don cua
     // MOT job, moi nop gan day nhat truoc.
