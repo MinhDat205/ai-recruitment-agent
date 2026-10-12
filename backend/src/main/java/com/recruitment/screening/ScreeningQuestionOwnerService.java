@@ -2,11 +2,9 @@ package com.recruitment.screening;
 
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InvalidScreeningOrderException;
-import com.recruitment.common.exception.InvalidScreeningQuestionException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ScreeningQuestionLimitReachedException;
 import com.recruitment.common.exception.ScreeningQuestionNotFoundException;
-import com.recruitment.common.exception.ScreeningQuestionViolation;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
@@ -16,10 +14,8 @@ import com.recruitment.screening.dto.ScreeningQuestionOrderRequest;
 import com.recruitment.screening.dto.ScreeningQuestionRequest;
 import com.recruitment.screening.dto.ScreeningQuestionResponse;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -37,11 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ScreeningQuestionOwnerService {
 
-    static final int MAX_QUESTIONS = 10;
-    private static final int MAX_QUESTION_TEXT_LENGTH = 300;
-    private static final int MIN_OPTIONS = 2;
-    private static final int MAX_OPTIONS = 10;
-    private static final int MAX_OPTION_LENGTH = 100;
+    static final int MAX_QUESTIONS = ScreeningQuestionRules.MAX_QUESTIONS;
 
     private final ScreeningQuestionRepository questionRepository;
     private final JobRepository jobRepository;
@@ -150,53 +142,12 @@ public class ScreeningQuestionOwnerService {
                 .orElseThrow(ScreeningQuestionNotFoundException::new);
     }
 
-    // R-Q3, R-Q4, R-Q4b - kiem null TRUOC khi trim (khong bao gio NullPointerException), trim TRUOC khi do do dai,
-    // kiem theo dung thu tu bang R-Q4b va dung o loi dau tien. Do dai dem theo code point de khop VARCHAR cua
-    // Postgres (String.length() dem UTF-16, ky tu ngoai BMP bi dem 2).
+    // R-Q3, R-Q4, R-Q4b - quy tac kiem nam o ScreeningQuestionRules (FR-H11 Q15, dung chung); o day chi them required.
     private static NormalizedQuestion normalize(ScreeningQuestionRequest request) {
-        String text = request.questionText() == null ? "" : request.questionText().strip();
-        if (text.isEmpty()) {
-            throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.QUESTION_TEXT_EMPTY);
-        }
-        if (codePoints(text) > MAX_QUESTION_TEXT_LENGTH) {
-            throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.QUESTION_TEXT_TOO_LONG);
-        }
-
-        List<String> rawOptions = request.options();
-        List<String> options = null;
-        if (request.questionType() == ScreeningQuestionType.SINGLE_CHOICE) {
-            if (rawOptions.size() < MIN_OPTIONS || rawOptions.size() > MAX_OPTIONS) {
-                throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.OPTION_COUNT);
-            }
-            options = new ArrayList<>(rawOptions.size());
-            for (String raw : rawOptions) {
-                String option = raw == null ? "" : raw.strip();
-                if (option.isEmpty()) {
-                    throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.OPTION_EMPTY);
-                }
-                options.add(option);
-            }
-            for (String option : options) {
-                if (codePoints(option) > MAX_OPTION_LENGTH) {
-                    throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.OPTION_TOO_LONG);
-                }
-            }
-            Set<String> seen = new HashSet<>();
-            for (String option : options) {
-                if (!seen.add(option.toLowerCase(Locale.ROOT))) {
-                    throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.OPTION_DUPLICATE);
-                }
-            }
-        } else if (!rawOptions.isEmpty()) {
-            throw new InvalidScreeningQuestionException(ScreeningQuestionViolation.OPTIONS_NOT_ALLOWED);
-        }
-
+        ScreeningQuestionRules.NormalizedQuestion checked = ScreeningQuestionRules.normalize(
+                request.questionType(), request.questionText(), request.options());
         boolean required = Boolean.TRUE.equals(request.required());
-        return new NormalizedQuestion(request.questionType(), text, options, required);
-    }
-
-    private static int codePoints(String value) {
-        return value.codePointCount(0, value.length());
+        return new NormalizedQuestion(checked.type(), checked.text(), checked.options(), required);
     }
 
     private static void apply(ScreeningQuestion question, NormalizedQuestion normalized) {
