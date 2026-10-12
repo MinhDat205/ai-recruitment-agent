@@ -5,6 +5,16 @@ import type { ParseStatus } from '../resumes/types'
 // dua ve nhap gop chung UNAVAILABLE.
 export type JobAvailability = 'OPEN' | 'EXPIRED' | 'PAUSED' | 'CLOSED' | 'UNAVAILABLE'
 
+// FR-U09 R-K5 - trang thai dong y luu ho so do backend tinh (frontend khong tu suy tu hai moc thoi gian).
+export type TalentPoolConsentState = 'NOT_GIVEN' | 'ACTIVE' | 'REVOKED'
+
+// Khoa talentPoolConsent cua E1 va than response F4 (TalentPoolConsentResponse).
+export interface TalentPoolConsent {
+  state: TalentPoolConsentState
+  consentedAt: string | null
+  revokedAt: string | null
+}
+
 // GET /api/candidates/applications/{id} (E1) - khop tung field ApplicationCandidateDetailResponse
 // (REQUIREMENT.md muc 4). Khong co diem, hang, tieu chi, giai thich AI, luot cham.
 export interface ApplicationCandidateDetail {
@@ -39,4 +49,6 @@ export interface ApplicationCandidateDetail {
     parseStatus: ParseStatus
     parseError: string | null
   }
+  // FR-U09 R-D1 - khoa duy nhat FR-U09 them vao E1.
+  talentPoolConsent: TalentPoolConsent
 }

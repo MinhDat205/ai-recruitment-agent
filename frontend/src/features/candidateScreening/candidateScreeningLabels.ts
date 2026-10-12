@@ -25,6 +25,39 @@ export const CANDIDATE_SCREENING_TEXT = {
   viewApplication: 'Xem đơn vừa nộp →',
 } as const
 
+// Trang chi tiet don - khoi "Cau tra loi sang loc" (UI.md 4e, 4f, muc 7). date: chuoi da dinh dang formatDateTimeVi.
+export const CANDIDATE_ANSWERS_TEXT = {
+  title: 'Câu trả lời sàng lọc',
+  caption: (date: string) =>
+    `Câu hỏi và câu trả lời được lưu nguyên văn lúc bạn nộp đơn (${date}). Nhà tuyển dụng chỉ dùng để tham khảo, không dùng để chấm điểm hay xếp hạng.`,
+  yes: 'Có',
+  no: 'Không',
+  noAnswer: 'Bạn không trả lời câu này.',
+  loadError: 'Không tải được câu trả lời sàng lọc, vui lòng thử lại.',
+  retry: 'Thử lại',
+} as const
+
+// Trang chi tiet don - khoi "Luu ho so cho dot tuyen sau" va hop xac nhan rut dong y (UI.md 4e, 4f, 4g, muc 7).
+export const TALENT_POOL_TEXT = {
+  title: 'Lưu hồ sơ cho đợt tuyển sau',
+  active: (companyName: string, date: string) =>
+    `Bạn đã đồng ý cho ${companyName} lưu hồ sơ để liên hệ cho các vị trí sau này (${date}).`,
+  activeNote:
+    'Rút đồng ý không ảnh hưởng tới trạng thái hay việc xét tuyển của đơn này. Sau khi rút, bạn không thể đồng ý lại cho đơn này.',
+  notGiven: 'Bạn không đồng ý cho công ty lưu hồ sơ khi nộp đơn này.',
+  revoked: (date: string) =>
+    `Bạn đã rút đồng ý lưu hồ sơ (${date}). Công ty không được lưu hồ sơ từ đơn này cho các vị trí sau.`,
+  revokeButton: 'Rút đồng ý',
+  dialogTitle: 'Rút đồng ý lưu hồ sơ?',
+  dialogBodySuffix:
+    ' sẽ không được lưu hồ sơ của bạn từ đơn ứng tuyển này để liên hệ cho các vị trí sau. Bạn không thể đồng ý lại cho đơn này. Trạng thái và việc xét tuyển của đơn không thay đổi.',
+  cancel: 'Huỷ',
+  confirm: 'Xác nhận rút đồng ý',
+  confirming: 'Đang rút đồng ý...',
+  revokeError: 'Rút đồng ý thất bại, vui lòng thử lại.',
+  revokedAnnouncement: 'Đã rút đồng ý lưu hồ sơ.',
+} as const
+
 // Loi Zod (UI.md muc 7). optionNotFound dung lai nguyen van cau R-V1 cua backend (L19).
 export const CANDIDATE_SCREENING_ERRORS = {
   required: 'Vui lòng trả lời câu hỏi bắt buộc này.',
