@@ -20,6 +20,8 @@ import com.recruitment.notification.ApplicationSubmittedEvent;
 import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
+import com.recruitment.screening.ScreeningAnswerDraft;
+import com.recruitment.screening.ScreeningCaptureService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +40,7 @@ public class ApplicationService {
     private final ApplicationEventPublisher eventPublisher;
     private final CompanyRepository companyRepository;
     private final CatalogRegistry catalogRegistry;
+    private final ScreeningCaptureService screeningCaptureService;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
@@ -47,7 +50,8 @@ public class ApplicationService {
             ApplicationStatusRecorder applicationStatusRecorder,
             ApplicationEventPublisher eventPublisher,
             CompanyRepository companyRepository,
-            CatalogRegistry catalogRegistry) {
+            CatalogRegistry catalogRegistry,
+            ScreeningCaptureService screeningCaptureService) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
@@ -56,6 +60,7 @@ public class ApplicationService {
         this.eventPublisher = eventPublisher;
         this.companyRepository = companyRepository;
         this.catalogRegistry = catalogRegistry;
+        this.screeningCaptureService = screeningCaptureService;
     }
 
     @Transactional
@@ -72,6 +77,15 @@ public class ApplicationService {
                 .findByIdAndCandidateId(request.resumeId(), candidateId)
                 .orElseThrow(() -> new ResumeNotFoundException(request.resumeId()));
 
+        // FR-U09 R-R3, R-V - khoa hang jobs (FOR SHARE), so revision (409 SCREENING_QUESTIONS_CHANGED), kiem cau tra loi
+        // (400 INVALID_SCREENING_ANSWER) TRUOC khi INSERT don, de thu tu loi dung R-V3 (409 APPLICATION_DUPLICATE sau).
+        List<ScreeningAnswerDraft> screeningDrafts =
+                screeningCaptureService.prepare(job.getId(), request.screeningRevision(), request.answers());
+
+        // R-S2, R-K2 - MOT Instant cho moi moc thoi gian cua lan nop: dong y AI, danh dau da chup, dong y luu ho so.
+        Instant now = Instant.now();
+        boolean talentPoolConsent = Boolean.TRUE.equals(request.talentPoolConsent());
+
         JobApplication application = new JobApplication();
         application.setJobId(job.getId());
         application.setCandidateId(candidateId);
@@ -79,8 +93,11 @@ public class ApplicationService {
         application.setRecruitmentCycle(job.getRecruitmentCycle());
         application.setStatus(ApplicationStatus.PENDING);
         application.setAiConsent(request.aiConsent());
-        application.setAiConsentAt(Instant.now());
+        application.setAiConsentAt(now);
         application.setCoverLetter(request.coverLetter());
+        application.setScreeningCapturedAt(now);
+        application.setTalentPoolConsent(talentPoolConsent);
+        application.setTalentPoolConsentAt(talentPoolConsent ? now : null);
 
         // saveAndFlush: bat INSERT no ngay tai day thay vi hoan toi luc commit, de
         // DataIntegrityViolationException cua uq_application_per_cycle noi len trong pham vi
@@ -90,6 +107,9 @@ public class ApplicationService {
         // Dong lich su dau tien cua don: NULL -> PENDING, changed_by = chinh candidate (tu tao
         // don). Cung transaction voi viec tao don (goi bean khac, khong phai self-invocation).
         applicationStatusRecorder.record(saved.getId(), null, ApplicationStatus.PENDING, candidateId, null);
+
+        // FR-U09 R-S1 - ban chup ghi trong CUNG transaction voi don; 0 cau -> 0 dong (NO_QUESTIONS).
+        screeningCaptureService.persist(saved.getId(), screeningDrafts);
 
         // FR-C03: publish TRONG transaction chinh - NotificationEventListener xu ly sau
         // AFTER_COMMIT, nguoi nhan la HR so huu cong ty cua job (suy tu jobId o listener).

@@ -372,7 +372,7 @@ của H10).
 
 | Package | Thêm | Sửa |
 |---|---|---|
-| `screening/` | `ScreeningCaptureService` (prepare/persist, R-R3, R-V, R-S; `Propagation.MANDATORY`), record `PreparedScreeningCapture`, `ScreeningCandidateService` + `ScreeningCandidateController` (F1, F3), `ApplicationScreeningReader` (tính `state` dùng chung S6/F3), `dto/ScreeningAnswerInput`, `dto/ScreeningFormResponse` | `ApplicationScreeningAnswer` (factory + `@UuidGenerator`), `ScreeningQuestionRepository` (thêm `findRevisionForShare`), `ApplicationScreeningHrService` (gọi `ApplicationScreeningReader`, R-C5) |
+| `screening/` | `ScreeningCaptureService` (prepare/persist, R-R3, R-V, R-S; `Propagation.MANDATORY`; `prepare` trả `List<ScreeningAnswerDraft>` — L4: mock Mockito mặc định trả list rỗng), record `ScreeningAnswerDraft`, `ScreeningCandidateService` + `ScreeningCandidateController` (F1, F3), `ApplicationScreeningReader` (tính `state` dùng chung S6/F3), `dto/ScreeningAnswerInput`, `dto/ScreeningFormResponse` | `ApplicationScreeningAnswer` (factory + `@UuidGenerator`), `ScreeningQuestionRepository` (thêm `findRevisionForShare`), `ApplicationScreeningHrService` (gọi `ApplicationScreeningReader`, R-C5) |
 | `jobapplication/` | `TalentPoolConsentState`, `dto/TalentPoolConsentResponse` | `JobApplication`, `dto/ApplicationCreateRequest`, `dto/ApplicationCandidateDetailResponse`, `ApplicationService` (`apply`, `revokeTalentPoolConsent`, E1), `ApplicationCandidateController` (F4), `JobApplicationRepository` (`revokeTalentPoolConsentIfActive`) |
 | `common/exception/` | `ScreeningAnswerViolation`, `InvalidScreeningAnswerException`, `ScreeningQuestionsChangedException`, `TalentPoolConsentNotActiveException` | `GlobalExceptionHandler` (3 handler) |
 | `db/migration` | `V14__talent_pool_consent.sql` | — |
@@ -647,6 +647,8 @@ sau khi soát.
 - **Đảo thứ tự đọc ở F1** (đọc câu hỏi trước revision) — client nhận revision mới + câu hỏi cũ, `apply` chấp nhận
   câu trả lời lệch (R-F3, T2).
 - Đọc câu hỏi **trước** khi giữ khoá ở `apply`, hoặc dùng lại danh sách câu hỏi client gửi lên thay vì đọc từ DB.
+- **Gọi `findRevisionForShare` từ F1 (`readOnly`) hoặc đánh dấu `apply` là `readOnly`** — Postgres báo lỗi "cannot
+  execute SELECT FOR SHARE in a read-only transaction" (đã thử trên DB dev ở Plan Mode, L2). F1 dùng `findRevision`.
 - Coi `screeningRevision = null` là "bỏ qua kiểm" khi tin có câu hỏi (R-R1).
 - Để vi phạm câu trả lời rơi xuống CHECK của V13 (ra 500) thay vì 400 `INVALID_SCREENING_ANSWER` (R-V); đặt
   `@Size`/`@NotBlank` lên `answerText` (kiểm trước khi bỏ khoảng trắng); `List.copyOf(answers)` (NPE với phần tử
@@ -737,5 +739,9 @@ walkthrough của FR-U09).
 
 ## 12. Điểm còn mở
 
-- **O2 (R-S3).** Kết quả kiểm Hibernate `@Immutable` ở Plan Mode — nếu phải chuyển sang native INSERT, sửa R-S3 và
-  mục 4.2 rồi duyệt lại.
+- **O2 (R-S3) — đã đóng ở Plan Mode 11/10/2026 (L1).** Hibernate 7.4.1.Final (`<hibernate.version>` của
+  `spring-boot-dependencies-4.1.0.pom`) persist được entity `@Immutable`: `javap` cho thấy `EntityBinder.isMutable()` đọc
+  `@Immutable` → `RootClass.setMutable(false)`; `EntityPersister.isMutable()` chỉ được gọi ở
+  `DefaultFlushEntityEventListener.onFlushEntity` (dirty-check/UPDATE) và `logScheduleUpdate`; `DefaultPersistEventListener`,
+  `AbstractSaveEventListener`, `EntityInsertAction` không kiểm mutability. Giữ R-S3 (factory + `@UuidGenerator`); T3 chứng
+  minh bằng chạy thật.

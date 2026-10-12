@@ -20,6 +20,7 @@ import com.recruitment.notification.ApplicationSubmittedEvent;
 import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
+import com.recruitment.screening.ScreeningCaptureService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,10 @@ class ApplicationServiceTest {
     @Mock
     private CatalogRegistry catalogRegistry;
 
+    // FR-U09 R-C3: dependency moi cua apply. Mock mac dinh (ReturnsEmptyValues) tra List rong cho prepare, persist la void.
+    @Mock
+    private ScreeningCaptureService screeningCaptureService;
+
     private ApplicationService newService() {
         return new ApplicationService(
                 applicationRepository,
@@ -66,7 +71,8 @@ class ApplicationServiceTest {
                 applicationStatusRecorder,
                 eventPublisher,
                 companyRepository,
-                catalogRegistry);
+                catalogRegistry,
+                screeningCaptureService);
     }
 
     @Test
@@ -93,7 +99,7 @@ class ApplicationServiceTest {
         });
 
         ApplicationResponse response =
-                service.apply(candidateId, new ApplicationCreateRequest(jobId, resumeId, true, "Cover letter"));
+                service.apply(candidateId, new ApplicationCreateRequest(jobId, resumeId, true, "Cover letter", null, null, null));
 
         verify(applicationStatusRecorder)
                 .record(response.id(), null, ApplicationStatus.PENDING, candidateId, null);
@@ -123,7 +129,7 @@ class ApplicationServiceTest {
         });
 
         ApplicationResponse response =
-                service.apply(candidateId, new ApplicationCreateRequest(jobId, resumeId, true, "Cover letter"));
+                service.apply(candidateId, new ApplicationCreateRequest(jobId, resumeId, true, "Cover letter", null, null, null));
 
         verify(eventPublisher)
                 .publishEvent(argThat((ApplicationSubmittedEvent event) -> event.applicationId().equals(response.id())

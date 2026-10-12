@@ -14,11 +14,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 // FR-H10 - mot dong ban chup cau hoi + cau tra loi cua mot don (R-S1). BAT BIEN (R-S2): @Immutable, khong setter,
 // khong updated_at. FR-H10 CHI DOC (R-B2) - duong ghi thuoc FR-U09. Hien thi chi dung cot *_snapshot, KHONG doc lai
 // cau hoi goc qua question_id (R-S3).
+//
+// FR-U09 R-S3 - duong ghi DUY NHAT la factory capture(...) (goi tu ScreeningCaptureService.persist). Hibernate 7.4.1 chi
+// kiem tinh bat bien o buoc flush/UPDATE (DefaultFlushEntityEventListener), khong o persist/INSERT (L1 cua FR-U09).
 @Entity
 @Immutable
 @Table(name = "application_screening_answers")
@@ -27,6 +31,7 @@ import org.hibernate.type.SqlTypes;
 public class ApplicationScreeningAnswer {
 
     @Id
+    @UuidGenerator
     private UUID id;
 
     @Column(name = "application_id", nullable = false)
@@ -64,4 +69,21 @@ public class ApplicationScreeningAnswer {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
+
+    // FR-U09 R-S1 - chep TOAN BO cau hoi dang hoat dong luc nop vao cot *_snapshot, cung cau tra loi da chuan hoa
+    // (R-V4, R-V5). answerText/answerYesNo null = khong tra loi.
+    static ApplicationScreeningAnswer capture(
+            UUID applicationId, ScreeningQuestion question, String answerText, Boolean answerYesNo) {
+        ApplicationScreeningAnswer answer = new ApplicationScreeningAnswer();
+        answer.applicationId = applicationId;
+        answer.questionId = question.getId();
+        answer.displayOrder = question.getDisplayOrder();
+        answer.questionTypeSnapshot = question.getQuestionType();
+        answer.questionTextSnapshot = question.getQuestionText();
+        answer.optionsSnapshot = question.getOptions() == null ? null : List.copyOf(question.getOptions());
+        answer.requiredSnapshot = question.isRequired();
+        answer.answerText = answerText;
+        answer.answerYesNo = answerYesNo;
+        return answer;
+    }
 }

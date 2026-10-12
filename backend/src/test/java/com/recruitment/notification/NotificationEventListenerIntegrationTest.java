@@ -114,7 +114,7 @@ class NotificationEventListenerIntegrationTest {
         Fixture fixture = createOpenJobWithCandidateResume();
 
         applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         List<Notification> notifications = notificationRepository
                 .findByUserIdOrderByCreatedAtDesc(fixture.hrOwnerId(), PageRequest.of(0, 10))
@@ -128,7 +128,7 @@ class NotificationEventListenerIntegrationTest {
     void withdraw_happyPath_createsNotificationForHrOwner() {
         Fixture fixture = createOpenJobWithCandidateResume();
         ApplicationResponse application = applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         applicationService.withdraw(fixture.candidateId(), application.id());
 
@@ -148,7 +148,7 @@ class NotificationEventListenerIntegrationTest {
     void changeStatus_happyPath_createsNotificationForCandidateWithoutLeakingScoreInfo() {
         Fixture fixture = createOpenJobWithCandidateResume();
         ApplicationResponse application = applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         applicationStatusService.changeStatus(fixture.hrOwnerId(), application.id(), ApplicationStatus.REJECTED);
 
@@ -170,7 +170,7 @@ class NotificationEventListenerIntegrationTest {
         Fixture fixture = createOpenJobWithCandidateResume();
 
         ApplicationResponse application = applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         Notification notification = notificationRepository
                 .findByUserIdOrderByCreatedAtDesc(fixture.hrOwnerId(), PageRequest.of(0, 10))
@@ -184,7 +184,7 @@ class NotificationEventListenerIntegrationTest {
     void withdraw_hrNotificationLinksToApplicationDetailPage() {
         Fixture fixture = createOpenJobWithCandidateResume();
         ApplicationResponse application = applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         applicationService.withdraw(fixture.candidateId(), application.id());
 
@@ -202,7 +202,7 @@ class NotificationEventListenerIntegrationTest {
     void aggregationFinished_hrNotificationLinksToApplicationDetailPage() {
         Fixture fixture = createOpenJobWithCandidateResume();
         ApplicationResponse application = applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         eventPublisher.publishEvent(new AggregationFinishedEvent(UUID.randomUUID(), application.id(), fixture.jobId()));
 
@@ -223,7 +223,7 @@ class NotificationEventListenerIntegrationTest {
     void changeStatus_candidateNotificationLinksToApplicationDetailPage() {
         Fixture fixture = createOpenJobWithCandidateResume();
         ApplicationResponse application = applicationService.apply(
-                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null));
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
 
         applicationStatusService.changeStatus(fixture.hrOwnerId(), application.id(), ApplicationStatus.REJECTED);
 

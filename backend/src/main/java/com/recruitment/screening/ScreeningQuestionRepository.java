@@ -35,4 +35,11 @@ public interface ScreeningQuestionRepository extends JpaRepository<ScreeningQues
 
     @Query(value = "SELECT screening_revision FROM jobs WHERE id = :jobId", nativeQuery = true)
     int findRevision(@Param("jobId") UUID jobId);
+
+    // FR-U09 R-R3 - khoa hang jobs (FOR SHARE) toi khi transaction nop don ket thuc: cau UPDATE ... screening_revision
+    // cua HR (incrementRevision) phai cho; HR dang giu khoa thi cau nay cho HR commit roi doc gia tri DA commit. Hai lan
+    // nop don song song khong chan nhau. CHI goi trong transaction GHI - Postgres bao loi "cannot execute SELECT FOR SHARE
+    // in a read-only transaction" (L2); F1 (readOnly) dung findRevision. SELECT nen KHONG @Modifying; khong @Lock.
+    @Query(value = "SELECT screening_revision FROM jobs WHERE id = :jobId FOR SHARE", nativeQuery = true)
+    int findRevisionForShare(@Param("jobId") UUID jobId);
 }

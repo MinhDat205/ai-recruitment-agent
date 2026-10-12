@@ -54,6 +54,20 @@ public class JobApplication {
     @Column(name = "cover_letter")
     private String coverLetter;
 
+    // FR-U09 R-S2 - cung Instant voi aiConsentAt; updatable = false: save() cua rut don khong ghi de.
+    @Column(name = "screening_captured_at", updatable = false)
+    private Instant screeningCapturedAt;
+
+    // FR-U09 R-K6 - ba cot dong y CHI ghi luc INSERT; rut dong y dung UPDATE co dieu kien rieng.
+    @Column(name = "talent_pool_consent", nullable = false, updatable = false)
+    private boolean talentPoolConsent;
+
+    @Column(name = "talent_pool_consent_at", updatable = false)
+    private Instant talentPoolConsentAt;
+
+    @Column(name = "talent_pool_consent_revoked_at", updatable = false)
+    private Instant talentPoolConsentRevokedAt;
+
     @Generated(event = EventType.INSERT)
     @Column(name = "applied_at", insertable = false, updatable = false)
     private Instant appliedAt;
