@@ -130,6 +130,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_SCREENING_ANSWER", ex.getMessage()));
     }
 
+    // FR-U09 R-K7 - 409: don dung cua ung vien nhung khong con dong y de rut.
+    @ExceptionHandler(TalentPoolConsentNotActiveException.class)
+    public ResponseEntity<ErrorResponse> handleTalentPoolConsentNotActive(TalentPoolConsentNotActiveException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("TALENT_POOL_CONSENT_NOT_ACTIVE", ex.getMessage()));
+    }
+
     // FR-U09 R-R1, R-R2 - 409: request hop le nhung bo cau hoi da doi giua luc ung vien dang dien.
     @ExceptionHandler(ScreeningQuestionsChangedException.class)
     public ResponseEntity<ErrorResponse> handleScreeningQuestionsChanged(ScreeningQuestionsChangedException ex) {

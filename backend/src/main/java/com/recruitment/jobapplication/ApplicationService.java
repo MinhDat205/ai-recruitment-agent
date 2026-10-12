@@ -5,6 +5,7 @@ import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.ApplicationNotWithdrawableException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
+import com.recruitment.common.exception.TalentPoolConsentNotActiveException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
@@ -16,6 +17,7 @@ import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
 import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
+import com.recruitment.jobapplication.dto.TalentPoolConsentResponse;
 import com.recruitment.notification.ApplicationSubmittedEvent;
 import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
@@ -216,7 +218,37 @@ public class ApplicationService {
                 application.getUpdatedAt(),
                 application.getCoverLetter(),
                 jobInfo,
-                resumeInfo);
+                resumeInfo,
+                toTalentPoolConsentResponse(application));
+    }
+
+    // FR-U09 F4 (R-K7, R-K8) - rut dong y luu ho so cua MOT don cua chinh ung vien, o MOI trang thai don.
+    @Transactional
+    public TalentPoolConsentResponse revokeTalentPoolConsent(UUID candidateId, UUID applicationId) {
+        // R-A2: don khong ton tai HOAC cua nguoi khac -> CUNG 404, nem TRUOC khi toi cau UPDATE.
+        applicationRepository
+                .findByIdAndCandidateId(applicationId, candidateId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        // UPDATE co dieu kien (talent_pool_consent = TRUE): 0 dong = khong con dong y de rut -> 409. Khong doi status,
+        // khong ghi lich su, khong thong bao, khong event (R-K8); H15 se them viec xoa khoi kho vao CHINH transaction nay.
+        int updated = applicationRepository.revokeTalentPoolConsentIfActive(applicationId, candidateId, Instant.now());
+        if (updated == 0) {
+            throw new TalentPoolConsentNotActiveException();
+        }
+
+        // clearAutomatically da xoa persistence context: findById la SELECT that, thay gia tri vua ghi.
+        JobApplication reloaded = applicationRepository
+                .findById(applicationId)
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay don vua rut dong y: " + applicationId));
+        return toTalentPoolConsentResponse(reloaded);
+    }
+
+    private static TalentPoolConsentResponse toTalentPoolConsentResponse(JobApplication application) {
+        return new TalentPoolConsentResponse(
+                TalentPoolConsentState.of(application),
+                application.getTalentPoolConsentAt(),
+                application.getTalentPoolConsentRevokedAt());
     }
 
     // R-D4 - xet theo thu tu, dung o dong dau tien khop. OPEN dung CHINH findOpenJobById (cung dieu kien voi

@@ -359,6 +359,16 @@ class ApplicationScreeningCaptureIntegrationTest {
                 .isEqualTo("Đầu tháng 11/2026,\nsau khi bàn giao.");
         assertThat(json.get("items").get(1).get("answerYesNo").isNull()).isTrue();
         assertThat(json.get("items").get(2).get("answerText").asString()).isEqualTo("10–14 triệu");
+
+        // L10 - F3 cua chinh ung vien tra cung ban chup, state CAPTURED.
+        MvcResult candidateView = mockMvc
+                .perform(get("/api/candidates/applications/" + applicationId + "/screening-answers")
+                        .header("Authorization", "Bearer " + candidate.token()))
+                .andReturn();
+        assertThat(candidateView.getResponse().getStatus()).isEqualTo(200);
+        JsonNode mine = body(candidateView);
+        assertThat(mine.get("state").asString()).isEqualTo("CAPTURED");
+        assertThat(mine.get("items")).isEqualTo(json.get("items"));
     }
 
     // ---- T4: tin 0 cau ----
@@ -671,18 +681,39 @@ class ApplicationScreeningCaptureIntegrationTest {
         String jobId = createOpenJob(hrToken);
         int rev = revision(jobId);
 
-        Map<String, Object> agreed = applicationRow(createdId(apply(newCandidate("u09-t9-yes"), jobId, rev, answers(), true)));
+        Candidate agreedCandidate = newCandidate("u09-t9-yes");
+        String agreedId = createdId(apply(agreedCandidate, jobId, rev, answers(), true));
+        Map<String, Object> agreed = applicationRow(agreedId);
         assertThat(agreed.get("talent_pool_consent")).isEqualTo(true);
         assertThat(agreed.get("talent_pool_consent_at")).isNotNull().isEqualTo(agreed.get("ai_consent_at"));
         assertThat(agreed.get("talent_pool_consent_revoked_at")).isNull();
+        // L10 - E1 tra state qua API, khong chi doc DB.
+        JsonNode agreedConsent = detailConsent(agreedCandidate, agreedId);
+        assertThat(agreedConsent.get("state").asString()).isEqualTo("ACTIVE");
+        assertThat(agreedConsent.get("consentedAt").isNull()).isFalse();
+        assertThat(agreedConsent.get("revokedAt").isNull()).isTrue();
 
         for (Boolean consent : Arrays.asList(false, null)) {
-            Map<String, Object> declined =
-                    applicationRow(createdId(apply(newCandidate("u09-t9-no"), jobId, rev, answers(), consent)));
+            Candidate declinedCandidate = newCandidate("u09-t9-no");
+            String declinedId = createdId(apply(declinedCandidate, jobId, rev, answers(), consent));
+            Map<String, Object> declined = applicationRow(declinedId);
             assertThat(declined.get("talent_pool_consent")).as("consent=%s", consent).isEqualTo(false);
             assertThat(declined.get("talent_pool_consent_at")).isNull();
             assertThat(declined.get("talent_pool_consent_revoked_at")).isNull();
+            JsonNode declinedConsent = detailConsent(declinedCandidate, declinedId);
+            assertThat(declinedConsent.get("state").asString()).as("consent=%s", consent).isEqualTo("NOT_GIVEN");
+            assertThat(declinedConsent.get("consentedAt").isNull()).isTrue();
+            assertThat(declinedConsent.get("revokedAt").isNull()).isTrue();
         }
+    }
+
+    private JsonNode detailConsent(Candidate candidate, String applicationId) throws Exception {
+        MvcResult result = mockMvc
+                .perform(get("/api/candidates/applications/" + applicationId)
+                        .header("Authorization", "Bearer " + candidate.token()))
+                .andReturn();
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        return body(result).get("talentPoolConsent");
     }
 
     // ---- T17 (phan F2): thong bao cho HR khong doi ----
