@@ -862,12 +862,25 @@ UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa đi�
   vào ngữ cảnh AI, không đổi điểm/hạng (T13, T14). Không gọi AI. Full suite 1008/1008. Đặc tả làm rõ 11 điểm
   (L1–L11, duyệt 10–11/10/2026). Nợ kỹ thuật:
   - Đường ghi bản chụp thuộc FR-U09: đơn nộp mới sau khi triển khai FR-H10 chưa có bản chụp nên hiện
-    `NOT_CAPTURED` cho tới khi FR-U09 xong; bản chụp hiện có chỉ do seed test và test tạo.
+    `NOT_CAPTURED` cho tới khi FR-U09 xong; bản chụp hiện có chỉ do seed test và test tạo. — **Đã đóng ở FR-U09.**
   - M4: `JobOwnerService.loadOwned` (`:200-209`) và `RubricOwnerService.loadOwnedRubric` (`:95-104`) còn tra Job
     trước khi kiểm công ty, lệch khuôn `chore/hardening` mà FR-H10 dùng — HR chưa có công ty + jobId không tồn
     tại: hai service cũ trả `JOB_NOT_FOUND`, FR-H10 trả `COMPANY_NOT_FOUND`. Sửa ở một nhánh `chore/` riêng.
   - Frontend chưa có test tự động (trả focus sau khi đổi thứ tự, `aria-live`, segmented control chỉ soát tay).
-- [ ] `feat/fr-u09-screening-answer` — FR-U09 · Trả lời sàng lọc và đồng ý lưu hồ sơ
+- [x] `feat/fr-u09-screening-answer` — FR-U09 · Trả lời sàng lọc và đồng ý lưu hồ sơ — **HOÀN THÀNH**
+  (12/10/2026, 6 đợt — xem `docs/walkthrough/fr-u09-screening-answer.md`). Form nộp đơn `/jobs/:id/apply` (React Hook
+  Form + Zod) hiện câu hỏi sàng lọc của tin và ô "Cho phép công ty lưu hồ sơ…" (không tick sẵn, không chặn nút Nộp).
+  Backend kiểm câu trả lời ở service (400 `INVALID_SCREENING_ANSWER`, 6 câu cố định), khoá `FOR SHARE` hàng `jobs` và so
+  `screening_revision` (409 `SCREENING_QUESTIONS_CHANGED` khi HR sửa câu hỏi giữa chừng), ghi bản chụp cùng transaction
+  nộp đơn. Trang chi tiết đơn có khối "Câu trả lời sàng lọc" (chỉ khi `CAPTURED`) và "Lưu hồ sơ cho đợt tuyển sau" kèm
+  nút "Rút đồng ý" (một chiều, `UPDATE` có điều kiện, không đổi trạng thái đơn). Migration `V14` (3 cột đồng ý + CHECK ba
+  trạng thái). Endpoint F1, F3, F4; E1 thêm khoá `talentPoolConsent`. Không gọi AI; cờ và câu trả lời không đổi điểm/hạng
+  (T14). Full suite 1047/1047; kiểm HTTP 7/7 nhóm; `srs-guard` sạch. Lệch L1–L32 ghi ở walkthrough mục 8. Nợ kỹ thuật:
+  - FR-H15 phải xoá mục khỏi mọi kho **trong chính transaction** rút đồng ý (`ApplicationService.revokeTalentPoolConsent`)
+    và chặn thêm vào kho mọi đơn không `ACTIVE`; hiện rút đồng ý chỉ đặt cờ + thời điểm.
+  - `ApplicationService.withdraw` vẫn đọc entity rồi `save` (lost update với HR đổi trạng thái); FR-U09 chỉ chặn hậu quả
+    lên cột đồng ý bằng `updatable = false`. Sửa ở một nhánh `chore/` riêng.
+  - Nợ của FR-H10 "đơn mới hiện `NOT_CAPTURED` tới khi FR-U09 xong" đã đóng.
 - [ ] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026):

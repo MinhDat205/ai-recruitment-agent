@@ -1,6 +1,6 @@
 # FR-U09 — Trả lời sàng lọc và đồng ý lưu hồ sơ
 
-> Trạng thái: ĐÃ DUYỆT 11/10/2026. Q1–Q20 và B1–B7 đã chốt 11/10/2026 (mục 11); O2 chờ Plan Mode (mục 12).
+> Trạng thái: ĐÃ HOÀN THÀNH (12/10/2026). Duyệt: 11/10/2026. Q1–Q20 và B1–B7 đã chốt 11/10/2026 (mục 11); O2 đã đóng (L1) (mục 12).
 
 - Nhóm: Ứng viên
 - Tóm tắt: Ở form nộp đơn `/jobs/:id/apply`, ứng viên trả lời các câu hỏi sàng lọc của tin (FR-H10) và tuỳ chọn
