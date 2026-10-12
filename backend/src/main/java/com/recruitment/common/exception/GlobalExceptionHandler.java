@@ -377,6 +377,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ErrorResponse(errorCode.name(), errorCode.message()));
     }
 
+    // FR-H11 R-K4-4 (K4) - token sieu du lieu AI khong hop le: 400, cau co dinh, khong noi ly do cu the.
+    @ExceptionHandler(InvalidAiGenerationTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAiGenerationToken(InvalidAiGenerationTokenException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_AI_GENERATION_TOKEN", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
