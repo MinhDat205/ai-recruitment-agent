@@ -626,7 +626,7 @@ văn output; lệnh sai cú pháp thì dừng, đề xuất sửa mục này, ch
 
 | Trạng thái cần thấy | Tài khoản | Nơi | Mong đợi |
 |---|---|---|---|
-| Form tin có 3 câu | Ứng viên demo do Plan Mode chọn (CV không `FAILED`), bổ sung tên vào bảng này trước đợt 4 / `Demo1234` | `/jobs/e2000000-0000-0000-0000-000000000001/apply` | Khối "Câu hỏi sàng lọc" đủ SQ1–SQ3 theo thứ tự, "Bắt buộc"/"Không bắt buộc" bằng chữ; lưu ý trung tính; ô đồng ý lưu hồ sơ không tick sẵn; nút Nộp chỉ khoá theo ô AI consent |
+| Form tin có 3 câu | `tran.minh.hoang@demo.local` / `Demo1234` (Plan Mode chọn, L3: CV chính `DONE`, đã qua onboarding, chưa có đơn vào công ty test) → J1 (3 câu, revision 3) | `/jobs/e2000000-0000-0000-0000-000000000001/apply` | Khối "Câu hỏi sàng lọc" đủ SQ1–SQ3 theo thứ tự, "Bắt buộc"/"Không bắt buộc" bằng chữ; lưu ý trung tính; ô đồng ý lưu hồ sơ không tick sẵn; nút Nộp chỉ khoá theo ô AI consent |
 | Lỗi Zod | như trên | Bỏ trống SQ1, gõ 501 ký tự | Lỗi dưới đúng câu; bộ đếm "n/500 ký tự"; không gửi request |
 | Nộp thành công + đồng ý | như trên | Trả lời SQ1, SQ2 "Có", bỏ SQ3, tick đồng ý → Nộp | Màn thành công có "Xem đơn vừa nộp" → trang chi tiết: khối câu trả lời đủ 3 câu (SQ3 "Bạn không trả lời câu này."), khối lưu hồ sơ "đang đồng ý" + nút "Rút đồng ý"; HR mở đơn này ở tab Sàng lọc thấy `CAPTURED` |
 | 409 khi HR sửa câu hỏi | Lan `le.thi.lan@test.local` + HR `minhdathr@gmail.com` (hai trình duyệt) | HR thêm 2 câu cho J2 (`/hr/jobs/e2…02/edit?tab=screening`); Lan mở `/jobs/e2…02/apply`, trả lời; HR sửa nội dung một câu; Lan bấm Nộp | Câu 409 hiện; câu bị đổi loại/xoá mất câu trả lời, câu còn nguyên giữ câu trả lời; nộp lại thành công |

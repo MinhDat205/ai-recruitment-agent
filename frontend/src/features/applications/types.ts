@@ -1,11 +1,18 @@
+import type { ScreeningAnswerInput } from '../candidateScreening/types'
+
 export type ApplicationStatus = 'PENDING' | 'INTERVIEW_INVITED' | 'HIRED' | 'REJECTED' | 'WITHDRAWN'
 
 // KHONG co recruitmentCycle: backend tu lay tu Job hien tai (FR-U02), khong tin client.
+// FR-U09: screeningRevision lay tu F1 (gui ca khi tin co 0 cau, R-F4); answers chi gom cau da tra loi; talentPoolConsent
+// la lua chon rieng, tach khoi aiConsent (R-K1).
 export interface ApplicationCreateRequest {
   jobId: string
   resumeId: string
   aiConsent: boolean
   coverLetter?: string
+  screeningRevision: number
+  answers: ScreeningAnswerInput[]
+  talentPoolConsent: boolean
 }
 
 export interface Application {
