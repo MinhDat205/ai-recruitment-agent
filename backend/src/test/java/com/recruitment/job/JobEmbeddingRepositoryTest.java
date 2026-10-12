@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,12 +69,18 @@ class JobEmbeddingRepositoryTest {
         return job.getId();
     }
 
+    // Dung Pageable.unpaged() cho nhom test findOpenJobIdsNeedingEmbedding thay vi PageRequest co
+    // gioi han: query sap xep FIFO (created_at ASC) va Testcontainers dung chung chua job OPEN ro ri
+    // tu cac test khong @Transactional (nhu screening/talent pool). Neu dung PageRequest nho, job
+    // moi cua test bi day ra sau lam test isIncluded fail va test isExcluded pass rong (do doesNotContain
+    // luon dung khi ngoai trang). Khong duoc sua bang cach doi query sang DESC vi FIFO la hanh vi
+    // production co chu dich cho scheduler.
     @Test
     @Transactional
     void findOpenJobIdsNeedingEmbedding_openJobWithoutEmbedding_isIncluded() {
         UUID jobId = createJob(JobStatus.OPEN);
 
-        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(PageRequest.of(0, 10));
+        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(Pageable.unpaged());
 
         assertThat(ids).contains(jobId);
     }
@@ -86,7 +92,7 @@ class JobEmbeddingRepositoryTest {
         jobEmbeddingRepository.upsertEmbedding(
                 jobId, EmbeddingTextFormat.toVectorText(new float[1536]), "text-embedding-3-small");
 
-        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(PageRequest.of(0, 10));
+        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(Pageable.unpaged());
 
         assertThat(ids).doesNotContain(jobId);
     }
@@ -100,7 +106,7 @@ class JobEmbeddingRepositoryTest {
         UUID pausedJobId = createJob(JobStatus.PAUSED);
         UUID closedJobId = createJob(JobStatus.CLOSED);
 
-        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(PageRequest.of(0, 100));
+        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(Pageable.unpaged());
 
         assertThat(ids).doesNotContain(draftJobId, pausedJobId, closedJobId);
     }
@@ -131,7 +137,7 @@ class JobEmbeddingRepositoryTest {
         int deleted = jobEmbeddingRepository.deleteByJobId(jobId);
 
         assertThat(deleted).isEqualTo(1);
-        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(PageRequest.of(0, 10));
+        List<UUID> ids = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(Pageable.unpaged());
         assertThat(ids).contains(jobId);
     }
 
