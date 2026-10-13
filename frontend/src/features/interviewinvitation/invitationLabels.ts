@@ -32,6 +32,8 @@ export const INVITATION_TEXT = {
   resendButton: 'Gửi lại giấy mời',
   emptyPending: 'Chưa gửi giấy mời phỏng vấn cho đơn này. Dùng nút "Mời phỏng vấn" ở đầu trang để gửi.',
   emptyOther: 'Đơn này chưa từng được mời phỏng vấn.',
+  // Q8 - phia ung vien, chi khi giay moi hieu luc chua chot (FR-U10 thay cau nay).
+  candidateUnconfirmed: 'Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp.',
   slotListTitle: 'Khung giờ (giờ Việt Nam)',
   missingLocation: 'Chưa có dữ liệu',
   confirmed: 'Đã chốt',

@@ -63,14 +63,23 @@ export interface InterviewInvitationList {
   invitations: InterviewInvitationResponse[]
 }
 
-// Khop CandidateInterviewInvitationResponse (backend) - GET
-// /candidates/applications/{id}/interview-invitation. Chi 5 field, khong co id/applicationId/sentBy
-// - ung vien chi can xem lai lich hen, khong can du lieu noi bo do.
-// FR-H12: backend da doi hinh dang (I4) - kieu va giao dien phia ung vien doi o dot 6.
-export interface CandidateInterviewInvitation {
+// Khop CandidateInterviewInvitationResponse.Slot (backend). Khung CO id (Q4 - FR-U10 dung de gui lua chon);
+// location null chi o du lieu cu (R-S6); confirmed = khung da chot cua giay moi.
+export interface CandidateInterviewInvitationSlot {
+  id: string
+  displayOrder: number
   scheduledAt: string
   location: string | null
+  confirmed: boolean
+}
+
+// Khop CandidateInterviewInvitationResponse (backend) - GET /candidates/applications/{id}/interview-invitation (I4).
+// FR-H12 R-A3: CHI giay moi hieu luc; KHONG id giay moi/applicationId/sentBy/supersededAt - ung vien chi can xem lich
+// hen. confirmedAt null = chua chot; slots theo displayOrder.
+export interface CandidateInterviewInvitation {
   subject: string
   renderedContent: string
   sentAt: string
+  confirmedAt: string | null
+  slots: CandidateInterviewInvitationSlot[]
 }
