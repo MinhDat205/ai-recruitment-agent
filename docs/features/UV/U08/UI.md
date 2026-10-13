@@ -258,7 +258,7 @@ Theo field backend trả về (REQUIREMENT mục 3.4); dưới đây là cách h
 | **R-T3** đơn `PENDING`/`WITHDRAWN` | Khối giấy mời | Không render khối, không gọi API |
 | Đang tải giấy mời | Khối giấy mời | Tiêu đề "Giấy mời phỏng vấn" + câu có sẵn "Đang tải giấy mời..." |
 | **R-T5** 404 giấy mời | Khối giấy mời | Không render gì (cả tiêu đề) |
-| **R-T6** có giấy mời | Khối giấy mời | `InterviewInvitationDetails` |
+| **R-T6** có giấy mời | Khối giấy mời | `InterviewInvitationDetails` — *sửa bởi FR-H12 (UI.md 4d): danh sách khung giờ chỉ đọc, dấu "Đã chốt", câu hướng dẫn khi chưa chốt* |
 | **R-T7** lỗi khác | Khối giấy mời | Câu có sẵn "Không tải được giấy mời, vui lòng thử lại." + nút "Thử lại" |
 | **R-T8** tin `OPEN` | Khối tin | Nhãn "Đang mở" + liên kết "Xem tin tuyển dụng →" (`/jobs/{jobId}`) |
 | **R-D5** tin khác `OPEN` | Khối tin | Nhãn tương ứng (mục 7), không liên kết |
@@ -292,7 +292,7 @@ Không có trạng thái "AI đang xử lý": trang không gọi AI.
 | Nút | "Rút đơn" |
 | Hộp xác nhận rút đơn | Nguyên văn hiện có: tiêu đề "Rút đơn ứng tuyển?"; nội dung "Hành động này không thể hoàn tác. Sau khi rút, bạn sẽ không thể nộp lại đơn cho vị trí {jobTitle} trong đợt tuyển hiện tại."; nút "Huỷ" · "Xác nhận rút đơn" · "Đang rút đơn..."; lỗi fallback "Rút đơn thất bại, vui lòng thử lại." |
 | Khối 1 | "Giấy mời phỏng vấn" |
-| Nội dung giấy mời | Nguyên văn hiện có: "Địa điểm: " · "Đang tải giấy mời..." · "Không tải được giấy mời, vui lòng thử lại." |
+| Nội dung giấy mời | Nguyên văn hiện có: "Địa điểm: " · "Đang tải giấy mời..." · "Không tải được giấy mời, vui lòng thử lại." — *sửa bởi FR-H12: địa điểm thiếu hiện "Địa điểm: Chưa có dữ liệu"; thêm "Khung giờ (giờ Việt Nam)", "Đã chốt" và câu hướng dẫn "Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp."* |
 | Khối 2 | "Tin tuyển dụng" |
 | Nhãn tóm tắt | "Ngành nghề" · "Khu vực" · "Hình thức" · "Làm việc" · "Mức lương" · "Hạn nộp" |
 | Lương null | "Không công bố" |

@@ -99,12 +99,12 @@ Hệ thống: không lưu bản nháp; không đổi trạng thái đơn; không
   | Mã | Nhãn | Phía | Điều kiện dùng được (ngoài R-S2) |
   |---|---|---|---|
   | `REQUEST_MORE_INFO` | Đề nghị bổ sung thông tin | HR | — |
-  | `INTERVIEW_REMINDER` | Nhắc lịch phỏng vấn | HR | Đơn `INTERVIEW_INVITED` **và** có giấy mời (Q6) |
+  | `INTERVIEW_REMINDER` | Nhắc lịch phỏng vấn | HR | Đơn `INTERVIEW_INVITED` **và** có giấy mời (Q6) — *Sửa bởi FR-H12 (R-K2x): giấy mời hiệu lực **đã chốt khung**; chưa chốt → `NO_ACTIVE_INTERVIEW`* |
   | `THANK_FOR_APPLYING` | Cảm ơn đã ứng tuyển | HR | — |
   | `RESULT_NOTICE` | Thông báo kết quả | HR | Đơn `HIRED` hoặc `REJECTED` (đặc tả gốc) |
   | `ASK_PROGRESS` | Hỏi tiến độ | Ứng viên | — |
-  | `THANK_AFTER_INTERVIEW` | Cảm ơn sau phỏng vấn | Ứng viên | Có giấy mời (Q6) |
-  | `REQUEST_RESCHEDULE` | Xin dời lịch phỏng vấn | Ứng viên | Đơn `INTERVIEW_INVITED` **và** có giấy mời (Q6) |
+  | `THANK_AFTER_INTERVIEW` | Cảm ơn sau phỏng vấn | Ứng viên | Có giấy mời (Q6) — *Sửa bởi FR-H12 (R-K2x): có giấy mời hiệu lực* |
+  | `REQUEST_RESCHEDULE` | Xin dời lịch phỏng vấn | Ứng viên | Đơn `INTERVIEW_INVITED` **và** có giấy mời (Q6) — *Sửa bởi FR-H12 (R-K2x): có giấy mời hiệu lực, chốt hay chưa* |
   | `CUSTOM` | Tự mô tả | Cả hai | Có `customPurpose` hợp lệ (R-S4) |
 
 - **R-S2.** Đơn `WITHDRAWN` → **mọi** endpoint của FR-C07 trả 409 `CONVERSATION_READ_ONLY` (mã và câu có sẵn của
@@ -207,7 +207,7 @@ Hệ thống: không lưu bản nháp; không đổi trạng thái đơn; không
   khi C07 đã kiểm quyền (R-Q1); chạy trong một transaction chỉ đọc **ngắn**, đóng trước khi gọi AI (CLAUDE.md §3c),
   là bean riêng được inject (không tự gọi trong cùng bean).
 - **R-K1-4. Phụ thuộc được phép** (danh sách đầy đủ): `jobapplication/` (đơn), `job/`, `company/`, `user/`,
-  `interviewinvitation/` (giấy mời mới nhất, mục 0.b1), `messaging/` (`ApplicationMessageRepository.findLatest`,
+  `interviewinvitation/` (giấy mời mới nhất, mục 0.b1 — *sửa bởi FR-H12 (R-K1x): khung đã chốt của giấy mời hiệu lực*), `messaging/` (`ApplicationMessageRepository.findLatest`,
   `MessageSenderRole`), `common/`. **Cấm** `scoring/`, `rubric/`, `resume/`, `ai/`, `jobrecommendation/`.
   `messaging/` không import ngược `aicontext/`.
 - **R-K1-5. Điểm mở rộng (không xây trước):** FR sau thêm record ngữ cảnh **riêng** và method riêng trong
@@ -215,6 +215,8 @@ Hệ thống: không lưu bản nháp; không đổi trạng thái đơn; không
   nhận `ContextViewer.HR` cố định ở chữ ký (ví dụ `forHrEvaluation(...)`), không thêm field có điều kiện vào
   `ConversationContext`. FR-H16 (ẩn danh) tự quyết định che `candidateName` khi tới lượt.
   FR-H12 (giấy mời nhiều khung giờ) tự mở rộng `InterviewSchedule` khi tới lượt; C07 chỉ có một `scheduledAt`.
+  *Sửa bởi FR-H12 (R-K1x, M4): không đổi hình dạng `InterviewSchedule`; chỉ đổi nguồn sang khung đã chốt của giấy mời
+  hiệu lực (`superseded_at IS NULL`); giấy mời hiệu lực chưa chốt hoặc không có giấy mời → `null`.*
 
 ### 3.6 K3 — gọi AI đồng bộ có giới hạn (R-K3)
 
@@ -396,7 +398,7 @@ Mỗi lớp tự tạo dữ liệu (email duy nhất, prefix ≤ 27 ký tự); l
 | T4 | **Chặn đơn không thuộc về mình — ứng viên:** đơn của ứng viên khác và UUID không tồn tại → A1, A2 cùng 404 `APPLICATION_NOT_FOUND`; không gọi AI | âm |
 | T5 | Sai vai trò → 403 (hai chiều); không token → 401 `UNAUTHENTICATED` | âm |
 | T6 | Đơn `WITHDRAWN` → A1, A2 409 `CONVERSATION_READ_ONLY` cả hai phía; thứ tự R-Q3 với body **đọc được nhưng không hợp lệ** (thiếu `tone`; hoặc tình huống của phía kia — ứng viên gửi `RESULT_NOTICE`, HR gửi `ASK_PROGRESS`): đơn `WITHDRAWN` → **409** (không 400); đơn của bên khác → 403 (HR) / 404 (ứng viên) (không 400); không gọi AI | âm |
-| T7 | Ma trận R-S1/R-S3: `RESULT_NOTICE` ở `PENDING`, `INTERVIEW_INVITED` → 409 `DRAFT_SCENARIO_UNAVAILABLE`, ở `HIRED`, `REJECTED` → 200; `INTERVIEW_REMINDER`/`REQUEST_RESCHEDULE` khi chưa có giấy mời, và khi `HIRED` có giấy mời → 409, khi `INTERVIEW_INVITED` có giấy mời → 200; `THANK_AFTER_INTERVIEW` chưa có giấy mời → 409, có → 200. A1 trả `available`/`unavailableReason` khớp từng ô; mọi ca 409 không gọi AI | dương + âm |
+| T7 | Ma trận R-S1/R-S3: `RESULT_NOTICE` ở `PENDING`, `INTERVIEW_INVITED` → 409 `DRAFT_SCENARIO_UNAVAILABLE`, ở `HIRED`, `REJECTED` → 200; `INTERVIEW_REMINDER`/`REQUEST_RESCHEDULE` khi chưa có giấy mời, và khi `HIRED` có giấy mời → 409, khi `INTERVIEW_INVITED` có giấy mời → 200; `THANK_AFTER_INTERVIEW` chưa có giấy mời → 409, có → 200. A1 trả `available`/`unavailableReason` khớp từng ô; mọi ca 409 không gọi AI. *Sửa bởi FR-H12 (R-K2x, T19): "có giấy mời" = có giấy mời hiệu lực; `INTERVIEW_REMINDER` còn đòi khung đã chốt* | dương + âm |
 | T8 | Request: ứng viên gửi `RESULT_NOTICE` → 400; HR gửi `ASK_PROGRESS` → 400; thiếu `tone` → 400; `scenario` lạ (`"FOO"`) và JSON hỏng → 400 `INVALID_DRAFT_REQUEST` "Yêu cầu soạn nháp không hợp lệ." — **ngoại lệ R-Q3b**: hai ca này 400 cả khi gọi vào đơn của bên khác hoặc đơn `WITHDRAWN`, và body lỗi không chứa gì về đơn; nhưng JSON hỏng với token **sai vai trò** → 403, không token → 401 (filter chain đứng trước); **hồi quy phạm vi advice:** (i) JSON hỏng (`{bad`) với `Content-Type: application/json` gửi vào M2 của C06 → vẫn 400 `{"error":"MESSAGE_EMPTY","message":"Tin nhắn chưa có nội dung"}` như hiện tại (M2 không đọc body JSON, mục 0.b8), (ii) JSON hỏng gửi vào `POST /api/auth/login` → vẫn 400 và body **không** chứa `INVALID_DRAFT_REQUEST` (giữ 400 mặc định của Spring, mục 0.b7); `CUSTOM` + rỗng/khoảng trắng → 400; `CUSTOM` 499 và 500 ký tự → 200, 501 → 400; `THANK_FOR_APPLYING` + `customPurpose` = chuỗi nhận dạng → 200 và chuỗi đó **không** có trong prompt | biên + âm |
 | T9 | **Ngữ cảnh không chứa điểm/rubric (lớp 2 — điều kiện "Xong khi" Phase 2.2):** seed thật cho cùng đơn `scoring_run` (`total_score` = 7.345), `criterion_scores` (`reasoning`, `evidence` là chuỗi nhận dạng), tiêu chí rubric tên nhận dạng, `score_explanations.summary` nhận dạng, `application_status_history.note` nhận dạng, thư giới thiệu nhận dạng; bắt `Prompt` thật bằng `ArgumentCaptor` khi gọi A2 từ **cả hai** phía → không chuỗi nào (kể cả `7.345`) xuất hiện trong system + user message | âm |
 | T10 | **Lớp 1 — chữ ký (reflection):** thành phần của `ConversationContext` và các record lồng (đệ quy) chỉ có kiểu trong tập cho phép (`String`, `Instant`, `boolean`, `List`, `ApplicationStatus`, `MessageSenderRole`, `ContextViewer`, record trong `aicontext/`); không tên nào khớp `(?i)score\|rubric\|criterion\|weight\|explanation\|evaluation\|note\|rank\|question\|email\|phone`; mọi tham số constructor và field của `ConversationContextAssembler`, `MessageDraftService`, `MessageDraftFacade` không thuộc `com.recruitment.scoring`, `.rubric`, `.resume` | âm |

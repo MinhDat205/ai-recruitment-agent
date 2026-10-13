@@ -915,7 +915,26 @@ UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa đi�
 trọng số rubric gợi ý để trống.
 
 **Phase 2.4 — Lịch phỏng vấn**
-- [ ] `feat/fr-h12-multi-slot` — FR-H12 · Giấy mời nhiều khung giờ
+- [x] `feat/fr-h12-multi-slot` — FR-H12 · Giấy mời phỏng vấn nhiều khung giờ — **HOÀN THÀNH**
+  (14/10/2026, 7 đợt — xem `docs/walkthrough/fr-h12-multi-slot.md`). Giấy mời có 1–5 khung giờ (thời điểm bắt đầu +
+  địa điểm/link bắt buộc, cắt về đầu phút, không trùng phút); một khung = đã chốt ngay khi gửi. V16 tách bảng
+  `interview_invitation_slots`, thêm khung chốt (FK ghép), `superseded_at` + partial unique index "một giấy mời hiệu
+  lực", chuyển mỗi giấy mời cũ thành một khung đã chốt, thêm `notifications.email_body`. Gửi lại giấy mời (I3) khi đơn
+  `INTERVIEW_INVITED`: không đổi trạng thái, không ghi lịch sử; tuần tự hoá với Trúng tuyển/Từ chối/Rút đơn bằng
+  `UPDATE … SET status = status` có điều kiện (khoá hàng) chạy trước mọi thao tác trên giấy mời hiệu lực. Thông báo
+  `INTERVIEW_INVITATION_RESENT`: web một dòng, email kèm danh sách khung (giờ Việt Nam) dựng một lần vào `email_body`.
+  HR: tab "Giấy mời phỏng vấn" ở `/hr/applications/:id` (giấy mời hiệu lực, gửi lại, giấy mời trước đó); ứng viên: danh
+  sách khung chỉ đọc. K1/C07 đổi nguồn `InterviewSchedule` sang khung chốt của giấy mời hiệu lực (thay đổi hành vi FR-C07).
+  Full suite 1228/1228; build + lint sạch; kiểm HTTP 7.2 đạt (L13); soát tay 7.4 đạt; `srs-guard` sạch. Làm rõ L1–L14.
+  Nợ kỹ thuật / giới hạn đã biết:
+  - Email mời lần đầu (I2) vẫn chỉ là câu đổi trạng thái, không kèm giờ phỏng vấn (M6) — chỉ email gửi lại kèm khung.
+  - HR nhập giờ theo múi giờ trình duyệt, mọi nơi hiển thị khung theo giờ Việt Nam (B2) — lệch nếu máy HR khác múi.
+  - Địa điểm dạng link hiện chữ thường, không bấm được (B4) — muốn bấm phải kiểm scheme URL.
+  - Danh sách bảng của `reset-demo-db.sql` thiếu bảng V13–V15 (không gây lỗi nhờ `TRUNCATE … CASCADE`) (L1).
+  - T10(b)(c) (gửi lại song song với Trúng tuyển/Rút đơn) chỉ kiểm tập kết quả hợp lệ, không ép được thứ tự; phần "khoá
+    thật sự chặn" được bù bằng T10(d) đơn luồng, chắc chắn.
+  - Kiểm phiên bản Flyway trên DB phải dùng `ORDER BY installed_rank DESC LIMIT 1`, không dùng `max(version)` (cột
+    `version` là `varchar`, `max` so theo chuỗi: DB ở V16 trả `9`).
 - [ ] `feat/fr-u10-pick-slot` — FR-U10 · Chọn khung giờ phỏng vấn
 
 **Xong khi:** đơn chuyển INTERVIEW_INVITED ngay khi gửi giấy mời, không phụ thuộc việc chọn giờ;

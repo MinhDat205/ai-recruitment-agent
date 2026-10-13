@@ -542,8 +542,8 @@ Tạo mới tin tuyển dụng; chưa hỗ trợ sửa tin đã đăng bằng ng
 - **Phase:** 2.4 · **Nhánh:** `feat/fr-h12-multi-slot` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H12/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-H07, FR-C03
-- **Mở rộng chức năng hiện có:** FR-H07 (giấy mời nhiều khung giờ, gửi lại giấy mời), FR-C03 (thông báo ứng viên đã chốt lịch)
-- **Màn hình (UI_GUIDE mục 7):** Hộp thoại mời phỏng vấn ở ★`/hr/applications/:id`.
+- **Mở rộng chức năng hiện có:** FR-H07 (giấy mời nhiều khung giờ, gửi lại giấy mời), FR-C03 (thông báo ứng viên khi giấy mời được gửi lại)
+- **Màn hình (UI_GUIDE mục 7):** Hộp thoại mời phỏng vấn và tab "Giấy mời phỏng vấn" ở ★`/hr/applications/:id`; khối giấy mời ở ★`/candidate/applications/:id`.
 
 **Mục đích**
 
@@ -551,13 +551,13 @@ Cho ứng viên chọn lịch phù hợp, giảm trao đổi qua lại để ch�
 
 **Người dùng thao tác**
 
-Khi Mời phỏng vấn (FR-H07) → thêm 1–5 khung giờ, mỗi khung có thời điểm và địa chỉ hoặc link phòng họp → Gửi. HR xem khung giờ ứng viên đã chọn ở hồ sơ đơn (H09).
+Khi Mời phỏng vấn (FR-H07) → thêm 1–5 khung giờ, mỗi khung có thời điểm và địa chỉ hoặc link phòng họp → Gửi. HR xem khung giờ ứng viên đã chọn ở tab "Giấy mời phỏng vấn" của hồ sơ đơn (H09).
 
 **Hệ thống**
 
-- Mở rộng giấy mời thành danh sách khung giờ. Mẫu giấy mời (FR-H02) giữ nguyên, chỉ thêm chỗ chèn danh sách khung giờ khi render.
+- Mở rộng giấy mời thành danh sách khung giờ, lưu và hiển thị tách riêng khỏi thư. Mẫu giấy mời (FR-H02) giữ nguyên, không chèn khung giờ vào thư.
 - Kiểm tra khung giờ không nằm trong quá khứ và không trùng nhau trong cùng giấy mời. Giấy mời chỉ có một khung giờ được coi là đã chốt, giữ tương thích luồng hiện tại.
-- Lưu nguyên văn giấy mời đã gửi. Khi ứng viên chọn khung giờ (U10), hệ thống ghi nhận và thông báo cho HR qua FR-C03.
+- Lưu nguyên văn giấy mời đã gửi. Việc ứng viên chọn khung giờ và thông báo cho HR thuộc FR-U10.
 - Bổ sung thao tác Gửi lại giấy mời khi đơn đang ở INTERVIEW_INVITED: tạo giấy mời mới, không đổi trạng thái đơn; giấy mời cũ giữ nguyên trong lịch sử.
 
 **AI**

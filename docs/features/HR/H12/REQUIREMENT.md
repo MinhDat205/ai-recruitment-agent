@@ -1,11 +1,12 @@
 # FR-H12 — Giấy mời phỏng vấn nhiều khung giờ
 
-> Trạng thái: ĐÃ DUYỆT (13/10/2026). Mọi quyết định ở mục 11 đã chốt 13/10/2026 (11.1: tám quyết định nền; 11.2:
+> Trạng thái: ĐÃ HOÀN THÀNH (14/10/2026). Duyệt: 13/10/2026. Mọi quyết định ở mục 11 đã chốt 13/10/2026 (11.1: tám quyết định nền; 11.2:
 > Q1–Q9; 11.3: năm điểm bổ sung B1–B5; 11.4: S1–S7 chốt sau `spec-review`).
 >
 > Làm rõ sau Plan Mode 13/10/2026: L1–L8 (L1: mục 4.5, D2; L2: R-K1, mục 8; L3: mục 4.2; L4: T3; L5: T13; L6: T21;
 > L7: mục 9 đợt 2, 3; L8: T10). Làm rõ trong đợt 3 (14/10/2026): L9–L12 (L9: R-S6, T3; L10: kiểm tĩnh 7.1; L11: R-G3,
-> kiểm tĩnh 7.1; L12: kiểm tĩnh 7.1) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
+> kiểm tĩnh 7.1; L12: kiểm tĩnh 7.1). Làm rõ trong đợt 7 (14/10/2026): L13–L14 (L13: khối 7.2; L14: mục 4.5) — chi tiết ở mục 12. Mục 12 thắng
+> chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR gửi giấy mời phỏng vấn có **1–5 khung giờ**, mỗi khung gồm thời điểm bắt đầu và địa chỉ hoặc link
@@ -671,7 +672,7 @@ $t1 = (Get-Date).ToUniversalTime().AddDays(10).ToString("yyyy-MM-ddT02:00:00Z")
 $t2 = (Get-Date).ToUniversalTime().AddDays(11).ToString("yyyy-MM-ddT07:30:00Z")
 $past = (Get-Date).ToUniversalTime().AddDays(-1).ToString("yyyy-MM-ddT02:00:00Z")
 $body2 = @{
-    slots   = @(@{ scheduledAt = $t1; location = 'Tầng 3, 45 Bạch Đằng' },
+    slots   = @(@{ scheduledAt = $t1; location = 'Phòng họp Hồ Gươm, tầng 5' },
                 @{ scheduledAt = $t2; location = 'https://meet.example.com/abc-defg-hij' })
     subject = 'Thư mời phỏng vấn'
     content = 'Kính gửi bạn, mời bạn chọn một khung giờ.'
@@ -686,7 +687,7 @@ Test-Call 'GET' "$a2/interview-invitations" $tokenTest $null
 '--- 2. Duong: gui lai A2 voi 2 khung (mong doi 201), roi doc lai I1 (mong doi 200, dia diem dung dau -> True)'
 Test-Call 'POST' "$a2/interview-invitation/resend" $tokenTest $body2
 $r = Invoke-Api 'GET' "$a2/interview-invitations" $tokenTest $null
-'{0} doc lai I1 A2, co "Tầng 3, 45 Bạch Đằng": {1}' -f $r.Status, $r.Text.Contains('Tầng 3, 45 Bạch Đằng')
+'{0} doc lai I1 A2, co "Phòng họp Hồ Gươm, tầng 5": {1}' -f $r.Status, $r.Text.Contains('Phòng họp Hồ Gươm, tầng 5')
 '--- 3. Am: gui lai don PENDING A1 (mong doi 409 INVITATION_RESEND_NOT_ALLOWED)'
 Test-Call 'POST' "$a1/interview-invitation/resend" $tokenTest $body2
 '--- 4. Am: khung qua khu, trung thoi diem, thieu dia diem (mong doi 400 INVALID_INTERVIEW_SCHEDULE x3)'
@@ -704,8 +705,9 @@ Test-Call 'GET' '/api/candidates/applications/e8000000-0000-0000-0000-0000000000
 Test-Call 'POST' "$a1/interview-invitation" $tokenTest $body2
 ```
 
-Mong đợi: nhóm 1 `200`; nhóm 2 dòng đầu `201`, dòng thứ hai `200 doc lai I1 A2, co "Tầng 3, 45 Bạch Đằng": True` (địa
-điểm đi qua request và response giữ đúng dấu tiếng Việt; `False` = vỡ mã hoá, dừng và báo); 3 `409 …
+Mong đợi: nhóm 1 `200`; nhóm 2 dòng đầu `201`, dòng thứ hai `200 doc lai I1 A2, co "Phòng họp Hồ Gươm, tầng 5": True`
+(địa điểm đi qua request và response giữ đúng dấu tiếng Việt — chuỗi này không có trong seed, L13; `False` = vỡ mã hoá,
+dừng và báo); 3 `409 …
 INVITATION_RESEND_NOT_ALLOWED`; 4 ba dòng `400 … INVALID_INTERVIEW_SCHEDULE` (câu "Khung giờ 1: …tương lai.", "Khung giờ
 2 trùng thời điểm với khung giờ 1.", "Khung giờ 1: vui lòng nhập địa điểm hoặc link phỏng vấn."); 5 `403`, `403`, `403`,
 `401 … UNAUTHENTICATED`; 6 `200`; 7 `201`. Chạy xong: `reset-test-data.sql` rồi nạp lại seed test. **Bắt buộc ở đợt
@@ -971,3 +973,16 @@ Bổ sung trong đợt 3 (duyệt 14/10/2026):
   backend/src/main -g "!**/scoring/**"`. Không thu về vài thư mục cụ thể: để lệnh vẫn bắt được code mới ở gói khác (vd
   `notification/`, FR-U10) chọn giấy mời theo `created_at`. Kỳ vọng: 3 dòng ở đợt 3 (đã xác nhận 14/10/2026), 1 dòng
   (khai báo trong repository) từ đợt 4.
+
+Bổ sung trong đợt 7 (duyệt 14/10/2026):
+
+- **L13 (khối 7.2, nhóm 2) — chuỗi kiểm dấu tiếng Việt phải chưa có trong seed.** Địa điểm khung 1 của `$body2` trước đây là
+  `"Tầng 3, 45 Bạch Đằng"` — chuỗi này đã có sẵn trong địa điểm giấy mời A2 của seed (mục 4.5), nên dòng kiểm "đọc lại I1
+  A2 có chuỗi" có thể ra `True` dù request gửi lại bị vỡ dấu. Chốt: đổi địa điểm khung 1 của `$body2` thành
+  `"Phòng họp Hồ Gươm, tầng 5"` (không có trong seed); dòng kiểm nhóm 2 tìm đúng chuỗi này trong I1 của A2 và in
+  `True`/`False`; "Mong đợi" sửa theo.
+- **L14 (mục 4.5, R-C1) — câu trong mẫu giấy mời của seed test.** Mẫu `interview_templates` của `seed-test.sql` có câu
+  "theo thời gian và địa điểm ghi trong thư này" — sai với R-C1 (khung giờ lưu và hiển thị tách khỏi thư, không chèn vào
+  thư). Chốt: đổi câu trong **mẫu** thành "theo một trong các khung giờ phỏng vấn được gửi kèm"; giấy mời **đã gửi** trong
+  seed (mục 11 của `seed-test.sql`) giữ nguyên câu cũ vì nội dung đã gửi bất biến (R-C2). Đã chạy lại
+  `reset-test-data.sql` + `seed-test.sql` không lỗi (6 mẫu mang câu mới; 4 giấy mời đã gửi giữ câu cũ).

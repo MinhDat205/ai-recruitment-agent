@@ -1,6 +1,6 @@
 # FR-H12 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT (13/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (14/10/2026). Duyệt: 13/10/2026.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1h (vùng chạm), 3 (Tabs, Dialog, nút), 4 (không phán quyết; dữ
 liệu thiếu), 5 (rỗng/tải/lỗi), 6 (tương phản). Mã `R-…`, `I1`–`I4`, `Q…`, `B…` là của `REQUIREMENT.md` cùng thư mục.
@@ -8,7 +8,7 @@ Khung trang hồ sơ đơn (FR-H09) và trang chi tiết đơn (FR-U08) không c
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT (13/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (14/10/2026). Duyệt: 13/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

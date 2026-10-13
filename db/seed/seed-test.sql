@@ -244,6 +244,9 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------------------
 -- 6. Mau giay moi phong van (1/tin) - dung placeholder that cua
 --    InterviewInvitationService: {{candidateName}}, {{jobTitle}}, {{companyName}}.
+--    FR-H12 (R-C1, L14): khung gio luu TACH khoi thu - mau chi nhac "cac khung gio duoc gui
+--    kem", khong noi thoi gian/dia diem nam trong thu. Giay moi DA GUI o muc 11 giu nguyen
+--    van cau cu (noi dung da gui bat bien).
 -- ---------------------------------------------------------------------------
 
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address, created_at, updated_at)
@@ -253,7 +256,7 @@ SELECT ('e5000000-0000-0000-0000-00000000000' || n)::uuid,
        'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
        'Kính gửi {{candidateName}},' || E'\n\n'
        || 'Cảm ơn bạn đã ứng tuyển vị trí {{jobTitle}} tại {{companyName}}. Chúng tôi trân trọng mời '
-       || 'bạn tham gia buổi phỏng vấn theo thời gian và địa điểm ghi trong thư này.' || E'\n\n'
+       || 'bạn tham gia buổi phỏng vấn theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
        || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
        || 'Trân trọng,',
        'Minh Đạt', 'Trưởng nhóm Tuyển dụng',
