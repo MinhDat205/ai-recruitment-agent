@@ -268,6 +268,59 @@ abstract class JobDraftIntegrationTestSupport {
         }
     }
 
+    // ---- HTTP J2 ----
+
+    static final String SAVE_PATH = "/api/hr/job-ai-drafts/save";
+
+    // Than J2 hop le mac dinh (khong tieu chi, khong cau hoi, khong token) - test tu them/ghi de.
+    static Map<String, Object> saveBody() {
+        Map<String, Object> job = new LinkedHashMap<>();
+        job.put("title", "Lập trình viên Java Backend");
+        job.put("description", "Phát triển API với Spring Boot.");
+        job.put("requirements", "2 năm kinh nghiệm Java.");
+        job.put("categoryCode", "IT_SOFTWARE");
+        job.put("locationCode", "DA_NANG");
+        job.put("employmentType", "FULL_TIME");
+        job.put("workMode", "ONSITE");
+        job.put("salaryMin", 15000000);
+        job.put("salaryMax", 20000000);
+        Map<String, Object> template = new LinkedHashMap<>();
+        template.put("subject", "Thư mời phỏng vấn");
+        template.put("body", "Kính mời bạn tham dự phỏng vấn.");
+        template.put("senderName", "Phòng Nhân sự");
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("job", job);
+        body.put("benefits", null);
+        body.put("interviewTemplate", template);
+        body.put("criteria", new ArrayList<>());
+        body.put("screeningQuestions", new ArrayList<>());
+        return body;
+    }
+
+    static Map<String, Object> criterionInput(String name, String description, Object weight) {
+        Map<String, Object> criterion = new LinkedHashMap<>();
+        criterion.put("name", name);
+        criterion.put("description", description);
+        criterion.put("weight", weight);
+        return criterion;
+    }
+
+    static Map<String, Object> questionInput(String type, String text, List<String> options, Boolean required) {
+        Map<String, Object> question = question(type, text, options);
+        question.put("required", required);
+        return question;
+    }
+
+    // body: Map (doi sang JSON) hoac String (gui nguyen van - JSON hong).
+    MvcResult postSave(String token, Object body) throws Exception {
+        String json = body instanceof String raw ? raw : JSON.writeValueAsString(body);
+        var request = post(SAVE_PATH).contentType(MediaType.APPLICATION_JSON).content(json);
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        return mockMvc.perform(request).andReturn();
+    }
+
     Map<String, Long> rowCounts() {
         Map<String, Long> counts = new LinkedHashMap<>();
         for (String table : WRITE_TABLES) {

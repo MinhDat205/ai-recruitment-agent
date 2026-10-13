@@ -1,8 +1,13 @@
 package com.recruitment.jobdraft;
 
+import com.recruitment.job.dto.JobOwnerResponse;
 import com.recruitment.jobdraft.dto.JobAiDraftRequest;
 import com.recruitment.jobdraft.dto.JobAiDraftResponse;
+import com.recruitment.jobdraft.dto.JobAiDraftSaveRequest;
+import jakarta.validation.Valid;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,5 +31,14 @@ public class JobAiDraftController {
     @PostMapping
     public JobAiDraftResponse generate(Authentication authentication, @RequestBody JobAiDraftRequest request) {
         return jobAiDraftFacade.generate(UUID.fromString(authentication.getName()), request);
+    }
+
+    // J2 - 201 JobOwnerResponse nhu POST /api/hr/jobs (R-L7). @Valid cho job + interviewTemplate (R-L4 (3)); khong goi AI,
+    // khong thuoc nhom rate limit ai-sync (R-K3H-6 - RateLimitFilter so khop chinh xac duong dan J1).
+    @PostMapping("/save")
+    public ResponseEntity<JobOwnerResponse> save(
+            Authentication authentication, @Valid @RequestBody JobAiDraftSaveRequest request) {
+        JobOwnerResponse saved = jobAiDraftFacade.save(UUID.fromString(authentication.getName()), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 }

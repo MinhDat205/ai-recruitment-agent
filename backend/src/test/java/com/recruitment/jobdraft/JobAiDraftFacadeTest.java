@@ -50,7 +50,7 @@ class JobAiDraftFacadeTest {
                 List.of(new CatalogEntry("IT_SOFTWARE", "Công nghệ thông tin - Phần mềm", List.of())),
                 List.of(new CatalogEntry("DA_NANG", "Đà Nẵng", List.of())));
         return new JobAiDraftFacade(companyRepository, registry, service, new AiGenerationTokenCodec(SECRET, clock),
-                clock);
+                clock, null); // J1 khong dung JobAiDraftSaveService
     }
 
     private static JobDraftPayload payloadWithDeadline(LocalDate deadline) {

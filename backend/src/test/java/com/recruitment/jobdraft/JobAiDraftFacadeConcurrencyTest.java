@@ -84,7 +84,7 @@ class JobAiDraftFacadeConcurrencyTest {
                 List.of(new CatalogEntry("DA_NANG", "Đà Nẵng", List.of())));
         Clock clock = Clock.systemUTC();
         return new JobAiDraftFacade(companyRepository, registry, service, new AiGenerationTokenCodec(SECRET, clock),
-                clock);
+                clock, null); // J1 khong dung JobAiDraftSaveService
     }
 
     private static Resource prompt(String promptVersion) {

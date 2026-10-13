@@ -384,6 +384,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_JOB_DRAFT_REQUEST", ex.getMessage()));
     }
 
+    // FR-H11 R-W3, R-L4 (5)(6) - danh sach tieu chi/cau hoi cua J2 sai, kiem truoc transaction.
+    @ExceptionHandler(InvalidJobDraftSaveException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobDraftSave(InvalidJobDraftSaveException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_DRAFT_SAVE", ex.getMessage()));
+    }
+
     // FR-H11 R-K4-4 (K4) - token sieu du lieu AI khong hop le: 400, cau co dinh, khong noi ly do cu the.
     @ExceptionHandler(InvalidAiGenerationTokenException.class)
     public ResponseEntity<ErrorResponse> handleInvalidAiGenerationToken(InvalidAiGenerationTokenException ex) {

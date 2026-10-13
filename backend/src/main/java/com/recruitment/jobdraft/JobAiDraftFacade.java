@@ -13,24 +13,37 @@ import com.recruitment.catalog.CatalogTextNormalizer;
 import com.recruitment.common.exception.AiSyncFailedException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InvalidJobDraftRequestException;
+import com.recruitment.common.exception.InvalidJobDraftSaveException;
+import com.recruitment.common.exception.InvalidScreeningQuestionException;
+import com.recruitment.common.exception.RubricWeightExceededException;
 import com.recruitment.company.CompanyRepository;
+import com.recruitment.job.dto.JobCreateRequest;
+import com.recruitment.job.dto.JobOwnerResponse;
+import com.recruitment.job.dto.JobRequest;
 import com.recruitment.jobdraft.dto.CriteriaDraft;
 import com.recruitment.jobdraft.dto.CriteriaDraft.CriterionSuggestion;
 import com.recruitment.jobdraft.dto.JobAiDraftRequest;
 import com.recruitment.jobdraft.dto.JobAiDraftResponse;
+import com.recruitment.jobdraft.dto.JobAiDraftSaveRequest;
+import com.recruitment.jobdraft.dto.JobAiDraftSaveRequest.CriterionInput;
 import com.recruitment.jobdraft.dto.JobDraft;
 import com.recruitment.jobdraft.dto.JobDraft.MissingField;
 import com.recruitment.jobdraft.dto.PartResult;
 import com.recruitment.jobdraft.dto.QuestionsDraft;
 import com.recruitment.jobdraft.dto.QuestionsDraft.QuestionSuggestion;
+import com.recruitment.rubric.dto.RubricCriterionRequest;
 import com.recruitment.screening.ScreeningQuestionRules;
+import com.recruitment.screening.dto.ScreeningQuestionRequest;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -41,8 +54,9 @@ import java.util.concurrent.Future;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-// FR-H11 J1 - dieu phoi sinh ban nhap tin. KHONG @Transactional (R-K3H-3, CLAUDE.md muc 3c): tra cong ty chay trong
-// transaction ngan cua repository va dong truoc khi goi AI.
+// FR-H11 J1 - dieu phoi sinh ban nhap tin; J2 - kiem toan bo dau vao truoc transaction roi giao JobAiDraftSaveService.
+// KHONG @Transactional (R-K3H-3, CLAUDE.md muc 3c): tra cong ty chay trong transaction ngan cua repository va dong truoc
+// khi goi AI; transaction cua J2 nam o bean rieng JobAiDraftSaveService.
 //
 // Thu tu (R-A2), tat ca tren LUONG REQUEST: cong ty (404) -> description (R-N2) -> parts (R-N3) -> kiem transaction
 // (R-K3H-3) -> moi phan duoc yeu cau chay tren mot virtual thread (R-K3H-2). Moi loi truoc buoc song song khong goi AI.
@@ -59,6 +73,13 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class JobAiDraftFacade {
 
     static final int MAX_DESCRIPTION_LENGTH = 3000;
+    // J2 - Q16; bien trong so va do dai ten cung RubricCriterionRequest cua FR-H03 (b4).
+    static final int MAX_SAVED_CRITERIA = 10;
+    static final int MAX_CRITERION_NAME_LENGTH = 200;
+    static final BigDecimal MIN_WEIGHT = new BigDecimal("0.01");
+    static final BigDecimal MAX_WEIGHT = new BigDecimal("100");
+    // R-P7
+    static final String BENEFITS_HEADING = "\n\nQuyền lợi:\n";
     // R-P4 - "hom nay" theo gio Viet Nam, lay tu bean Clock.
     static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final String WORK_MODE_REMOTE = "REMOTE";
@@ -68,6 +89,7 @@ public class JobAiDraftFacade {
     private final JobAiDraftService jobAiDraftService;
     private final AiGenerationTokenCodec tokenCodec;
     private final Clock clock;
+    private final JobAiDraftSaveService saveService;
     // Danh muc nganh bat bien (CatalogRegistry nap mot lan) - doi sang kieu cua ai/jobdraft mot lan.
     private final List<IndustryOption> industryOptions;
 
@@ -76,12 +98,14 @@ public class JobAiDraftFacade {
             CatalogRegistry catalogRegistry,
             JobAiDraftService jobAiDraftService,
             AiGenerationTokenCodec tokenCodec,
-            Clock clock) {
+            Clock clock,
+            JobAiDraftSaveService saveService) {
         this.companyRepository = companyRepository;
         this.catalogRegistry = catalogRegistry;
         this.jobAiDraftService = jobAiDraftService;
         this.tokenCodec = tokenCodec;
         this.clock = clock;
+        this.saveService = saveService;
         this.industryOptions = catalogRegistry.industries().stream()
                 .map(entry -> new IndustryOption(entry.code(), entry.label()))
                 .toList();
@@ -106,6 +130,106 @@ public class JobAiDraftFacade {
                     executor, parts.contains(JobDraftPart.QUESTIONS), () -> draftQuestions(ownerId, description));
         }
         return new JobAiDraftResponse(resultOf(job), resultOf(criteria), resultOf(questions));
+    }
+
+    // ---- J2 - luu nhap ----
+
+    // R-L4 - (1)(2)(3) da xong o filter/controller (@Valid). Day: (4) cong ty -> (5) tieu chi (R-W3) -> (6) cau hoi ->
+    // (7) token K4 (R-K4-4); dung o loi dau tien, chua ghi gi. Chi khi qua het moi vao MOT transaction (R-L1).
+    public JobOwnerResponse save(UUID ownerId, JobAiDraftSaveRequest request) {
+        requireCompany(ownerId);
+        List<RubricCriterionRequest> criteria = checkedCriteria(request.criteria());
+        List<ScreeningQuestionRequest> questions = checkedQuestions(request.screeningQuestions());
+        Map<JobDraftPart, AiGenerationStamp> stamps = new EnumMap<>(JobDraftPart.class);
+        verifyToken(stamps, request.jobToken(), ownerId, JobDraftPart.JOB);
+        verifyToken(stamps, request.criteriaToken(), ownerId, JobDraftPart.CRITERIA);
+        verifyToken(stamps, request.questionsToken(), ownerId, JobDraftPart.QUESTIONS);
+
+        JobCreateRequest job = new JobCreateRequest(withBenefits(request.job(), request.benefits()),
+                request.interviewTemplate());
+        return saveService.save(ownerId, new JobAiDraftSaveService.PreparedDraft(job, criteria, questions, stamps));
+    }
+
+    // R-P7 - ghep quyen loi XAC DINH vao mo ta o backend; benefits rong -> mo ta giu nguyen.
+    static JobRequest withBenefits(JobRequest job, String benefits) {
+        if (benefits == null || benefits.isBlank()) {
+            return job;
+        }
+        String description = job.description().strip() + BENEFITS_HEADING + benefits.strip();
+        return new JobRequest(job.title(), description, job.requirements(), job.categoryCode(), job.locationCode(),
+                job.employmentType(), job.workMode(), job.salaryMin(), job.salaryMax(), job.salaryCurrency(),
+                job.deadline());
+    }
+
+    // R-W3 theo thu tu: > 10 tieu chi; tung tieu chi (so thu tu 1-based): ten rong/> 200, trong so null, ngoai
+    // [0.01, 100] (cung bien RubricCriterionRequest - b4), ten trung (so NGUYEN VAN sau khi strip - khop
+    // uq_criterion_name_per_rubric); cuoi cung tong > 100 -> RUBRIC_WEIGHT_EXCEEDED (exception co san). L7: gia tri
+    // luu cung la gia tri da strip. Tong < 100 van luu duoc (R-W4).
+    static List<RubricCriterionRequest> checkedCriteria(List<CriterionInput> inputs) {
+        if (inputs.size() > MAX_SAVED_CRITERIA) {
+            throw InvalidJobDraftSaveException.tooManyCriteria();
+        }
+        List<RubricCriterionRequest> criteria = new ArrayList<>(inputs.size());
+        Set<String> names = new HashSet<>();
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 0; i < inputs.size(); i++) {
+            int index = i + 1;
+            CriterionInput input = inputs.get(i);
+            String name = input == null || input.name() == null ? "" : input.name().strip();
+            if (name.isEmpty()) {
+                throw InvalidJobDraftSaveException.criterionNameEmpty(index);
+            }
+            if (name.length() > MAX_CRITERION_NAME_LENGTH) {
+                throw InvalidJobDraftSaveException.criterionNameTooLong(index);
+            }
+            BigDecimal weight = input.weight();
+            if (weight == null) {
+                throw InvalidJobDraftSaveException.criterionWeightMissing(index);
+            }
+            if (weight.compareTo(MIN_WEIGHT) < 0 || weight.compareTo(MAX_WEIGHT) > 0) {
+                throw InvalidJobDraftSaveException.criterionWeightOutOfRange(index);
+            }
+            if (!names.add(name)) {
+                throw InvalidJobDraftSaveException.criterionNameDuplicate(index);
+            }
+            total = total.add(weight);
+            criteria.add(new RubricCriterionRequest(name, text(input.description()), null, weight, null, i));
+        }
+        if (total.compareTo(MAX_WEIGHT) > 0) {
+            throw new RubricWeightExceededException(total);
+        }
+        return criteria;
+    }
+
+    // R-L4 (6), R-Q4 - <= 10 cau; tung cau: loai null -> cau rieng (J2 khong @Valid tung phan tu), roi quy tac FR-H10
+    // qua ScreeningQuestionRules (khong chep so). Gui nguyen request cho ScreeningQuestionOwnerService.add (no tu chuan
+    // hoa lai); required giu dung gia tri HR chon.
+    static List<ScreeningQuestionRequest> checkedQuestions(List<ScreeningQuestionRequest> questions) {
+        if (questions.size() > ScreeningQuestionRules.MAX_QUESTIONS) {
+            throw InvalidJobDraftSaveException.tooManyQuestions();
+        }
+        for (int i = 0; i < questions.size(); i++) {
+            int index = i + 1;
+            ScreeningQuestionRequest question = questions.get(i);
+            if (question == null || question.questionType() == null) {
+                throw InvalidJobDraftSaveException.questionTypeMissing(index);
+            }
+            try {
+                ScreeningQuestionRules.normalize(question.questionType(), question.questionText(), question.options());
+            } catch (InvalidScreeningQuestionException violation) {
+                throw InvalidJobDraftSaveException.questionInvalid(index, violation.violation());
+            }
+        }
+        return List.copyOf(questions);
+    }
+
+    // R-K4-4 - null = phan do khong dung; khac null thi phai hop le hoan toan (dung chu ky, typ, han, sub = HR dang goi,
+    // purpose = dung o), sai -> 400 INVALID_AI_GENERATION_TOKEN, khong ghi gi. Khong co nhanh "bo qua token sai".
+    private void verifyToken(
+            Map<JobDraftPart, AiGenerationStamp> stamps, String token, UUID ownerId, JobDraftPart part) {
+        if (token != null) {
+            stamps.put(part, tokenCodec.verify(token, ownerId, part.tokenPurpose()));
+        }
     }
 
     // ---- kiem dau vao (luong request) ----
