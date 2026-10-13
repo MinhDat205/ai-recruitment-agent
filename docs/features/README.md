@@ -1,11 +1,11 @@
 # Chức năng bổ sung — thứ tự thực hiện và mô tả định hướng
 
 > Đọc file này ở ĐẦU mỗi phiên làm một FR bổ sung, TRƯỚC khi đọc REQUIREMENT.md của FR đó.
-> Cập nhật: 29/09/2026.
+> Cập nhật: 14/10/2026.
 
 ## 0. Cách dùng file này
 
-- File này cho biết **toàn cảnh**: 21 FR bổ sung, thứ tự làm, FR nào dựa vào FR nào, và mỗi FR định làm gì. Mục đích: khi làm một FR, biết nó nằm ở đâu trong tổng thể, không làm lấn sang FR khác, không làm thiếu phần mà FR sau cần.
+- File này cho biết **toàn cảnh**: 20 FR bổ sung, thứ tự làm, FR nào dựa vào FR nào, và mỗi FR định làm gì. Mục đích: khi làm một FR, biết nó nằm ở đâu trong tổng thể, không làm lấn sang FR khác, không làm thiếu phần mà FR sau cần.
 - File này là **mô tả định hướng**, KHÔNG phải đặc tả để code. Nguồn sự thật khi code là `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md` ở trạng thái `ĐÃ DUYỆT`.
 - **Mâu thuẫn giữa file này và REQUIREMENT.md/UI.md đã duyệt → REQUIREMENT.md/UI.md thắng.** Báo ra chỗ mâu thuẫn, không tự sửa file này cho khớp.
 - Chưa có REQUIREMENT.md đã duyệt → KHÔNG code, dù file này đã mô tả khá chi tiết (CLAUDE.md §6).
@@ -28,10 +28,10 @@ Chi tiết: `docs/SRS.md` mục "Nguyên tắc bổ sung cho các chức năng m
 
 | Mã | Thành phần | Xây lần đầu ở | Dùng bởi |
 |---|---|---|---|
-| K1 | Bộ gom ngữ cảnh CV theo vai trò | FR-C07 | C07, C08, H13, H15 |
-| K2 | Bộ kiểm tra trích dẫn nguyên văn | FR-C08 | FR-H04, C08, H13 |
-| K3 | Gọi AI đồng bộ có giới hạn thời gian | FR-C07 | C07, C08, H11, H13, H15, U12, U13 |
-| K4 | Siêu dữ liệu kết quả AI | FR-H11 | H11, H13, H15 |
+| K1 | Bộ gom ngữ cảnh CV theo vai trò | FR-C07 | C07, C08, H12, H15 |
+| K2 | Bộ kiểm tra trích dẫn nguyên văn | FR-C08 | FR-H04, C08 |
+| K3 | Gọi AI đồng bộ có giới hạn thời gian | FR-C07 | C07, C08, H11, H15, U12, U13 |
+| K4 | Siêu dữ liệu kết quả AI | FR-H11 | H11, H15 |
 
 ## 3. Thứ tự thực hiện
 
@@ -87,9 +87,8 @@ Làm tuần tự từ trên xuống. Mỗi FR chỉ bắt đầu khi mọi mục
 | # | Mã | Tên | Nhánh | Phụ thuộc |
 |---|---|---|---|---|
 | 14 | FR-C08 | Hỏi đáp CV có trích dẫn | `feat/fr-c08-cv-qa` | FR-C04, FR-H09 |
-| 15 | FR-H13 | Tạo câu hỏi phỏng vấn riêng cho từng CV | `feat/fr-h13-interview-questions` | FR-H09 |
-| 16 | FR-H14 | So sánh song song 2–3 ứng viên | `feat/fr-h14-compare` | FR-H05, FR-H06, FR-H09 |
-| 17 | FR-H15 | Kho ứng viên (ghi chú, AI tóm tắt, bộ lọc) | `feat/fr-h15-talent-pool` | FR-H09, FR-C05, FR-U09 |
+| 15 | FR-H14 | So sánh song song 2–3 ứng viên | `feat/fr-h14-compare` | FR-H05, FR-H06, FR-H09 |
+| 16 | FR-H15 | Kho ứng viên (ghi chú, AI tóm tắt, bộ lọc) | `feat/fr-h15-talent-pool` | FR-H09, FR-C05, FR-U09 |
 
 **Xong phase khi:** Mọi trích dẫn hiển thị đều đã qua K2; FR-H04 chuyển sang dùng K2 mà toàn bộ test cũ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 
@@ -97,10 +96,10 @@ Làm tuần tự từ trên xuống. Mỗi FR chỉ bắt đầu khi mọi mục
 
 | # | Mã | Tên | Nhánh | Phụ thuộc |
 |---|---|---|---|---|
-| 18 | FR-U11 | Thống kê hoạt động ứng tuyển cá nhân | `feat/fr-u11-stats` | FR-U03 |
-| 19 | FR-U12 | Tạo CV (CV builder) | `feat/fr-u12-cv-builder` | FR-U01, FR-C04 |
-| 20 | FR-U13 | Tìm kiếm việc làm bằng ngôn ngữ tự nhiên | `feat/fr-u13-nl-search` | FR-U07, FR-U15, FR-C05 |
-| 21 | FR-H16 | Chế độ ẩn danh khi duyệt hồ sơ | `feat/fr-h16-blind` | FR-H09, FR-H14, FR-C08 |
+| 17 | FR-U11 | Thống kê hoạt động ứng tuyển cá nhân | `feat/fr-u11-stats` | FR-U03 |
+| 18 | FR-U12 | Tạo CV (CV builder) | `feat/fr-u12-cv-builder` | FR-U01, FR-C04 |
+| 19 | FR-U13 | Tìm kiếm việc làm bằng ngôn ngữ tự nhiên | `feat/fr-u13-nl-search` | FR-U07, FR-U15, FR-C05 |
+| 20 | FR-H16 | Chế độ ẩn danh khi duyệt hồ sơ | `feat/fr-h16-blind` | FR-H09, FR-H14, FR-C08 |
 
 **Xong phase khi:** Bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu ứng viên nhập.
 
@@ -280,7 +279,7 @@ Gom mọi thông tin và thao tác về một đơn ứng tuyển vào một mà
 - Từ danh sách xếp hạng của Job, danh sách Ứng viên hoặc thông báo → mở hồ sơ đơn.
 - Ba tab: CV & điểm (file CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí, evidence, nút Chấm điểm hồ sơ), Giải thích (FR-H06), Lịch sử trạng thái.
 - Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07).
-- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Câu hỏi phỏng vấn (H13), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
+- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Giấy mời phỏng vấn (H12), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
 
 **Hệ thống**
 
@@ -320,7 +319,7 @@ Từ Đơn của tôi hoặc thông báo → mở chi tiết đơn → xem thôn
 **Hệ thống**
 
 - Bổ sung API chi tiết đơn phía ứng viên, kiểm tra quyền sở hữu.
-- Không trả điểm, rubric, giải thích AI, ghi chú, câu hỏi phỏng vấn hay thông tin kho.
+- Không trả điểm, rubric, giải thích AI, ghi chú hay thông tin kho.
 - Rút đồng ý (FR-U09 thêm vào trang này; phần xoá khỏi kho do FR-H15): đặt lại cờ đồng ý lưu hồ sơ của đơn, ghi thời điểm, xoá đơn khỏi mọi kho ứng viên. Rút đồng ý là một chiều, không bật lại được cho đơn đã nộp.
 
 **AI**
@@ -403,7 +402,7 @@ Giúp hai bên soạn nhanh tin nhắn/email nhất quán, không phải viết 
 **Hệ thống**
 
 - Dựng ngữ cảnh qua K1, chỉ gồm dữ liệu được phép chia sẻ giữa hai bên: tên ứng viên, tên Job, tên công ty, trạng thái đơn hiện tại, lịch phỏng vấn đã gửi và vài tin gần nhất của cuộc trao đổi.
-- Điểm số, rubric, giải thích AI, ghi chú nội bộ và câu hỏi phỏng vấn không được đưa vào ngữ cảnh.
+- Điểm số, rubric, giải thích AI và ghi chú nội bộ không được đưa vào ngữ cảnh.
 - Gọi AI theo K3. Bản nháp không được lưu; chỉ tin đã gửi được lưu qua C06.
 
 **AI**
@@ -655,42 +654,7 @@ Câu trả lời có trích dẫn đã được kiểm chứng; lịch sử hỏ
 
 Một CV cho mỗi cuộc hỏi đáp; không hỏi trên danh sách CV, không truy vấn thống kê, không thao tác thay người dùng.
 
-### 15. FR-H13 — Tạo câu hỏi phỏng vấn riêng cho từng CV
-
-- **Phase:** 2.5 · **Nhánh:** `feat/fr-h13-interview-questions` · **Phía sử dụng:** HR
-- **Đặc tả chi tiết:** `docs/features/HR/H13/REQUIREMENT.md`, `UI.md`
-- **Phụ thuộc:** FR-H09
-- **Màn hình (UI_GUIDE mục 7):** Tab Câu hỏi phỏng vấn ở ★`/hr/applications/:id`.
-
-**Mục đích**
-
-Giúp HR chuẩn bị phỏng vấn đúng trọng tâm, đào sâu điểm mạnh và khoảng trống của từng ứng viên.
-
-**Người dùng thao tác**
-
-HR mở hồ sơ đơn (H09) → tab Câu hỏi phỏng vấn → bấm Tạo câu hỏi → chọn số lượng → xem, sửa, xoá, thêm câu hỏi → Lưu.
-
-**Hệ thống**
-
-Dựng ngữ cảnh qua K1 gồm CV đã trích xuất, mô tả/yêu cầu Job, rubric và kết quả chấm (nếu có); gọi AI theo K3. Đoạn CV liên quan của mỗi câu hỏi được kiểm tra qua K2. Lưu bộ câu hỏi theo đơn kèm siêu dữ liệu K4. Chỉ tạo được khi CV đã trích xuất thành công.
-
-**AI**
-
-Sinh câu hỏi gắn với từng tiêu chí rubric; mỗi câu kèm lý do đặt câu hỏi và đoạn CV liên quan (ví dụ kiểm chứng một dự án, làm rõ một kỹ năng còn thiếu minh chứng).
-
-**Kết quả**
-
-Danh sách câu hỏi phỏng vấn theo tiêu chí, HR chỉnh sửa và lưu lại cho buổi phỏng vấn.
-
-**Lưu ý**
-
-Câu hỏi là dữ liệu nội bộ, không gửi cho ứng viên và không đưa vào ngữ cảnh của C07. Không sinh câu hỏi về thông tin cá nhân nhạy cảm. Không đánh giá hay dự đoán kết quả phỏng vấn.
-
-**Phạm vi**
-
-Tạo và lưu câu hỏi cho từng đơn.
-
-### 16. FR-H14 — So sánh song song 2–3 ứng viên
+### 15. FR-H14 — So sánh song song 2–3 ứng viên
 
 - **Phase:** 2.5 · **Nhánh:** `feat/fr-h14-compare` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H14/REQUIREMENT.md`, `UI.md`
@@ -725,7 +689,7 @@ Không đánh dấu "người thắng", không tô màu đỏ–vàng–xanh the
 
 So sánh trong phạm vi một Job; chưa so sánh giữa các Job.
 
-### 17. FR-H15 — Kho ứng viên (ghi chú, AI tóm tắt, bộ lọc)
+### 16. FR-H15 — Kho ứng viên (ghi chú, AI tóm tắt, bộ lọc)
 
 - **Phase:** 2.5 · **Nhánh:** `feat/fr-h15-talent-pool` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H15/REQUIREMENT.md`, `UI.md`
@@ -766,7 +730,7 @@ Kho và ghi chú là dữ liệu nội bộ, ứng viên không xem được. B�
 
 Chỉ gồm đơn đã nộp vào công ty và có đồng ý lưu hồ sơ; không có kho CV công khai; không liên hệ hàng loạt.
 
-### 18. FR-U11 — Thống kê hoạt động ứng tuyển cá nhân
+### 17. FR-U11 — Thống kê hoạt động ứng tuyển cá nhân
 
 - **Phase:** 2.6 · **Nhánh:** `feat/fr-u11-stats` · **Phía sử dụng:** Ứng viên
 - **Đặc tả chi tiết:** `docs/features/UV/U11/REQUIREMENT.md`, `UI.md`
@@ -801,7 +765,7 @@ Chỉ hiển thị dữ liệu của chính ứng viên, không so sánh hay x�
 
 Thống kê trên đơn của chính ứng viên; chưa so sánh với dữ liệu thị trường.
 
-### 19. FR-U12 — Tạo CV (CV builder)
+### 18. FR-U12 — Tạo CV (CV builder)
 
 - **Phase:** 2.6 · **Nhánh:** `feat/fr-u12-cv-builder` · **Phía sử dụng:** Ứng viên
 - **Đặc tả chi tiết:** `docs/features/UV/U12/REQUIREMENT.md`, `UI.md`
@@ -839,7 +803,7 @@ AI chỉ viết lại câu chữ, không thêm kinh nghiệm, kỹ năng, số l
 
 Tạo và sửa CV tạo từ form; chưa hỗ trợ sửa trực tiếp file PDF/DOCX đã upload.
 
-### 20. FR-U13 — Tìm kiếm việc làm bằng ngôn ngữ tự nhiên
+### 19. FR-U13 — Tìm kiếm việc làm bằng ngôn ngữ tự nhiên
 
 - **Phase:** 2.6 · **Nhánh:** `feat/fr-u13-nl-search` · **Phía sử dụng:** Ứng viên
 - **Đặc tả chi tiết:** `docs/features/UV/U13/REQUIREMENT.md`, `UI.md`
@@ -877,7 +841,7 @@ Không gán nhãn "Phù hợp/Không phù hợp", không dùng ngưỡng tương
 
 Tìm trong việc làm công khai đang OPEN. Khác gợi ý việc làm theo CV (FR-U04): đây là tìm kiếm chủ động theo mô tả ứng viên nhập.
 
-### 21. FR-H16 — Chế độ ẩn danh khi duyệt hồ sơ
+### 20. FR-H16 — Chế độ ẩn danh khi duyệt hồ sơ
 
 - **Phase:** 2.6 · **Nhánh:** `feat/fr-h16-blind` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H16/REQUIREMENT.md`, `UI.md`
@@ -930,3 +894,4 @@ Bật theo Job; chưa ẩn danh trong email/tin nhắn gửi ứng viên; không
 | AI nhận diện thông tin nhân thân (HR 11) | Thay bằng thay chuỗi xác định các giá trị liên hệ đã biết. |
 | FR-U04 chỉ gợi ý khi đã có CV trích xuất, hiển thị riêng ở trang Tổng quan | Mở rộng thành U15: gợi ý được cả khi chưa có CV (dựa trên hồ sơ U14), hiển thị ở trang Việc làm và trang Tổng quan, dùng chung bộ máy với U13 để chỉ còn một nguồn gợi ý. |
 | AI giải thích lý do phù hợp cho từng kết quả tìm kiếm (UV 3) | Mỗi kết quả tốn một lượt gọi AI. Thay bằng hiển thị điều kiện đã khớp. |
+| FR-H13 — AI tạo câu hỏi phỏng vấn riêng cho từng CV (loại ngày 14/10/2026, trước khi đặc tả) | Chủ động bỏ khỏi phạm vi. Mã FR-H13 không dùng lại; các mã khác giữ nguyên. HR tự chuẩn bị câu hỏi dựa trên tab CV & điểm, Giải thích (H06) và Hỏi đáp CV (C08). |

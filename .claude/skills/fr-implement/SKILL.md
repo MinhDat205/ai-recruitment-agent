@@ -1,6 +1,6 @@
 ---
 name: fr-implement
-description: Quy trình triển khai một mã yêu cầu chức năng (FR-C, FR-H, FR-U) của dự án AI Recruitment Agent, gồm cả 18 FR đã hoàn thành và 21 FR bổ sung đang đặc tả. Dùng khi người dùng nói "làm FR-xxx", "triển khai FR-xxx", "bắt đầu nhánh feat/fr-xxx", "bắt đầu feat/fr-u07-...", hoặc yêu cầu code một chức năng có mã FR.
+description: Quy trình triển khai một mã yêu cầu chức năng (FR-C, FR-H, FR-U) của dự án AI Recruitment Agent, gồm cả 18 FR đã hoàn thành và 20 FR bổ sung đang đặc tả. Dùng khi người dùng nói "làm FR-xxx", "triển khai FR-xxx", "bắt đầu nhánh feat/fr-xxx", "bắt đầu feat/fr-u07-...", hoặc yêu cầu code một chức năng có mã FR.
 ---
 
 # Triển khai một mã FR

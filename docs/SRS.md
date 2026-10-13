@@ -1,7 +1,7 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này phản ánh hệ thống đã hoàn thành, cập nhật lần gần nhất ngày 29/09/2026. Các quyết
+> Đặc tả này phản ánh hệ thống đã hoàn thành, cập nhật lần gần nhất ngày 14/10/2026. Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
@@ -11,8 +11,8 @@ Tài liệu này tổ chức lại toàn bộ yêu cầu chức năng theo 3 nh�
 # 0. Tổng quan hệ thống
 
 Nền tảng có hai vai trò sử dụng: **Nhà tuyển dụng (HR)** và **Ứng viên (Candidate)**. Tính đến thời
-điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng: **18 chức năng đã hoàn thành**
-(FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ ở Mục 1/2/3 bên dưới) và **21 chức năng bổ
+điểm cập nhật này, hệ thống có tổng cộng 38 mã yêu cầu chức năng: **18 chức năng đã hoàn thành**
+(FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ ở Mục 1/2/3 bên dưới) và **20 chức năng bổ
 sung đang ở giai đoạn đặc tả** (chưa được duyệt, chưa được code), mỗi chức năng có tài liệu chi
 tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 
@@ -38,7 +38,6 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR | Đã hoàn thành | [features/HR/H10/REQUIREMENT.md](features/HR/H10/REQUIREMENT.md) |
 | FR-H11 | AI tạo tin tuyển dụng | HR | Đã hoàn thành | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
 | FR-H12 | Giấy mời phỏng vấn nhiều khung giờ | HR | Đã hoàn thành | [features/HR/H12/REQUIREMENT.md](features/HR/H12/REQUIREMENT.md) |
-| FR-H13 | Câu hỏi phỏng vấn theo CV | HR | Chưa đặc tả | [features/HR/H13/REQUIREMENT.md](features/HR/H13/REQUIREMENT.md) |
 | FR-H14 | So sánh 2–3 ứng viên | HR | Chưa đặc tả | [features/HR/H14/REQUIREMENT.md](features/HR/H14/REQUIREMENT.md) |
 | FR-H15 | Kho ứng viên | HR | Chưa đặc tả | [features/HR/H15/REQUIREMENT.md](features/HR/H15/REQUIREMENT.md) |
 | FR-H16 | Chế độ ẩn danh | HR | Chưa đặc tả | [features/HR/H16/REQUIREMENT.md](features/HR/H16/REQUIREMENT.md) |
@@ -57,6 +56,9 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Ứng viên | Chưa đặc tả | [features/UV/U13/REQUIREMENT.md](features/UV/U13/REQUIREMENT.md) |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Ứng viên | Đã hoàn thành | [features/UV/U14/REQUIREMENT.md](features/UV/U14/REQUIREMENT.md) |
 | FR-U15 | Gợi ý việc làm theo hồ sơ | Ứng viên | Đã hoàn thành | [features/UV/U15/REQUIREMENT.md](features/UV/U15/REQUIREMENT.md) |
+
+> FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026, trước khi đặc tả. Mã FR-H13 không
+> dùng lại; các mã khác giữ nguyên. Lý do: `docs/features/README.md` mục 5.
 
 # 1. Chức năng chung (Common Functions)
 
@@ -101,7 +103,6 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR đặt câu hỏi ngắn/lựa chọn/có-không cho Job; không tự loại, không đưa vào chấm điểm | HR | FR-H02, FR-H09 |
 | FR-H11 | AI tạo tin tuyển dụng | Từ mô tả tự do sinh bản nháp Job, gợi ý tiêu chí rubric và câu hỏi sàng lọc; trọng số do HR nhập | HR | FR-H02, FR-H03, FR-C05, FR-H10 |
 | FR-H12 | Giấy mời phỏng vấn nhiều khung giờ | Giấy mời có 1–5 khung giờ để ứng viên chọn; thêm thao tác gửi lại giấy mời | HR | FR-H07, FR-C03 |
-| FR-H13 | Câu hỏi phỏng vấn theo CV | AI sinh câu hỏi theo từng tiêu chí rubric, kèm lý do và đoạn CV liên quan; HR sửa và lưu | HR | FR-H09 |
 | FR-H14 | So sánh 2–3 ứng viên | Bảng song song điểm, tiêu chí, kinh nghiệm, kỹ năng của các đơn cùng Job; không đánh dấu người thắng | HR | FR-H05, FR-H06, FR-H09 |
 | FR-H15 | Kho ứng viên | Lưu đơn đã được ứng viên đồng ý vào các kho, kèm ghi chú, AI tóm tắt và bộ lọc chuyên môn | HR | FR-H09, FR-C05, FR-U09 |
 | FR-H16 | Chế độ ẩn danh | Che thông tin nhân thân khi HR duyệt hồ sơ của một Job; tự bỏ khi mời phỏng vấn | HR | FR-H09, FR-H14, FR-C08 |

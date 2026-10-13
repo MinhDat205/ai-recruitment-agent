@@ -12,7 +12,7 @@ mật độ thông tin cao, bố cục dạng thẻ, xanh dương làm màu thư
 
 ## 0. Phạm vi áp dụng
 
-Bắt buộc cho mọi màn hình — cả 21 FR bổ sung lẫn màn hình cũ (đã đồng bộ ở
+Bắt buộc cho mọi màn hình — cả 20 FR bổ sung lẫn màn hình cũ (đã đồng bộ ở
 `refactor/ui-md3-legacy`). Khi làm FR mới, không tự sửa màn hình khác ngoài phạm vi trừ khi
 REQUIREMENT.md/UI.md đã duyệt yêu cầu.
 
@@ -245,8 +245,8 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 **Ô đồng ý lưu hồ sơ (FR-U09)**
 - Checkbox riêng, không tick sẵn, KHÔNG chặn nút "Nộp đơn"; ghi rõ có thể rút sau ở trang chi tiết đơn. Không gộp với ô consent AI.
 
-**Nội dung do AI tạo** (bản nháp tin nhắn, tin tuyển dụng nháp, tóm tắt, câu hỏi phỏng vấn, câu trả
-lời hỏi đáp CV, gợi ý diễn đạt): luôn có nhãn "Do AI tạo" + icon (lucide `Sparkles`), nằm trong
+**Nội dung do AI tạo** (bản nháp tin nhắn, tin tuyển dụng nháp, tóm tắt, câu trả lời
+hỏi đáp CV, gợi ý diễn đạt): luôn có nhãn "Do AI tạo" + icon (lucide `Sparkles`), nằm trong
 khối `m3-surface-container-high`, và chỉ có hiệu lực sau khi người dùng bấm (Dùng bản nháp / Lưu /
 Bỏ qua). Không có luồng tự gửi.
 - Khối AI = `bg-m3-surface-container-high` + viền `border border-m3-outline-variant` (bắt buộc: nền
@@ -254,7 +254,7 @@ Bỏ qua). Không có luồng tự gửi.
 - Chữ trong khối chỉ dùng `text-m3-on-surface` (13.06:1). KHÔNG dùng màu chữ phụ
   (`m3-on-surface-variant` chỉ đạt 4.30:1 trên nền này).
 
-**Trích dẫn từ CV** (C08, H13) dùng đúng kiểu hiển thị evidence của FR-H06 (mục "Màn hình giải
+**Trích dẫn từ CV** (C08) dùng đúng kiểu hiển thị evidence của FR-H06 (mục "Màn hình giải
 thích điểm" ở trên).
 
 **Lý do gợi ý/khớp** (U13, U15): chỉ là chip trung tính liệt kê điều kiện đã khớp. Không %, không
@@ -365,8 +365,7 @@ thêm lúc code.
 
 **Ghi chú `/hr/applications/:id`:** FR-H09 chỉ dựng 3 tab và thanh thao tác FR-H07, không dựng tab rỗng
 hay nút khoá trước. Các FR sau tự thêm phần của mình vào trang này trong đặc tả của chính FR đó và sửa
-dòng trên cùng đợt: Câu hỏi phỏng vấn (FR-H13), Hỏi đáp CV
-(FR-C08); nút Thêm vào kho (FR-H15); chế độ ẩn danh (FR-H16).
+dòng trên cùng đợt: Hỏi đáp CV (FR-C08); nút Thêm vào kho (FR-H15); chế độ ẩn danh (FR-H16).
 
 ---
 
