@@ -4,6 +4,7 @@
 >
 > Làm rõ sau Plan Mode 13/10/2026: L1–L10 (L1: mục 0.g5; L2: R-L1, T15b; L3: R-K3H-2; L4, L5: R-K4-2, T17; L6: mục 5.2;
 > L7: R-W3; L8: T22; L9: mục 7.3; L10: mục 9 đợt 1) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
+> L11 (13/10/2026): kết quả cổng đo AI thật cuối đợt 4 và chẩn đoán `AI_TIMEOUT` — mục 12.
 
 - Nhóm: HR
 - Tóm tắt: ở `/hr/jobs/new`, HR bấm "Tạo tin bằng AI", nhập mô tả tự do (vị trí, công việc, lương, địa điểm…).
@@ -922,6 +923,28 @@ Mọi câu đã chốt. Cột "Quyết định" là nội dung đặc tả đang
   (`SyncAiCaller.java:45-53`); `call` chỉ dùng biến cục bộ (`:57-84`). Kết luận: gọi đồng thời từ nhiều virtual thread an
   toàn, không cần khoá. Hành vi khi hết luồng và khi gọi từ virtual thread được chứng minh bằng T22, T23 (viết trước
   facade ở đợt 4).
+- **L11 (mục 5.1, R-K3H-2, R-K3H-4; cổng đo cuối đợt 4) — kết quả cổng đo AI thật, chẩn đoán `AI_TIMEOUT` (13/10/2026).**
+  Model `claude-sonnet-4-6`, trần 800, hạn K3 15 s.
+  - Gọi riêng từng phần qua backend, mô tả 7.2, mỗi phần 5 lần: 15/15 `SUCCEEDED`; trung vị JOB 5,2 s, CRITERIA 7,4 s,
+    QUESTIONS 5,5 s; chậm nhất 10,1 s.
+  - Gọi đủ ba phần song song qua backend, 24 request (4 lần đầu, gồm 1 lần mô tả 2994 ký tự, + 10 + 10 của lần chẩn
+    đoán): `AI_TIMEOUT` JOB 2/24, CRITERIA 3/24, QUESTIONS 0/24 — mọi phần ≤ 1/5, trung vị đạt → **cổng ĐẠT**. Không có
+    `AI_INVALID_OUTPUT`. Số request có một phần `AI_TIMEOUT`: 5/24 (riêng 20 request chẩn đoán: 2/20); chưa lần nào hai
+    phần cùng lỗi.
+  - Gọi thẳng Messages API (cùng prompt đã render, HTTP/1.1, mỗi lời gọi một kết nối): 30 lời gọi (5 lượt song song
+    + 5 lượt tuần tự × 3 phần), 30/30 HTTP 200, chậm nhất 8,6 s, 0 lần treo, không 429/529, hạn mức tài khoản còn dư
+    xa. Token đầu ra thật 270–389 (< 50% trần 800); input_tokens JOB 3271, CRITERIA 1795, QUESTIONS 1869. Ước tính
+    trước đó bằng `count_tokens` trên JSON trả về thấp hơn token thật khoảng 20–25%.
+  - Bằng chứng jstack (2 request bị treo, chụp 2 lần cách 2 s): luồng `ai-sync-*` chờ header phản hồi của một stream
+    HTTP/2 (`Http2Stream.takeHeaders`), trong `RetryingHttpClient.execute` nhưng không ở nhánh backoff/sleep. Ba lời
+    gọi của một request đi chung một kết nối HTTP/2 (một luồng đọc `OkHttp api.anthropic.com`); hai stream kia trả xong
+    trên chính kết nối đó. Đã loại trừ: job nền (0 câu UPDATE/INSERT của scheduler trong các lần đo; tắt mọi scheduler
+    vẫn có 2/10 timeout), executor K3, virtual thread, SDK thử lại ngầm.
+  - Chưa phân định được (i) do ghép stream HTTP/2 hay (ii) do độ trễ ngẫu nhiên phía Anthropic. **Quyết định:** giữ
+    nguyên thiết kế; không ép HTTP/1.1 — phải sửa bean `AnthropicChatModel` dùng chung (đụng D1/D2/D4/F2) hoặc thêm bean
+    thứ hai (trái hướng một bean `ChatModel` của C07 L1) khi chưa có bằng chứng.
+  - **Giới hạn đã biết:** một lần tạo đủ ba phần có thể có một phần `AI_TIMEOUT` (đo được 5/24 ≈ 1/5; riêng lần chẩn
+    đoán 2/20 = 1/10); HR bấm "Thử lại" phần đó (tốn thêm 1 lượt `ai-sync`).
 
 **Thứ tự đợt (khớp mục 9):** tách `ScreeningQuestionRules` đi cùng lớp AI ở đợt 3 (không cùng J2), vì validator phần
 QUESTIONS của J1 (R-Q2) đã cần nó. **Cổng đo thực nghiệm cuối đợt 4** (cần khoá API thật): J1 từng phần `[JOB]`,
