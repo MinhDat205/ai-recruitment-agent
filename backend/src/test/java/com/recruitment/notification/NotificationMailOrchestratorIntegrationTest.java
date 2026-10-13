@@ -227,4 +227,31 @@ class NotificationMailOrchestratorIntegrationTest {
 
         assertThat(sentMessage().getText()).isEqualTo(body);
     }
+
+    // ---- FR-H12 T21(a) (R-N3a) - email_body khac null -> email gui NGUYEN VAN email_body, tieu de = title. (b), (c) la
+    // hai test co san phia tren (L6), giu nguyen. ----
+
+    @Test
+    void processOne_emailBodyPresent_sendsEmailBodyExactly_subjectIsTitle() {
+        Fixture fixture = createFixture();
+        String body = "Giấy mời phỏng vấn vị trí \"Backend Developer\" vừa được gửi lại với lịch phỏng vấn mới. "
+                + "Xem chi tiết trong đơn ứng tuyển.";
+        String emailBody = body + "\n\nKhung giờ (giờ Việt Nam):\n1. 09:00 20/10/2026 — Tầng 3"
+                + "\n\nXem giấy mời tại: http://localhost:5173/candidate/applications/" + fixture.applicationId();
+        Notification notification = seedPending(
+                fixture.recipientId(),
+                fixture.applicationId(),
+                NotificationType.INTERVIEW_INVITATION_RESENT,
+                body,
+                "/candidate/applications/" + fixture.applicationId());
+        notification.setTitle("Nhà tuyển dụng đã gửi lại giấy mời phỏng vấn");
+        notification.setEmailBody(emailBody);
+        notification = notificationRepository.save(notification);
+
+        orchestrator.processOne(notification.getId());
+
+        SimpleMailMessage message = sentMessage();
+        assertThat(message.getText()).isEqualTo(emailBody);
+        assertThat(message.getSubject()).isEqualTo("Nhà tuyển dụng đã gửi lại giấy mời phỏng vấn");
+    }
 }

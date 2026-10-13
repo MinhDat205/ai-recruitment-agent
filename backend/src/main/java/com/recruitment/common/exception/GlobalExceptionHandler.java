@@ -252,6 +252,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_INTERVIEW_SCHEDULE", ex.getMessage()));
     }
 
+    // FR-H12 R-G2 - 409 (B1), xem InvitationResendNotAllowedException.
+    @ExceptionHandler(InvitationResendNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleInvitationResendNotAllowed(InvitationResendNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("INVITATION_RESEND_NOT_ALLOWED", ex.getMessage()));
+    }
+
     @ExceptionHandler(ResumeNotParsedException.class)
     public ResponseEntity<ErrorResponse> handleResumeNotParsed(ResumeNotParsedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -431,6 +438,14 @@ public class GlobalExceptionHandler {
         if (message != null && message.contains("uq_scoring_run_in_progress")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new ErrorResponse("SCORING_RUN_IN_PROGRESS", new ScoringRunInProgressException().getMessage()));
+        }
+        // uq_invitation_active (V16, FR-H12 R-F4, R-G6) - chot chan cuoi chong hai giay moi hieu luc cho mot don (vd du
+        // lieu ghi tay); luong gui lai binh thuong da tuan tu hoa bang khoa hang don (R-G3) nen khong cham toi day.
+        if (message != null && message.contains("uq_invitation_active")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse(
+                            "INTERVIEW_INVITATION_CONFLICT",
+                            "Giấy mời của đơn này vừa được thay đổi ở nơi khác. Vui lòng tải lại trang."));
         }
         throw ex;
     }

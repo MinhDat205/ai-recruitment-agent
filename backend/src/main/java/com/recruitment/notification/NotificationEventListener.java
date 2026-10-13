@@ -10,6 +10,7 @@ import com.recruitment.user.UserRepository;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -36,16 +37,19 @@ public class NotificationEventListener {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final String frontendBaseUrl;
 
     public NotificationEventListener(
             JobRepository jobRepository,
             CompanyRepository companyRepository,
             UserRepository userRepository,
-            NotificationRepository notificationRepository) {
+            NotificationRepository notificationRepository,
+            @Value("${app.frontend-base-url}") String frontendBaseUrl) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
         this.notificationRepository = notificationRepository;
+        this.frontendBaseUrl = frontendBaseUrl;
     }
 
     // AFTER_COMMIT chay SAU KHI transaction goc (vd ApplicationService.apply) da commit xong -
@@ -61,6 +65,22 @@ public class NotificationEventListener {
             save(event.candidateId(), NotificationType.APPLICATION_STATUS_CHANGED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao doi trang thai don: applicationId={}", event.applicationId(), e);
+        }
+    }
+
+    // FR-H12 R-N1 - mau onApplicationStatusChanged: AFTER_COMMIT + REQUIRES_NEW, loi KHONG vang ra ngoai. body va
+    // email_body dung MOT lan tu khung trong su kien (gia tri vua luu o transaction gui lai) - KHONG doc bang giay moi.
+    // Nguoi nhan la ung vien; gui lai KHONG tao thong bao cho HR.
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onInterviewInvitationResent(InterviewInvitationResentEvent event) {
+        try {
+            Job job = jobRepository.findById(event.jobId()).orElseThrow();
+            Content content = NotificationContentBuilder.forInvitationResent(
+                    job, event.slots(), event.applicationId(), frontendBaseUrl);
+            save(event.candidateId(), NotificationType.INTERVIEW_INVITATION_RESENT, content, event.applicationId());
+        } catch (RuntimeException e) {
+            log.error("Khong tao duoc thong bao gui lai giay moi: applicationId={}", event.applicationId(), e);
         }
     }
 
@@ -157,6 +177,7 @@ public class NotificationEventListener {
         n.setTitle(content.title());
         n.setBody(content.body());
         n.setLink(content.link());
+        n.setEmailBody(content.emailBody());
         n.setEntityType("APPLICATION");
         n.setEntityId(applicationId);
         n.setRead(false);

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 // /api/candidates/** da bi SecurityConfig chan hasRole("CANDIDATE") o tang filter chain, khong can
 // @PreAuthorize them - cung mau ApplicationCandidateController. Quyen so huu (don phai thuoc ve
-// candidate dang dang nhap) kiem rieng o InterviewInvitationService.getLatestInvitationForCandidate.
+// candidate dang dang nhap) kiem rieng o InterviewInvitationService.getActiveInvitationForCandidate.
 @RestController
 @RequestMapping("/api/candidates/applications/{applicationId}/interview-invitation")
 public class InterviewInvitationCandidateController {
@@ -24,6 +24,6 @@ public class InterviewInvitationCandidateController {
     @GetMapping
     public CandidateInterviewInvitationResponse get(Authentication authentication, @PathVariable UUID applicationId) {
         UUID candidateId = UUID.fromString(authentication.getName());
-        return interviewInvitationService.getLatestInvitationForCandidate(candidateId, applicationId);
+        return interviewInvitationService.getActiveInvitationForCandidate(candidateId, applicationId);
     }
 }

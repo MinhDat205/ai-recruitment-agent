@@ -4,11 +4,13 @@ import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InterviewInvitationNotFoundException;
 import com.recruitment.common.exception.InterviewTemplateNotFoundException;
-import com.recruitment.common.exception.InvalidInterviewScheduleException;
+import com.recruitment.common.exception.InvitationResendNotAllowedException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
+import com.recruitment.interviewinvitation.InterviewSlotValidator.ValidSlot;
 import com.recruitment.interviewinvitation.dto.CandidateInterviewInvitationResponse;
+import com.recruitment.interviewinvitation.dto.InterviewInvitationListResponse;
 import com.recruitment.interviewinvitation.dto.InterviewInvitationPreviewResponse;
 import com.recruitment.interviewinvitation.dto.InterviewInvitationResponse;
 import com.recruitment.interviewinvitation.dto.InterviewInvitationSendRequest;
@@ -18,12 +20,21 @@ import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.jobapplication.ApplicationStatusService;
+import com.recruitment.jobapplication.HrApplicationAccess;
 import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
+import com.recruitment.notification.InterviewInvitationResentEvent;
+import com.recruitment.notification.InterviewInvitationResentEvent.SlotInfo;
 import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +48,7 @@ public class InterviewInvitationService {
     // Placeholder toi thieu ho tro trong subject/body cua template - quy uoc MOI, chua co truoc do
     // trong repo (interview_templates.body la text tu do, khong co dong templating nao san). Ngay
     // gio phong van CO CHU DICH khong co placeholder o day - preview khong render/doi hoi ngay gio,
-    // HR dien qua field scheduledAt rieng o buoc gui (POST), khong nhet vao noi dung mau.
+    // HR dien qua danh sach khung gio rieng o buoc gui (POST), khong nhet vao noi dung mau (FR-H12 R-C1).
     private static final String PLACEHOLDER_CANDIDATE_NAME = "{{candidateName}}";
     private static final String PLACEHOLDER_JOB_TITLE = "{{jobTitle}}";
     private static final String PLACEHOLDER_COMPANY_NAME = "{{companyName}}";
@@ -50,6 +61,8 @@ public class InterviewInvitationService {
     private final InterviewInvitationRepository interviewInvitationRepository;
     private final InterviewInvitationSlotRepository slotRepository;
     private final ApplicationStatusService applicationStatusService;
+    private final HrApplicationAccess hrApplicationAccess;
+    private final ApplicationEventPublisher eventPublisher;
 
     public InterviewInvitationService(
             JobApplicationRepository jobApplicationRepository,
@@ -59,7 +72,9 @@ public class InterviewInvitationService {
             UserRepository userRepository,
             InterviewInvitationRepository interviewInvitationRepository,
             InterviewInvitationSlotRepository slotRepository,
-            ApplicationStatusService applicationStatusService) {
+            ApplicationStatusService applicationStatusService,
+            HrApplicationAccess hrApplicationAccess,
+            ApplicationEventPublisher eventPublisher) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
@@ -68,6 +83,8 @@ public class InterviewInvitationService {
         this.interviewInvitationRepository = interviewInvitationRepository;
         this.slotRepository = slotRepository;
         this.applicationStatusService = applicationStatusService;
+        this.hrApplicationAccess = hrApplicationAccess;
+        this.eventPublisher = eventPublisher;
     }
 
     // Chi doc, khong @Transactional - mau ApplicationOwnerService/ScoringRunService.listScoringRuns.
@@ -88,7 +105,13 @@ public class InterviewInvitationService {
         boolean mismatch = !template.getCompanyName().equals(company.getName());
 
         return new InterviewInvitationPreviewResponse(
-                subject, content, candidate.getFullName(), mismatch, template.getCompanyName(), company.getName());
+                subject,
+                content,
+                candidate.getFullName(),
+                mismatch,
+                template.getCompanyName(),
+                company.getName(),
+                InterviewSlotValidator.MAX_SLOTS);
     }
 
     @Transactional
@@ -100,9 +123,8 @@ public class InterviewInvitationService {
         // Job, khong co duong nao thieu no trong luong binh thuong).
         loadTemplate(job.getId());
 
-        if (!request.scheduledAt().isAfter(Instant.now())) {
-            throw new InvalidInterviewScheduleException();
-        }
+        // FR-H12 R-F1 - kiem khung (R-S8) TRUOC khi doi trang thai: dau vao sai thi khong ghi gi.
+        List<ValidSlot> slots = InterviewSlotValidator.validate(request.slots(), Instant.now());
 
         // Tai dung nguyen ven logic doi trang thai Dot 1: tu kiem don dang PENDING (khong thi 400
         // InvalidApplicationStatusTransitionException), tu ghi 1 dong application_status_history.
@@ -110,11 +132,82 @@ public class InterviewInvitationService {
         // HR gui, xem comment tren InterviewInvitationSendRequest.
         applicationStatusService.changeStatus(ownerId, applicationId, ApplicationStatus.INTERVIEW_INVITED);
 
-        // FR-H12 dot 2 (REQUIREMENT muc 12 L7) - than request cu giu nguyen, ghi thanh MOT khung da chot theo ba buoc
-        // L2: (1) giay moi CHUA co khung chot -> saveAndFlush; (2) khung -> saveAndFlush; (3) dat khung chot -> flush
-        // (UPDATE). Dat confirmedSlotId truoc buoc (2) thi INSERT giay moi (hoan toi flush) vi pham FK ghep
-        // fk_invitation_confirmed_slot. sentAt va confirmedAt cung MOT gia tri Instant (R-K1).
+        // FR-H12 R-F2 - gui lan dau KHONG phat them thong bao nao (thong bao doi trang thai do buoc doi trang thai ngay tren phat).
         Instant sentAt = Instant.now();
+        return createInvitation(applicationId, ownerId, request, slots, sentAt).response();
+    }
+
+    // FR-H12 I3 (R-G1..R-G6) - gui lai giay moi. MOT transaction ngan, DUNG thu tu R-G3 (bat buoc):
+    // (1) kiem quyen; (2) kiem khung; (3) khoa hang don + kiem INTERVIEW_INVITED trong CUNG mot cau UPDATE (0 dong -> 409);
+    // (4) lay now MOT lan; (5) danh dau giay moi hieu luc la cu (MOT cau UPDATE theo application_id); (6) tao giay moi moi +
+    // khung (ba buoc L2); (7) phat su kien thong bao.
+    // Khoa (3) PHAI chay TRUOC moi thao tac doc/danh dau giay moi hieu luc (5, 6): doc giay moi hieu luc truoc khi khoa thi
+    // hai lan gui lai dong thoi lam luot sau vi pham uq_invitation_active (muc 8). Buoc (1) chi doc don/Job/cong ty.
+    // KHONG goi ApplicationStatusService (khong doi trang thai), KHONG ghi lich su trang thai, KHONG doi mau giay moi ton
+    // tai (R-G1). KHONG khoa bang SELECT co menh de khoa hay annotation khoa cua JPA - chi cau UPDATE co dieu kien (Q2).
+    @Transactional
+    public InterviewInvitationResponse resendInvitation(
+            UUID ownerId, UUID applicationId, InterviewInvitationSendRequest request) {
+        HrApplicationAccess.OwnedApplication owned = hrApplicationAccess.loadOwned(ownerId, applicationId); // (1)
+        // (2) Moc rieng cho kiem "tuong lai" (R-S4) - buoc nay chay truoc khoa nen khong dung duoc moc cua buoc (4).
+        List<ValidSlot> slots = InterviewSlotValidator.validate(request.slots(), Instant.now());
+
+        if (jobApplicationRepository.lockIfInterviewInvited(applicationId) == 0) { // (3)
+            throw new InvitationResendNotAllowedException();
+        }
+
+        Instant now = Instant.now(); // (4) - dung cho CA superseded_at cua giay moi cu LAN sent_at cua giay moi moi
+        // (5) 0 dong van tiep tuc: don INTERVIEW_INVITED khong co giay moi chi co the do du lieu ghi tay.
+        interviewInvitationRepository.markActiveSuperseded(applicationId, now);
+
+        CreatedInvitation created = createInvitation(applicationId, ownerId, request, slots, now); // (6)
+
+        // (7) Gia tri khung VUA LUU (da cat phut, da strip) - listener dung email tu day, khong doc lai bang giay moi.
+        List<SlotInfo> slotInfos = created.slots().stream()
+                .map(slot -> new SlotInfo(slot.getScheduledAt(), slot.getLocation()))
+                .toList();
+        JobApplication application = owned.application();
+        eventPublisher.publishEvent(new InterviewInvitationResentEvent(
+                applicationId, application.getJobId(), application.getCandidateId(), slotInfos));
+
+        return created.response();
+    }
+
+    // FR-H12 I1 (R-A2) - moi giay moi cua don, hieu luc truoc roi giay moi cu theo superseded_at giam dan; khung theo
+    // display_order. Don chua co giay moi -> 200 danh sach rong (khong 404). Khong loc theo trang thai don/Job.
+    // Chi doc, khong @Transactional - cung mau previewInvitation.
+    public InterviewInvitationListResponse listInvitations(UUID ownerId, UUID applicationId) {
+        hrApplicationAccess.loadOwned(ownerId, applicationId);
+
+        List<InterviewInvitation> invitations =
+                new ArrayList<>(interviewInvitationRepository.findByApplicationId(applicationId));
+        invitations.sort(Comparator.comparing(
+                        InterviewInvitation::getSupersededAt, Comparator.nullsFirst(Comparator.<Instant>reverseOrder()))
+                .thenComparing(InterviewInvitation::getSentAt, Comparator.nullsLast(Comparator.<Instant>reverseOrder())));
+
+        Map<UUID, List<InterviewInvitationSlot>> slotsByInvitation = invitations.isEmpty()
+                ? Map.of()
+                : slotRepository
+                        .findByInvitationIdInOrderByDisplayOrderAsc(
+                                invitations.stream().map(InterviewInvitation::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(InterviewInvitationSlot::getInvitationId));
+
+        List<InterviewInvitationResponse> items = invitations.stream()
+                .map(i -> toResponse(i, slotsByInvitation.getOrDefault(i.getId(), List.of())))
+                .toList();
+        return new InterviewInvitationListResponse(applicationId, InterviewSlotValidator.MAX_SLOTS, items);
+    }
+
+    private record CreatedInvitation(InterviewInvitationResponse response, List<InterviewInvitationSlot> slots) {
+    }
+
+    // FR-H12 R-K1/R-K2 - ghi theo BA buoc (muc 12 L2): (1) giay moi CHUA co khung chot -> saveAndFlush; (2) cac khung ->
+    // saveAllAndFlush; (3) giay moi MOT khung: dat khung chot + confirmedAt = sentAt (cung mot Instant) roi flush (UPDATE).
+    // Dat confirmedSlotId truoc buoc (2) thi INSERT giay moi (hoan toi flush) vi pham FK ghep fk_invitation_confirmed_slot.
+    // Giay moi nhieu khung giu confirmed_* = NULL - FR-H12 khong co duong nao chot khung cho no (R-K2, R-B1).
+    private CreatedInvitation createInvitation(
+            UUID applicationId, UUID ownerId, InterviewInvitationSendRequest request, List<ValidSlot> slots, Instant sentAt) {
         InterviewInvitation invitation = new InterviewInvitation();
         invitation.setApplicationId(applicationId);
         invitation.setSubject(request.subject());
@@ -123,14 +216,20 @@ public class InterviewInvitationService {
         invitation.setSentBy(ownerId);
         InterviewInvitation saved = interviewInvitationRepository.saveAndFlush(invitation);
 
-        InterviewInvitationSlot slot = slotRepository.saveAndFlush(
-                new InterviewInvitationSlot(saved.getId(), 1, request.scheduledAt(), request.location()));
+        List<InterviewInvitationSlot> toSave = new ArrayList<>(slots.size());
+        for (int i = 0; i < slots.size(); i++) {
+            ValidSlot slot = slots.get(i);
+            toSave.add(new InterviewInvitationSlot(saved.getId(), i + 1, slot.scheduledAt(), slot.location()));
+        }
+        List<InterviewInvitationSlot> savedSlots = slotRepository.saveAllAndFlush(toSave);
 
-        saved.setConfirmedSlotId(slot.getId());
-        saved.setConfirmedAt(sentAt);
-        interviewInvitationRepository.flush();
+        if (savedSlots.size() == 1) {
+            saved.setConfirmedSlotId(savedSlots.get(0).getId());
+            saved.setConfirmedAt(sentAt);
+            interviewInvitationRepository.flush();
+        }
 
-        return toResponse(saved, slot);
+        return new CreatedInvitation(toResponse(saved, savedSlots), savedSlots);
     }
 
     // Chi doc, khong @Transactional - cung mau previewInvitation. Kiem so huu khac han
@@ -144,7 +243,7 @@ public class InterviewInvitationService {
     // mot UUID ngau nhien da co san; doi lai tach 403/404 giup debug ro rang hon o phia client. Hai
     // pattern (403 o day, 404-che-giau o ApplicationService) CUNG TON TAI co chu dich trong du an,
     // khong phai mot cho quen dong bo voi cho kia - xem walkthrough candidate-view-invitation.
-    public CandidateInterviewInvitationResponse getLatestInvitationForCandidate(UUID candidateId, UUID applicationId) {
+    public CandidateInterviewInvitationResponse getActiveInvitationForCandidate(UUID candidateId, UUID applicationId) {
         JobApplication application = jobApplicationRepository
                 .findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
@@ -152,35 +251,25 @@ public class InterviewInvitationService {
             throw new AccessDeniedException("Khong co quyen xem giay moi phong van cua don ung tuyen nay");
         }
 
-        // findFirst tren danh sach da sap createdAt DESC: phong thu cho truong hop co nhieu dong
-        // (hien luong nghiep vu that khong tao ra duoc - ALLOWED_TRANSITIONS chan gui loi moi lan
-        // hai tren cung don, xem ApplicationStatusService), khong co duong nao qua API tao ra 2 dong
-        // interview_invitations cho cung applicationId nen khong co test rieng cho nhanh nay.
-        InterviewInvitation latest = interviewInvitationRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId).stream()
-                .findFirst()
+        // FR-H12 R-A1, R-A3 - CHI giay moi hieu luc (superseded_at IS NULL, toi da mot - uq_invitation_active), KHONG xac
+        // dinh bang created_at/sent_at. Ung vien khong thay giay moi cu.
+        InterviewInvitation active = interviewInvitationRepository
+                .findByApplicationIdAndSupersededAtIsNull(applicationId)
                 .orElseThrow(() -> new InterviewInvitationNotFoundException(applicationId));
 
         // Khong loc theo application.status - don da HIRED/REJECTED van doc lai duoc giay moi cu
         // (ung vien doi chieu lich hen sau khi da co ket qua cuoi).
-        // FR-H12 dot 2 (muc 12 L7) - giu cach chon giay moi theo created_at nhu cu; chi doi nguon thoi diem/dia diem sang
-        // khung chot cua CHINH giay moi da chon. Doi sang giay moi hieu luc (superseded_at) la viec cua dot 3 (I4).
-        InterviewInvitationSlot slot = confirmedSlotOf(latest);
+        List<CandidateInterviewInvitationResponse.Slot> slots =
+                slotRepository.findByInvitationIdOrderByDisplayOrderAsc(active.getId()).stream()
+                        .map(slot -> new CandidateInterviewInvitationResponse.Slot(
+                                slot.getId(),
+                                slot.getDisplayOrder(),
+                                slot.getScheduledAt(),
+                                slot.getLocation(),
+                                slot.getId().equals(active.getConfirmedSlotId())))
+                        .toList();
         return new CandidateInterviewInvitationResponse(
-                slot == null ? null : slot.getScheduledAt(),
-                slot == null ? null : slot.getLocation(),
-                latest.getSubject(),
-                latest.getRenderedContent(),
-                latest.getSentAt());
-    }
-
-    // Khung chot cua giay moi; null khi giay moi chua chot (giay moi nhieu khung - chi co tu seed/du lieu ghi tay o dot 2).
-    private InterviewInvitationSlot confirmedSlotOf(InterviewInvitation invitation) {
-        if (invitation.getConfirmedSlotId() == null) {
-            return null;
-        }
-        return slotRepository
-                .findById(invitation.getConfirmedSlotId())
-                .orElseThrow(() -> new IllegalStateException("Khong tim thay khung chot cua giay moi " + invitation.getId()));
+                active.getSubject(), active.getRenderedContent(), active.getSentAt(), active.getConfirmedAt(), slots);
     }
 
     private String render(String text, String candidateName, String jobTitle, String companyName) {
@@ -215,15 +304,21 @@ public class InterviewInvitationService {
                 .orElseThrow(() -> new CompanyNotFoundException("HR chưa tạo hồ sơ công ty"));
     }
 
-    private static InterviewInvitationResponse toResponse(InterviewInvitation i, InterviewInvitationSlot slot) {
+    private static InterviewInvitationResponse toResponse(InterviewInvitation i, List<InterviewInvitationSlot> slots) {
         return new InterviewInvitationResponse(
                 i.getId(),
                 i.getApplicationId(),
-                slot.getScheduledAt(),
-                slot.getLocation(),
+                i.getSupersededAt() == null,
                 i.getSubject(),
                 i.getRenderedContent(),
                 i.getSentAt(),
-                i.getSentBy());
+                i.getSentBy(),
+                i.getSupersededAt(),
+                i.getConfirmedSlotId(),
+                i.getConfirmedAt(),
+                slots.stream()
+                        .map(slot -> new InterviewInvitationResponse.Slot(
+                                slot.getId(), slot.getDisplayOrder(), slot.getScheduledAt(), slot.getLocation()))
+                        .toList());
     }
 }

@@ -30,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 // FR-U08 T9 (REQUIREMENT.md muc 7.1) - CUNG mot don cua ung vien khac qua moi endpoint ung vien tren don.
 // Hai quy uoc kiem quyen CUNG TON TAI co chu dich, test nay khoa ca hai:
 //  - E1 (moi), /history, /withdraw: 404 APPLICATION_NOT_FOUND (che giau su ton tai, R-Q2).
-//  - /interview-invitation: 403 - quy uoc CU co chu dich (InterviewInvitationService.getLatestInvitationForCandidate,
+//  - /interview-invitation: 403 - quy uoc CU co chu dich (InterviewInvitationService.getActiveInvitationForCandidate,
 //    walkthrough candidate-view-invitation muc 4a), KHONG phai loi. Khong "sua cho dong bo" (R-Q3).
 // Lop tu tao du lieu cua minh, @Transactional rollback moi test.
 @Import(TestcontainersConfiguration.class)
@@ -176,7 +176,7 @@ class CandidateApplicationCrossEndpointAccessIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(
                                 """
-                                {"scheduledAt":"%s","location":"Van phong cong ty","subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
+                                {"slots":[{"scheduledAt":"%s","location":"Van phong cong ty"}],"subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
                                 """
                                         .formatted(Instant.now().plus(7, ChronoUnit.DAYS).toString())))
                 .andExpect(status().isCreated());

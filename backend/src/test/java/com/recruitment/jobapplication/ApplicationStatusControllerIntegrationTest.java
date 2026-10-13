@@ -197,7 +197,7 @@ class ApplicationStatusControllerIntegrationTest {
     private MvcResult sendInterviewInvitation(String token, String applicationId, Instant scheduledAt) throws Exception {
         String body =
                 """
-                {"scheduledAt":"%s","location":"Van phong cong ty","subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
+                {"slots":[{"scheduledAt":"%s","location":"Van phong cong ty"}],"subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
                 """
                         .formatted(scheduledAt.toString());
         return mockMvc

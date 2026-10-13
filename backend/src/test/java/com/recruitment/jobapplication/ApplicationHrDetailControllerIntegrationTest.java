@@ -261,7 +261,7 @@ class ApplicationHrDetailControllerIntegrationTest {
     private void sendInterviewInvitation(String token, String applicationId) throws Exception {
         String body =
                 """
-                {"scheduledAt":"%s","location":"Van phong cong ty","subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
+                {"slots":[{"scheduledAt":"%s","location":"Van phong cong ty"}],"subject":"Thu moi phong van","content":"Xin chao, moi ban tham gia phong van."}
                 """
                         .formatted(Instant.now().plus(7, ChronoUnit.DAYS).toString());
         mockMvc

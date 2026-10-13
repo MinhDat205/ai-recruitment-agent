@@ -29,6 +29,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 // FR-C03: kiem tra dau-cuoi 3 su kien AFTER_COMMIT (apply/withdraw/changeStatus) that su tao dung
 // dong notifications. KHONG @Transactional cap class - AFTER_COMMIT chi chay khi transaction cua
@@ -63,6 +65,9 @@ class NotificationEventListenerIntegrationTest {
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private record Fixture(UUID hrOwnerId, UUID jobId, UUID candidateId, UUID resumeId) {
     }
@@ -233,5 +238,41 @@ class NotificationEventListenerIntegrationTest {
                 .get(0);
         assertThat(notification.getType()).isEqualTo(NotificationType.APPLICATION_STATUS_CHANGED);
         assertThat(notification.getLink()).isEqualTo("/candidate/applications/" + application.id());
+    }
+
+    // ---- FR-H12 T22 - danh dau da doc tin nhan (FR-C06 R-R3) chi cham NEW_MESSAGE, khong cham
+    // INTERVIEW_INVITATION_RESENT cung don (loc theo type). ----
+
+    private Notification seedUnread(UUID userId, UUID applicationId, NotificationType type) {
+        Notification n = new Notification();
+        n.setUserId(userId);
+        n.setType(type);
+        n.setTitle("Tieu de");
+        n.setBody("Noi dung");
+        n.setLink("/candidate/applications/" + applicationId);
+        n.setEntityType("APPLICATION");
+        n.setEntityId(applicationId);
+        n.setRead(false);
+        n.setEmailStatus(EmailStatus.PENDING);
+        return notificationRepository.save(n);
+    }
+
+    @Test
+    void conversationRead_marksNewMessageOnly_resentInvitationNotificationStaysUnread() {
+        Fixture fixture = createOpenJobWithCandidateResume();
+        ApplicationResponse application = applicationService.apply(
+                fixture.candidateId(), new ApplicationCreateRequest(fixture.jobId(), fixture.resumeId(), true, null, null, null, null));
+        Notification message = seedUnread(fixture.candidateId(), application.id(), NotificationType.NEW_MESSAGE);
+        Notification resent =
+                seedUnread(fixture.candidateId(), application.id(), NotificationType.INTERVIEW_INVITATION_RESENT);
+
+        // onConversationRead chay trong transaction cua M3 (khong tu mo) - test mo bang TransactionTemplate.
+        new TransactionTemplate(transactionManager).executeWithoutResult(
+                status -> eventPublisher.publishEvent(new ConversationReadEvent(fixture.candidateId(), application.id())));
+
+        assertThat(notificationRepository.findById(message.getId()).orElseThrow().isRead()).isTrue();
+        Notification resentAfter = notificationRepository.findById(resent.getId()).orElseThrow();
+        assertThat(resentAfter.isRead()).isFalse();
+        assertThat(resentAfter.getReadAt()).isNull();
     }
 }
