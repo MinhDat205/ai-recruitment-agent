@@ -2,6 +2,9 @@
 
 > Trạng thái: ĐÃ DUYỆT (13/10/2026). Mọi quyết định ở mục 11 đã chốt 13/10/2026 (11.1: tám quyết định nền; 11.2:
 > Q1–Q9; 11.3: năm điểm bổ sung B1–B5; 11.4: S1–S7 chốt sau `spec-review`).
+>
+> Làm rõ sau Plan Mode 13/10/2026: L1–L8 (L1: mục 4.5, D2; L2: R-K1, mục 8; L3: mục 4.2; L4: T3; L5: T13; L6: T21;
+> L7: mục 9 đợt 2, 3; L8: T10) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR gửi giấy mời phỏng vấn có **1–5 khung giờ**, mỗi khung gồm thời điểm bắt đầu và địa chỉ hoặc link
@@ -138,7 +141,10 @@ không đổi trạng thái, không ghi lịch sử trạng thái, một thông 
 ### 3.2 Khung đã chốt (R-K)
 
 - **R-K1.** Giấy mời có đúng 1 khung → khung đó **đã chốt ngay khi gửi**: `confirmed_slot_id` = khung đó,
-  `confirmed_at` = `sent_at` (cùng một giá trị `Instant` Java). Giữ tương thích luồng cũ.
+  `confirmed_at` = `sent_at` (cùng một giá trị `Instant` Java). Giữ tương thích luồng cũ. **Thứ tự ghi (L2):**
+  `confirmed_slot_id` là cột `UUID` thường (không quan hệ JPA); ghi theo ba bước: (1) giấy mời `saveAndFlush`, **chưa**
+  có khung chốt; (2) các khung `saveAllAndFlush`; (3) giấy mời một khung: đặt `confirmedSlotId` + `confirmedAt` rồi flush
+  (câu `UPDATE`). Áp cho cả I2 (R-F1) và I3 (R-G3 bước 6).
 - **R-K2.** Giấy mời có ≥ 2 khung → gửi đi với `confirmed_slot_id`, `confirmed_at` = `NULL`. FR-H12 **không** có đường
   nào ghi hai cột này cho giấy mời nhiều khung; đường ghi là của FR-U10.
 - **R-K3.** Khung đã chốt phải thuộc chính giấy mời đó; `confirmed_slot_id` và `confirmed_at` cùng `NULL` hoặc cùng khác
@@ -412,7 +418,7 @@ Không package mới; mọi thứ ở `interviewinvitation/` (CLAUDE.md §3), tr
 | File | Thay đổi |
 |---|---|
 | `interviewinvitation/InterviewInvitation.java` | Bỏ `scheduledAt`, `location`; thêm `confirmedSlotId`, `confirmedAt`, `supersededAt` |
-| `interviewinvitation/InterviewInvitationSlot.java` (mới) | Entity `@Immutable` của `interview_invitation_slots` |
+| `interviewinvitation/InterviewInvitationSlot.java` (mới) | Entity `@Immutable` của `interview_invitation_slots`; `invitation_id` là cột `UUID` thường; `created_at` `@Column(insertable = false, updatable = false)`, **không** `@Generated` (khuôn `JobAiGeneration.java:44-47`, L3) |
 | `interviewinvitation/InterviewInvitationSlotRepository.java` (mới) | Đọc khung theo một hay nhiều giấy mời, sắp `display_order` |
 | `interviewinvitation/InterviewInvitationRepository.java` | Thêm `findByApplicationIdAndSupersededAtIsNull`, câu `UPDATE … superseded_at` (`@Modifying(clearAutomatically = true)`); giữ `findByApplicationIdOrderByCreatedAtDesc` cho test cũ nhưng **không** dùng trong `src/main` |
 | `jobapplication/JobApplicationRepository.java` | Thêm `lockIfInterviewInvited` (R-G3 bước 3), đặt cạnh `updateStatusIfCurrent` |
@@ -516,8 +522,9 @@ vẫn idempotent.
   CASCADE` vì không xoá khung trước được (mục 4.1). Câu xoá thông báo (`:82-84`) **không cần** điều kiện mới: `ec…17`
   bị xoá vì `user_id` là Quốc Huy (người dùng test) và vì `entity_type = 'APPLICATION'` + `entity_id` là đơn test; thông
   báo loại mới gửi cho ứng viên demo về đơn vào tin test cũng bị xoá theo vế thứ hai (cùng `entity_type` như mọi loại cũ).
-- `reset-demo-db.sql`: thêm `interview_invitation_slots` vào danh sách `TRUNCATE` (`:94`) — thiếu thì `TRUNCATE` báo lỗi
-  vì có FK tham chiếu `interview_invitations`. File `seed-demo-*.sql` **không** sửa (không có giấy mời, a21); kiểm bằng
+- `reset-demo-db.sql`: thêm `interview_invitation_slots` vào danh sách `TRUNCATE` (`:94`) cho đúng quy ước liệt kê tường
+  minh của script (`:80-84`). Câu lệnh là `TRUNCATE … CASCADE` (`:85-103`) nên Postgres vẫn xoá theo bảng khung nếu thiếu
+  tên — không phải lỗi (L1). File `seed-demo-*.sql` **không** sửa (không có giấy mời, a21); kiểm bằng
   chạy lại tuần tự `reset-demo-db.sql` → hai tầng seed demo → câu đếm ở cuối `seed-demo-structural.sql` không đổi.
 
 **Ảnh hưởng của việc đổi giấy mời A9 (B3)** — soát bằng `rg -n "A9" docs db/seed` và `rg -n
@@ -569,17 +576,17 @@ Không dùng AI. Không gọi `ChatModel`/`EmbeddingModel`, không thuộc danh 
 |---|---|---|
 | T1 | I2 một khung → 201; DB: một giấy mời `superseded_at` `NULL`, một khung, `confirmed_slot_id` = khung đó, `confirmed_at` = `sent_at`; đơn `INTERVIEW_INVITED`; đúng 1 dòng lịch sử mới; đúng 1 thông báo `APPLICATION_STATUS_CHANGED`, không thông báo `INTERVIEW_INVITATION_RESENT`; `renderedContent` bằng đúng `content` gửi lên | dương |
 | T2 | I2 với 2 và 5 khung → 201, chưa chốt, `display_order` 1…n đúng thứ tự gửi (gửi khung muộn trước khung sớm → giữ nguyên thứ tự); 6 khung → 400 "Giấy mời có tối đa 5 khung giờ."; `slots` `null`, thiếu khoá, `[]` → 400 câu dòng 1 R-S8. Mọi ca 400: không dòng giấy mời/khung nào, đơn vẫn `PENDING` | biên + âm |
-| T3 | Khung (R-S3–R-S8) qua I2: `now − 1 phút` → 400 "Khung giờ 1: …tương lai."; `Instant.now()` → 400; `now + 2 phút` → 201; `10:00:45` lưu thành `10:00:00`; hai khung `10:00:10`, `10:00:50` cùng ngày → 400 "Khung giờ 2 trùng thời điểm với khung giờ 1."; `10:00` và `10:01` → 201; lỗi ở khung 3 báo đúng "Khung giờ 3"; phần tử `null` / `scheduledAt` `null` → 400, không 500; `location` `null`, thiếu khoá, `""`, `"  "` → 400 "Khung giờ {n}: vui lòng nhập địa điểm hoặc link phỏng vấn."; `" a "` → lưu `"a"`; 500 ký tự → 201, 501 → 400, `" " + 500 ký tự + " "` → 201; có `\n` → 400 | biên + âm |
+| T3 | Khung (R-S3–R-S8) qua I2: `now − 1 phút` → 400 "Khung giờ 1: …tương lai."; `Instant.now()` → 400; `now + 2 phút` → 201; `10:00:45` lưu thành `10:00:00`; hai khung `10:00:10`, `10:00:50` cùng ngày → 400 "Khung giờ 2 trùng thời điểm với khung giờ 1."; `10:00` và `10:01` → 201; lỗi ở khung 3 báo đúng "Khung giờ 3"; phần tử `null` / `scheduledAt` `null` → 400, không 500 — test có sẵn `send_missingScheduledAt_returns400` (`InterviewInvitationControllerIntegrationTest.java:356-364`) giữ tên, đổi helper gửi `{"slots":[{"location":"…"}]}` và thêm khẳng định mã `INVALID_INTERVIEW_SCHEDULE` (trước đây là lỗi Bean Validation, L4); `location` `null`, thiếu khoá, `""`, `"  "` → 400 "Khung giờ {n}: vui lòng nhập địa điểm hoặc link phỏng vấn."; `" a "` → lưu `"a"`; 500 ký tự → 201, 501 → 400, `" " + 500 ký tự + " "` → 201; có `\n` → 400 | biên + âm |
 | T4 | I2 lần hai trên đơn đã `INTERVIEW_INVITED` → 400, vẫn một giấy mời (test có sẵn `send_applicationAlreadyInterviewInvited_returns400` giữ nguyên khẳng định) | âm |
 | T5 | I3 trên đơn có giấy mời một khung đã chốt, gửi 2 khung → 201: giấy mời cũ có `superseded_at` = `sent_at` của giấy mời mới, mọi cột khác và khung của nó y hệt trước (so từng cột); giấy mời mới hiệu lực, chưa chốt; đọc toàn bộ hàng `job_applications` bằng `JdbcTemplate` trước/sau → mọi cột giống hệt trừ `updated_at` (R-G4); số dòng `application_status_history` không đổi; không thông báo `APPLICATION_STATUS_CHANGED` mới; đúng 1 thông báo `INTERVIEW_INVITATION_RESENT` cho ứng viên, `email_status` `PENDING`, `entity_type` `APPLICATION`, `entity_id` = id đơn, `body` một dòng (không `\n`, không chứa giờ khung), `email_body` đúng khối R-N3 với hai khung vừa gửi (giờ Việt Nam, địa điểm, dòng "Xem giấy mời tại: …"); JSON của `GET` danh sách thông báo không có khoá `emailBody` | dương |
 | T6 | I3 một khung → giấy mời mới đã chốt (R-K1) | dương |
 | T7 | I3 khi đơn `PENDING`, `HIRED`, `REJECTED`, `WITHDRAWN` → 409 `INVITATION_RESEND_NOT_ALLOWED`; không ghi dòng nào, không thông báo, giấy mời cũ (nếu có) vẫn hiệu lực | âm |
 | T8 | I3 đầu vào sai (0 khung, khung quá khứ, trùng, thiếu địa điểm) → 400 như T3; giấy mời cũ vẫn hiệu lực, không thông báo | âm |
 | T9 | I3 khi giấy mời hiệu lực nhiều khung đã được chốt (đặt bằng SQL, giả lập FR-U10) → 201; giấy mời cũ giữ `confirmed_slot_id`, `confirmed_at` | dương |
-| T10 | Tuần tự hoá (R-G4), lớp test **không** `@Transactional` toàn lớp (CLAUDE.md §3c), dữ liệu ngẫu nhiên riêng, như FR-H10 T5: (a) hai I3 song song cùng đơn → cả hai 201; cuối cùng 3 giấy mời, đúng một hiệu lực, hai giấy mời cũ có `superseded_at` khác `NULL`, 2 thông báo `INTERVIEW_INVITATION_RESENT`; (b) I3 song song với `PATCH /status` `HIRED`, lặp 10 lần trên 10 đơn → mỗi lần là một trong hai kết quả: {I3 201, PATCH 200} hoặc {PATCH 200, I3 409 `INVITATION_RESEND_NOT_ALLOWED`}; không 500; mọi đơn cuối cùng `HIRED`, có đúng một giấy mời hiệu lực; (c) như (b) với rút đơn phía ứng viên → {I3 201, rút 200} hoặc {rút 200, I3 409}; (d) **đơn luồng, chắc chắn** (bổ sung cho (b), vì (b) không phân biệt được cách "đọc trạng thái rồi ghi, không khoá"): transaction A (`TransactionTemplate`) gọi `JobApplicationRepository.lockIfInterviewInvited` trên đơn `INTERVIEW_INVITED` → 1 dòng, **giữ chưa commit**; luồng B gọi `updateStatusIfCurrent(id, INTERVIEW_INVITED, HIRED)` trong transaction riêng → B **chưa xong** sau 500 ms (`Future.get(500, MILLISECONDS)` ném `TimeoutException`); A commit → B xong trong 5 s, trả 1, đơn `HIRED`. Ca ngược: B (`HIRED`) commit trước → A `lockIfInterviewInvited` trả 0 | âm |
+| T10 | Tuần tự hoá (R-G4), ở lớp mới `InterviewInvitationResendConcurrencyIntegrationTest` **không** `@Transactional` toàn lớp (CLAUDE.md §3c; các lớp HTTP có sẵn đều `@Transactional` cấp lớp — L8), dữ liệu ngẫu nhiên riêng, như FR-H10 T5: (a) hai I3 song song cùng đơn → cả hai 201; cuối cùng 3 giấy mời, đúng một hiệu lực, hai giấy mời cũ có `superseded_at` khác `NULL`, 2 thông báo `INTERVIEW_INVITATION_RESENT`; (b) I3 song song với `PATCH /status` `HIRED`, lặp 10 lần trên 10 đơn → mỗi lần là một trong hai kết quả: {I3 201, PATCH 200} hoặc {PATCH 200, I3 409 `INVITATION_RESEND_NOT_ALLOWED`}; không 500; mọi đơn cuối cùng `HIRED`, có đúng một giấy mời hiệu lực; (c) như (b) với rút đơn phía ứng viên → {I3 201, rút 200} hoặc {rút 200, I3 409}; (d) **đơn luồng, chắc chắn** (bổ sung cho (b), vì (b) không phân biệt được cách "đọc trạng thái rồi ghi, không khoá"): transaction A (`TransactionTemplate`) gọi `JobApplicationRepository.lockIfInterviewInvited` trên đơn `INTERVIEW_INVITED` → 1 dòng, **giữ chưa commit**; luồng B gọi `updateStatusIfCurrent(id, INTERVIEW_INVITED, HIRED)` trong transaction riêng → B **chưa xong** sau 500 ms (`Future.get(500, MILLISECONDS)` ném `TimeoutException`); A commit → B xong trong 5 s, trả 1, đơn `HIRED`. Ca ngược: B (`HIRED`) commit trước → A `lockIfInterviewInvited` trả 0 | âm |
 | T11 | Quyền I1, I3: HR công ty khác → 403; đơn không tồn tại → 404 `APPLICATION_NOT_FOUND`; HR chưa có công ty → 404 `COMPANY_NOT_FOUND` kể cả khi đơn không tồn tại; token ứng viên → 403; không token → 401. Thêm I1, I3 vào `HrApplicationCrossEndpointAccessIntegrationTest` | âm |
 | T12 | I1: đơn chưa có giấy mời → 200, danh sách rỗng, `maxSlots` = 5; sau I2 rồi hai lần I3 → 3 phần tử: hiệu lực trước, rồi hai giấy mời cũ theo `superseded_at` giảm dần; khung đúng `display_order`; JSON không có khoá `verdict`/`label`/`isQualified`/`passed`/`recommendation` | dương |
-| T13 | I4: sau I3 trả giấy mời **mới**; thêm ca đặt `created_at` của giấy mời **cũ** muộn hơn giấy mời mới bằng native update → I4 vẫn trả giấy mời mới (chứng minh không dựa vào `created_at`); khung theo thứ tự, mỗi khung có `id` đúng id trong DB, `confirmed` đúng khung, `confirmedAt`; JSON không có `id`, `applicationId`, `sentBy`, `supersededAt`, `scheduledAt` ở gốc; ứng viên khác → 403 (giữ); đơn chưa có giấy mời → 404 (giữ); đơn `HIRED`/`REJECTED` sau phỏng vấn vẫn đọc được (giữ) | dương + âm |
+| T13 | I4: sau I3 trả giấy mời **mới**; thêm ca đặt `created_at` của giấy mời **cũ** muộn hơn giấy mời mới bằng native update → I4 vẫn trả giấy mời mới (chứng minh không dựa vào `created_at`); khung theo thứ tự, mỗi khung có `id` đúng id trong DB, `confirmed` đúng khung, `confirmedAt`; đọc JSON bằng `ObjectMapper` (không so chuỗi — L5): gốc không có `id`, `applicationId`, `sentBy`, `supersededAt`, `scheduledAt`, mỗi phần tử `slots` có `id`. Test có sẵn `get_ownApplication_returnsInvitationWithFiveFieldsOnly` (`InterviewInvitationCandidateControllerIntegrationTest.java:233-249`, đang khẳng định chuỗi `doesNotContain("\"id\"")`) đổi tên thành `get_ownApplication_returnsActiveInvitationWithSlots`; ứng viên khác → 403 (giữ); đơn chưa có giấy mời → 404 (giữ); đơn `HIRED`/`REJECTED` sau phỏng vấn vẫn đọc được (giữ) | dương + âm |
 | T14 | Migration V16 bằng Flyway API (mẫu `JobCatalogMigrationTest`): dựng DB tới V15, chèn giấy mời dạng cũ (có và không có `location`; một đơn có hai giấy mời khác `created_at`; một giấy mời `sent_at` `NULL`), migrate V16 → mỗi giấy mời đúng một khung bằng giá trị cũ (khung không địa điểm giữ `location` `NULL`), đã chốt, `confirmed_at` = `sent_at` (hoặc `created_at`); đơn hai giấy mời: mới nhất hiệu lực, cũ có `superseded_at`; cột `scheduled_at`, `location` không còn | dương |
 | T15 | Ràng buộc DB (insert thẳng): hai khung cùng `scheduled_at` một giấy mời → `DataIntegrityViolationException`; cùng `scheduled_at` ở hai giấy mời khác nhau → được; `display_order` 0 và 6 → lỗi, 1 và 5 → được; giấy mời hiệu lực thứ hai cho cùng đơn → lỗi, thêm giấy mời có `superseded_at` → được; `confirmed_slot_id` trỏ khung của giấy mời khác → lỗi; chỉ một trong hai cột `confirmed_*` khác `NULL` → lỗi (cả hai chiều) | biên + âm |
 | T16 | Xoá đơn (`DELETE FROM job_applications`, giả lập seed reset) có giấy mời đã chốt → xoá được, khung theo giấy mời bị xoá | dương |
@@ -587,7 +594,7 @@ Không dùng AI. Không gọi `ChatModel`/`EmbeddingModel`, không thuộc danh 
 | T18 | K1 (R-K1x): giấy mời hiệu lực đã chốt → `interview` = khung chốt; hiệu lực chưa chốt (3 khung) → `null`, kể cả khi giấy mời cũ đã chốt; không giấy mời → `null`. `ConversationContextSignatureTest` không sửa, xanh | dương + âm |
 | T19 | Soạn nháp (R-K2x): `INTERVIEW_INVITED` + đã chốt → `INTERVIEW_REMINDER`, `REQUEST_RESCHEDULE` dùng được; + chưa chốt → `INTERVIEW_REMINDER` 409 `DRAFT_SCENARIO_UNAVAILABLE` lý do `NO_ACTIVE_INTERVIEW`, `REQUEST_RESCHEDULE` 200 và prompt chứa "chưa có lịch"; `THANK_AFTER_INTERVIEW` dùng được khi có giấy mời hiệu lực; mọi ca 409 không gọi AI; `DraftUnavailableReason` vẫn đúng ba giá trị | dương + âm |
 | T20 | `NotificationContentBuilder.forInvitationResent` (test đơn vị): một khung và ba khung → `body` đúng câu R-N2, không `\n`; `emailBody` ba khung → đúng khối R-N3, khung `location` `null` ghi "Chưa có dữ liệu", khung `2026-10-20T18:30:00Z` hiện "01:30 21/10/2026", dòng "Xem giấy mời tại: {base}/candidate/applications/{id}" đúng URL; các hàm cũ (`forStatusChanged`, `forApplicationSubmitted`, `forApplicationWithdrawn`, `forAggregationFinished`, `forNewMessage`) trả `emailBody` `null` | dương |
-| T21 | `NotificationMailOrchestrator` (R-N3a), `JavaMailSender` mock bắt `SimpleMailMessage`: (a) thông báo có `email_body` khác `null` → nội dung email = `email_body` nguyên văn, tiêu đề = `title`; (b) `NEW_MESSAGE`, `email_body` `null` → nội dung = `body + "\n\nXem và trả lời tại: " + url` (không đổi); (c) `APPLICATION_STATUS_CHANGED`, `email_body` `null` → nội dung = `body` nguyên văn (không đổi) | dương |
+| T21 | `NotificationMailOrchestrator` (R-N3a), `JavaMailSender` mock bắt `SimpleMailMessage`: (a) thông báo có `email_body` khác `null` → nội dung email = `email_body` nguyên văn, tiêu đề = `title`; (b) `NEW_MESSAGE`, `email_body` `null` → nội dung = `body + "\n\nXem và trả lời tại: " + url` (không đổi); (c) `APPLICATION_STATUS_CHANGED`, `email_body` `null` → nội dung = `body` nguyên văn (không đổi). (b), (c) là hai test **có sẵn** ở `NotificationMailOrchestratorIntegrationTest.java:200-230` (`processOne_newMessage_appendsReplyLinkWithFrontendBaseUrl`, `processOne_oldTypeWithLink_sendsBodyExactly_withoutReplyLink`) — giữ nguyên, phải xanh; chỉ thêm (a) vào lớp đó (L6) | dương |
 | T22 | Đánh dấu đã đọc tin nhắn (FR-C06 R-R3) không chạm thông báo `INTERVIEW_INVITATION_RESENT` cùng đơn (lọc theo `type`) | âm |
 
 Kiểm tĩnh (đợt cuối, kỳ vọng như ghi):
@@ -775,6 +782,10 @@ cuối:** chạy thật, dán nguyên văn output; lệnh sai cú pháp thì d�
 - Câu khoá `SET` một cột khác (vd `updated_at = now()`) "cho tường minh", hoặc kiểm trạng thái **sau** khi đã đánh dấu
   `superseded_at` (R-G3 thứ tự bước).
 - Tự xoá khung trước giấy mời trong script/test, hoặc thêm `DEFERRABLE` cho FK ghép "cho dễ seed" (mục 4.1, 4.5).
+- Đặt `confirmedSlotId` lên giấy mời **trước khi** khung được INSERT (vd gán trước `saveAndFlush` giấy mời, hoặc gán rồi
+  để Hibernate tự flush một lần): câu INSERT giấy mời bị hoãn tới flush và mang theo `confirmed_slot_id` → vi phạm FK
+  ghép `fk_invitation_confirmed_slot`. Hoặc ánh xạ `confirmedSlotId` thành `@ManyToOne` (R-K1, L2).
+- Đặt `@Generated` lên `created_at` của entity khung `@Immutable` → `UnsupportedLockAttemptException` (mục 4.2, L3).
 - Đặt `@NotEmpty`/`@Size(max=5)` lên `slots` hay `@NotBlank` lên `location` — lỗi ra định dạng map trường thay vì câu
   theo khung (R-S8).
 - So trùng khung bằng `Instant` gốc (khác giây vẫn "khác nhau"), hoặc cắt về phút sau khi kiểm; hoặc từ chối giây lẻ
@@ -806,8 +817,8 @@ full `.\mvnw.cmd test` đúng một lần + build + lint.
 | Đợt | Nội dung | Kiểm |
 |---|---|---|
 | 1 | Plan Mode: đối chiếu lại mục 0 trên HEAD lúc đó; chốt danh sách file | — |
-| 2 | V16; entity, repository; sửa seed test, `reset-test-data.sql`, `reset-demo-db.sql`, `db/seed/README.md`; T14, T15, T16 | test-compile; `-Dtest` lớp mới + `JobCatalogMigrationTest`; chạy tay `reset-test-data.sql` + seed test trên DB dev |
-| 3 | I1–I4, DTO, mã lỗi, R-S8, R-G3/R-G4 (`lockIfInterviewInvited`); thông báo R-N (listener, builder, mail); sửa thân request ở các test có sẵn (`InterviewInvitation*IntegrationTest`, `ApplicationHrDetailControllerIntegrationTest:261-268`, `ApplicationStatusControllerIntegrationTest:193-204`, `CandidateApplicationCrossEndpointAccessIntegrationTest:172-180`, `HrApplicationCrossEndpointAccessIntegrationTest`); T1–T13, T17, T20–T22 | test-compile; `-Dtest` các lớp vừa kể + `InterviewTemplateOwnerIntegrationTest`, các lớp test thông báo, `ApplicationStatus*Test` |
+| 2 | V16 (cả `notifications.email_body`); entity `InterviewInvitation` (bỏ 2 cột, thêm 3 cột), `InterviewInvitationSlot` + repository, `Notification.emailBody`; repository: `findByApplicationIdAndSupersededAtIsNull`, câu đánh dấu `superseded_at`, `JobApplicationRepository.lockIfInterviewInvited`. **Không đổi DTO/API (L7):** `InterviewInvitationService` giữ thân request cũ (`scheduledAt`/`location` ở gốc, kiểm như hiện nay) và ghi thành **1 khung đã chốt** theo ba bước R-K1; `InterviewInvitationResponse`, `CandidateInterviewInvitationResponse` giữ hình dạng, lấy giá trị từ khung chốt của giấy mời hiệu lực; `ConversationContextAssembler:82` đọc khung chốt của giấy mời hiệu lực. Hai helper test dùng setter entity (`ConversationContextAssemblerIntegrationTest:219-231`, `MessageDraftIntegrationTestSupport:411-421`) đổi sang chèn giấy mời + 1 khung chốt (giấy mời chèn sau đánh dấu giấy mời trước `superseded_at`) — chỉ helper, **không** đổi khẳng định. Seed test, `reset-test-data.sql`, `reset-demo-db.sql`, `db/seed/README.md`; T14, T15, T16 | test-compile; `-Dtest` lớp mới + `JobCatalogMigrationTest`. **Điều kiện xong (L7):** mọi lớp `InterviewInvitation*IntegrationTest` và các lớp đọc giấy mời có sẵn (`ApplicationHrDetailControllerIntegrationTest`, `ApplicationStatusControllerIntegrationTest`, `CandidateApplicationCrossEndpointAccessIntegrationTest`, `HrApplicationCrossEndpointAccessIntegrationTest`, `InterviewTemplateOwnerIntegrationTest`, `ConversationContext*Test`, `MessageDraft*Test`, `Notification*Test`) xanh **không sửa thân request**; chạy tay `reset-test-data.sql` + seed test, `reset-demo-db.sql` + hai tầng demo trên DB dev |
+| 3 | Đổi thân request sang `slots` (L7) và hoàn thiện I1–I4: DTO mục 4.4, R-S3 (cắt phút), R-S8, địa điểm bắt buộc, mã lỗi, I1, I3 theo R-G3/R-G4; thông báo R-N (listener, builder, `mailText`); sửa thân request ở các test có sẵn (`InterviewInvitation*IntegrationTest`, `ApplicationHrDetailControllerIntegrationTest:261-268`, `ApplicationStatusControllerIntegrationTest:193-204`, `CandidateApplicationCrossEndpointAccessIntegrationTest:172-180`, `HrApplicationCrossEndpointAccessIntegrationTest`); T1–T13, T17, T20–T22 | test-compile; `-Dtest` các lớp vừa kể + `InterviewTemplateOwnerIntegrationTest`, các lớp test thông báo, `ApplicationStatus*Test` |
 | 4 | K1/C07: R-K1x, R-K2x; sửa test C07 theo R-K3x; T18, T19 | test-compile; `-Dtest` `ConversationContext*Test`, `MessageDraft*Test` |
 | 5 | Frontend HR: hộp thoại khung giờ (gửi lần đầu + gửi lại), tab "Giấy mời phỏng vấn" | build + lint |
 | 6 | Frontend ứng viên: `InterviewInvitationDetails` danh sách khung; loại thông báo mới ở `features/notifications/types.ts` | build + lint; lệnh 7.3 |
@@ -818,7 +829,7 @@ full `.\mvnw.cmd test` đúng một lần + build + lint.
 | # | File | Thay đổi |
 |---|---|---|
 | D1 | `docs/SRS.md` | Dòng 40: tên "Giấy mời nhiều khung giờ" → "Giấy mời phỏng vấn nhiều khung giờ" (B5, M7) và `Chưa đặc tả` → `Đã hoàn thành`; dòng 103 (bảng chức năng bổ sung) đổi tên cho thống nhất. FR-H07 (`:93`) và mục vòng đời (`:148`): "Đã mời phỏng vấn (có lịch hẹn)" → nghĩa "đã gửi giấy mời có 1–5 khung giờ"; nhãn hiển thị giữ "Đã mời phỏng vấn". Mục 4 dòng FR-C03 (`:172`): thêm "giấy mời được gửi lại" |
-| D2 | `docs/ROADMAP.md:918` | Tick + tóm tắt; ghi giới hạn đã biết: email mời lần đầu không kèm giờ (M6); múi giờ nhập/hiển thị (B2); địa điểm không bấm được (B4) |
+| D2 | `docs/ROADMAP.md:918` | Tick + tóm tắt; ghi giới hạn đã biết: email mời lần đầu không kèm giờ (M6); múi giờ nhập/hiển thị (B2); địa điểm không bấm được (B4). Ghi một dòng nợ (L1): "danh sách bảng của reset-demo-db.sql thiếu bảng V13–V15 (không gây lỗi nhờ CASCADE)" |
 | D3 | `docs/UI_GUIDE.md` mục 7 | Dòng `/hr/applications/:id`: thêm tab "Giấy mời phỏng vấn" (khung giờ, khung đã chốt, gửi lại, giấy mời cũ) và `FR-H12`; bỏ "giấy mời nhiều khung giờ, gửi lại giấy mời (FR-H12)" khỏi ghi chú "FR sau tự thêm". Dòng `/candidate/applications/:id`: thêm `FR-H12 (khung giờ chỉ đọc)` |
 | D4 | `ApplicationStatusController.java:33-36` (code, đợt 7) | Comment "(co lich hen)" → nghĩa mới, khớp D1 |
 | D5 | `docs/features/CHUNG/C07/REQUIREMENT.md` (R-S1 dòng `:102`, `:107`; R-K1-5 `:213-217`; T7 `:399`) | Ghi chú "Sửa bởi FR-H12 (R-K1x, R-K2x)" cạnh từng dòng: `INTERVIEW_REMINDER` cần khung đã chốt; nguồn `InterviewSchedule` là khung chốt của giấy mời hiệu lực. `C07/UI.md` không đổi (Q3) |
@@ -878,3 +889,56 @@ Mọi câu đã chốt. Phần thân viết theo cột "Quyết định"; cột 
 | S5 | Hàm PowerShell của khối 7.2 | **Đã chốt:** chép nguyên `Get-Token`/`Invoke-Api`/`Test-Call` của FR-H11 mục 7.2; nhóm 2 đọc lại I1 kiểm địa điểm có dấu | Hàm của FR-H10: gửi chuỗi qua `Invoke-WebRequest -Body` của PowerShell 5.1, dễ vỡ chữ tiếng Việt khi đọc response | 7.2 |
 | S6 | Mẫu `rg` của 7.3 | **Đã chốt:** chỉ quét đúng các file FR-H12; khớp nhầm thì báo cáo đợt liệt kê từng dòng và lý do bỏ qua | Quét cả thư mục: khớp nhầm code không thuộc H12 | 7.3 |
 | S7 | Vị trí tab | **Đã chốt:** "Giấy mời phỏng vấn" giữa "Sàng lọc" và "Lịch sử" | — | Q7, UI.md mục 2 |
+
+## 12. Làm rõ sau Plan Mode (duyệt 13/10/2026)
+
+Đối chiếu lại trên `feat/fr-h12-multi-slot` tại `77dac9a` (chỉ khác `78d12a9` ở hai file đặc tả; mục 0 a1–a24 không dòng
+nào lệch). Mục này thắng chỗ viết cũ ở các mục được dẫn nếu lệch.
+
+- **L1 (mục 4.5, D2) — lý do sửa `reset-demo-db.sql`.** Câu cũ "thiếu thì `TRUNCATE` báo lỗi vì có FK" sai:
+  `reset-demo-db.sql:85-103` là **một** câu `TRUNCATE … CASCADE`, Postgres tự truncate mọi bảng có FK trỏ tới bảng trong
+  danh sách. Ba bảng V13–V15 (`job_screening_questions`, `application_screening_answers`, `job_ai_generations`) vắng trong
+  danh sách dù comment `:80-81` ghi "toàn bộ 22 bảng" — danh sách không đầy đủ, **không phải lỗi**. Chốt: vẫn thêm
+  `interview_invitation_slots` vào danh sách cho tường minh; sửa câu lý do ở 4.5; không sửa ba bảng V13–V15 ở FR-H12;
+  D2 ghi một dòng nợ "danh sách bảng của reset-demo-db.sql thiếu bảng V13–V15 (không gây lỗi nhờ CASCADE)".
+- **L2 (R-K1, mục 8) — thứ tự ghi khung chốt.** Ánh xạ `confirmed_slot_id` là cột `UUID` thường, không `@ManyToOne`, theo
+  quy ước dự án (`Notification.java:18`; `InterviewInvitation.applicationId`). Hibernate không biết FK ghép
+  `fk_invitation_confirmed_slot` (không `DEFERRABLE`), nên thứ tự SQL do code quyết định. Với `@UuidGenerator`, câu INSERT
+  giấy mời bị hoãn tới flush và mang theo giá trị `confirmed_slot_id` lúc flush — gán khung chốt trước khi khung được
+  INSERT thì vi phạm FK. Chốt ba bước: giấy mời `saveAndFlush` (chưa có khung chốt) → khung `saveAllAndFlush` → đặt khung
+  chốt + flush (`UPDATE`); áp cho I2 và I3. Mục 8 thêm dòng tương ứng.
+- **L3 (mục 4.2) — `@Immutable` và `created_at` của entity khung.** Hibernate 7.4.1 (`spring-boot-dependencies-4.1.0.pom:71`)
+  chỉ kiểm bất biến ở flush/UPDATE, không chặn INSERT — tiền lệ chạy thật `ApplicationScreeningAnswer.java:24-27`
+  (`ScreeningCaptureService.java:69` `saveAllAndFlush`), `JobAiGeneration.java:24` (`JobAiDraftSaveService.java:64`
+  `saveAndFlush`). Bẫy đã gặp (`JobAiGeneration.java:44-47`): `@Generated` trên `created_at` của entity `@Immutable` làm
+  Hibernate đọc lại cột sau INSERT, đặt khoá WRITE → `UnsupportedLockAttemptException`. Chốt: `created_at` của
+  `InterviewInvitationSlot` dùng `@Column(insertable = false, updatable = false)`, không `@Generated`. (`InterviewInvitation`
+  không `@Immutable` nên giữ `@Generated` như hiện có.)
+- **L4 (T3) — test có sẵn "thiếu `scheduledAt`".** `send_missingScheduledAt_returns400`
+  (`InterviewInvitationControllerIntegrationTest.java:356-364`) hiện chỉ kiểm 400 + không ghi dòng; lỗi cũ đến từ Bean
+  Validation `@NotNull`. Với thân `slots` (đợt 3), ca này thành "khung 1 thiếu `scheduledAt`" → 400
+  `INVALID_INTERVIEW_SCHEDULE`. Chốt: giữ tên test, đổi helper gửi `{"slots":[{"location":"…"}]}`, thêm khẳng định mã lỗi.
+- **L5 (T13) — khẳng định chuỗi mâu thuẫn Q4.** `InterviewInvitationCandidateControllerIntegrationTest.java:247-248`
+  khẳng định `json` không chứa `"id"`; khung trong I4 có `id` (Q4) nên khẳng định này đỏ dù gốc JSON đúng. Chốt: đọc JSON
+  bằng `ObjectMapper`, kiểm gốc không có `id`/`applicationId`/`sentBy`/`supersededAt`/`scheduledAt`, mỗi phần tử `slots`
+  có `id`; đổi tên test `get_ownApplication_returnsInvitationWithFiveFieldsOnly` →
+  `get_ownApplication_returnsActiveInvitationWithSlots` (đợt 3).
+- **L6 (T21) — hai ca đã có sẵn.** `NotificationMailOrchestratorIntegrationTest.java:200-230` đã có
+  `processOne_newMessage_appendsReplyLinkWithFrontendBaseUrl` (T21b) và
+  `processOne_oldTypeWithLink_sendsBodyExactly_withoutReplyLink` (T21c). Chốt: giữ nguyên hai test đó (phải xanh), chỉ
+  thêm ca (a) `email_body` khác `null` vào cùng lớp.
+- **L7 (mục 9 đợt 2, 3) — đợt 2 phải biên dịch được mà không đổi API.** Bỏ field `scheduledAt`/`location` khỏi entity làm
+  vỡ biên dịch ở `InterviewInvitationService.java:112-113`, `:153`, `:192-193`, `ConversationContextAssembler.java:82`
+  và hai helper test (`ConversationContextAssemblerIntegrationTest.java:222-223`,
+  `MessageDraftIntegrationTestSupport.java:414-415`). Chốt: đợt 2 **không** đổi DTO/API — service giữ thân request cũ
+  (`scheduledAt`/`location` ở gốc, kiểm như hiện nay) và ghi thành 1 khung đã chốt theo ba bước L2; hai DTO giữ hình dạng,
+  lấy giá trị từ khung chốt của giấy mời hiệu lực; K1 đọc khung chốt của giấy mời hiệu lực. Hai helper test chỉ đổi cách
+  chèn dữ liệu (giấy mời + 1 khung chốt; giấy mời chèn sau đánh dấu giấy mời trước là `superseded_at` để không vi phạm
+  `uq_invitation_active`), không đổi khẳng định. Điều kiện xong đợt 2: mọi lớp `InterviewInvitation*` và các lớp đọc giấy
+  mời có sẵn xanh **không sửa thân request**. Đổi thân request sang `slots` là việc của đợt 3.
+- **L8 (T10) — lớp test riêng cho tuần tự hoá.** Các lớp HTTP liên quan đều `@Transactional` cấp lớp
+  (`InterviewInvitationControllerIntegrationTest.java:39`, `InterviewInvitationCandidateControllerIntegrationTest.java:35`,
+  `ApplicationHrDetailControllerIntegrationTest.java:69`, `ApplicationStatusControllerIntegrationTest.java:35`,
+  `CandidateApplicationCrossEndpointAccessIntegrationTest.java:40`, `HrApplicationCrossEndpointAccessIntegrationTest.java:40`)
+  — hai luồng song song không thấy dữ liệu của nhau. Chốt: T10(a–d) ở lớp mới
+  `InterviewInvitationResendConcurrencyIntegrationTest`, không `@Transactional` cấp lớp.
