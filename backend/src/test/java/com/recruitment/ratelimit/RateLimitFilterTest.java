@@ -431,4 +431,89 @@ class RateLimitFilterTest {
             assertThat(response.getStatus()).isEqualTo(200);
         }
     }
+
+    // ---- FR-H11 T19 - J1 (POST /api/hr/job-ai-drafts) thuoc nhom "ai-sync" (R-K3H-6) ----
+
+    private static final String JOB_AI_DRAFT_PATH = "/api/hr/job-ai-drafts";
+    private static final String JOB_AI_DRAFT_SAVE_PATH = "/api/hr/job-ai-drafts/save";
+    private static final String ALL_PARTS_BODY =
+            "{\"description\":\"Mo ta\",\"parts\":[\"JOB\",\"CRITERIA\",\"QUESTIONS\"]}";
+
+    private static MockHttpServletRequest jobAiDraftRequest(String path) {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
+        request.setContentType("application/json");
+        request.setContent(ALL_PARTS_BODY.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return request;
+    }
+
+    // Moi request co du 3 phan van chi 1 luot (filter khong doc body): 5 request qua, request 6 bi 429.
+    @Test
+    void doFilter_jobAiDraft_oneRequestIsOneToken_5thPasses_6thRejected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 5, 2);
+        authenticateAs("f8888888-8888-8888-8888-888888888888");
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), response);
+            assertThat(response.getStatus()).as("request thu %d (3 phan) phai qua duoc", i + 1).isEqualTo(200);
+        }
+
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), rejected);
+        assertThat(rejected.getStatus()).isEqualTo(429);
+        assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+    }
+
+    // J2 (/save) khong goi AI - khong thuoc nhom nao, ke ca khi ai-sync da het.
+    @Test
+    void doFilter_jobAiDraftSave_isNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 1, 1, 1, 1);
+        authenticateAs("f9999999-9999-9999-9999-999999999999");
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), new MockHttpServletResponse());
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_SAVE_PATH), response);
+            assertThat(response.getStatus()).as("J2 lan %d", i + 1).isEqualTo(200);
+        }
+    }
+
+    // Chung nhom voi soan nhap tin nhan C07 cua cung userId: het luot do J1 thi A2 cung 429; message/llm-action van qua.
+    @Test
+    void doFilter_jobAiDraftSharesAiSyncBucketWithMessageDraft_otherGroupsUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 2, 2);
+        authenticateAs("fa111111-1111-1111-1111-111111111111");
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), new MockHttpServletResponse());
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), new MockHttpServletResponse());
+
+        MockHttpServletResponse messageDraft = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), messageDraft);
+        assertThat(messageDraft.getStatus()).as("A2 cua C07 cung nhom ai-sync").isEqualTo(429);
+
+        MockHttpServletResponse message = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_MESSAGES_PATH), message);
+        assertThat(message.getStatus()).as("nhom message").isEqualTo(200);
+
+        MockHttpServletResponse llmAction = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", "/api/candidates/resumes"), llmAction);
+        assertThat(llmAction.getStatus()).as("nhom llm-action").isEqualTo(200);
+    }
+
+    // Theo userId: HR khac khong bi anh huong; GET cung duong dan khong bi gioi han.
+    @Test
+    void doFilter_jobAiDraft_isLimitedPerUser_andGetNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        authenticateAs("fa222222-2222-2222-2222-222222222222");
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+        MockHttpServletResponse get = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("GET", JOB_AI_DRAFT_PATH), get);
+        assertThat(get.getStatus()).isEqualTo(200);
+
+        SecurityContextHolder.clearContext();
+        authenticateAs("fa333333-3333-3333-3333-333333333333");
+        MockHttpServletResponse otherUser = new MockHttpServletResponse();
+        doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), otherUser);
+        assertThat(otherUser.getStatus()).isEqualTo(200);
+    }
 }

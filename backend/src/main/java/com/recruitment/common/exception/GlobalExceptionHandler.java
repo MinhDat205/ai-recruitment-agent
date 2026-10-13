@@ -377,6 +377,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ErrorResponse(errorCode.name(), errorCode.message()));
     }
 
+    // FR-H11 R-N2, R-N3 - J1 sai dau vao. Body JSON hong cua J1 KHONG di qua day (JobAiDraftExceptionAdvice, R-A3).
+    @ExceptionHandler(InvalidJobDraftRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobDraftRequest(InvalidJobDraftRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_DRAFT_REQUEST", ex.getMessage()));
+    }
+
     // FR-H11 R-K4-4 (K4) - token sieu du lieu AI khong hop le: 400, cau co dinh, khong noi ly do cu the.
     @ExceptionHandler(InvalidAiGenerationTokenException.class)
     public ResponseEntity<ErrorResponse> handleInvalidAiGenerationToken(InvalidAiGenerationTokenException ex) {

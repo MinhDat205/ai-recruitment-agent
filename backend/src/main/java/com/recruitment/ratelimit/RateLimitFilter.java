@@ -59,6 +59,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // "*" chi mot doan) nen hai nhom khong chong nhau. GET .../ai-draft/scenarios (A1) khong bi gioi han.
     private static final String HR_AI_DRAFT_PATTERN = "/api/hr/applications/*/messages/ai-draft";
     private static final String CANDIDATE_AI_DRAFT_PATTERN = "/api/candidates/applications/*/messages/ai-draft";
+    // FR-H11 R-K3H-6 - sinh ban nhap tin (J1, @PostMapping khong them path tren @RequestMapping("/api/hr/job-ai-drafts")
+    // cua JobAiDraftController): cung nhom ai-sync. Phan loai theo duong dan, KHONG doc body - mot request = mot luot du
+    // gom 1 hay 3 phan. So khop CHINH XAC: J2 ".../job-ai-drafts/save" khong goi AI, khong thuoc nhom nao.
+    private static final String JOB_AI_DRAFT_PATH = "/api/hr/job-ai-drafts";
 
     private final RateLimitBucketStore bucketStore;
     private final long authCapacity;
@@ -156,9 +160,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.flushBuffer();
     }
 
-    // Chi ap dung cho DUNG cac endpoint da duyet (POST): auth, llm-action, 2 mau gui tin nhan (FR-C06) va 2 mau soan
-    // nhap bang AI (FR-C07, nhom ai-sync). Moi request khac (bao gom GET toi cung
-    // duong dan, hoac POST toi duong dan khac) tra null - khong bi rate limit.
+    // Chi ap dung cho DUNG cac endpoint da duyet (POST): auth, llm-action, 2 mau gui tin nhan (FR-C06), 2 mau soan
+    // nhap bang AI (FR-C07) va sinh ban nhap tin (FR-H11) - hai cai sau la nhom ai-sync. Moi request khac (bao gom GET
+    // toi cung duong dan, hoac POST toi duong dan khac) tra null - khong bi rate limit.
     private RateLimitTarget classify(HttpServletRequest request) {
         if (!"POST".equals(request.getMethod())) {
             return null;
@@ -194,7 +198,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     "message:" + authentication.getName(), messageCapacity, messageRefillPerMinute);
         }
 
-        if (PATH_MATCHER.match(HR_AI_DRAFT_PATTERN, path) || PATH_MATCHER.match(CANDIDATE_AI_DRAFT_PATTERN, path)) {
+        if (PATH_MATCHER.match(HR_AI_DRAFT_PATTERN, path)
+                || PATH_MATCHER.match(CANDIDATE_AI_DRAFT_PATTERN, path)
+                || JOB_AI_DRAFT_PATH.equals(path)) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
                 // Cung ly do nhom llm-action o tren: de chain phia sau tu tra 401/403.

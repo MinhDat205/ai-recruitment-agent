@@ -32,8 +32,9 @@ public class JobAiDraftService {
     public static final String QUESTIONS_PROMPT_VERSION = "job-draft-questions-v1";
 
     static final String INDUSTRIES_PARAM = "industries";
-    // V8: AI khong duoc tra OTHER (R-P5) - danh sach dong trong prompt chi gom cac ma con lai.
-    static final String EXCLUDED_INDUSTRY_CODE = "OTHER";
+    // V8: AI khong duoc tra OTHER (R-P5) - danh sach dong trong prompt chi gom cac ma con lai; facade coi OTHER AI tra la
+    // ma la (R-P4) bang CHINH hang nay.
+    public static final String EXCLUDED_INDUSTRY_CODE = "OTHER";
 
     static final String OPEN_TAG = "<mo_ta_cua_hr>";
     static final String CLOSE_TAG = "</mo_ta_cua_hr>";
