@@ -840,12 +840,12 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
 > Lưu ý khi viết đặc tả (soát 05/10/2026; đây chưa phải đặc tả, chốt ở REQUIREMENT.md của từng FR):
 > - FR-H09/FR-U08 chỉ dựng khung và phần đã có dữ liệu. H09: tab CV & điểm, Giải thích, Lịch sử, thanh
 >   thao tác FR-H07. U08: thông tin Job, CV đã nộp, trạng thái/lịch sử, Rút đơn. Tab/nút của FR sau
->   (Sàng lọc — H10/U09, Câu hỏi phỏng vấn — H13, Trao đổi — C06, Hỏi đáp CV — C08, Thêm vào kho — H15,
+>   (Sàng lọc — H10/U09, Trao đổi — C06, Hỏi đáp CV — C08, Thêm vào kho — H15,
 >   chọn khung giờ — U10) do chính FR đó thêm; không dựng tab rỗng hay nút khoá trước.
 > - "Rút đồng ý lưu hồ sơ" đang mô tả ở FR-U08, nhưng cờ đồng ý chỉ có từ FR-U09 (Phase 2.3) và việc
 >   xoá khỏi kho chỉ có từ FR-H15 (Phase 2.5). Đặt cờ + nút Rút đồng ý vào đặc tả FR-U09; phần xoá khỏi
 >   kho vào FR-H15. FR-U08 không làm phần này.
-> - FR-C07 xây K1 và K3. Mọi FR dùng K1/K3 về sau (C08, H11, H13, H15, U12, U13) phụ thuộc ngầm FR-C07
+> - FR-C07 xây K1 và K3. Mọi FR dùng K1/K3 về sau (C08, H11, H15, U12, U13) phụ thuộc ngầm FR-C07
 >   dù cột "Phụ thuộc" không ghi — không làm song song/nhảy cóc qua FR-C07.
 
 **Xong khi:** gọi API đơn/cuộc trao đổi không thuộc về mình bị chặn (kiểm bằng curl, không qua
@@ -942,16 +942,18 @@ giấy mời đã gửi không đổi khi sửa mẫu.
 
 **Phase 2.5 — AI hỗ trợ đánh giá & kho ứng viên**
 - [ ] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn
-- [ ] `feat/fr-h13-interview-questions` — FR-H13 · Câu hỏi phỏng vấn theo CV
 - [ ] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên
 - [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
+
+> FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026 — xem `docs/features/README.md` mục 5.
+> Mã FR-H13 không dùng lại; các mã khác giữ nguyên.
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026):
 > - **Trước FR-C08:** sửa test chập chờn `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
 >   (nợ ghi ở FR-C05). FR-C08 tách K2 ra khỏi `CriterionScoringService` (FR-H04) và cổng "toàn bộ test
 >   cũ vẫn pass" dựa vào chính bộ test `scoring/` — test chập chờn làm cổng này mất giá trị.
-> - Phụ thuộc ngầm qua K1–K4: FR-C08 cần FR-C07 (K1, K3); FR-H13 cần FR-C07 (K1, K3), FR-C08 (K2),
->   FR-H11 (K4); FR-H15 cần FR-C07 (K1, K3), FR-H11 (K4). FR-H14 hiển thị câu trả lời sàng lọc nên cần
+> - Phụ thuộc ngầm qua K1–K4: FR-C08 cần FR-C07 (K1, K3); FR-H15 cần FR-C07 (K1, K3),
+>   FR-H11 (K4). FR-H14 hiển thị câu trả lời sàng lọc nên cần
 >   FR-H10/FR-U09.
 > - FR-H15 nhận phần "ứng viên rút đồng ý → xoá mục khỏi mọi kho" (xem Phase 2.2).
 
@@ -968,9 +970,9 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 > - FR-U12 ghi thẳng "CV đã trích xuất" từ form nên phải theo schema v2 của FR-C05 (mã ngành nghề/khu
 >   vực, số tháng kinh nghiệm do backend tính) — thêm FR-C05 vào phụ thuộc; gợi ý diễn đạt cần FR-C07 (K3).
 > - FR-H16: danh sách bề mặt phải che còn thiếu `/hr/candidates` (`CandidatesTable` đang hiện
->   `candidateName` cho mọi Job), hộp thư `/hr/messages` (C06), tab Sàng lọc (H10 — câu trả lời tự do),
->   tab Câu hỏi phỏng vấn (H13 — đoạn CV liên quan); cần soát thêm nội dung thông báo/email gửi HR.
->   Phụ thuộc thực tế ngoài H09/H14/C08: FR-C06, FR-H13, FR-H15.
+>   `candidateName` cho mọi Job), hộp thư `/hr/messages` (C06), tab Sàng lọc (H10 — câu trả lời tự do);
+>   cần soát thêm nội dung thông báo/email gửi HR.
+>   Phụ thuộc thực tế ngoài H09/H14/C08: FR-C06, FR-H15.
 > - FR-H16 phải ghi đè R-V1 của FR-H09 (`/hr/applications/:id` cho tải CV gốc ở mọi trạng thái trích
 >   xuất): ở chế độ ẩn danh không tải được CV gốc; đồng thời che thư giới thiệu (R-L của FR-H09) — FR-H09
 >   hiện thư nguyên văn và đã ghi việc che vào "Ngoài phạm vi".

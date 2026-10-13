@@ -1,6 +1,6 @@
 ---
 name: srs-guard
-description: Soát codebase tìm vi phạm các nguyên tắc thiết kế bắt buộc trong SRS của dự án AI Recruitment Agent (AI không được gán nhãn đậu/rớt, backend tính tổng điểm, không hard delete, consent bắt buộc, và các nguyên tắc bổ sung cho 21 FR mới). Dùng khi người dùng yêu cầu "kiểm tra vi phạm SRS", "soát ranh giới AI", "review trước khi merge", hoặc trước khi merge BẤT KỲ nhánh FR nào (cũ hay bổ sung).
+description: Soát codebase tìm vi phạm các nguyên tắc thiết kế bắt buộc trong SRS của dự án AI Recruitment Agent (AI không được gán nhãn đậu/rớt, backend tính tổng điểm, không hard delete, consent bắt buộc, và các nguyên tắc bổ sung cho 20 FR mới). Dùng khi người dùng yêu cầu "kiểm tra vi phạm SRS", "soát ranh giới AI", "review trước khi merge", hoặc trước khi merge BẤT KỲ nhánh FR nào (cũ hay bổ sung).
 ---
 
 # Soát vi phạm nguyên tắc SRS
@@ -68,7 +68,7 @@ giả hay gặp: label "Đã chấm 3/5 tiêu chí" — số `3/5` nằm trong t
 chọn màu). Với FR-U13/U15/H14: "lý do khớp" hiển thị dạng chip trung tính liệt kê điều kiện, không
 %, không đổi màu theo giá trị (UI_GUIDE mục 4) — vi phạm nếu tô màu hoặc gắn nhãn "phù hợp".
 
-## 5. Mọi điểm/trích dẫn phải có evidence kiểm chứng được (FR-H06, FR-C08, FR-H13)
+## 5. Mọi điểm/trích dẫn phải có evidence kiểm chứng được (FR-H06, FR-C08)
 
 ```bash
 rg "evidence" backend/src/main/java/com/recruitment/
@@ -88,8 +88,8 @@ CriterionScoringErrorCode.EVIDENCE_MISSING_WITH_NONZERO_SCORE`). Đường ghi D
 (`ScoringRunStateService.recordCriterionScore`) chỉ nhận kết quả đã qua `validate()` — soát ở đây
 là soát code Java thật, không phải suy luận qua nội dung prompt.
 
-**Mở rộng cho FR-C08/FR-H13**: mọi trích dẫn CV hiển thị ở hai chức năng này phải qua cùng bộ kiểm
-dùng chung K2 (CLAUDE.md §3d, tách từ `validate()` trên) — khi K2 tồn tại, vi phạm nếu C08/H13 tự
+**Mở rộng cho FR-C08**: mọi trích dẫn CV hiển thị ở chức năng này phải qua cùng bộ kiểm
+dùng chung K2 (CLAUDE.md §3d, tách từ `validate()` trên) — khi K2 tồn tại, vi phạm nếu C08 tự
 viết lại phép so khớp riêng thay vì gọi K2.
 
 ## 6. Không hard delete, trừ ngoại lệ quyền riêng tư đã chốt (FR-U06, FR-H15)
@@ -147,7 +147,7 @@ request, cho `DataIntegrityViolationException` nổi lên và `GlobalExceptionHa
 
 ---
 
-## Nguyên tắc bổ sung cho 21 FR mới (10-15)
+## Nguyên tắc bổ sung cho 20 FR mới (10-15)
 
 ## 10. Phía ứng viên không nhận dữ liệu nội bộ
 
@@ -178,7 +178,7 @@ rg -n "ChatClient|ChatModel|EmbeddingModel" backend/src/main/java/com/recruitmen
 ```
 
 Với mỗi kết quả nằm trên đường request (gọi được từ một `Controller` không qua job nền/scheduler):
-xác nhận FR chứa nó có trong danh sách ngoại lệ K3 ở CLAUDE.md §7 (FR-C07, FR-C08, FR-H11, FR-H13,
+xác nhận FR chứa nó có trong danh sách ngoại lệ K3 ở CLAUDE.md §7 (FR-C07, FR-C08, FR-H11,
 FR-H15 tóm tắt, FR-U12, FR-U13), và có đủ: timeout, thử lại tối đa 1 lần, rate limit theo `userId`,
 không `@Transactional` bao quanh lời gọi.
 

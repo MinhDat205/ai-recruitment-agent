@@ -50,7 +50,7 @@ Reset sạch database khi migration hỏng: `docker compose down -v && docker co
 ├── backend/            Spring Boot, chia package theo tính năng
 ├── frontend/           React + Vite
 ├── docs/
-│   ├── SRS.md          Tổng quan hệ thống (39 mã FR) + đặc tả đầy đủ 18 FR đã hoàn thành
+│   ├── SRS.md          Tổng quan hệ thống (38 mã FR) + đặc tả đầy đủ 18 FR đã hoàn thành
 │   ├── features/       Đặc tả từng FR bổ sung (<nhóm>/<mã>/REQUIREMENT.md + UI.md)
 │   ├── ROADMAP.md      Kế hoạch chia phase theo mã FR
 │   ├── TECH_STACK.md   Lý do chọn từng công nghệ
