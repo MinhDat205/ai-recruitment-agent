@@ -98,6 +98,7 @@ class MessageDraftScenarioIntegrationTest extends MessageDraftIntegrationTestSup
         assertAvailable(Side.HR, f, "RESULT_NOTICE");
     }
 
+    // FR-H12 R-K3x - ca giay moi hieu luc DA CHOT (mot khung) giu nguyen nghia cu; ca CHUA chot o test ngay duoi (T19).
     @Test
     void interviewReminderAndReschedule_onlyWhenInterviewInvitedWithInvitation() throws Exception {
         Fixture f = createApplication("c07-t7-remind");
@@ -109,7 +110,7 @@ class MessageDraftScenarioIntegrationTest extends MessageDraftIntegrationTestSup
         assertUnavailable(Side.HR, f, "INTERVIEW_REMINDER");
         assertUnavailable(Side.CANDIDATE, f, "REQUEST_RESCHEDULE");
 
-        // INTERVIEW_INVITED co giay moi -> dung duoc
+        // INTERVIEW_INVITED co giay moi hieu luc da chot -> dung duoc
         insertInvitation(f, SCHEDULED_AT, "Tang 3");
         assertScenarios(Side.HR, f, hrExpected(null, "RESULT_NOT_FINAL"));
         assertScenarios(Side.CANDIDATE, f, candidateExpected(null, null));
@@ -122,6 +123,42 @@ class MessageDraftScenarioIntegrationTest extends MessageDraftIntegrationTestSup
         assertScenarios(Side.CANDIDATE, f, candidateExpected(null, "NO_ACTIVE_INTERVIEW"));
         assertUnavailable(Side.HR, f, "INTERVIEW_REMINDER");
         assertUnavailable(Side.CANDIDATE, f, "REQUEST_RESCHEDULE");
+    }
+
+    // FR-H12 T19 (R-K2x, Q3) - giay moi hieu luc 3 khung CHUA chot: nhac lich khoa voi ly do co san NO_ACTIVE_INTERVIEW
+    // (khong goi AI); xin doi lich dung duoc va prompt ghi "chua co lich"; cam on sau phong van dung duoc. HIRED: xin doi lich
+    // khoa, cam on van dung duoc.
+    @Test
+    void unconfirmedActiveInvitation_reminderUnavailable_rescheduleAndThankAvailable() throws Exception {
+        Fixture f = createApplication("c07-t19-unconf");
+        setStatus(f, ApplicationStatus.INTERVIEW_INVITED);
+        insertUnconfirmedInvitation(f, SCHEDULED_AT, 3);
+
+        assertScenarios(Side.HR, f, hrExpected("NO_ACTIVE_INTERVIEW", "RESULT_NOT_FINAL"));
+        assertScenarios(Side.CANDIDATE, f, candidateExpected(null, null));
+        assertUnavailable(Side.HR, f, "INTERVIEW_REMINDER");
+
+        stubDraft(DEFAULT_DRAFT);
+        assertDraft(
+                postDraft(Side.CANDIDATE, f.applicationId(), f.candidateToken(), "REQUEST_RESCHEDULE", "FORMAL"),
+                DEFAULT_DRAFT);
+        assertThat(userText(capturedPrompts(1).get(0))).contains("Lịch phỏng vấn: chưa có lịch");
+        resetChatModelMock();
+        assertAvailable(Side.CANDIDATE, f, "THANK_AFTER_INTERVIEW");
+
+        setStatus(f, ApplicationStatus.HIRED);
+        assertScenarios(Side.CANDIDATE, f, candidateExpected(null, "NO_ACTIVE_INTERVIEW"));
+        assertUnavailable(Side.CANDIDATE, f, "REQUEST_RESCHEDULE");
+    }
+
+    // FR-H12 T19 (Q3) - khong them ma ly do moi.
+    @Test
+    void draftUnavailableReason_stillExactlyThreeValues() {
+        assertThat(DraftUnavailableReason.values())
+                .containsExactlyInAnyOrder(
+                        DraftUnavailableReason.RESULT_NOT_FINAL,
+                        DraftUnavailableReason.NO_ACTIVE_INTERVIEW,
+                        DraftUnavailableReason.NO_INTERVIEW);
     }
 
     @Test

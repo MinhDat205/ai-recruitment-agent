@@ -221,10 +221,27 @@ class ConversationContextAssemblerIntegrationTest {
                 id);
     }
 
-    // FR-H12 dot 2 (REQUIREMENT muc 12 L7) - chi doi cach chen: giay moi + 1 khung da chot theo ba buoc L2. Giay moi
-    // truoc cua cung don duoc danh dau superseded_at de khong vi pham uq_invitation_active (V16); assembler van chon theo
-    // created_at o dot 2 nen khang dinh cua cac test khong doi.
+    // FR-H12 (R-K3x) - giay moi MOT khung da chot, ghi theo ba buoc L2. Giay moi dang hieu luc cua cung don duoc danh dau
+    // superseded_at = createdAt cua giay moi moi (nhu gui lai that, R-G3) - giay moi chen sau la giay moi hieu luc.
     private void insertInvitation(Fixture f, Instant scheduledAt, String location, Instant createdAt) {
+        InterviewInvitation saved = insertInvitationRow(f, createdAt);
+        InterviewInvitationSlot slot =
+                slotRepository.saveAndFlush(new InterviewInvitationSlot(saved.getId(), 1, scheduledAt, location));
+        saved.setConfirmedSlotId(slot.getId());
+        saved.setConfirmedAt(createdAt);
+        invitationRepository.saveAndFlush(saved);
+    }
+
+    // FR-H12 T18 - giay moi NHIEU khung, CHUA chot (R-K2); thay giay moi hieu luc truoc nhu insertInvitation.
+    private void insertUnconfirmedInvitation(Fixture f, List<Instant> schedules, Instant createdAt) {
+        InterviewInvitation saved = insertInvitationRow(f, createdAt);
+        for (int i = 0; i < schedules.size(); i++) {
+            slotRepository.saveAndFlush(new InterviewInvitationSlot(saved.getId(), i + 1, schedules.get(i), "Phong " + (i + 1)));
+        }
+    }
+
+    // Dong giay moi CHUA co khung chot (buoc 1 cua L2); created_at backdate tuong minh.
+    private InterviewInvitation insertInvitationRow(Fixture f, Instant createdAt) {
         jdbcTemplate.update(
                 "UPDATE interview_invitations SET superseded_at = ? WHERE application_id = ? AND superseded_at IS NULL",
                 Timestamp.from(createdAt),
@@ -236,13 +253,9 @@ class ConversationContextAssemblerIntegrationTest {
         invitation.setSentAt(createdAt);
         invitation.setSentBy(f.hrUserId());
         InterviewInvitation saved = invitationRepository.saveAndFlush(invitation);
-        InterviewInvitationSlot slot =
-                slotRepository.saveAndFlush(new InterviewInvitationSlot(saved.getId(), 1, scheduledAt, location));
-        saved.setConfirmedSlotId(slot.getId());
-        saved.setConfirmedAt(createdAt);
-        invitationRepository.saveAndFlush(saved);
         jdbcTemplate.update(
                 "UPDATE interview_invitations SET created_at = ? WHERE id = ?", Timestamp.from(createdAt), saved.getId());
+        return saved;
     }
 
     // ---- T12 (phan du lieu) ----
@@ -277,19 +290,40 @@ class ConversationContextAssemblerIntegrationTest {
                 .isEqualTo(asHr);
     }
 
+    // FR-H12 R-K3x, T18 - doi tu forConversation_usesLatestInvitation_scheduledAtAndLocation: dung khung chot cua giay moi
+    // HIEU LUC, bo qua giay moi cu - ke ca khi giay moi cu co created_at muon hon (khong chon theo created_at, R-A1).
     @Test
-    void forConversation_usesLatestInvitation_scheduledAtAndLocation() throws Exception {
+    void forConversation_usesConfirmedSlotOfActiveInvitation_ignoresOldInvitation() throws Exception {
         Fixture f = createApplication("k1-invite");
         Instant olderSchedule = Instant.parse("2026-10-15T02:00:00Z");
-        Instant latestSchedule = Instant.parse("2026-10-20T02:00:00Z");
+        Instant activeSchedule = Instant.parse("2026-10-20T02:00:00Z");
         insertInvitation(f, olderSchedule, "Dia diem cu", Instant.parse("2026-10-02T00:00:00Z"));
-        insertInvitation(f, latestSchedule, "Tang 3, 45 Bach Dang", Instant.parse("2026-10-05T00:00:00Z"));
+        insertInvitation(f, activeSchedule, "Tang 3, 45 Bach Dang", Instant.parse("2026-10-05T00:00:00Z"));
+        jdbcTemplate.update(
+                "UPDATE interview_invitations SET created_at = ? WHERE application_id = ? AND superseded_at IS NOT NULL",
+                Timestamp.from(Instant.parse("2026-10-09T00:00:00Z")),
+                f.applicationId());
 
         ConversationContext context = assembler.forConversation(ContextViewer.CANDIDATE, f.applicationId());
 
         assertThat(context.interview()).isNotNull();
-        assertThat(context.interview().scheduledAt()).isEqualTo(latestSchedule);
+        assertThat(context.interview().scheduledAt()).isEqualTo(activeSchedule);
         assertThat(context.interview().location()).isEqualTo("Tang 3, 45 Bach Dang");
+    }
+
+    // FR-H12 T18 - giay moi hieu luc 3 khung CHUA chot -> null, ke ca khi giay moi cu da chot. Khong lay khung som nhat.
+    @Test
+    void forConversation_activeInvitationUnconfirmed_interviewNull_evenIfOldInvitationConfirmed() throws Exception {
+        Fixture f = createApplication("k1-unconfirmed");
+        insertInvitation(f, Instant.parse("2026-10-15T02:00:00Z"), "Dia diem cu", Instant.parse("2026-10-02T00:00:00Z"));
+        insertUnconfirmedInvitation(
+                f,
+                List.of(Instant.parse("2026-10-22T02:00:00Z"), Instant.parse("2026-10-21T02:00:00Z"),
+                        Instant.parse("2026-10-23T02:00:00Z")),
+                Instant.parse("2026-10-05T00:00:00Z"));
+
+        assertThat(assembler.forConversation(ContextViewer.HR, f.applicationId()).interview()).isNull();
+        assertThat(assembler.forConversation(ContextViewer.CANDIDATE, f.applicationId()).interview()).isNull();
     }
 
     @Test

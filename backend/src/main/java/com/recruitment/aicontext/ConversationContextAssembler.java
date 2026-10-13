@@ -78,13 +78,11 @@ public class ConversationContextAssembler {
                 .orElseThrow(() -> new IllegalStateException(
                         "Khong tim thay ung vien cua don " + applicationId));
 
-        // Giay moi moi nhat - cung cach phia ung vien doc (InterviewInvitationService.getLatestInvitationForCandidate).
-        // FR-H12 dot 2 (REQUIREMENT muc 12 L7): giu cach chon giay moi theo created_at; chi doi nguon thoi diem/dia diem
-        // sang khung CHOT cua chinh giay moi da chon (chua chot -> null). Doi sang giay moi hieu luc la viec dot 4 (R-K1x).
+        // FR-H12 R-K1x - khung CHOT cua giay moi HIEU LUC (superseded_at IS NULL, R-A1) - cung cach phia ung vien doc
+        // (InterviewInvitationService.getActiveInvitationForCandidate). Giay moi hieu luc chua chot hoac khong co giay moi
+        // -> null. KHONG lay khung som nhat thay cho khung chot, KHONG doc giay moi cu (ke ca khi giay moi cu da chot).
         InterviewSchedule interview = interviewInvitationRepository
-                .findByApplicationIdOrderByCreatedAtDesc(applicationId)
-                .stream()
-                .findFirst()
+                .findByApplicationIdAndSupersededAtIsNull(applicationId)
                 .filter(invitation -> invitation.getConfirmedSlotId() != null)
                 .flatMap(invitation -> interviewInvitationSlotRepository.findById(invitation.getConfirmedSlotId()))
                 .map(slot -> new InterviewSchedule(slot.getScheduledAt(), slot.getLocation()))

@@ -117,6 +117,28 @@ class MessageDraftPromptIntegrationTest extends MessageDraftIntegrationTestSuppo
         assertThat(userText(prompts.get(1))).contains("Tình huống: REQUEST_RESCHEDULE").contains("Người soạn: Ứng viên");
     }
 
+    // FR-H12 T19 (R-K1x, R-K2x) - giay moi hieu luc nhieu khung CHUA chot: prompt nhan dong "chua co lich" co san, KHONG co
+    // gio hay dia diem cua khung nao (khong lay khung som nhat, khong dua danh sach khung vao prompt).
+    @Test
+    void t19_unconfirmedActiveInvitation_rescheduleSaysNoSchedule_noSlotInPrompt() throws Exception {
+        Fixture f = createApplication("c07-t19-prompt");
+        setStatus(f, ApplicationStatus.INTERVIEW_INVITED);
+        insertUnconfirmedInvitation(f, Instant.parse("2026-10-20T02:00:00Z"), 2);
+        stubDraft(DEFAULT_DRAFT);
+
+        assertDraft(
+                postDraft(Side.CANDIDATE, f.applicationId(), f.candidateToken(), "REQUEST_RESCHEDULE", "FORMAL"),
+                DEFAULT_DRAFT);
+
+        String user = userText(capturedPrompts(1).get(0));
+        assertThat(user)
+                .contains(NO_INTERVIEW_TEXT)
+                .doesNotContain("09:00 20/10/2026")
+                .doesNotContain("09:00 21/10/2026")
+                .doesNotContain("Phong 1")
+                .doesNotContain("Phong 2");
+    }
+
     @Test
     void t12_noInvitation_saysNoSchedule() throws Exception {
         Fixture f = createApplication("c07-t12-nosched");

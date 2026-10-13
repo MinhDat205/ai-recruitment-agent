@@ -413,8 +413,8 @@ abstract class MessageDraftIntegrationTestSupport {
                 id);
     }
 
-    // FR-H12 dot 2 (REQUIREMENT muc 12 L7) - chi doi cach chen: giay moi + 1 khung da chot theo ba buoc L2 (moi test
-    // chen toi da mot giay moi cho moi don, khong cham uq_invitation_active).
+    // FR-H12 (R-K3x) - giay moi hieu luc MOT khung DA CHOT, ghi theo ba buoc L2 (moi test chen toi da mot giay moi cho
+    // moi don, khong cham uq_invitation_active).
     void insertInvitation(Fixture f, Instant scheduledAt, String location) {
         InterviewInvitation invitation = new InterviewInvitation();
         invitation.setApplicationId(f.applicationId());
@@ -428,6 +428,21 @@ abstract class MessageDraftIntegrationTestSupport {
         saved.setConfirmedSlotId(slot.getId());
         saved.setConfirmedAt(BASE_TIME);
         invitationRepository.saveAndFlush(saved);
+    }
+
+    // FR-H12 (R-K3x, T19) - giay moi hieu luc slotCount khung, CHUA chot (R-K2): chi buoc 1-2 cua L2, khong dat khung chot.
+    void insertUnconfirmedInvitation(Fixture f, Instant firstScheduledAt, int slotCount) {
+        InterviewInvitation invitation = new InterviewInvitation();
+        invitation.setApplicationId(f.applicationId());
+        invitation.setSubject("Thu moi phong van");
+        invitation.setRenderedContent("Noi dung giay moi KHONG duoc vao ngu canh");
+        invitation.setSentAt(BASE_TIME);
+        invitation.setSentBy(f.hrUserId());
+        InterviewInvitation saved = invitationRepository.saveAndFlush(invitation);
+        for (int i = 0; i < slotCount; i++) {
+            slotRepository.saveAndFlush(new InterviewInvitationSlot(
+                    saved.getId(), i + 1, firstScheduledAt.plus(i, java.time.temporal.ChronoUnit.DAYS), "Phong " + (i + 1)));
+        }
     }
 
     void deleteInvitations(Fixture f) {

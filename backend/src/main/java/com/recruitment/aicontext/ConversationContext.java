@@ -18,7 +18,7 @@ public record ConversationContext(
         String jobTitle,
         String companyName,
         ApplicationStatus applicationStatus,
-        // null khi don chua co giay moi
+        // null khi don chua co giay moi, hoac giay moi hieu luc chua chot khung (FR-H12 R-K1x)
         InterviewSchedule interview,
         // <= 10 tin gan nhat, cu truoc moi sau
         List<RecentMessage> recentMessages) {
@@ -27,7 +27,8 @@ public record ConversationContext(
         recentMessages = recentMessages == null ? List.of() : List.copyOf(recentMessages);
     }
 
-    // Giay moi MOI NHAT cua don. location co the null. FR-H12 tu mo rong khi co nhieu khung gio (R-K1-5).
+    // Khung DA CHOT cua giay moi HIEU LUC (FR-H12 R-K1x, M4: hinh dang record giu nguyen, chi doi nguon). location co the
+    // null (chi o du lieu cu chuyen tu V1).
     public record InterviewSchedule(Instant scheduledAt, String location) {
     }
 

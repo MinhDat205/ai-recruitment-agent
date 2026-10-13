@@ -83,10 +83,10 @@ public class MessageDraftFacade {
     private DraftScenariosResponse scenarios(ContextViewer side, JobApplication application) {
         requireWritable(application);
         ApplicationStatus status = application.getStatus();
-        boolean hasInvitation = hasInvitation(application.getId());
+        InvitationState invitation = invitationState(application.getId());
         List<ScenarioOption> options = DraftScenario.forSide(side).stream()
                 .map(scenario -> {
-                    DraftUnavailableReason reason = unavailableReason(scenario, status, hasInvitation);
+                    DraftUnavailableReason reason = unavailableReason(scenario, status, invitation);
                     return new ScenarioOption(scenario, reason == null, reason);
                 })
                 .toList();
@@ -97,7 +97,7 @@ public class MessageDraftFacade {
         requireWritable(application);
         String customPurpose = validateRequest(side, request);
         DraftScenario scenario = request.scenario();
-        if (unavailableReason(scenario, application.getStatus(), hasInvitation(application.getId())) != null) {
+        if (unavailableReason(scenario, application.getStatus(), invitationState(application.getId())) != null) {
             throw new DraftScenarioUnavailableException();
         }
 
@@ -109,17 +109,24 @@ public class MessageDraftFacade {
     // R-S3 - dieu kien cot "Dieu kien dung duoc" cua bang R-S1 (ngoai R-S2). null = dung duoc. CUSTOM luon dung duoc o
     // day - customPurpose kiem o buoc hop le cua request (R-S4, 400), khong phai 409. Dat o facade (khong o DraftScenario)
     // de ai/messagedraft/ khong import messagedraft/ (L11).
+    //
+    // FR-H12 R-K2x - hai co tinh tu giay moi HIEU LUC: INTERVIEW_REMINDER can khung DA CHOT; REQUEST_RESCHEDULE chi can co
+    // giay moi hieu luc (chot hay chua); THANK_AFTER_INTERVIEW can co giay moi hieu luc. KHONG them ma ly do moi (Q3):
+    // giay moi chua chot van tra NO_ACTIVE_INTERVIEW cho INTERVIEW_REMINDER.
     static DraftUnavailableReason unavailableReason(
-            DraftScenario scenario, ApplicationStatus status, boolean hasInvitation) {
+            DraftScenario scenario, ApplicationStatus status, InvitationState invitation) {
+        boolean invited = status == ApplicationStatus.INTERVIEW_INVITED;
         return switch (scenario) {
             case RESULT_NOTICE -> (status == ApplicationStatus.HIRED || status == ApplicationStatus.REJECTED)
                     ? null
                     : DraftUnavailableReason.RESULT_NOT_FINAL;
-            case INTERVIEW_REMINDER, REQUEST_RESCHEDULE ->
-                (status == ApplicationStatus.INTERVIEW_INVITED && hasInvitation)
-                        ? null
-                        : DraftUnavailableReason.NO_ACTIVE_INTERVIEW;
-            case THANK_AFTER_INTERVIEW -> hasInvitation ? null : DraftUnavailableReason.NO_INTERVIEW;
+            case INTERVIEW_REMINDER -> (invited && invitation.confirmed())
+                    ? null
+                    : DraftUnavailableReason.NO_ACTIVE_INTERVIEW;
+            case REQUEST_RESCHEDULE -> (invited && invitation.active())
+                    ? null
+                    : DraftUnavailableReason.NO_ACTIVE_INTERVIEW;
+            case THANK_AFTER_INTERVIEW -> invitation.active() ? null : DraftUnavailableReason.NO_INTERVIEW;
             case REQUEST_MORE_INFO, THANK_FOR_APPLYING, ASK_PROGRESS, CUSTOM -> null;
         };
     }
@@ -154,9 +161,18 @@ public class MessageDraftFacade {
         return purpose;
     }
 
-    // Giay moi cua don (muc 0.b1) - dung method repository co san, khong them method moi.
-    private boolean hasInvitation(UUID applicationId) {
-        return !interviewInvitationRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId).isEmpty();
+    // FR-H12 R-K2x - active: don co giay moi hieu luc (superseded_at IS NULL, R-A1); confirmed: giay moi hieu luc da chot
+    // khung. Moi don da co giay moi deu co dung mot giay moi hieu luc (uq_invitation_active), nen "co giay moi hieu luc"
+    // giu nghia "co giay moi" cu cua THANK_AFTER_INTERVIEW.
+    record InvitationState(boolean active, boolean confirmed) {
+    }
+
+    // Dung method repository co san (FR-H12 R-A1), khong them method moi.
+    private InvitationState invitationState(UUID applicationId) {
+        return interviewInvitationRepository
+                .findByApplicationIdAndSupersededAtIsNull(applicationId)
+                .map(invitation -> new InvitationState(true, invitation.getConfirmedSlotId() != null))
+                .orElse(new InvitationState(false, false));
     }
 
     private JobApplication loadForHr(UUID ownerId, UUID applicationId) {
