@@ -4,6 +4,8 @@ export type NotificationType =
   | 'APPLICATION_WITHDRAWN'
   | 'SCORING_FINISHED'
   | 'NEW_MESSAGE'
+  // FR-H12 R-N1 - HR gui lai giay moi; hien mot dong nhu cac loai cu (Q5).
+  | 'INTERVIEW_INVITATION_RESENT'
 
 export interface NotificationItem {
   id: string

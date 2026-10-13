@@ -2,6 +2,10 @@ package com.recruitment.notification;
 
 import com.recruitment.job.Job;
 import com.recruitment.jobapplication.ApplicationStatus;
+import com.recruitment.notification.InterviewInvitationResentEvent.SlotInfo;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 // Chi xay noi dung tu du lieu DA LOAD SAN (Job, ten ung vien) - KHONG tu truy van DB, de test don
@@ -11,9 +15,21 @@ final class NotificationContentBuilder {
 
     private static final String MESSAGES_TAB_QUERY = "?tab=messages";
 
+    // FR-H12 R-N3 - gio trong email theo gio Viet Nam, cung dinh dang MessageDraftService.INTERVIEW_TIME.
+    private static final DateTimeFormatter SLOT_TIME =
+            DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+    private static final String MISSING_LOCATION = "Chưa có dữ liệu";
+
     private NotificationContentBuilder() {}
 
-    record Content(String title, String body, String link) {}
+    // emailBody (FR-H12 R-N3): noi dung email rieng, ghi vao notifications.email_body. null = email dung body nhu cu -
+    // moi ham cu tra null nen email cua cac loai cu khong doi (R-N3a).
+    record Content(String title, String body, String link, String emailBody) {
+
+        Content(String title, String body, String link) {
+            this(title, body, link, null);
+        }
+    }
 
     // FR-U08 R-N1 - thong bao doi trang thai cua UNG VIEN tro thang trang chi tiet don
     // /candidate/applications/{id}. Thong bao da co trong DB truoc FR-U08 giu nguyen link cu
@@ -71,6 +87,26 @@ final class NotificationContentBuilder {
                         "Tin nhắn mới từ ứng viên",
                         body,
                         hrApplicationLink(applicationId) + MESSAGES_TAB_QUERY);
+    }
+
+    // FR-H12 R-N2, R-N3 - HR gui lai giay moi. body MOT dong, khong chua khung gio (web); emailBody = body + danh sach
+    // khung (gio Viet Nam) + dong lien ket, dung MOT lan luc tao thong bao tu du lieu trong su kien.
+    static Content forInvitationResent(Job job, List<SlotInfo> slots, UUID applicationId, String frontendBaseUrl) {
+        String change = slots.size() == 1 ? "lịch phỏng vấn mới" : slots.size() + " khung giờ";
+        String body = "Giấy mời phỏng vấn vị trí \"" + job.getTitle() + "\" vừa được gửi lại với " + change
+                + ". Xem chi tiết trong đơn ứng tuyển.";
+        String link = candidateApplicationLink(applicationId);
+
+        StringBuilder email = new StringBuilder(body).append("\n\nKhung giờ (giờ Việt Nam):");
+        for (int i = 0; i < slots.size(); i++) {
+            SlotInfo slot = slots.get(i);
+            String location = slot.location() == null ? MISSING_LOCATION : slot.location();
+            email.append('\n').append(i + 1).append(". ").append(SLOT_TIME.format(slot.scheduledAt()))
+                    .append(" — ").append(location);
+        }
+        email.append("\n\nXem giấy mời tại: ").append(frontendBaseUrl).append(link);
+
+        return new Content("Nhà tuyển dụng đã gửi lại giấy mời phỏng vấn", body, link, email.toString());
     }
 
     private static String hrApplicationLink(UUID applicationId) {

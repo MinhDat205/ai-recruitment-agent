@@ -55,9 +55,14 @@ public class NotificationMailOrchestrator {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
+    // FR-H12 R-N3a - email_body khac null (hien chi INTERVIEW_INVITATION_RESENT) -> gui NGUYEN VAN email_body (da dung
+    // mot lan luc tao thong bao, khong dung lai o day). null -> giu dung hanh vi cu ben duoi.
     // FR-C06 R-N5 - CHI NEW_MESSAGE co dong lien ket: body + hai dau xuong dong + "Xem và trả lời tại: {url}".
     // Email cua 4 loai thong bao cu giu NGUYEN body (khong them lien ket - REQUIREMENT muc 6).
     private String mailText(Notification notification) {
+        if (notification.getEmailBody() != null) {
+            return notification.getEmailBody();
+        }
         if (notification.getType() != NotificationType.NEW_MESSAGE || notification.getLink() == null) {
             return notification.getBody();
         }

@@ -1,24 +1,16 @@
 import { isAxiosError } from 'axios'
-import { CalendarClock } from 'lucide-react'
+import { InterviewSlotList } from './InterviewSlotList'
+import { INVITATION_TEXT } from './invitationLabels'
+import { InvitationLetter } from './PreviousInvitationCard'
 import { useInterviewInvitationQuery } from './queries'
-
-// Gio Viet Nam, hien day-thang-nam + gio-phut - dung format voi formatAppliedAt/formatChangedAt
-// (ApplicationHistoryTimeline.tsx) de nhat quan toan trang.
-function formatScheduledAt(iso: string): string {
-  return new Date(iso).toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
-}
 
 // FR-U08 R-C2 - phan than giay moi phong van, tach nguyen van tu CandidateApplicationsPage
 // (InterviewInvitationDetailDialog cu). Noi dung do HR soan, hien NGUYEN VAN (whitespace-pre-wrap giu xuong
 // dong), khong render/tom tat lai gi them. Don chua co giay moi (404) -> KHONG render gi (R-T5); khoi bao
 // ngoai (InvitationSection) tu an ca tieu de.
+// FR-H12 UI.md 4d - CHI giay moi hieu luc (I4): danh sach khung CHI DOC (gio Viet Nam, formatSlotTime), dau "Da chot" tren
+// khung chot, "Dia diem: Chua co du lieu" khi thieu. Cau huong dan (Q8) chi khi confirmedAt null. KHONG nut/o chon
+// khung - phan chon la cua FR-U10.
 export function InterviewInvitationDetails({ applicationId }: { applicationId: string }) {
   const {
     data: invitation,
@@ -45,20 +37,15 @@ export function InterviewInvitationDetails({ applicationId }: { applicationId: s
     return null
   }
 
+  const confirmedSlotId = invitation.slots.find((slot) => slot.confirmed)?.id ?? null
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-sm">
-        <CalendarClock className="h-4 w-4 shrink-0 text-m3-primary" aria-hidden="true" />
-        <span className="font-medium text-m3-on-surface">{formatScheduledAt(invitation.scheduledAt)}</span>
-      </div>
-      {invitation.location && (
-        <p className="text-sm text-m3-on-surface-variant">
-          <span className="font-medium text-m3-on-surface">Địa điểm: </span>
-          {invitation.location}
-        </p>
+    <div className="flex min-w-0 flex-col gap-3">
+      {invitation.confirmedAt === null && (
+        <p className="text-sm break-words text-m3-on-surface">{INVITATION_TEXT.candidateUnconfirmed}</p>
       )}
-      <p className="text-sm font-medium text-m3-on-surface">{invitation.subject}</p>
-      <p className="whitespace-pre-wrap text-sm text-m3-on-surface">{invitation.renderedContent}</p>
+      <InterviewSlotList slots={invitation.slots} confirmedSlotId={confirmedSlotId} variant="candidate" />
+      <InvitationLetter subject={invitation.subject} content={invitation.renderedContent} />
     </div>
   )
 }

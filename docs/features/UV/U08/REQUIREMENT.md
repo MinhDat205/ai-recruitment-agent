@@ -203,6 +203,9 @@ của mình.
   `ApplicationHistoryEntryResponse` nguyên trạng (có `note`, không có `changed_by`).
 - **R-D10. Giấy mời** dùng lại `GET /api/candidates/applications/{id}/interview-invitation` và DTO
   `CandidateInterviewInvitationResponse` nguyên trạng (5 field, không `sentBy`).
+  *Sửa bởi FR-H12 (R-A3, mục 4.4): DTO đổi hình dạng — chỉ giấy mời hiệu lực; `subject`, `renderedContent`, `sentAt`,
+  `confirmedAt` và danh sách `slots` (mỗi khung có `id`, `displayOrder`, `scheduledAt`, `location`, `confirmed`); bỏ
+  `scheduledAt`/`location` ở gốc.*
 
 ### 3.4 Trạng thái hiển thị (R-T)
 
@@ -215,7 +218,7 @@ Nguồn trạng thái là field backend trả về; frontend không suy từ d�
 | R-T3 | Giấy mời | `status` ∉ {`INTERVIEW_INVITED`, `HIRED`, `REJECTED`} | Không gọi API giấy mời, không hiện khối |
 | R-T4 | Giấy mời | `status` ∈ {`INTERVIEW_INVITED`, `HIRED`, `REJECTED`} | Gọi API giấy mời (đúng quy tắc `CandidateApplicationsPage.tsx:113`) |
 | R-T5 | Giấy mời | API trả 404 `INTERVIEW_INVITATION_NOT_FOUND` (vd đơn bị từ chối thẳng từ `PENDING`) | **Ẩn cả khối**, không báo lỗi |
-| R-T6 | Giấy mời | API trả 200 | Khối giấy mời: thời gian (giờ Việt Nam), địa điểm nếu có, tiêu đề, nội dung nguyên văn |
+| R-T6 | Giấy mời | API trả 200 | Khối giấy mời: thời gian (giờ Việt Nam), địa điểm nếu có, tiêu đề, nội dung nguyên văn. *Sửa bởi FR-H12 (UI.md 4d): danh sách khung giờ chỉ đọc, dấu "Đã chốt" trên khung chốt, câu hướng dẫn khi chưa chốt; địa điểm thiếu hiện "Địa điểm: Chưa có dữ liệu" thay vì bỏ dòng* |
 | R-T7 | Giấy mời | API lỗi khác (mạng/5xx) | Trong khối: câu lỗi có sẵn "Không tải được giấy mời, vui lòng thử lại." + nút "Thử lại" |
 | R-T8 | Tin tuyển dụng | Luôn có | Tóm tắt (R-D3…R-D6) + nhãn tình trạng tin + dòng chú thích "bản hiện tại" |
 | R-T9 | Hồ sơ đã nộp | `resumeParseStatus` ∈ {`PENDING`, `PROCESSING`} | Tên tệp + `ParseStatusBadge`; khối CV đã trích xuất hiện câu chờ; không gọi `/parsed` |

@@ -10,6 +10,7 @@ import { ApplicationDetailHeader } from '../features/applicationDetail/Applicati
 import { CvAndScoreTab } from '../features/applicationDetail/CvAndScoreTab'
 import { ExplanationTab } from '../features/applicationDetail/ExplanationTab'
 import { HistoryTab } from '../features/applicationDetail/HistoryTab'
+import { InterviewInvitationTab } from '../features/applicationDetail/InterviewInvitationTab'
 import { ScreeningTab } from '../features/applicationDetail/ScreeningTab'
 import { applicationDetailKey, useApplicationHrDetailQuery } from '../features/applicationDetail/queries'
 import { MessagesTab } from '../features/messages/MessagesTab'
@@ -18,7 +19,9 @@ import { MessagesTab } from '../features/messages/MessagesTab'
 // tab mac dinh hay tab cu. ?tab= doc nhu trang sua Job (HrJobEditPage), gia tri la -> cv (R-E4).
 // FR-H10 (Q6) chen "Sang loc" ngay sau "Giai thich", truoc "Lich su" - khong doi thu tu tuong doi cua bon tab cu, tab
 // mac dinh van cv.
-const VALID_TABS = ['cv', 'explanation', 'screening', 'history', 'messages'] as const
+// FR-H12 (Q7, S7) chen "Giay moi phong van" giua "Sang loc" va "Lich su" - khong doi thu tu tuong doi cua nam tab cu, tab
+// hien o moi trang thai don, tab mac dinh van cv.
+const VALID_TABS = ['cv', 'explanation', 'screening', 'invitation', 'history', 'messages'] as const
 type DetailTab = (typeof VALID_TABS)[number]
 
 function parseTab(value: string | null): DetailTab {
@@ -142,6 +145,7 @@ function ApplicationDetailContent({
           <TabsTrigger value="cv">CV & điểm</TabsTrigger>
           <TabsTrigger value="explanation">Giải thích</TabsTrigger>
           <TabsTrigger value="screening">Sàng lọc</TabsTrigger>
+          <TabsTrigger value="invitation">Giấy mời phỏng vấn</TabsTrigger>
           <TabsTrigger value="history">Lịch sử</TabsTrigger>
           <TabsTrigger value="messages">Trao đổi</TabsTrigger>
         </TabsList>
@@ -155,6 +159,9 @@ function ApplicationDetailContent({
       </TabsContent>
       <TabsContent value="screening" className="p-4 sm:p-6">
         <ScreeningTab applicationId={detail.id} />
+      </TabsContent>
+      <TabsContent value="invitation" className="p-4 sm:p-6">
+        <InterviewInvitationTab detail={detail} />
       </TabsContent>
       <TabsContent value="history" className="p-4 sm:p-6">
         <HistoryTab applicationId={detail.id} />

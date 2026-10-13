@@ -13,6 +13,8 @@ import com.anthropic.models.messages.StopReason;
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.interviewinvitation.InterviewInvitation;
 import com.recruitment.interviewinvitation.InterviewInvitationRepository;
+import com.recruitment.interviewinvitation.InterviewInvitationSlot;
+import com.recruitment.interviewinvitation.InterviewInvitationSlotRepository;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.messaging.ApplicationMessage;
 import com.recruitment.messaging.ApplicationMessageRepository;
@@ -129,6 +131,9 @@ abstract class MessageDraftIntegrationTestSupport {
 
     @Autowired
     InterviewInvitationRepository invitationRepository;
+
+    @Autowired
+    InterviewInvitationSlotRepository slotRepository;
 
     // Mock ChatModel la singleton dung chung moi lop - reset truoc moi test (giu default answer "nem loi khi chua stub"
     // cua LlmTestConfiguration). getOptions/getDefaultOptions duoc ChatClient doc khi dung Prompt.
@@ -408,16 +413,36 @@ abstract class MessageDraftIntegrationTestSupport {
                 id);
     }
 
+    // FR-H12 (R-K3x) - giay moi hieu luc MOT khung DA CHOT, ghi theo ba buoc L2 (moi test chen toi da mot giay moi cho
+    // moi don, khong cham uq_invitation_active).
     void insertInvitation(Fixture f, Instant scheduledAt, String location) {
         InterviewInvitation invitation = new InterviewInvitation();
         invitation.setApplicationId(f.applicationId());
-        invitation.setScheduledAt(scheduledAt);
-        invitation.setLocation(location);
         invitation.setSubject("Thu moi phong van");
         invitation.setRenderedContent("Noi dung giay moi KHONG duoc vao ngu canh");
         invitation.setSentAt(BASE_TIME);
         invitation.setSentBy(f.hrUserId());
-        invitationRepository.saveAndFlush(invitation);
+        InterviewInvitation saved = invitationRepository.saveAndFlush(invitation);
+        InterviewInvitationSlot slot =
+                slotRepository.saveAndFlush(new InterviewInvitationSlot(saved.getId(), 1, scheduledAt, location));
+        saved.setConfirmedSlotId(slot.getId());
+        saved.setConfirmedAt(BASE_TIME);
+        invitationRepository.saveAndFlush(saved);
+    }
+
+    // FR-H12 (R-K3x, T19) - giay moi hieu luc slotCount khung, CHUA chot (R-K2): chi buoc 1-2 cua L2, khong dat khung chot.
+    void insertUnconfirmedInvitation(Fixture f, Instant firstScheduledAt, int slotCount) {
+        InterviewInvitation invitation = new InterviewInvitation();
+        invitation.setApplicationId(f.applicationId());
+        invitation.setSubject("Thu moi phong van");
+        invitation.setRenderedContent("Noi dung giay moi KHONG duoc vao ngu canh");
+        invitation.setSentAt(BASE_TIME);
+        invitation.setSentBy(f.hrUserId());
+        InterviewInvitation saved = invitationRepository.saveAndFlush(invitation);
+        for (int i = 0; i < slotCount; i++) {
+            slotRepository.saveAndFlush(new InterviewInvitationSlot(
+                    saved.getId(), i + 1, firstScheduledAt.plus(i, java.time.temporal.ChronoUnit.DAYS), "Phong " + (i + 1)));
+        }
     }
 
     void deleteInvitations(Fixture f) {

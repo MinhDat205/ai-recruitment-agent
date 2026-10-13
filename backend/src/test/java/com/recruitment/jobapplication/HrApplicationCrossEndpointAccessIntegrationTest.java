@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.recruitment.TestcontainersConfiguration;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -199,6 +201,13 @@ class HrApplicationCrossEndpointAccessIntegrationTest {
                         {"status":"REJECTED"}
                         """));
         requests.put("GET /interview-invitation/preview", get(base + "/interview-invitation/preview"));
+        // FR-H12 T11 - I1, I3 cung quy uoc 403. Than I3 hop le de khong roi vao 400 truoc khi kiem quyen.
+        requests.put("GET /interview-invitations", get(base + "/interview-invitations"));
+        requests.put("POST /interview-invitation/resend", post(base + "/interview-invitation/resend")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"slots":[{"scheduledAt":"%s","location":"Tang 3"}],"subject":"Thu moi","content":"Noi dung"}
+                        """.formatted(Instant.now().plus(7, ChronoUnit.DAYS))));
 
         for (Map.Entry<String, MockHttpServletRequestBuilder> entry : requests.entrySet()) {
             MvcResult result = mockMvc
