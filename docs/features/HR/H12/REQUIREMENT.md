@@ -4,7 +4,8 @@
 > Q1–Q9; 11.3: năm điểm bổ sung B1–B5; 11.4: S1–S7 chốt sau `spec-review`).
 >
 > Làm rõ sau Plan Mode 13/10/2026: L1–L8 (L1: mục 4.5, D2; L2: R-K1, mục 8; L3: mục 4.2; L4: T3; L5: T13; L6: T21;
-> L7: mục 9 đợt 2, 3; L8: T10) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
+> L7: mục 9 đợt 2, 3; L8: T10). Làm rõ trong đợt 3 (14/10/2026): L9–L12 (L9: R-S6, T3; L10: kiểm tĩnh 7.1; L11: R-G3,
+> kiểm tĩnh 7.1; L12: kiểm tĩnh 7.1) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR gửi giấy mời phỏng vấn có **1–5 khung giờ**, mỗi khung gồm thời điểm bắt đầu và địa chỉ hoặc link
@@ -114,7 +115,9 @@ không đổi trạng thái, không ghi lịch sử trạng thái, một thông 
 - **R-S5.** Không hai khung trùng thời điểm bắt đầu (sau R-S3) trong cùng giấy mời. Không kiểm trùng giữa các giấy mời
   hay giữa các ứng viên (mục 6).
 - **R-S6.** `location`: bỏ khoảng trắng hai đầu; `null` hoặc rỗng sau khi bỏ → lỗi; dài tối đa 500 ký tự tính sau khi
-  bỏ khoảng trắng; không chứa ký tự xuống dòng (giữ một dòng trong email, R-N3). Cột DB cho phép `NULL` **chỉ** cho dữ
+  bỏ khoảng trắng; không chứa ký tự xuống dòng (giữ một dòng trong email, R-N3). Kiểm xuống dòng (`\r`, `\n`) trên giá
+  trị **đã** bỏ khoảng trắng hai đầu (L9): xuống dòng ở đầu/cuối bị cắt cùng khoảng trắng (`"Tầng 3\n"` lưu `"Tầng 3"`);
+  xuống dòng ở giữa bị từ chối. Cột DB cho phép `NULL` **chỉ** cho dữ
   liệu cũ chuyển từ V1 (giấy mời cũ có thể không có địa điểm — mục 4.1); mọi nơi hiển thị khung có `location` `NULL` ghi
   "Chưa có dữ liệu" (UI_GUIDE mục 4 "Dữ liệu thiếu").
 - **R-S7.** Thứ tự hiển thị = thứ tự HR gửi lên (`display_order` 1…n); backend không tự sắp xếp lại.
@@ -185,11 +188,13 @@ không đổi trạng thái, không ghi lịch sử trạng thái, một thông 
   chuyển trong request", còn đây là "tài nguyên không còn ở trạng thái cho phép hành động" — cùng nhóm với
   `ApplicationNotWithdrawableException` (409).
 - **R-G3.** Một transaction ngắn, **đúng thứ tự dưới đây — bắt buộc**: (1) kiểm quyền `HrApplicationAccess.loadOwned`;
-  (2) kiểm khung (R-S8); (3) **khoá hàng đơn và kiểm trạng thái trong cùng một câu** (Q2):
+  (2) kiểm khung (R-S8) — "tương lai" (R-S4) so với một mốc `now` **riêng** lấy ngay tại bước này, vì bước 2 chạy
+  trước khi khoá (L11); (3) **khoá hàng đơn và kiểm trạng thái trong cùng một câu** (Q2):
   `UPDATE job_applications SET status = status WHERE id = :id AND status = 'INTERVIEW_INVITED'` — method mới
   `JobApplicationRepository.lockIfInterviewInvited` (native), khai `@Modifying(clearAutomatically = true,
   flushAutomatically = true)` như `updateStatusIfCurrent` (`:30-35`); số dòng 0 → `409 INVITATION_RESEND_NOT_ALLOWED`;
-  (4) lấy `now` **một lần** bằng Java; (5) `UPDATE interview_invitations SET superseded_at = :now WHERE application_id
+  (4) lấy `now` **một lần** bằng Java — `superseded_at` của giấy mời cũ (bước 5) và `sent_at` của giấy mời mới (bước 6)
+  dùng chung đúng mốc này (L11); (5) `UPDATE interview_invitations SET superseded_at = :now WHERE application_id
   = :id AND superseded_at IS NULL` (`@Modifying(clearAutomatically = true)`) — 0 dòng vẫn tiếp tục (đơn
   `INTERVIEW_INVITED` mà không có giấy mời chỉ có thể do dữ liệu ghi tay); (6) tạo giấy mời mới với `sent_at = :now`,
   `superseded_at` `NULL` + các khung + R-K1/R-K2, ghi bằng `saveAndFlush`; (7) phát `InterviewInvitationResentEvent`
@@ -576,7 +581,7 @@ Không dùng AI. Không gọi `ChatModel`/`EmbeddingModel`, không thuộc danh 
 |---|---|---|
 | T1 | I2 một khung → 201; DB: một giấy mời `superseded_at` `NULL`, một khung, `confirmed_slot_id` = khung đó, `confirmed_at` = `sent_at`; đơn `INTERVIEW_INVITED`; đúng 1 dòng lịch sử mới; đúng 1 thông báo `APPLICATION_STATUS_CHANGED`, không thông báo `INTERVIEW_INVITATION_RESENT`; `renderedContent` bằng đúng `content` gửi lên | dương |
 | T2 | I2 với 2 và 5 khung → 201, chưa chốt, `display_order` 1…n đúng thứ tự gửi (gửi khung muộn trước khung sớm → giữ nguyên thứ tự); 6 khung → 400 "Giấy mời có tối đa 5 khung giờ."; `slots` `null`, thiếu khoá, `[]` → 400 câu dòng 1 R-S8. Mọi ca 400: không dòng giấy mời/khung nào, đơn vẫn `PENDING` | biên + âm |
-| T3 | Khung (R-S3–R-S8) qua I2: `now − 1 phút` → 400 "Khung giờ 1: …tương lai."; `Instant.now()` → 400; `now + 2 phút` → 201; `10:00:45` lưu thành `10:00:00`; hai khung `10:00:10`, `10:00:50` cùng ngày → 400 "Khung giờ 2 trùng thời điểm với khung giờ 1."; `10:00` và `10:01` → 201; lỗi ở khung 3 báo đúng "Khung giờ 3"; phần tử `null` / `scheduledAt` `null` → 400, không 500 — test có sẵn `send_missingScheduledAt_returns400` (`InterviewInvitationControllerIntegrationTest.java:356-364`) giữ tên, đổi helper gửi `{"slots":[{"location":"…"}]}` và thêm khẳng định mã `INVALID_INTERVIEW_SCHEDULE` (trước đây là lỗi Bean Validation, L4); `location` `null`, thiếu khoá, `""`, `"  "` → 400 "Khung giờ {n}: vui lòng nhập địa điểm hoặc link phỏng vấn."; `" a "` → lưu `"a"`; 500 ký tự → 201, 501 → 400, `" " + 500 ký tự + " "` → 201; có `\n` → 400 | biên + âm |
+| T3 | Khung (R-S3–R-S8) qua I2: `now − 1 phút` → 400 "Khung giờ 1: …tương lai."; `Instant.now()` → 400; `now + 2 phút` → 201; `10:00:45` lưu thành `10:00:00`; hai khung `10:00:10`, `10:00:50` cùng ngày → 400 "Khung giờ 2 trùng thời điểm với khung giờ 1."; `10:00` và `10:01` → 201; lỗi ở khung 3 báo đúng "Khung giờ 3"; phần tử `null` / `scheduledAt` `null` → 400, không 500 — test có sẵn `send_missingScheduledAt_returns400` (`InterviewInvitationControllerIntegrationTest.java:356-364`) giữ tên, đổi helper gửi `{"slots":[{"location":"…"}]}` và thêm khẳng định mã `INVALID_INTERVIEW_SCHEDULE` (trước đây là lỗi Bean Validation, L4); `location` `null`, thiếu khoá, `""`, `"  "` → 400 "Khung giờ {n}: vui lòng nhập địa điểm hoặc link phỏng vấn."; `" a "` → lưu `"a"`; 500 ký tự → 201, 501 → 400, `" " + 500 ký tự + " "` → 201; có `\n` (hoặc `\r`) ở giữa → 400; `"Tầng 3\n"` → 201, lưu `"Tầng 3"` (L9) | biên + âm |
 | T4 | I2 lần hai trên đơn đã `INTERVIEW_INVITED` → 400, vẫn một giấy mời (test có sẵn `send_applicationAlreadyInterviewInvited_returns400` giữ nguyên khẳng định) | âm |
 | T5 | I3 trên đơn có giấy mời một khung đã chốt, gửi 2 khung → 201: giấy mời cũ có `superseded_at` = `sent_at` của giấy mời mới, mọi cột khác và khung của nó y hệt trước (so từng cột); giấy mời mới hiệu lực, chưa chốt; đọc toàn bộ hàng `job_applications` bằng `JdbcTemplate` trước/sau → mọi cột giống hệt trừ `updated_at` (R-G4); số dòng `application_status_history` không đổi; không thông báo `APPLICATION_STATUS_CHANGED` mới; đúng 1 thông báo `INTERVIEW_INVITATION_RESENT` cho ứng viên, `email_status` `PENDING`, `entity_type` `APPLICATION`, `entity_id` = id đơn, `body` một dòng (không `\n`, không chứa giờ khung), `email_body` đúng khối R-N3 với hai khung vừa gửi (giờ Việt Nam, địa điểm, dòng "Xem giấy mời tại: …"); JSON của `GET` danh sách thông báo không có khoá `emailBody` | dương |
 | T6 | I3 một khung → giấy mời mới đã chốt (R-K1) | dương |
@@ -600,9 +605,9 @@ Không dùng AI. Không gọi `ChatModel`/`EmbeddingModel`, không thuộc danh 
 Kiểm tĩnh (đợt cuối, kỳ vọng như ghi):
 
 ```bash
-rg -n "findByApplicationIdOrderByCreatedAtDesc" backend/src/main            # 1 dong: khai bao trong repository
+rg -n "findByApplicationIdOrderByCreatedAtDesc" backend/src/main -g "!**/scoring/**"   # 1 dong: khai bao trong repository (tu dot 4; dot 3: 3 dong - them ConversationContextAssembler, MessageDraftFacade - L11, L12)
 rg -n "changeStatus" backend/src/main/java/com/recruitment/interviewinvitation   # dung 1 dong (I2)
-rg -n "FOR SHARE|FOR UPDATE|@Lock" backend/src/main/java/com/recruitment/interviewinvitation backend/src/main/java/com/recruitment/jobapplication  # 0 dong
+rg -n "FOR SHARE|FOR UPDATE|@Lock" backend/src/main/java/com/recruitment/interviewinvitation backend/src/main/java/com/recruitment/jobapplication/JobApplicationRepository.java  # 0 dong (L10)
 rg -n "interviewinvitation" backend/src/main/java/com/recruitment/notification   # 0 dong (R-N1: notification/ khong import interviewinvitation/)
 rg -n "scheduledAt|getLocation" backend/src/main/java/com/recruitment/interviewinvitation/InterviewInvitation.java  # 0 dong
 rg -n -i "emailBody|email_body" backend/src/main/java/com/recruitment/notification/dto  # 0 dong (khong tra ra API)
@@ -942,3 +947,27 @@ nào lệch). Mục này thắng chỗ viết cũ ở các mục được dẫn 
   `CandidateApplicationCrossEndpointAccessIntegrationTest.java:40`, `HrApplicationCrossEndpointAccessIntegrationTest.java:40`)
   — hai luồng song song không thấy dữ liệu của nhau. Chốt: T10(a–d) ở lớp mới
   `InterviewInvitationResendConcurrencyIntegrationTest`, không `@Transactional` cấp lớp.
+
+Bổ sung trong đợt 3 (duyệt 14/10/2026):
+
+- **L9 (R-S6, T3) — kiểm xuống dòng sau khi bỏ khoảng trắng hai đầu.** Bảng R-S8 đo độ dài trên giá trị đã bỏ khoảng
+  trắng, nên mọi kiểm `location` (rỗng, độ dài, xuống dòng) dùng cùng giá trị đã bỏ khoảng trắng — cũng là giá trị được
+  lưu. Hệ quả: xuống dòng ở đầu/cuối bị cắt cùng khoảng trắng (`"Tầng 3\n"` → lưu `"Tầng 3"`); xuống dòng (`\r` hoặc
+  `\n`) ở giữa → 400 "Khung giờ {n}: địa điểm chỉ được nằm trên một dòng.". T3 thêm ca `"Tầng 3\n"` → 201, lưu
+  `"Tầng 3"`.
+- **L10 (kiểm tĩnh 7.1) — phạm vi lệnh `FOR SHARE|FOR UPDATE|@Lock`.** Quét cả thư mục `jobapplication/` khớp comment có
+  sẵn của FR-U09 ở `ApplicationService.java:82` ("khoa hang jobs (FOR SHARE)") — không phải code của FR-H12. Chốt: thu
+  phạm vi về `interviewinvitation/` + `jobapplication/JobApplicationRepository.java` (nơi có `lockIfInterviewInvited`),
+  kỳ vọng 0 dòng.
+- **L11 (R-G3, kiểm tĩnh 7.1) — hai mốc thời gian ở I3; kỳ vọng tạm thời của lệnh `findBy…CreatedAtDesc`.** Bước 2 kiểm
+  "tương lai" (R-S4) bằng một mốc `now` riêng lấy tại bước 2, vì bước này chạy trước khi khoá hàng đơn; `superseded_at`
+  của giấy mời cũ và `sent_at` của giấy mời mới dùng chung đúng một mốc lấy ở bước 4 (điều mục 8 cấm là dùng hai mốc
+  cho hai cột này). Lệnh `findBy…CreatedAtDesc` (phạm vi theo L12): đợt 3 kỳ vọng 3 dòng (khai báo trong
+  `InterviewInvitationRepository` + `ConversationContextAssembler` + `MessageDraftFacade`, hai chỗ sau đổi ở đợt 4); từ
+  đợt 4 kỳ vọng 1 dòng.
+- **L12 (kiểm tĩnh 7.1) — lệnh `findBy…CreatedAtDesc` loại gói `scoring/`.** Quét `backend/src/main` khớp thêm 6 dòng của
+  `ScoringRunRepository.findByApplicationIdOrderByCreatedAtDesc` (method trùng tên, gói `scoring/`, không liên quan
+  giấy mời). Chốt: giữ phạm vi `backend/src/main`, chỉ loại `scoring/` — `rg -n "findByApplicationIdOrderByCreatedAtDesc"
+  backend/src/main -g "!**/scoring/**"`. Không thu về vài thư mục cụ thể: để lệnh vẫn bắt được code mới ở gói khác (vd
+  `notification/`, FR-U10) chọn giấy mời theo `created_at`. Kỳ vọng: 3 dòng ở đợt 3 (đã xác nhận 14/10/2026), 1 dòng
+  (khai báo trong repository) từ đợt 4.
