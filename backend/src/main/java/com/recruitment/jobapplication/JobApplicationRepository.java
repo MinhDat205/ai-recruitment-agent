@@ -50,6 +50,16 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     int revokeTalentPoolConsentIfActive(
             @Param("id") UUID id, @Param("candidateId") UUID candidateId, @Param("revokedAt") Instant revokedAt);
 
+    // FR-H12 R-G3 buoc 3, R-G4 - khoa hang don VA kiem trang thai trong CUNG mot cau, khuon updateStatusIfCurrent. SET
+    // status = status: khong doi gia tri nghiep vu nao (updated_at doi do trigger V1 - chap nhan, tien le FR-U09 Q19).
+    // Khoa hang giu toi het transaction: updateStatusIfCurrent (Trung tuyen/Tu choi), save cua rut don va mot lan gui lai
+    // khac tren cung don phai cho roi danh gia lai WHERE. 0 dong = don khong con INTERVIEW_INVITED -> 409.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+            value = "UPDATE job_applications SET status = status WHERE id = :id AND status = 'INTERVIEW_INVITED'",
+            nativeQuery = true)
+    int lockIfInterviewInvited(@Param("id") UUID id);
+
     // GET /api/hr/jobs/{jobId}/applications (Dot 5, ApplicationOwnerService) - danh sach don cua
     // MOT job, moi nop gan day nhat truoc.
     List<JobApplication> findByJobIdOrderByAppliedAtDesc(UUID jobId);

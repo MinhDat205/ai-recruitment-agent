@@ -7,7 +7,7 @@
 --
 -- Doc lap voi bo demo (seed-demo-structural.sql / seed-demo-ai-output.sql):
 -- nap duoc tren DB chi co schema, va nap cung DB voi hai tang demo khong va
--- cham - UUID tien to rieng e0..ef (demo tang 1 dung d0..d6, tang 2 UUID
+-- cham - UUID tien to rieng e0..ef, f0 (demo tang 1 dung d0..d6, tang 2 UUID
 -- ngau nhien), email rieng, ten cong ty rieng.
 --
 -- Idempotent: moi INSERT co ON CONFLICT (id) DO NOTHING, chay lai nhieu lan
@@ -350,7 +350,7 @@ ON CONFLICT (id) DO NOTHING;
 --    A6 Le Thi Lan     -> J1 PENDING
 --    A7 Pham Van Khoa  -> J1 REJECTED
 --    A8 Pham Van Khoa  -> J2 PENDING
---    A9 Tran Bao Ngoc  -> J1 INTERVIEW_INVITED (co giay moi)
+--    A9 Tran Bao Ngoc  -> J1 INTERVIEW_INVITED (co giay moi 3 khung, chua chot)
 --    screening_captured_at (FR-H10 R-S4) = applied_at cua A1, A9 (co ban chup, muc
 --    15) va A2 (tin J2 khong co cau hoi -> NO_QUESTIONS); don khac NULL
 --    (NOT_CAPTURED - don nop truoc khi co buoc chup).
@@ -431,43 +431,80 @@ INSERT INTO application_status_history (id, application_id, from_status, to_stat
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 11. Giay moi phong van - moi lan chuyen sang INTERVIEW_INVITED co dung mot giay
---     moi gui cung luc (InterviewInvitationService.send). Lich A2/A9 tinh tuong
---     doi theo luc nap de luon o tuong lai; lich A4 da qua (don da HIRED).
+-- 11. Giay moi phong van (FR-H12, V16) - giay moi + khung gio (interview_invitation_slots,
+--     tien to f0). Lich A2/A9 tinh tuong doi theo luc nap de luon o tuong lai; lich A4 da
+--     qua (don da HIRED). Gio hien thi la gio Viet Nam (UTC+7). REQUIREMENT FR-H12 muc 4.5:
+--     A2  ea..01 (cu, superseded_at = sent_at cua ea..04) 1 khung f0..01, da chot
+--         ea..04 (gui lai, hieu luc)                     1 khung f0..04, da chot
+--     A9  ea..02 (hieu luc)                              3 khung f0..02, f0..05, f0..06, CHUA chot
+--     A4  ea..03 (hieu luc)                              1 khung f0..03, da chot
+--     Thu tu ghi theo FK ghep fk_invitation_confirmed_slot (muc 12 L2): giay moi CHUA co khung
+--     chot -> khung -> UPDATE dat khung chot. Gui lai KHONG ghi application_status_history.
+--     Phai chay reset-test-data.sql truoc khi nap lai tren DB da co ban seed cu (truoc V16):
+--     V16 da tu tao khung cho giay moi cu nen INSERT khung f0 o day se vi pham
+--     uq_invitation_slot_order - loi ro rang, khong am tham bo qua.
 -- ---------------------------------------------------------------------------
 
-INSERT INTO interview_invitations (id, application_id, scheduled_at, location, subject, rendered_content, sent_at, sent_by, created_at) VALUES
+INSERT INTO interview_invitations (id, application_id, subject, rendered_content, sent_at, sent_by, superseded_at, created_at) VALUES
     ('ea000000-0000-0000-0000-000000000001', 'e8000000-0000-0000-0000-000000000002',
-     date_trunc('day', now()) + INTERVAL '7 days 2 hours',
-     'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng',
      'Thư mời phỏng vấn vị trí Nhân viên Hành chính văn phòng - Công ty TNHH Thử Nghiệm Ánh Dương',
      'Kính gửi Quốc Huy,' || E'\n\n'
      || 'Cảm ơn bạn đã ứng tuyển vị trí Nhân viên Hành chính văn phòng tại Công ty TNHH Thử Nghiệm Ánh Dương. '
      || 'Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn theo thời gian và địa điểm ghi trong thư này.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
-     '2026-10-05 17:40:00+00', 'e0000000-0000-0000-0000-000000000001', '2026-10-05 17:40:00+00'),
+     '2026-10-05 17:40:00+00', 'e0000000-0000-0000-0000-000000000001', '2026-10-06 02:00:00+00', '2026-10-05 17:40:00+00'),
+    ('ea000000-0000-0000-0000-000000000004', 'e8000000-0000-0000-0000-000000000002',
+     'Thư mời phỏng vấn vị trí Nhân viên Hành chính văn phòng - Công ty TNHH Thử Nghiệm Ánh Dương',
+     'Kính gửi Quốc Huy,' || E'\n\n'
+     || 'Cảm ơn bạn đã ứng tuyển vị trí Nhân viên Hành chính văn phòng tại Công ty TNHH Thử Nghiệm Ánh Dương. '
+     || 'Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn theo thời gian và địa điểm ghi trong thư này.' || E'\n\n'
+     || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
+     || 'Trân trọng,',
+     '2026-10-06 02:00:00+00', 'e0000000-0000-0000-0000-000000000001', NULL, '2026-10-06 02:00:00+00'),
     ('ea000000-0000-0000-0000-000000000002', 'e8000000-0000-0000-0000-000000000009',
-     date_trunc('day', now()) + INTERVAL '5 days 3 hours',
-     'Phỏng vấn trực tuyến qua Google Meet (đường dẫn gửi trước 1 ngày)',
      'Thư mời phỏng vấn vị trí Chuyên viên Chăm sóc khách hàng - Công ty TNHH Thử Nghiệm Ánh Dương',
      'Kính gửi Trần Bảo Ngọc,' || E'\n\n'
      || 'Cảm ơn bạn đã ứng tuyển vị trí Chuyên viên Chăm sóc khách hàng tại Công ty TNHH Thử Nghiệm Ánh Dương. '
      || 'Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn theo thời gian và địa điểm ghi trong thư này.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
-     '2026-09-15 02:00:00+00', 'e0000000-0000-0000-0000-000000000001', '2026-09-15 02:00:00+00'),
+     '2026-09-15 02:00:00+00', 'e0000000-0000-0000-0000-000000000001', NULL, '2026-09-15 02:00:00+00'),
     ('ea000000-0000-0000-0000-000000000003', 'e8000000-0000-0000-0000-000000000004',
-     '2026-07-25 02:00:00+00',
-     'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng',
      'Thư mời phỏng vấn vị trí Chuyên viên Tuyển dụng - Công ty TNHH Thử Nghiệm Ánh Dương',
      'Kính gửi Quốc Huy,' || E'\n\n'
      || 'Cảm ơn bạn đã ứng tuyển vị trí Chuyên viên Tuyển dụng tại Công ty TNHH Thử Nghiệm Ánh Dương. '
      || 'Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn theo thời gian và địa điểm ghi trong thư này.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
-     '2026-07-20 02:00:00+00', 'e0000000-0000-0000-0000-000000000001', '2026-07-20 02:00:00+00')
+     '2026-07-20 02:00:00+00', 'e0000000-0000-0000-0000-000000000001', NULL, '2026-07-20 02:00:00+00')
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO interview_invitation_slots (id, invitation_id, display_order, scheduled_at, location, created_at) VALUES
+    ('f0000000-0000-0000-0000-000000000001', 'ea000000-0000-0000-0000-000000000001', 1,
+     date_trunc('day', now()) + INTERVAL '7 days 2 hours', 'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng', '2026-10-05 17:40:00+00'),
+    ('f0000000-0000-0000-0000-000000000004', 'ea000000-0000-0000-0000-000000000004', 1,
+     date_trunc('day', now()) + INTERVAL '8 days 2 hours', 'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng', '2026-10-06 02:00:00+00'),
+    ('f0000000-0000-0000-0000-000000000002', 'ea000000-0000-0000-0000-000000000002', 1,
+     date_trunc('day', now()) + INTERVAL '5 days 3 hours', 'Phỏng vấn trực tuyến qua Google Meet (đường dẫn gửi trước 1 ngày)', '2026-09-15 02:00:00+00'),
+    ('f0000000-0000-0000-0000-000000000005', 'ea000000-0000-0000-0000-000000000002', 2,
+     date_trunc('day', now()) + INTERVAL '6 days 2 hours', 'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng', '2026-09-15 02:00:00+00'),
+    ('f0000000-0000-0000-0000-000000000006', 'ea000000-0000-0000-0000-000000000002', 3,
+     date_trunc('day', now()) + INTERVAL '6 days 7 hours', 'https://meet.example.com/abc-defg-hij', '2026-09-15 02:00:00+00'),
+    ('f0000000-0000-0000-0000-000000000003', 'ea000000-0000-0000-0000-000000000003', 1,
+     '2026-07-25 02:00:00+00', 'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng', '2026-07-20 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- Khung chot = khung duy nhat, confirmed_at = sent_at (R-K1). A9 (ea..02, 3 khung) CHUA chot.
+-- Chi cap nhat dong chua chot - chay lai khong doi gi.
+UPDATE interview_invitations i
+SET confirmed_slot_id = c.slot_id, confirmed_at = i.sent_at
+FROM (VALUES
+        ('ea000000-0000-0000-0000-000000000001'::uuid, 'f0000000-0000-0000-0000-000000000001'::uuid),
+        ('ea000000-0000-0000-0000-000000000004'::uuid, 'f0000000-0000-0000-0000-000000000004'::uuid),
+        ('ea000000-0000-0000-0000-000000000003'::uuid, 'f0000000-0000-0000-0000-000000000003'::uuid)
+     ) AS c(invitation_id, slot_id)
+WHERE i.id = c.invitation_id AND i.confirmed_slot_id IS NULL;
 
 -- ---------------------------------------------------------------------------
 -- 12. Luot cham diem - KHONG co dong criterion_scores/score_explanations nao.
@@ -569,6 +606,23 @@ INSERT INTO notifications (id, user_id, type, title, body, link, entity_type, en
      'APPLICATION', 'e8000000-0000-0000-0000-000000000009', FALSE, NULL, 'SKIPPED', '2026-09-15 02:00:01+00')
 ON CONFLICT (id) DO NOTHING;
 
+-- FR-H12 R-N1..R-N3 - thong bao gui lai giay moi A2 (ea..04) cho Quoc Huy: body MOT dong (web), email_body = body +
+-- danh sach khung gio Viet Nam + dong lien ket. Gio trong email_body dung CUNG bieu thuc voi khung f0..04 (now() cua
+-- transaction nen khop tung phut); URL co dinh http://localhost:5173 (gia tri mac dinh app.frontend-base-url) - SKIPPED
+-- nen khong bao gio gui. entity_type 'APPLICATION' nhu moi loai cu (reset-test-data.sql xoa theo user_id/don test).
+INSERT INTO notifications (id, user_id, type, title, body, link, email_body, entity_type, entity_id, is_read, read_at, email_status, created_at) VALUES
+    ('ec000000-0000-0000-0000-000000000017', 'e0000000-0000-0000-0000-000000000002', 'INTERVIEW_INVITATION_RESENT',
+     'Nhà tuyển dụng đã gửi lại giấy mời phỏng vấn',
+     'Giấy mời phỏng vấn vị trí "Nhân viên Hành chính văn phòng" vừa được gửi lại với lịch phỏng vấn mới. Xem chi tiết trong đơn ứng tuyển.',
+     '/candidate/applications/e8000000-0000-0000-0000-000000000002',
+     'Giấy mời phỏng vấn vị trí "Nhân viên Hành chính văn phòng" vừa được gửi lại với lịch phỏng vấn mới. Xem chi tiết trong đơn ứng tuyển.'
+     || E'\n\n' || 'Khung giờ (giờ Việt Nam):' || E'\n'
+     || '1. ' || to_char((date_trunc('day', now()) + INTERVAL '8 days 2 hours') AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM/YYYY')
+     || ' — Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng'
+     || E'\n\n' || 'Xem giấy mời tại: http://localhost:5173/candidate/applications/e8000000-0000-0000-0000-000000000002',
+     'APPLICATION', 'e8000000-0000-0000-0000-000000000002', FALSE, NULL, 'SKIPPED', '2026-10-06 02:00:01+00')
+ON CONFLICT (id) DO NOTHING;
+
 -- ---------------------------------------------------------------------------
 -- 14. Tin nhan theo don (FR-C06 R-S1) - chi tin chu, khong tep, KHONG co dong
 --     thong bao NEW_MESSAGE di kem. read_at = luc BEN NHAN doc (NULL = chua doc).
@@ -668,8 +722,8 @@ COMMIT;
 -- Kiem tra sau khi nap - so dong mong doi: users 5, candidate_profiles 3,
 -- companies 1, jobs 6, rubrics 6, rubric_criteria 18, interview_templates 6,
 -- resumes 6, resume_parsed_data 1, job_applications 9,
--- application_status_history 16, interview_invitations 3, scoring_runs 2,
--- notifications 16, application_messages 6, job_screening_questions 3,
+-- application_status_history 16, interview_invitations 4, interview_invitation_slots 6,
+-- scoring_runs 2, notifications 17, application_messages 6, job_screening_questions 3,
 -- application_screening_answers 6.
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'e0000000-%'
@@ -684,6 +738,7 @@ UNION ALL SELECT 'resume_parsed_data', count(*) FROM resume_parsed_data WHERE re
 UNION ALL SELECT 'job_applications', count(*) FROM job_applications WHERE id::text LIKE 'e8000000-%'
 UNION ALL SELECT 'application_status_history', count(*) FROM application_status_history WHERE id::text LIKE 'e9000000-%'
 UNION ALL SELECT 'interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'ea000000-%'
+UNION ALL SELECT 'interview_invitation_slots', count(*) FROM interview_invitation_slots WHERE id::text LIKE 'f0000000-%'
 UNION ALL SELECT 'scoring_runs', count(*) FROM scoring_runs WHERE id::text LIKE 'eb000000-%'
 UNION ALL SELECT 'notifications', count(*) FROM notifications WHERE id::text LIKE 'ec000000-%'
 UNION ALL SELECT 'application_messages', count(*) FROM application_messages WHERE id::text LIKE 'ed000000-%'

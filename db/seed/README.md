@@ -252,7 +252,7 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
 > khai và có thể xuất hiện trong gợi ý việc làm của ứng viên demo.
 
 Bộ test độc lập với hai tầng demo: nạp được trên DB chỉ có schema, hoặc nạp chung với
-demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, email và tên công ty riêng). SQL viết
+demo mà không va chạm (UUID tiền tố `e0…`–`ef…` và `f0…`, email và tên công ty riêng). SQL viết
 tay, idempotent (`ON CONFLICT (id) DO NOTHING`), với **một ngoại lệ**: dòng
 `resume_parsed_data` của CV R3 là output thật của pipeline trích xuất. Dòng này được chạy
 một lần rồi chép nguyên văn vào file (xem comment mục 8 trong `seed-test.sql`). Bộ test
@@ -335,8 +335,9 @@ hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn on
 | Thông báo đã đọc / chưa đọc (6 / 4) | HR test | Chuông thông báo |
 | Tin nhắn: hộp thư hai phía (HR 3 dòng A9, A2, A3; Quốc Huy 2 dòng A2, A3, mỗi bên 1 tin chưa đọc), cuộc trao đổi chỉ còn xem, trạng thái rỗng | HR test, Quốc Huy | "Tin nhắn"; tab "Trao đổi" của đơn "Chuyên viên Pháp chế" (đã rút, chỉ còn xem) và đơn "Chuyên viên Chăm sóc khách hàng" của Quốc Huy (chưa có tin) |
 | Đơn đủ 5 trạng thái, lịch sử, giấy mời phỏng vấn | Quốc Huy | Đơn ứng tuyển |
+| Giấy mời nhiều khung giờ chưa chốt (3 khung, có khung là link), giấy mời đã gửi lại kèm giấy mời cũ, giấy mời một khung đã chốt, thông báo gửi lại (FR-H12) | HR test, Quốc Huy, Trần Bảo Ngọc | Đơn A9 của Trần Bảo Ngọc (chưa chốt), A2 của Quốc Huy (đã gửi lại, có 1 giấy mời trước đó), A4 của Quốc Huy (đã chốt, đơn `HIRED`); chuông thông báo của Quốc Huy |
 | CV chờ trích xuất (đóng băng), thất bại, đã trích xuất | Quốc Huy | Hồ sơ → CV |
-| Thông báo đã đọc / chưa đọc (2 / 2) | Quốc Huy | Chuông thông báo |
+| Thông báo đã đọc / chưa đọc (2 / 3) | Quốc Huy | Chuông thông báo |
 | Hồ sơ nghề nghiệp khai đủ | Quốc Huy | Hồ sơ |
 | Hồ sơ bỏ qua onboarding | Lê Thị Lan | Hồ sơ |
 | Màn onboarding | Trần Bảo Ngọc | Đăng nhập |

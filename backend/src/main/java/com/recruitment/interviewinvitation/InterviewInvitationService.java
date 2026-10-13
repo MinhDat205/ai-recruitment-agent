@@ -48,6 +48,7 @@ public class InterviewInvitationService {
     private final InterviewTemplateRepository interviewTemplateRepository;
     private final UserRepository userRepository;
     private final InterviewInvitationRepository interviewInvitationRepository;
+    private final InterviewInvitationSlotRepository slotRepository;
     private final ApplicationStatusService applicationStatusService;
 
     public InterviewInvitationService(
@@ -57,6 +58,7 @@ public class InterviewInvitationService {
             InterviewTemplateRepository interviewTemplateRepository,
             UserRepository userRepository,
             InterviewInvitationRepository interviewInvitationRepository,
+            InterviewInvitationSlotRepository slotRepository,
             ApplicationStatusService applicationStatusService) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
@@ -64,6 +66,7 @@ public class InterviewInvitationService {
         this.interviewTemplateRepository = interviewTemplateRepository;
         this.userRepository = userRepository;
         this.interviewInvitationRepository = interviewInvitationRepository;
+        this.slotRepository = slotRepository;
         this.applicationStatusService = applicationStatusService;
     }
 
@@ -107,17 +110,27 @@ public class InterviewInvitationService {
         // HR gui, xem comment tren InterviewInvitationSendRequest.
         applicationStatusService.changeStatus(ownerId, applicationId, ApplicationStatus.INTERVIEW_INVITED);
 
+        // FR-H12 dot 2 (REQUIREMENT muc 12 L7) - than request cu giu nguyen, ghi thanh MOT khung da chot theo ba buoc
+        // L2: (1) giay moi CHUA co khung chot -> saveAndFlush; (2) khung -> saveAndFlush; (3) dat khung chot -> flush
+        // (UPDATE). Dat confirmedSlotId truoc buoc (2) thi INSERT giay moi (hoan toi flush) vi pham FK ghep
+        // fk_invitation_confirmed_slot. sentAt va confirmedAt cung MOT gia tri Instant (R-K1).
+        Instant sentAt = Instant.now();
         InterviewInvitation invitation = new InterviewInvitation();
         invitation.setApplicationId(applicationId);
-        invitation.setScheduledAt(request.scheduledAt());
-        invitation.setLocation(request.location());
         invitation.setSubject(request.subject());
         invitation.setRenderedContent(request.content());
-        invitation.setSentAt(Instant.now());
+        invitation.setSentAt(sentAt);
         invitation.setSentBy(ownerId);
-        InterviewInvitation saved = interviewInvitationRepository.save(invitation);
+        InterviewInvitation saved = interviewInvitationRepository.saveAndFlush(invitation);
 
-        return toResponse(saved);
+        InterviewInvitationSlot slot = slotRepository.saveAndFlush(
+                new InterviewInvitationSlot(saved.getId(), 1, request.scheduledAt(), request.location()));
+
+        saved.setConfirmedSlotId(slot.getId());
+        saved.setConfirmedAt(sentAt);
+        interviewInvitationRepository.flush();
+
+        return toResponse(saved, slot);
     }
 
     // Chi doc, khong @Transactional - cung mau previewInvitation. Kiem so huu khac han
@@ -149,8 +162,25 @@ public class InterviewInvitationService {
 
         // Khong loc theo application.status - don da HIRED/REJECTED van doc lai duoc giay moi cu
         // (ung vien doi chieu lich hen sau khi da co ket qua cuoi).
+        // FR-H12 dot 2 (muc 12 L7) - giu cach chon giay moi theo created_at nhu cu; chi doi nguon thoi diem/dia diem sang
+        // khung chot cua CHINH giay moi da chon. Doi sang giay moi hieu luc (superseded_at) la viec cua dot 3 (I4).
+        InterviewInvitationSlot slot = confirmedSlotOf(latest);
         return new CandidateInterviewInvitationResponse(
-                latest.getScheduledAt(), latest.getLocation(), latest.getSubject(), latest.getRenderedContent(), latest.getSentAt());
+                slot == null ? null : slot.getScheduledAt(),
+                slot == null ? null : slot.getLocation(),
+                latest.getSubject(),
+                latest.getRenderedContent(),
+                latest.getSentAt());
+    }
+
+    // Khung chot cua giay moi; null khi giay moi chua chot (giay moi nhieu khung - chi co tu seed/du lieu ghi tay o dot 2).
+    private InterviewInvitationSlot confirmedSlotOf(InterviewInvitation invitation) {
+        if (invitation.getConfirmedSlotId() == null) {
+            return null;
+        }
+        return slotRepository
+                .findById(invitation.getConfirmedSlotId())
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay khung chot cua giay moi " + invitation.getId()));
     }
 
     private String render(String text, String candidateName, String jobTitle, String companyName) {
@@ -185,12 +215,12 @@ public class InterviewInvitationService {
                 .orElseThrow(() -> new CompanyNotFoundException("HR chưa tạo hồ sơ công ty"));
     }
 
-    private static InterviewInvitationResponse toResponse(InterviewInvitation i) {
+    private static InterviewInvitationResponse toResponse(InterviewInvitation i, InterviewInvitationSlot slot) {
         return new InterviewInvitationResponse(
                 i.getId(),
                 i.getApplicationId(),
-                i.getScheduledAt(),
-                i.getLocation(),
+                slot.getScheduledAt(),
+                slot.getLocation(),
                 i.getSubject(),
                 i.getRenderedContent(),
                 i.getSentAt(),

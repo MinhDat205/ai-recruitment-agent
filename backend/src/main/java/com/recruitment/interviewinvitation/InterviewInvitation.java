@@ -18,6 +18,11 @@ import org.hibernate.generator.EventType;
 // rubric_snapshot/weight_snapshot o scoring_runs/criterion_scores - xem CLAUDE.md muc 2 va 4).
 // sent_at/sent_by nullable san trong schema (V1) de danh cho tinh nang nhap sau nay - o E1 Dot 2,
 // hai cot nay LUON duoc set ngay luc tao dong (gui = tao, khong co trang thai nhap).
+//
+// FR-H12 (V16) - thoi diem/dia diem nam o interview_invitation_slots (InterviewInvitationSlot), khong con o day.
+// confirmed_slot_id la cot UUID THUONG, KHONG @ManyToOne (REQUIREMENT muc 12 L2): Hibernate khong biet FK ghep
+// fk_invitation_confirmed_slot nen thu tu ghi do code quyet dinh - giay moi (chua co khung chot) -> khung -> dat khung
+// chot. Gan confirmedSlotId TRUOC khi khung duoc INSERT thi cau INSERT giay moi (hoan toi flush) vi pham FK.
 @Entity
 @Table(name = "interview_invitations")
 @Getter
@@ -32,11 +37,6 @@ public class InterviewInvitation {
     @Column(name = "application_id", nullable = false)
     private UUID applicationId;
 
-    @Column(name = "scheduled_at", nullable = false)
-    private Instant scheduledAt;
-
-    private String location;
-
     @Column(nullable = false)
     private String subject;
 
@@ -48,6 +48,17 @@ public class InterviewInvitation {
 
     @Column(name = "sent_by")
     private UUID sentBy;
+
+    // NULL = chua chot (R-K2). Cung NULL/khac NULL voi confirmedAt (chk_invitation_confirmed_pair).
+    @Column(name = "confirmed_slot_id")
+    private UUID confirmedSlotId;
+
+    @Column(name = "confirmed_at")
+    private Instant confirmedAt;
+
+    // NULL = giay moi dang hieu luc (R-A1, uq_invitation_active).
+    @Column(name = "superseded_at")
+    private Instant supersededAt;
 
     @Generated(event = EventType.INSERT)
     @Column(name = "created_at", insertable = false, updatable = false)

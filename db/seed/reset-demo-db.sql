@@ -92,6 +92,8 @@ TRUNCATE TABLE
     resumes, resume_parsed_data, job_embeddings, resume_reparse_requests,
     -- Don ung tuyen & pipeline HR
     job_applications, application_status_history, interview_invitations,
+    -- Khung gio giay moi (FR-H12, V16) - CASCADE van xoa theo neu thieu ten; liet ke cho tuong minh
+    interview_invitation_slots,
     -- Tin nhan theo don (FR-C06, V12)
     application_messages,
     -- Cham diem AI

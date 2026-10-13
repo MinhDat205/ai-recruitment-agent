@@ -92,6 +92,8 @@ DELETE FROM scoring_runs               WHERE id IN (SELECT id FROM t_runs);
 -- 3. Con cua job_applications, roi chinh don
 DELETE FROM application_screening_answers WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM application_messages       WHERE application_id IN (SELECT id FROM t_apps);
+-- FR-H12 (V16): khung gio (interview_invitation_slots) xoa theo ON DELETE CASCADE cua cau duoi. KHONG xoa khung
+-- truoc giay moi: FK ghep fk_invitation_confirmed_slot (NO ACTION) tu giay moi tro nguoc ve khung chot se chan.
 DELETE FROM interview_invitations      WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM application_status_history WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM job_applications           WHERE id IN (SELECT id FROM t_apps);

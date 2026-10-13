@@ -44,6 +44,10 @@ public class Notification {
 
     private String link;
 
+    // FR-H12 R-N3a (V16) - noi dung email rieng; NULL = email dung body nhu cu. KHONG tra ra API (NotificationResponse).
+    @Column(name = "email_body")
+    private String emailBody;
+
     @Column(name = "entity_type")
     private String entityType;
 

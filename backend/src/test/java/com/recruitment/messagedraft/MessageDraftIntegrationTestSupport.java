@@ -13,6 +13,8 @@ import com.anthropic.models.messages.StopReason;
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.interviewinvitation.InterviewInvitation;
 import com.recruitment.interviewinvitation.InterviewInvitationRepository;
+import com.recruitment.interviewinvitation.InterviewInvitationSlot;
+import com.recruitment.interviewinvitation.InterviewInvitationSlotRepository;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.messaging.ApplicationMessage;
 import com.recruitment.messaging.ApplicationMessageRepository;
@@ -129,6 +131,9 @@ abstract class MessageDraftIntegrationTestSupport {
 
     @Autowired
     InterviewInvitationRepository invitationRepository;
+
+    @Autowired
+    InterviewInvitationSlotRepository slotRepository;
 
     // Mock ChatModel la singleton dung chung moi lop - reset truoc moi test (giu default answer "nem loi khi chua stub"
     // cua LlmTestConfiguration). getOptions/getDefaultOptions duoc ChatClient doc khi dung Prompt.
@@ -408,16 +413,21 @@ abstract class MessageDraftIntegrationTestSupport {
                 id);
     }
 
+    // FR-H12 dot 2 (REQUIREMENT muc 12 L7) - chi doi cach chen: giay moi + 1 khung da chot theo ba buoc L2 (moi test
+    // chen toi da mot giay moi cho moi don, khong cham uq_invitation_active).
     void insertInvitation(Fixture f, Instant scheduledAt, String location) {
         InterviewInvitation invitation = new InterviewInvitation();
         invitation.setApplicationId(f.applicationId());
-        invitation.setScheduledAt(scheduledAt);
-        invitation.setLocation(location);
         invitation.setSubject("Thu moi phong van");
         invitation.setRenderedContent("Noi dung giay moi KHONG duoc vao ngu canh");
         invitation.setSentAt(BASE_TIME);
         invitation.setSentBy(f.hrUserId());
-        invitationRepository.saveAndFlush(invitation);
+        InterviewInvitation saved = invitationRepository.saveAndFlush(invitation);
+        InterviewInvitationSlot slot =
+                slotRepository.saveAndFlush(new InterviewInvitationSlot(saved.getId(), 1, scheduledAt, location));
+        saved.setConfirmedSlotId(slot.getId());
+        saved.setConfirmedAt(BASE_TIME);
+        invitationRepository.saveAndFlush(saved);
     }
 
     void deleteInvitations(Fixture f) {

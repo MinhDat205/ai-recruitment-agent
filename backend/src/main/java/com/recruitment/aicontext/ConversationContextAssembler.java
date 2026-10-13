@@ -8,6 +8,7 @@ import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.interviewinvitation.InterviewInvitationRepository;
+import com.recruitment.interviewinvitation.InterviewInvitationSlotRepository;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.JobApplication;
@@ -40,6 +41,7 @@ public class ConversationContextAssembler {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final InterviewInvitationRepository interviewInvitationRepository;
+    private final InterviewInvitationSlotRepository interviewInvitationSlotRepository;
     private final ApplicationMessageRepository messageRepository;
 
     public ConversationContextAssembler(
@@ -48,12 +50,14 @@ public class ConversationContextAssembler {
             CompanyRepository companyRepository,
             UserRepository userRepository,
             InterviewInvitationRepository interviewInvitationRepository,
+            InterviewInvitationSlotRepository interviewInvitationSlotRepository,
             ApplicationMessageRepository messageRepository) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
         this.interviewInvitationRepository = interviewInvitationRepository;
+        this.interviewInvitationSlotRepository = interviewInvitationSlotRepository;
         this.messageRepository = messageRepository;
     }
 
@@ -75,11 +79,15 @@ public class ConversationContextAssembler {
                         "Khong tim thay ung vien cua don " + applicationId));
 
         // Giay moi moi nhat - cung cach phia ung vien doc (InterviewInvitationService.getLatestInvitationForCandidate).
+        // FR-H12 dot 2 (REQUIREMENT muc 12 L7): giu cach chon giay moi theo created_at; chi doi nguon thoi diem/dia diem
+        // sang khung CHOT cua chinh giay moi da chon (chua chot -> null). Doi sang giay moi hieu luc la viec dot 4 (R-K1x).
         InterviewSchedule interview = interviewInvitationRepository
                 .findByApplicationIdOrderByCreatedAtDesc(applicationId)
                 .stream()
                 .findFirst()
-                .map(invitation -> new InterviewSchedule(invitation.getScheduledAt(), invitation.getLocation()))
+                .filter(invitation -> invitation.getConfirmedSlotId() != null)
+                .flatMap(invitation -> interviewInvitationSlotRepository.findById(invitation.getConfirmedSlotId()))
+                .map(slot -> new InterviewSchedule(slot.getScheduledAt(), slot.getLocation()))
                 .orElse(null);
 
         return new ConversationContext(

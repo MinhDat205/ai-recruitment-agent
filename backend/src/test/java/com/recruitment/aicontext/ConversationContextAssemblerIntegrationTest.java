@@ -12,6 +12,8 @@ import com.recruitment.aicontext.ConversationContext.RecentMessage;
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.interviewinvitation.InterviewInvitation;
 import com.recruitment.interviewinvitation.InterviewInvitationRepository;
+import com.recruitment.interviewinvitation.InterviewInvitationSlot;
+import com.recruitment.interviewinvitation.InterviewInvitationSlotRepository;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.messaging.ApplicationMessage;
 import com.recruitment.messaging.ApplicationMessageRepository;
@@ -60,6 +62,9 @@ class ConversationContextAssemblerIntegrationTest {
 
     @Autowired
     private InterviewInvitationRepository invitationRepository;
+
+    @Autowired
+    private InterviewInvitationSlotRepository slotRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -216,18 +221,28 @@ class ConversationContextAssemblerIntegrationTest {
                 id);
     }
 
+    // FR-H12 dot 2 (REQUIREMENT muc 12 L7) - chi doi cach chen: giay moi + 1 khung da chot theo ba buoc L2. Giay moi
+    // truoc cua cung don duoc danh dau superseded_at de khong vi pham uq_invitation_active (V16); assembler van chon theo
+    // created_at o dot 2 nen khang dinh cua cac test khong doi.
     private void insertInvitation(Fixture f, Instant scheduledAt, String location, Instant createdAt) {
+        jdbcTemplate.update(
+                "UPDATE interview_invitations SET superseded_at = ? WHERE application_id = ? AND superseded_at IS NULL",
+                Timestamp.from(createdAt),
+                f.applicationId());
         InterviewInvitation invitation = new InterviewInvitation();
         invitation.setApplicationId(f.applicationId());
-        invitation.setScheduledAt(scheduledAt);
-        invitation.setLocation(location);
         invitation.setSubject("Thu moi phong van");
         invitation.setRenderedContent("Noi dung giay moi KHONG duoc vao ngu canh");
         invitation.setSentAt(createdAt);
         invitation.setSentBy(f.hrUserId());
-        UUID id = invitationRepository.saveAndFlush(invitation).getId();
+        InterviewInvitation saved = invitationRepository.saveAndFlush(invitation);
+        InterviewInvitationSlot slot =
+                slotRepository.saveAndFlush(new InterviewInvitationSlot(saved.getId(), 1, scheduledAt, location));
+        saved.setConfirmedSlotId(slot.getId());
+        saved.setConfirmedAt(createdAt);
+        invitationRepository.saveAndFlush(saved);
         jdbcTemplate.update(
-                "UPDATE interview_invitations SET created_at = ? WHERE id = ?", Timestamp.from(createdAt), id);
+                "UPDATE interview_invitations SET created_at = ? WHERE id = ?", Timestamp.from(createdAt), saved.getId());
     }
 
     // ---- T12 (phan du lieu) ----
