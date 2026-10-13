@@ -1,6 +1,6 @@
 # FR-H11 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT (13/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (13/10/2026). Duyệt: 13/10/2026.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1h (linear progress), 3 (component), 4 ("Nội dung do AI tạo"),
 5 (thao tác AI đồng bộ), 6 (tương phản). Mã `R-…`, `J1` (sinh bản nháp — một request, chọn `parts`), `J2` (lưu nháp), `Q…` là của `REQUIREMENT.md` cùng thư mục. Ba bước thủ
@@ -9,7 +9,7 @@ thêm vào.
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT (13/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (13/10/2026). Duyệt: 13/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

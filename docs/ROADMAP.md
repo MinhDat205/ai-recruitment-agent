@@ -776,7 +776,8 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
     `1d2df62`), `chore/hardening` đợt 6 (`14d0836`) có chạm. Đề xuất sửa: bỏ qua giá trị rỗng ở
     `onValueChange` của 2 Select (`if (v) field.onChange(v)` — hai danh sách không có lựa chọn rỗng); áp cùng
     cách cho `HrJobCreatePage.tsx:305,326` (FR-H11 điền form bằng code sẽ gặp đúng lỗi này); thêm bước soát tay
-    "mở form sửa J1 thấy đủ hai ô, lưu không đổi gì thì DB giữ nguyên".
+    "mở form sửa J1 thấy đủ hai ô, lưu không đổi gì thì DB giữ nguyên". — **Trang tạo tin đã sửa ở FR-H11
+    (13/10/2026); trang sửa tin vẫn còn.**
   - `NotificationList` (trang "Xem tất cả" thông báo, `NotificationList.tsx:60-67`) không điều hướng theo
     `link`, chỉ đánh dấu đã đọc; chỉ chuông có điều hướng. Ảnh hưởng cả HR. Email thông báo không có link.
   - Cảnh báo Vite "Some chunks are larger than 500 kB" ở `npm run build` (bundle ~1,18 MB, có từ trước) —
@@ -850,7 +851,7 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
 **Xong khi:** gọi API đơn/cuộc trao đổi không thuộc về mình bị chặn (kiểm bằng curl, không qua
 UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa điểm/rubric.
 
-**Phase 2.3 — Sàng lọc & tạo tin**
+**Phase 2.3 — Sàng lọc & tạo tin** ✅ HOÀN THÀNH
 - [x] `feat/fr-h10-screening` — FR-H10 · Câu hỏi sàng lọc theo Job — **HOÀN THÀNH**
   (11/10/2026, 6 đợt — xem `docs/walkthrough/fr-h10-screening.md`). Tab "Câu hỏi sàng lọc" ở trang sửa Job: HR soạn
   tối đa 10 câu (trả lời ngắn, một lựa chọn 2–10 phương án, có/không), đánh dấu bắt buộc, đổi thứ tự bằng ↑/↓, sửa
@@ -884,7 +885,27 @@ UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa đi�
 
   - [x] `fix/job-embedding-test-isolation` — `JobEmbeddingRepositoryTest` dùng `Pageable.unpaged()`: query FIFO (`created_at ASC`) đặt job rò rỉ từ test không `@Transactional` lên trước, đẩy job của test khỏi trang 0; hai test isExcluded trước đó pass rỗng. Nợ còn lại: `findTopMatchingJobs_*` (`isEmpty`/`containsExactly`) sẽ vỡ nếu sau này có test commit `job_embeddings` thật. Không gắn mã FR.
   
-  - [] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng
+- [x] `feat/fr-h11-ai-job-draft` — FR-H11 · AI tạo tin tuyển dụng — **HOÀN THÀNH**
+  (13/10/2026, 7 đợt — xem `docs/walkthrough/fr-h11-ai-job-draft.md`). Ở `/hr/jobs/new`, HR bấm "Tạo tin bằng AI",
+  nhập mô tả tự do; MỘT request J1 (`POST /api/hr/job-ai-drafts`, 1 lượt `ai-sync`) sinh tối đa ba phần chạy song song
+  bằng virtual thread — bản nháp tin, tiêu chí rubric (không trọng số), câu hỏi sàng lọc — mỗi phần kết quả hoặc lỗi
+  riêng, luôn 200. Wizard chế độ AI 5 bước: "Điền vào biểu mẫu" (hỏi trước khi ghi đè trường đã sửa), giữ/bỏ từng gợi
+  ý, HR tự nhập trọng số, "Lưu nháp" gọi J2 (`/save`) ghi nguyên khối trong một transaction (gọi lại `JobOwnerService`,
+  `RubricOwnerService`, `ScreeningQuestionOwnerService`), tin luôn `DRAFT`. Xây K4 (`aigeneration/`): token ký lúc sinh,
+  kiểm lúc lưu, bảng `job_ai_generations` (migration `V15`). Tách `ScreeningQuestionRules` dùng chung với FR-H10. Sửa lỗi
+  `Select` Loại hình/Hình thức ở trang tạo tin. Full suite 1162/1162; build + lint sạch; kiểm HTTP 7.2 đạt (hai dòng sửa
+  theo L13); soát tay 7.4 đạt; `srs-guard` sạch. Cổng đo AI thật (L11): token đầu ra 270–389 (< 50% trần 800). Làm rõ
+  L1–L13. Nợ kỹ thuật:
+  - Ba phần gọi song song qua cùng kết nối HTTP/2 của SDK Anthropic: đo được 5/24 request có một phần `AI_TIMEOUT`
+    (JOB 2/24, CRITERIA 3/24); gọi thẳng API qua HTTP/1.1 thì 30/30 thành công. Chưa phân định do ghép stream HTTP/2 hay
+    độ trễ phía nhà cung cấp; không ép HTTP/1.1 vì phải sửa bean `AnthropicChatModel` dùng chung (L11). HR bấm "Thử lại"
+    phần đó (thêm 1 lượt).
+  - Mỗi request J1 chiếm tới 3/8 luồng executor K3; nhiều HR bấm cùng lúc thì phần không có luồng nhận `AI_UNAVAILABLE`.
+  - Token K4 còn hạn (7 ngày) gửi kèm được hai lần lưu của cùng HR — chỉ lặp, không giả mạo được (R-K4-5).
+  - Lỗi `Select` đã sửa ở trang tạo tin; trang sửa tin `HrJobEditPage` vẫn còn (mục nợ FR-H02 ở Phase 2.2).
+  - Body JSON hỏng ở endpoint không có advice riêng (vd `POST /api/hr/jobs`) trên server thật trả 401 thay vì 400:
+    trang lỗi `/error` không mở cho request chưa xác thực. Có từ trước, phát hiện khi chạy 7.2 của FR-H11.
+  - Frontend chế độ AI chưa có test tự động.
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026):
 > - FR-U09 nhận thêm cờ đồng ý lưu hồ sơ + nút Rút đồng ý ở `/candidate/applications/:id` (xem Phase 2.2).

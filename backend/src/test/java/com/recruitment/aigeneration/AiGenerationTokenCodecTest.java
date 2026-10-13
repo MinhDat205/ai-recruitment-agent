@@ -76,8 +76,11 @@ class AiGenerationTokenCodecTest {
     @Test
     void verify_rejectsTamperedToken() {
         String token = issueAt(ISSUED_AT);
-        char last = token.charAt(token.length() - 1);
-        String tampered = token.substring(0, token.length() - 1) + (last == 'A' ? 'B' : 'A');
+        // Doi mot ky tu GIUA chu ky (moi ky tu deu mang du 6 bit). KHONG doi ky tu cuoi: chu ky HS256 32 byte = 43 ky tu
+        // base64url, 2 bit cuoi la bit dem - doi A<->B/C/D o cuoi giai ma ra CUNG chu ky (token khong bi sua that).
+        int middle = token.lastIndexOf('.') + 20;
+        char original = token.charAt(middle);
+        String tampered = token.substring(0, middle) + (original == 'A' ? 'B' : 'A') + token.substring(middle + 1);
         // Doi mot ky tu o phan payload (giu chu ky cu) - vd model khac.
         String[] parts = token.split("\\.");
         String forgedPayload = parts[0] + "." + parts[1].substring(0, parts[1].length() - 2) + "xx." + parts[2];

@@ -1,11 +1,12 @@
 # FR-H11 — AI tạo tin tuyển dụng từ ngôn ngữ tự nhiên
 
-> Trạng thái: ĐÃ DUYỆT (13/10/2026). Câu hỏi mở ở mục 11 đã chốt 13/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (13/10/2026). Duyệt: 13/10/2026. Câu hỏi mở ở mục 11 đã chốt 13/10/2026.
 >
 > Làm rõ sau Plan Mode 13/10/2026: L1–L10 (L1: mục 0.g5; L2: R-L1, T15b; L3: R-K3H-2; L4, L5: R-K4-2, T17; L6: mục 5.2;
 > L7: R-W3; L8: T22; L9: mục 7.3; L10: mục 9 đợt 1) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
 > L11 (13/10/2026): kết quả cổng đo AI thật cuối đợt 4 và chẩn đoán `AI_TIMEOUT` — mục 12.
 > L12 (13/10/2026): các chốt giao diện của đợt 6 (thanh tiến trình, dấu AI ô danh mục, file kiểm, 5xx của J1) — mục 12.
+> L13 (13/10/2026): sửa hai dòng của khối kiểm HTTP 7.2 (JSON hỏng vào `/api/hr/jobs`, cách sửa token) — mục 12.
 
 - Nhóm: HR
 - Tóm tắt: ở `/hr/jobs/new`, HR bấm "Tạo tin bằng AI", nhập mô tả tự do (vị trí, công việc, lương, địa điểm…).
@@ -683,7 +684,7 @@ Test-Call 'Post' $p $null @{ description = $moTa; parts = $all }
 
 '--- 2. Am: dau vao J1 sai, HR demo - 5 request = 5 luot ai-sync (mong doi 400 INVALID_JOB_DRAFT_REQUEST x5);'
 '    J2 trong so trong -> 400 INVALID_JOB_DRAFT_SAVE; token gia -> 400 INVALID_AI_GENERATION_TOKEN;'
-'    JSON hong vao POST /api/hr/jobs -> 400 KHONG co INVALID_JOB_DRAFT_REQUEST'
+'    JSON hong vao POST /api/hr/jobs -> 401 UNAUTHENTICATED, KHONG co INVALID_JOB_DRAFT_REQUEST (L13)'
 Test-Call 'Post' $p $tokenHrDemo @{ description = '   '; parts = $all }
 Test-Call 'Post' $p $tokenHrDemo @{ description = ('a' * 3001); parts = $all }
 Test-Call 'Post' $p $tokenHrDemo @{ description = $moTa; parts = @() }
@@ -731,7 +732,8 @@ $r = Invoke-Api 'Post' "$p/save" $tokenHr $withTokens
 $aiJobId = ($r.Text | ConvertFrom-Json).id
 $t = $withTokens['jobToken']
 $tampered = $withTokens.Clone()
-$tampered['jobToken'] = $t.Substring(0, $t.Length - 1) + $(if ($t.EndsWith('A')) { 'B' } else { 'A' })
+$i = $t.LastIndexOf('.') + 20  # (L13) sua mot ky tu GIUA chu ky - ky tu cuoi chi mang bit dem base64url
+$tampered['jobToken'] = $t.Substring(0, $i) + $(if ($t[$i] -eq 'A') { 'B' } else { 'A' }) + $t.Substring($i + 1)
 Test-Call 'Post' "$p/save" $tokenHr $tampered
 Test-Call 'Post' "$p/save" $tokenHrDemo $withTokens
 docker exec recruitment-db psql -U recruitment -d recruitment -c "SELECT part, ai_model, ai_prompt_version, ai_generated_at FROM job_ai_generations WHERE job_id = '$aiJobId' ORDER BY part"
@@ -740,7 +742,7 @@ Test-Call 'Delete' "/api/hr/jobs/$aiJobId" $tokenHr $null
 
 Mong đợi: nhóm 1 `403`, `401 … UNAUTHENTICATED`; nhóm 2 năm dòng `400 … INVALID_JOB_DRAFT_REQUEST`, một dòng `400 …
 INVALID_JOB_DRAFT_SAVE … Tiêu chí 1: vui lòng nhập trọng số.`, một dòng `400 … INVALID_AI_GENERATION_TOKEN`, một dòng
-`400` không chứa `INVALID_JOB_DRAFT_REQUEST`; nhóm 3 `429 … RATE_LIMIT_EXCEEDED` (nạp 2 lượt/phút: nếu từ dòng đầu nhóm
+`401 … UNAUTHENTICATED` không chứa `INVALID_JOB_DRAFT_REQUEST` (L13); nhóm 3 `429 … RATE_LIMIT_EXCEEDED` (nạp 2 lượt/phút: nếu từ dòng đầu nhóm
 2 tới nhóm 3 quá 30 giây thì thấy `400 … INVALID_JOB_DRAFT_REQUEST` thay vì `429` — chạy lại nhóm 2 rồi nhóm 3 liền nhau), `201 J2 khi da
 het luot ai-sync`, `204`; nhóm 4 `201 … "status":"DRAFT"`, rubric `totalWeight` giá trị 60, hai tiêu chí, một câu hỏi
 `"revision":1`, `409 … RUBRIC_INCOMPLETE`, `204`; nhóm 5 `200 J1 3 phan` với `"job":{"status":"SUCCEEDED"…`,
@@ -955,6 +957,17 @@ Mọi câu đã chốt. Cột "Quyết định" là nội dung đặc tả đang
     focus, tách khỏi file component theo lint `react-refresh/only-export-components`.
   - Lỗi 5xx của J1 (cả request) xử lý như lỗi mạng: câu "Chưa tạo được gợi ý, vui lòng thử lại." + "Thử lại" (4i không
     nêu riêng 5xx).
+- **L13 (mục 7.2 nhóm 2 và nhóm 5; đợt 7) — duyệt 13/10/2026.** Chạy khối 7.2 có hai dòng lệch "Mong đợi" do lệnh/kỳ vọng
+  viết sai, không phải do code:
+  - JSON hỏng vào `POST /api/hr/jobs` trên server thật trả **401 `UNAUTHENTICATED`**, không phải 400: lỗi 400 mặc định
+    của Spring (endpoint không có advice riêng) được chuyển tới trang `/error`, trang này không mở cho request chưa xác
+    thực. Có từ trước FR-H11 (nhánh không sửa `SecurityConfig`); T11 dùng MockMvc nên thấy 400. Ý chính của dòng — body
+    không chứa `INVALID_JOB_DRAFT_REQUEST` — vẫn đạt. Ghi nợ kỹ thuật.
+  - "Token sửa 1 ký tự" đổi ký tự **cuối** của chữ ký. Chữ ký HS256 32 byte = 43 ký tự base64url, 2 bit cuối là bit
+    đệm: đổi `A`↔`B`/`C`/`D` ở cuối giải mã ra **cùng** chữ ký (token không bị sửa thật → 201 là đúng, K4 không lỗi).
+    Sửa lệnh: đổi một ký tự giữa chữ ký. Cùng lỗi ở hai test của FR (`AiGenerationTokenCodecTest
+    .verify_rejectsTamperedToken`, `JobAiDraftSaveRejectionIntegrationTest.tamperedToken_rejected_nothingWritten`, chập
+    chờn khoảng 4/64 số lần chạy) — đã sửa cùng cách.
 
 **Thứ tự đợt (khớp mục 9):** tách `ScreeningQuestionRules` đi cùng lớp AI ở đợt 3 (không cùng J2), vì validator phần
 QUESTIONS của J1 (R-Q2) đã cần nó. **Cổng đo thực nghiệm cuối đợt 4** (cần khoá API thật): J1 từng phần `[JOB]`,

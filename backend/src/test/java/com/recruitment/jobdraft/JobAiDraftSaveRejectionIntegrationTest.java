@@ -140,10 +140,12 @@ class JobAiDraftSaveRejectionIntegrationTest extends JobDraftIntegrationTestSupp
     void tamperedToken_rejected_nothingWritten() throws Exception {
         Hr hr = hr("h11-t17-tamper");
         String token = tokenCodec.issue(hr.userId(), JobDraftPart.JOB.tokenPurpose(), STAMP);
-        char last = token.charAt(token.length() - 1);
+        // Doi mot ky tu GIUA chu ky - ky tu cuoi chi mang bit dem (xem AiGenerationTokenCodecTest.verify_rejectsTamperedToken).
+        int middle = token.lastIndexOf('.') + 20;
+        char original = token.charAt(middle);
         Map<String, Object> body = saveBody();
         body.put("criteria", List.of(criterionInput("Java", null, 30)));
-        body.put("jobToken", token.substring(0, token.length() - 1) + (last == 'A' ? 'B' : 'A'));
+        body.put("jobToken", token.substring(0, middle) + (original == 'A' ? 'B' : 'A') + token.substring(middle + 1));
 
         assertRejectedWithoutWrites(hr.token(), body, 400, "INVALID_AI_GENERATION_TOKEN", INVALID_TOKEN_MESSAGE);
     }

@@ -36,7 +36,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H08 | Dashboard, Thống kê & Lịch sử Đánh giá | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H09 | Trang hồ sơ đơn ứng tuyển | HR | Đã hoàn thành | [features/HR/H09/REQUIREMENT.md](features/HR/H09/REQUIREMENT.md) |
 | FR-H10 | Câu hỏi sàng lọc theo Job | HR | Đã hoàn thành | [features/HR/H10/REQUIREMENT.md](features/HR/H10/REQUIREMENT.md) |
-| FR-H11 | AI tạo tin tuyển dụng | HR | Chưa đặc tả | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
+| FR-H11 | AI tạo tin tuyển dụng | HR | Đã hoàn thành | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
 | FR-H12 | Giấy mời nhiều khung giờ | HR | Chưa đặc tả | [features/HR/H12/REQUIREMENT.md](features/HR/H12/REQUIREMENT.md) |
 | FR-H13 | Câu hỏi phỏng vấn theo CV | HR | Chưa đặc tả | [features/HR/H13/REQUIREMENT.md](features/HR/H13/REQUIREMENT.md) |
 | FR-H14 | So sánh 2–3 ứng viên | HR | Chưa đặc tả | [features/HR/H14/REQUIREMENT.md](features/HR/H14/REQUIREMENT.md) |

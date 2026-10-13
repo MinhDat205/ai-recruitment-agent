@@ -353,7 +353,7 @@ thêm lúc code.
 |---|---|---|---|
 | `/hr` | "Dashboard" | Hiện có | FR-H08 |
 | `/hr/jobs` | "Tin tuyển dụng" | Hiện có | FR-H02, FR-C05 (cột Địa điểm) |
-| `/hr/jobs/new` | Tạo tin (nút "Tạo tin bằng AI") | Hiện có | FR-H02, ★FR-H11, FR-C05 (ô ngành nghề, tỉnh/thành) |
+| `/hr/jobs/new` | Tạo tin (nút "Tạo tin bằng AI") | Hiện có | FR-H02, FR-H11 (tạo tin bằng AI: wizard 5 bước — bản nháp tin, tiêu chí, câu hỏi sàng lọc), FR-C05 (ô ngành nghề, tỉnh/thành) |
 | `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, ★FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá); FR-H09 |
 | ★`/hr/jobs/:id/compare` | So sánh ứng viên | ★Mới | FR-H14 |
 | `/hr/candidates` | "Ứng viên" | Hiện có | FR-H08, FR-H09 |
