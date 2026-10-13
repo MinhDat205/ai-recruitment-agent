@@ -377,6 +377,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ErrorResponse(errorCode.name(), errorCode.message()));
     }
 
+    // FR-H11 R-N2, R-N3 - J1 sai dau vao. Body JSON hong cua J1 KHONG di qua day (JobAiDraftExceptionAdvice, R-A3).
+    @ExceptionHandler(InvalidJobDraftRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobDraftRequest(InvalidJobDraftRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_DRAFT_REQUEST", ex.getMessage()));
+    }
+
+    // FR-H11 R-W3, R-L4 (5)(6) - danh sach tieu chi/cau hoi cua J2 sai, kiem truoc transaction.
+    @ExceptionHandler(InvalidJobDraftSaveException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobDraftSave(InvalidJobDraftSaveException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_DRAFT_SAVE", ex.getMessage()));
+    }
+
+    // FR-H11 R-K4-4 (K4) - token sieu du lieu AI khong hop le: 400, cau co dinh, khong noi ly do cu the.
+    @ExceptionHandler(InvalidAiGenerationTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAiGenerationToken(InvalidAiGenerationTokenException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_AI_GENERATION_TOKEN", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)

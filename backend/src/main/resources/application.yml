@@ -130,6 +130,10 @@ app:
   # dung chung). 800 ~ ban nhap <= 1200 ky tu tieng Viet + vo JSON, du 30%; 800 token sinh trong 10-13 s < han 15 s.
   message-draft:
     max-output-tokens: 800
+  # FR-H11 R-K3H-1, muc 5.1 - tran token dau ra cua RIENG bean jobAiDraftChatClient (dung chung cho 3 phan JOB, CRITERIA,
+  # QUESTIONS; moi phan mot lan goi K3). 800 token sinh trong 10-13 s < han 15 s cua K3 - KHONG nang khi chua duyet.
+  job-ai-draft:
+    max-output-tokens: 800
 
   # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
   # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint

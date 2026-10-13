@@ -516,9 +516,9 @@ HR bấm Tạo tin bằng AI → nhập mô tả tự do (vị trí, công việ
 
 **Hệ thống**
 
-- Gọi AI theo K3; đổ kết quả vào form tạo Job của FR-H02. Không lưu gì cho tới khi HR bấm Lưu.
+- Gọi AI theo K3; đổ kết quả vào form tạo Job của FR-H02, thêm hai bước tiêu chí và câu hỏi sàng lọc. Không lưu gì cho tới khi HR bấm Lưu.
 - Ánh xạ ngành nghề, địa điểm sang danh mục C05.
-- Tiêu chí rubric gợi ý được tạo với trọng số để trống; HR phải tự nhập. Ràng buộc tổng trọng số 100% khi mở tin vẫn áp dụng.
+- Tiêu chí rubric gợi ý được tạo với trọng số để trống; HR phải nhập trước khi lưu mỗi tiêu chí đã giữ. Ràng buộc tổng trọng số 100% khi mở tin vẫn áp dụng.
 - Lưu siêu dữ liệu K4 cho tin được tạo bằng AI.
 
 **AI**
