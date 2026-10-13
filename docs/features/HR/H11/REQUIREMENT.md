@@ -5,6 +5,7 @@
 > Làm rõ sau Plan Mode 13/10/2026: L1–L10 (L1: mục 0.g5; L2: R-L1, T15b; L3: R-K3H-2; L4, L5: R-K4-2, T17; L6: mục 5.2;
 > L7: R-W3; L8: T22; L9: mục 7.3; L10: mục 9 đợt 1) — chi tiết ở mục 12. Mục 12 thắng chỗ viết cũ nếu lệch.
 > L11 (13/10/2026): kết quả cổng đo AI thật cuối đợt 4 và chẩn đoán `AI_TIMEOUT` — mục 12.
+> L12 (13/10/2026): các chốt giao diện của đợt 6 (thanh tiến trình, dấu AI ô danh mục, file kiểm, 5xx của J1) — mục 12.
 
 - Nhóm: HR
 - Tóm tắt: ở `/hr/jobs/new`, HR bấm "Tạo tin bằng AI", nhập mô tả tự do (vị trí, công việc, lương, địa điểm…).
@@ -945,6 +946,15 @@ Mọi câu đã chốt. Cột "Quyết định" là nội dung đặc tả đang
     thứ hai (trái hướng một bean `ChatModel` của C07 L1) khi chưa có bằng chứng.
   - **Giới hạn đã biết:** một lần tạo đủ ba phần có thể có một phần `AI_TIMEOUT` (đo được 5/24 ≈ 1/5; riêng lần chẩn
     đoán 2/20 = 1/10); HR bấm "Thử lại" phần đó (tốn thêm 1 lượt `ai-sync`).
+- **L12 (UI.md 5a, 5c, 5d, 4d, 4i; đợt 6 frontend) — chốt 13/10/2026.**
+  - Thanh tiến trình dùng lại `features/resumes/LinearProgress` theo UI.md 5c (rãnh `bg-m3-primary-container` của
+    component đó), không theo màu rãnh `bg-m3-surface-container-highest` ghi ở 5d; không sửa `features/resumes`.
+  - Dấu "Do AI gợi ý" của Ngành nghề/Tỉnh thành đặt **dưới** ô (không cạnh nhãn, không `aria-describedby`) vì
+    `CatalogField` tự dựng nhãn; không sửa `CatalogField`.
+  - Thêm file `features/jobDraft/jobDraftValidation.ts` ngoài danh sách 5a: hàm kiểm trọng số/tên tiêu chí/câu hỏi và
+    focus, tách khỏi file component theo lint `react-refresh/only-export-components`.
+  - Lỗi 5xx của J1 (cả request) xử lý như lỗi mạng: câu "Chưa tạo được gợi ý, vui lòng thử lại." + "Thử lại" (4i không
+    nêu riêng 5xx).
 
 **Thứ tự đợt (khớp mục 9):** tách `ScreeningQuestionRules` đi cùng lớp AI ở đợt 3 (không cùng J2), vì validator phần
 QUESTIONS của J1 (R-Q2) đã cần nó. **Cổng đo thực nghiệm cuối đợt 4** (cần khoá API thật): J1 từng phần `[JOB]`,
