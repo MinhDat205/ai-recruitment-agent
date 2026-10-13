@@ -1,6 +1,7 @@
 import { useQuery, type QueryKey } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { candidatesKeyPrefix } from '../candidates/queries'
+import { interviewInvitationsKey } from '../interviewinvitation/queries'
 import { hrApplicationsKeyPrefix, scoringRunsKey } from '../scoring/queries'
 import {
   getApplicationExplanationRequest,
@@ -36,12 +37,14 @@ function historyKey(applicationId: string) {
 // R-A5, R-S4 - MOI mutation tren trang (moi phong van, tu choi/trung tuyen, tao luot cham) lam moi du:
 // dau trang (E1), diem (E3), giai thich (E4), lich su (E5), lot cham cua don, danh sach theo Job va
 // /hr/candidates. Query chua mount (tab chua mo) chi bi danh dau stale, mo tab se tai lai.
+// FR-H12: them giay moi cua don (I1, tab "Giay moi phong van").
 export function applicationDetailInvalidateKeys(applicationId: string, jobId: string): QueryKey[] {
   return [
     applicationDetailKey(applicationId),
     applicationScoresKey(applicationId),
     applicationExplanationKey(applicationId),
     historyKey(applicationId),
+    interviewInvitationsKey(applicationId),
     scoringRunsKey(applicationId),
     hrApplicationsKeyPrefix(jobId),
     candidatesKeyPrefix(),
