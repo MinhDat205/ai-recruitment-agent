@@ -28,7 +28,7 @@ Chi tiết: `docs/SRS.md` mục "Nguyên tắc bổ sung cho các chức năng m
 
 | Mã | Thành phần | Xây lần đầu ở | Dùng bởi |
 |---|---|---|---|
-| K1 | Bộ gom ngữ cảnh CV theo vai trò | FR-C07 | C07, C08, H15 |
+| K1 | Bộ gom ngữ cảnh CV theo vai trò | FR-C07 | C07, C08, H12, H15 |
 | K2 | Bộ kiểm tra trích dẫn nguyên văn | FR-C08 | FR-H04, C08 |
 | K3 | Gọi AI đồng bộ có giới hạn thời gian | FR-C07 | C07, C08, H11, H15, U12, U13 |
 | K4 | Siêu dữ liệu kết quả AI | FR-H11 | H11, H15 |
@@ -279,7 +279,7 @@ Gom mọi thông tin và thao tác về một đơn ứng tuyển vào một mà
 - Từ danh sách xếp hạng của Job, danh sách Ứng viên hoặc thông báo → mở hồ sơ đơn.
 - Ba tab: CV & điểm (file CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí, evidence, nút Chấm điểm hồ sơ), Giải thích (FR-H06), Lịch sử trạng thái.
 - Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07).
-- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
+- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Giấy mời phỏng vấn (H12), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
 
 **Hệ thống**
 
