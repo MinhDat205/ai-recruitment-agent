@@ -416,7 +416,7 @@ rg -n "ApplicationStatusRecorder|ApplicationStatusChangedEvent" backend/src/main
 rg -n "FOR SHARE|FOR UPDATE|@Lock" backend/src/main/java/com/recruitment/interviewinvitation backend/src/main/java/com/recruitment/jobapplication/JobApplicationRepository.java   # 0 dong - R-W3
 rg -n "interviewinvitation" backend/src/main/java/com/recruitment/notification      # 0 dong - R-N1
 rg -n "findByApplicationIdOrderByCreatedAtDesc" backend/src/main -g "!**/scoring/**"  # 1 dong (khai bao) - giu ky vong H12
-rg -n "confirmed_slot_id" backend/src/main/java                                      # 2 dong: @Column entity + cau confirmSlotIfAvailable
+rg -n "confirmed_slot_id" backend/src/main/java                                      # 4 dong (L15): comment + @Column entity, SET + WHERE cua confirmSlotIfAvailable
 rg -n -i "emailBody|email_body" backend/src/main/java/com/recruitment/notification/dto   # 0 dong
 rg -n -i -w "verdict|isQualified|passed|recommendation" backend/src/main/java/com/recruitment/interviewinvitation   # 0 dong (-w: xem ghi chu duoi)
 git diff --stat main -- backend/src/main/resources/db/migration                      # 0 file - N3, khong V17
@@ -716,3 +716,27 @@ viết cũ ở các mục được dẫn nếu lệch.
   vào repo.
 - **L13 (quy trình) — nơi ghi L1–L13.** Ghi vào mục này + sửa 7.4 (L2), T6 (L3), T7 (L4), T8 (L5) thành một commit tài liệu
   riêng trước đợt 2, như FR-H12 mục 12.
+
+Bổ sung trong đợt 2 (14/10/2026):
+
+- **L14 (R-W1 bước 3) — `now` cắt về micro giây.** `TIMESTAMPTZ` lưu tới micro giây; nếu `now` giữ nano giây thì giá trị JDBC
+  bind vào câu `UPDATE` (làm tròn về micro) có thể khác giá trị Java dùng để phân loại lỗi ở R-W5 dòng 4 — vd khung đúng bằng
+  `now` làm tròn lên: SQL thấy "đã qua", Java thấy "chưa qua" → rơi xuống dòng 5 (`INTERVIEW_INVITATION_CONFLICT`) thay vì
+  `INTERVIEW_SLOT_PASSED`. Chốt: `Instant.now().truncatedTo(ChronoUnit.MICROS)`, một giá trị dùng cho cả câu `UPDATE`,
+  `confirmed_at` và phân loại lỗi.
+- **L15 (kiểm tĩnh 7.1) — số dòng `confirmed_slot_id`.** Kỳ vọng cũ "2 dòng" sai: thực tế 4 dòng — `InterviewInvitation.java:23`
+  (comment có sẵn của H12), `:53` (`@Column`), và 2 dòng trong câu `confirmSlotIfAvailable` (`SET` và `WHERE`). Kỳ vọng ở 7.1
+  sửa thành 4 dòng.
+- **L16 (môi trường) — `rg` không có trong shell của máy dev.** Kiểm tĩnh đợt 2 chạy bằng công cụ tìm kiếm của phiên (cùng
+  biểu thức) và `git diff --stat`; kết quả: `changeStatus` 1 dòng (`InterviewInvitationService.java:138`, I2), không
+  `ApplicationStatusRecorder`/`ApplicationStatusChangedEvent`/`FOR SHARE`/`FOR UPDATE`/`@Lock` trong `interviewinvitation/`,
+  0 dòng `verdict|isQualified|passed|recommendation` (khớp nguyên từ, không phân biệt hoa thường) trong `interviewinvitation/`
+  và `common/exception/`, `git diff --stat main` của `db/migration`, `aicontext/`, `messagedraft/`, `jobapplication/`,
+  `notification/` (main) rỗng.
+- **L17 (T6–T8) — kết quả thử đột biến bỏ khoá.** Tạm vô hiệu `lockIfInterviewInvited` trong `confirmSlot`, chạy riêng
+  `InterviewSlotConfirmConcurrencyIntegrationTest`: 4/10 đỏ — ba ca đơn luồng (T7 hai ca, T8 thuận: "không bị khoá chặn sau
+  10000 ms") và T8 ngược (không ném `SlotSelectionNotAllowedException`). T6 vẫn xanh vì điều kiện nguyên tử `confirmed_slot_id
+  IS NULL` của câu `UPDATE` tự chặn lượt thứ hai; T7/T8 song song (10 vòng) vẫn xanh vì cửa sổ race hẹp — đúng lý do giữ các
+  ca đơn luồng (L4, L5). Đã hoàn nguyên, chạy lại lớp này 10/10 xanh.
+- **L18 (T6, T7) — đếm thông báo dời sang đợt 3.** Đợt 2 chưa phát sự kiện (R-N1), nên khẳng định "đúng một thông báo" của T6
+  và phần thông báo của T7 thêm vào lớp concurrency ở đợt 3, như mục 9.

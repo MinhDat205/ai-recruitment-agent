@@ -12,6 +12,7 @@ import com.recruitment.aicontext.ConversationContext.RecentMessage;
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.interviewinvitation.InterviewInvitation;
 import com.recruitment.interviewinvitation.InterviewInvitationRepository;
+import com.recruitment.interviewinvitation.InterviewInvitationService;
 import com.recruitment.interviewinvitation.InterviewInvitationSlot;
 import com.recruitment.interviewinvitation.InterviewInvitationSlotRepository;
 import com.recruitment.jobapplication.ApplicationStatus;
@@ -22,6 +23,7 @@ import com.recruitment.messaging.MessageSenderRole;
 import com.recruitment.user.UserRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +73,9 @@ class ConversationContextAssemblerIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private InterviewInvitationService invitationService;
 
     // ---- helper (chep theo messaging/MessageReadOrderIntegrationTest) ----
 
@@ -324,6 +329,34 @@ class ConversationContextAssemblerIntegrationTest {
 
         assertThat(assembler.forConversation(ContextViewer.HR, f.applicationId()).interview()).isNull();
         assertThat(assembler.forConversation(ContextViewer.CANDIDATE, f.applicationId()).interview()).isNull();
+    }
+
+    // FR-U10 T9 (R-K1) - K1 KHONG sua code: truoc khi ung vien chon, giay moi hieu luc 3 khung chua chot -> null; sau
+    // confirmSlot khung 2 -> dung (scheduledAt, location) cua khung 2 (khong phai khung som nhat).
+    @Test
+    void forConversation_afterCandidateConfirmsSlot_interviewIsChosenSlot() throws Exception {
+        Fixture f = createApplication("k1-u10-confirm");
+        jdbcTemplate.update("UPDATE job_applications SET status = 'INTERVIEW_INVITED' WHERE id = ?", f.applicationId());
+        Instant base = Instant.now().plus(5, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES);
+        Instant chosen = base.plus(2, ChronoUnit.DAYS);
+        insertUnconfirmedInvitation(f, List.of(base.plus(1, ChronoUnit.DAYS), chosen, base), Instant.now());
+        UUID secondSlot = jdbcTemplate.queryForObject(
+                """
+                SELECT s.id FROM interview_invitation_slots s
+                JOIN interview_invitations i ON i.id = s.invitation_id
+                WHERE i.application_id = ? AND i.superseded_at IS NULL AND s.display_order = 2
+                """,
+                UUID.class,
+                f.applicationId());
+
+        assertThat(assembler.forConversation(ContextViewer.HR, f.applicationId()).interview()).isNull();
+
+        invitationService.confirmSlot(f.candidateUserId(), f.applicationId(), secondSlot);
+
+        ConversationContext context = assembler.forConversation(ContextViewer.HR, f.applicationId());
+        assertThat(context.interview()).isNotNull();
+        assertThat(context.interview().scheduledAt()).isEqualTo(chosen);
+        assertThat(context.interview().location()).isEqualTo("Phong 2");
     }
 
     @Test
