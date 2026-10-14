@@ -816,3 +816,13 @@ Bổ sung trong đợt 5 (14/10/2026):
   giấy mời hiệu lực và thẻ giấy mời trước đó — quy tắc R-H1 nằm một chỗ, không thêm file ngoài UI.md 5a/5b. Thẻ cũ bọc dòng
   meta + dòng HR trong một `div` `gap-1` để dòng HR nằm sát dưới "Gửi lúc … · Đã được thay bằng …" (như tab), các phần
   khác của thẻ giữ `gap-3`.
+
+Bổ sung trong đợt 6 phần A (14/10/2026):
+
+- **L38 (mục 10 D1, D2; CLAUDE.md §6) — cột Trạng thái của SRS và dấu tick ROADMAP dời sang phần B.** CLAUDE.md §6 gắn
+  ba việc làm cùng lúc: đổi đặc tả sang `ĐÃ HOÀN THÀNH`, đổi cột Trạng thái ở mục 0 của SRS.md, tick ROADMAP.md. Phần A
+  chưa đổi trạng thái đặc tả (chưa chạy 7.2, chưa soát tay 7.4), nên `docs/SRS.md:53` giữ nguyên `Chưa đặc tả` và
+  `docs/ROADMAP.md:938` giữ `[ ]`. Phần A đã viết sẵn nội dung tóm tắt + ba giới hạn đã biết dưới dòng ROADMAP. Phần B
+  (sau 7.2, 7.4): `SRS.md:53` → `Đã hoàn thành`, ROADMAP `[ ]` → `[x]` kèm "— **HOÀN THÀNH** (ngày, số đợt)", cùng commit
+  đổi trạng thái hai file đặc tả. Số dòng mục 10 khớp thực tế: `SRS.md:53`, `ROADMAP.md:938`, `UI_GUIDE.md` mục 7
+  (`:344`, `:360`), `U08/REQUIREMENT.md:221`, `U08/UI.md:261`.

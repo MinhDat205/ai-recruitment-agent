@@ -338,6 +338,12 @@ không đổi trạng thái, không ghi lịch sử trạng thái, một thông 
 - **R-B1.** FR-H12 không thêm endpoint ứng viên nào ngoài việc đổi hình dạng I4; không có code nào ghi
   `confirmed_slot_id` cho giấy mời nhiều khung (R-K2).
 
+*Sửa bởi FR-U10 (14/10/2026): ba dòng cột FR-U10 đã làm — endpoint `POST
+/api/candidates/applications/{id}/interview-invitation/confirm-slot` ghi `confirmed_slot_id`/`confirmed_at` bằng một câu
+`UPDATE` có điều kiện sau `lockIfInterviewInvited` (U10 R-W); phần chọn khung + hộp xác nhận ở `/candidate/applications/:id`,
+thay câu Q8 (U10 R-U); thông báo `INTERVIEW_SLOT_CONFIRMED` cho chủ công ty (U10 R-N). Tab HR thêm dòng "Ứng viên đã chọn
+lúc …" (U10 R-H1). Xem `docs/features/UV/U10/REQUIREMENT.md`.*
+
 ## 4. Dữ liệu & quyền truy cập
 
 ### 4.1 Migration `V16__interview_invitation_slots.sql`
@@ -872,7 +878,7 @@ Mọi câu đã chốt. Phần thân viết theo cột "Quyết định"; cột 
 | Q5 | Thông báo gửi lại hiện khung giờ ở đâu | **Đã chốt:** web một dòng + liên kết tới trang chi tiết đơn (FR-U08); danh sách khung chỉ có trong email | Danh sách khung trong `body` (web hiện một đoạn dồn dòng); thêm `whitespace-pre-line` ở giao diện thông báo (đổi cách hiện thông báo tin nhắn cũ) | R-N2, R-N3, T20, T21 |
 | Q6 | Hộp thoại "Gửi lại" điền sẵn gì | **Đã chốt:** tiêu đề và nội dung từ giấy mời đang hiệu lực (không render lại mẫu); khung giờ để trống | Render lại từ mẫu (preview): mất phần HR đã sửa ở lần gửi trước | Mục 2, UI.md 4b |
 | Q7 | Chỗ đặt giấy mời trên trang hồ sơ đơn | **Đã chốt:** tab mới "Giấy mời phỏng vấn" (giấy mời hiệu lực, nút Gửi lại, giấy mời cũ), đặt **giữa "Sàng lọc" và "Lịch sử"**; thanh thao tác FR-H07 không đổi | Khối đầu tab "CV & điểm"; khối dưới đầu trang trên thanh tab | UI.md mục 2, 4c |
-| Q8 | Câu cho ứng viên khi giấy mời nhiều khung chưa chốt | **Đã chốt:** "Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp." (FR-U10 thay câu này) | Câu dài hai ý "Nhà tuyển dụng đề xuất…" | UI.md 4d, mục 7 |
+| Q8 | Câu cho ứng viên khi giấy mời nhiều khung chưa chốt | **Đã chốt:** "Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp." (FR-U10 thay câu này) — *Sửa bởi FR-U10 (R-U2): câu đã được thay bằng câu hướng dẫn chọn "Chọn một khung giờ phù hợp rồi bấm "Xác nhận khung giờ". …"; mọi khung đã qua → câu "Các khung giờ trong giấy mời đã qua. …" (U10 UI.md mục 7)* | Câu dài hai ý "Nhà tuyển dụng đề xuất…" | UI.md 4d, mục 7 |
 | Q9 | `location` bắt buộc không | **Đã chốt:** bắt buộc ở API (bỏ khoảng trắng hai đầu, không rỗng); cột cho phép `NULL` chỉ cho dữ liệu cũ; hiển thị "Chưa có dữ liệu" | Tuỳ chọn như V1: email/giấy mời có khung không biết đi đâu | R-S6, R-S8, T3 |
 
 ### 11.3 Năm điểm bổ sung
