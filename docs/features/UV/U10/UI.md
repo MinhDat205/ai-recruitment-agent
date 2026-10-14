@@ -1,6 +1,6 @@
 # FR-U10 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 14/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (14/10/2026). Duyệt: 14/10/2026.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1h (vùng chạm), 3 (Dialog, nút), 4 (không phán quyết; dữ liệu
 thiếu), 5 (rỗng/tải/lỗi), 6 (tương phản, viền thành phần điều khiển). Mã `R-…`, `C1`, `Q…`, `O…` là của `REQUIREMENT.md`
@@ -9,7 +9,7 @@ chép lại, chỉ chốt phần FR-U10 thêm hoặc đổi.
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 14/10/2026. Điểm O1–O6 nhắc trong file này đã chốt ở `REQUIREMENT.md` mục 11.3.
+> Trạng thái: ĐÃ HOÀN THÀNH (14/10/2026). Duyệt: 14/10/2026. Điểm O1–O6 nhắc trong file này đã chốt ở `REQUIREMENT.md` mục 11.3.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

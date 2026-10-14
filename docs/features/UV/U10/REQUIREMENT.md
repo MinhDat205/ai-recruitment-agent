@@ -1,8 +1,9 @@
 # FR-U10 — Chọn khung giờ phỏng vấn
 
-> Trạng thái: ĐÃ DUYỆT 14/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (14/10/2026). Duyệt: 14/10/2026.
 >
-> Quyết định Q1–Q13 (mục 11.2) và O1–O6 (mục 11.3) đã chốt 14/10/2026. Không còn điểm mở.
+> Quyết định Q1–Q13 (mục 11.2) và O1–O6 (mục 11.3) đã chốt 14/10/2026. Không còn điểm mở. Làm rõ sau Plan Mode và
+> trong đợt 2–6 (14/10/2026): L1–L38 — chi tiết ở mục 13. Mục 13 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: Ứng viên
 - Tóm tắt: Ở trang chi tiết đơn (FR-U08), ứng viên chọn **một** khung giờ trong giấy mời hiệu lực nhiều khung (FR-H12)
@@ -825,4 +826,4 @@ Bổ sung trong đợt 6 phần A (14/10/2026):
   `docs/ROADMAP.md:938` giữ `[ ]`. Phần A đã viết sẵn nội dung tóm tắt + ba giới hạn đã biết dưới dòng ROADMAP. Phần B
   (sau 7.2, 7.4): `SRS.md:53` → `Đã hoàn thành`, ROADMAP `[ ]` → `[x]` kèm "— **HOÀN THÀNH** (ngày, số đợt)", cùng commit
   đổi trạng thái hai file đặc tả. Số dòng mục 10 khớp thực tế: `SRS.md:53`, `ROADMAP.md:938`, `UI_GUIDE.md` mục 7
-  (`:344`, `:360`), `U08/REQUIREMENT.md:221`, `U08/UI.md:261`.
+  (`:344`, `:360`), `U08/REQUIREMENT.md:221`, `U08/UI.md:261`. **Đã thực hiện ở đợt 6 phần B** (14/10/2026).

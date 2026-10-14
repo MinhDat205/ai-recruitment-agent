@@ -145,9 +145,13 @@ test mới (`InterviewSlotConfirmControllerIntegrationTest`, `InterviewSlotConfi
 `npm run lint` sạch. Kiểm tĩnh 7.1 (theo L15, L16) và 7.3 đều đúng kỳ vọng. Seed: reset → nạp → câu đếm → reset lần hai
 → nạp lại, số đếm khớp mục 4.6 (L25).
 
-**Kiểm HTTP mục 7.2.** Chưa chạy — đợt 6 phần B (cần backend chạy).
+**Kiểm HTTP mục 7.2.** Đạt 10/10 bước (14/10/2026), chạy trên seed sạch. Email trong MailHog khớp R-N4 (tiêu đề, dòng
+`body`, "Địa điểm: …", link `?tab=invitation`); chỉ HR test nhận, ứng viên không nhận thư.
 
-**Soát tay mục 7.4.** Chưa soát — đợt 6 phần B (người dùng).
+**Soát tay mục 7.4.** Đạt (người dùng soát 14/10/2026, desktop/768px/375px). Hai trường hợp không soát:
+- "Nhắc lịch phỏng vấn" bị khoá **trước** khi chọn: khung đã được chốt trước khi kiểm; phần này do test MessageDraft phủ
+  (`NO_ACTIVE_INTERVIEW`).
+- A9 (tài khoản phải qua onboarding): test tự động và seed đã phủ.
 
 | "Xong khi" (REQUIREMENT mục 7) | Cách nghiệm thu | Kết quả |
 |---|---|---|
@@ -158,8 +162,8 @@ test mới (`InterviewSlotConfirmControllerIntegrationTest`, `InterviewSlotConfi
 | T11 | `NotificationContentBuilderTest.forSlotConfirmed_…` (hai ca) | Đạt |
 | T12 | `CandidateApplicationCrossEndpointAccessIntegrationTest` (thêm C1) | Đạt |
 | Kiểm tĩnh 7.1, 7.3 | Công cụ tìm của phiên + `git diff --stat main` (L16) | Đạt |
-| 7.2 | Khối PowerShell | Chưa chạy (phần B) |
-| 7.4 | Soát tay của người dùng | Chưa soát (phần B) |
+| 7.2 | Khối PowerShell + email MailHog | Đạt |
+| 7.4 | Soát tay của người dùng | Đạt |
 
 **Chưa test.** Frontend không có test tự động (focus sau xác nhận, lỗi "chưa chọn", `aria-live` chỉ soát tay). T7/T8
 song song chỉ kiểm tập kết quả hợp lệ; phần "khoá thật sự chặn" dựa vào các ca đơn luồng. Email thật qua MailHog chỉ
@@ -175,6 +179,8 @@ soát tay. Không kiểm máy ứng viên lệch giờ.
   (`ROADMAP.md`, mục FR-H11).
 - 409 `SLOT_SELECTION_NOT_ALLOWED` khi đơn vừa bị rút ở tab khác: khối giấy mời ẩn theo FR-U08 R-T3 nên câu lỗi biến mất
   cùng hộp thoại; người dùng thấy badge "Đã rút" (L33).
+- **Môi trường dev — đồng hồ container Postgres chậm khoảng 34 giây so với máy** (đo khi chạy 7.2). `created_at` của thông
+  báo (`now()` của DB) có thể nhỏ hơn `confirmed_at` (`Instant.now()` của Java). Không phải lỗi code.
 - **Ngoài phạm vi, chưa sửa (ghi lại để nhánh sau xử lý):**
   - `backend/src/test/java/com/recruitment/interviewinvitation/InterviewInvitationResendConcurrencyIntegrationTest.java:99`
     ghi "1 khung, da chot" nhưng helper gửi 2 khung (`request(2)`) — comment sai có từ H12 (L8).
