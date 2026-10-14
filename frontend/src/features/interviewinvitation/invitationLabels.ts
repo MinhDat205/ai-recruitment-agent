@@ -18,7 +18,7 @@ export const INVITATION_TEXT = {
   resendNotice:
     'Giấy mời mới sẽ thay giấy mời hiện tại. Giấy mời hiện tại vẫn được lưu nguyên văn ở mục "Giấy mời trước đó". Trạng thái đơn không đổi. Ứng viên sẽ nhận thông báo và email kèm các khung giờ mới.',
   resendConfirmedNotice: (time: string) =>
-    `Ứng viên đã chốt khung ${time}. Khung này sẽ không còn hiệu lực sau khi gửi lại.`,
+    `Giấy mời hiện tại đã chốt khung ${time}. Khung này sẽ không còn hiệu lực sau khi gửi lại.`,
   submitInvite: 'Gửi lời mời',
   submitResend: 'Gửi lại giấy mời',
   submitting: 'Đang gửi...',
@@ -54,6 +54,8 @@ export const INVITATION_TEXT = {
   confirmDialogConfirm: 'Xác nhận',
   confirmDialogConfirming: 'Đang xác nhận...',
   confirmSlotFailed: 'Xác nhận khung giờ thất bại, vui lòng thử lại.',
+  // FR-U10 UI.md 4d, muc 7 (Q9, R-H1) - phia HR: giay moi >= 2 khung da chot (ung vien da chon).
+  candidatePickedAt: (time: string) => `Ứng viên đã chọn lúc ${time}`,
   slotListTitle: 'Khung giờ (giờ Việt Nam)',
   missingLocation: 'Chưa có dữ liệu',
   confirmed: 'Đã chốt',

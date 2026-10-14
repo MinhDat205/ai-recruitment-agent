@@ -794,8 +794,8 @@ Bổ sung trong đợt 4 (14/10/2026):
   `eslint-plugin-react-hooks` 7 (`react-hooks/purity`) báo lỗi `Date.now()` trong thân component. Mốc = lúc I4 tải xong lần
   gần nhất; I4 tải lại khi quay lại tab (mặc định TanStack) và sau mọi 409/404 của C1. Khác "lúc render" ở chỗ: trang để mở
   lâu không tải lại thì khung vừa qua vẫn hiện chọn được tới lần tải sau — backend chặn (409 `INTERVIEW_SLOT_PASSED`, R-C6),
-  I4 tải lại, khung thành "Đã qua". **Chờ duyệt**; phương án khác: giữ `Date.now()` kèm `eslint-disable-next-line
-  react-hooks/purity`.
+  I4 tải lại, khung thành "Đã qua". **Đã duyệt 14/10/2026** (mốc `dataUpdatedAt`; trang mở lâu thì backend chặn bằng 409
+  `INTERVIEW_SLOT_PASSED` rồi tải lại).
 - **L32 (UI.md 4e) — hai nút hộp xác nhận cùng hàng ở 375px.** `DialogFooter` mặc định xếp dọc dưới `sm`
   (`RevokeTalentPoolConsentDialog` cũng vậy); UI.md 4e ghi rõ "cùng hàng" nên truyền `className="flex-row justify-end"`.
 - **L33 (giới hạn đã biết) — 409 `SLOT_SELECTION_NOT_ALLOWED` khi đơn đã bị rút ở tab khác.** Mutation làm mới trang chi
@@ -805,3 +805,14 @@ Bổ sung trong đợt 4 (14/10/2026):
   bại…", không thay bằng "Không tìm thấy" — trang chi tiết đã chặn đơn người khác nên không xảy ra (UI.md 4c tự ghi).
 - **L35 (CLAUDE.md §7) — tránh tên `passed` trong code mới.** Biến/khoá dùng `elapsed`/`slotElapsed` thay cho `passed`;
   chuỗi hiển thị vẫn là "Đã qua".
+
+Bổ sung trong đợt 5 (14/10/2026):
+
+- **L36 (R-H1) — điều kiện dòng HR thêm `confirmedAt !== null`.** Quy tắc vẫn là `slots.length >= 2 && confirmedSlotId !==
+  null`; vế `confirmedAt !== null` chỉ để TypeScript thu hẹp kiểu `string | null` trước `formatDateTimeVi`. Không đổi hành vi:
+  CHECK `chk_invitation_confirmed_pair` (V16) bảo đảm hai cột đi cặp. Không so `confirmedAt` với `sentAt`.
+- **L37 (UI.md 5b) — một component cho dòng HR, đặt trong `PreviousInvitationCard.tsx`.** `CandidatePickedLine` khai và
+  export ở `PreviousInvitationCard.tsx` (cạnh `InvitationLetter`, đã được `InterviewInvitationTab` import sẵn), dùng ở cả
+  giấy mời hiệu lực và thẻ giấy mời trước đó — quy tắc R-H1 nằm một chỗ, không thêm file ngoài UI.md 5a/5b. Thẻ cũ bọc dòng
+  meta + dòng HR trong một `div` `gap-1` để dòng HR nằm sát dưới "Gửi lúc … · Đã được thay bằng …" (như tab), các phần
+  khác của thẻ giữ `gap-3`.
