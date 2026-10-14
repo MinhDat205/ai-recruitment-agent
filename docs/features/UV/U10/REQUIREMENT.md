@@ -399,9 +399,9 @@ trigger; entity `@Immutable` chỉ chặn ghi qua ORM).
 | T3 | Mọi mã lỗi, mỗi ca khẳng định `code`, `message` đúng mục 4.4, DB không đổi (`confirmed_*` NULL nếu trước đó NULL), không thông báo: (a) `SLOT_SELECTION_NOT_ALLOWED` với đơn `PENDING` (chưa có giấy mời), `HIRED`, `REJECTED`, `WITHDRAWN` (ba đơn sau có giấy mời 3 khung chưa chốt); (b) 404 `INTERVIEW_INVITATION_NOT_FOUND`: đơn `INTERVIEW_INVITED` không có giấy mời (đặt trạng thái bằng SQL); (c) `INTERVIEW_SLOT_ALREADY_CONFIRMED`: giấy mời 1 khung (tự chốt), chọn đúng khung đó; giấy mời 3 khung đã chọn khung 2 rồi chọn khung 3; rồi chọn lại khung 2 — `confirmed_slot_id` vẫn khung 2, `confirmed_at` không đổi; (d) `INTERVIEW_INVITATION_CONFLICT`: khung của giấy mời cũ (sau I3 với 2 khung), khung của đơn ứng viên khác, `UUID.randomUUID()` — không ca nào 500; (e) 400 `{"slotId": "Vui lòng chọn một khung giờ."}` với `{"slotId": null}` và `{}`; (f) 403 đơn của ứng viên khác; 404 `APPLICATION_NOT_FOUND` đơn không tồn tại; token HR → 403; không token → 401 | âm |
 | T4 | Thứ tự kiểm (R-W5, mục 4.3): đơn `HIRED` + giấy mời chưa chốt + khung đã qua → `SLOT_SELECTION_NOT_ALLOWED` (khoá trước); giấy mời hiệu lực đã chốt + `slotId` của giấy mời cũ → `INTERVIEW_SLOT_ALREADY_CONFIRMED` (dòng 2 trước dòng 3); `slotId` là khung **đã qua** của đơn khác → `INTERVIEW_INVITATION_CONFLICT` (dòng 3 trước dòng 4); đơn của ứng viên khác ở trạng thái `HIRED` → 403 (quyền trước khoá) | âm |
 | T5 | Tin không ảnh hưởng (R-C7, Q13): đặt tin `CLOSED` rồi chọn → 200; đặt `deleted_at` của tin rồi chọn → 200 | dương |
-| T6 | Hai C1 song song cùng đơn (cùng khung, và khác khung — mỗi kiểu lặp 10 lần trên 10 đơn): đúng một 200, một 409 `INTERVIEW_SLOT_ALREADY_CONFIRMED`; không 500; khung chốt là khung của lượt 200; đúng **một** thông báo `INTERVIEW_SLOT_CONFIRMED` mỗi đơn (chờ listener `AFTER_COMMIT` bằng vòng thăm có hạn, khuôn H12 T10) | âm |
-| T7 | C1 song song với I3 (gửi lại 2 khung), lặp 10 lần trên 10 đơn — mỗi lần là một trong hai: {C1 200, I3 201: giấy mời cũ có `superseded_at` **và** `confirmed_slot_id` = khung đã chọn, giấy mời mới chưa chốt} hoặc {I3 201, C1 409 `INTERVIEW_INVITATION_CONFLICT`: giấy mời cũ `confirmed_*` NULL}; không 500; mỗi đơn đúng một giấy mời hiệu lực. **Thêm ca đơn luồng chắc chắn** (khuôn H12 T10d): transaction A (`TransactionTemplate`) gọi `lockIfInterviewInvited` trên đơn, **giữ chưa commit**; luồng B gọi `confirmSlot` → B chưa xong sau 500 ms (`Future.get(500, MILLISECONDS)` ném `TimeoutException`); A đánh dấu giấy mời hiện tại `superseded_at` + chèn giấy mời mới **2 khung, chưa chốt** (helper SQL — giấy mời 1 khung tự chốt sẽ làm B nhận `INTERVIEW_SLOT_ALREADY_CONFIRMED` theo R-W5 dòng 2) rồi commit → B xong trong 5 s với `INTERVIEW_INVITATION_CONFLICT`. Ca ngược: A chỉ khoá rồi commit không đổi gì → B 200 | âm |
-| T8 | C1 song song với `PATCH /status` `HIRED` (và `REJECTED`), lặp 10 lần trên 10 đơn — {C1 200, PATCH 200} hoặc {PATCH 200, C1 409 `SLOT_SELECTION_NOT_ALLOWED`}; không 500; trạng thái cuối `HIRED`/`REJECTED`. Như vậy với rút đơn phía ứng viên → {C1 200, rút 200} hoặc {rút 200, C1 409}. Ca đơn luồng: A giữ khoá bằng `lockIfInterviewInvited`, B gọi `updateStatusIfCurrent(…, INTERVIEW_INVITED, HIRED)` bị chặn > 500 ms — **đã có** ở H12 T10(d), không viết lại; ở đây thêm ca ngược: B (`HIRED`) commit trước → `confirmSlot` 409 `SLOT_SELECTION_NOT_ALLOWED` | âm |
+| T6 | Hai C1 song song cùng đơn (cùng khung, và khác khung — mỗi kiểu lặp 10 lần trên 10 đơn): đúng một 200, một 409 `INTERVIEW_SLOT_ALREADY_CONFIRMED`; không 500; khung chốt là khung của lượt 200; đúng **một** thông báo `INTERVIEW_SLOT_CONFIRMED` mỗi đơn — đếm ngay sau khi hai luồng xong, **không** vòng thăm: listener `AFTER_COMMIT` chạy đồng bộ trên luồng commit trước khi method service trả về (tiền lệ H12 T10a; mục 13, L3) | âm |
+| T7 | C1 song song với I3 (gửi lại 2 khung), lặp 10 lần trên 10 đơn — mỗi lần là một trong hai: {C1 200, I3 201: giấy mời cũ có `superseded_at` **và** `confirmed_slot_id` = khung đã chọn, giấy mời mới chưa chốt} hoặc {I3 201, C1 409 `INTERVIEW_INVITATION_CONFLICT`: giấy mời cũ `confirmed_*` NULL}; không 500; mỗi đơn đúng một giấy mời hiệu lực. **Thêm ca đơn luồng chắc chắn** (khuôn U09 T8, mục 13 L4): transaction A (`TransactionTemplate`) gọi `lockIfInterviewInvited` trên đơn, **giữ chưa commit**; luồng B gọi `confirmSlot`; A chờ tới khi B bị chặn — xác nhận bằng `pg_stat_activity` (trước mỗi lần thăm `SELECT pg_stat_clear_snapshot()`; điều kiện `datname = current_database() AND pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND query ILIKE '%SET status = status%'`; thăm mỗi 50 ms, hạn 10 s, hết hạn thì đỏ) và khẳng định `futureB.isDone() == false`; A đánh dấu giấy mời hiện tại `superseded_at` + chèn giấy mời mới **2 khung, chưa chốt** (helper SQL — giấy mời 1 khung tự chốt sẽ làm B nhận `INTERVIEW_SLOT_ALREADY_CONFIRMED` theo R-W5 dòng 2) rồi commit → B xong trong 5 s với `INTERVIEW_INVITATION_CONFLICT`. Ca ngược: A chỉ khoá rồi commit không đổi gì → B 200 | âm |
+| T8 | C1 song song với `PATCH /status` `HIRED` (và `REJECTED`), lặp 10 lần trên 10 đơn — {C1 200, PATCH 200} hoặc {PATCH 200, C1 409 `SLOT_SELECTION_NOT_ALLOWED`}; không 500; trạng thái cuối `HIRED`/`REJECTED`. Như vậy với rút đơn phía ứng viên → {C1 200, rút 200} hoặc {rút 200, C1 409}. Ca đơn luồng **thuận** (mục 13, L5): transaction A gọi `lockIfInterviewInvited` rồi `updateStatusIfCurrent(…, INTERVIEW_INVITED, HIRED)` trong cùng transaction, **giữ chưa commit**; luồng B gọi `confirmSlot`; xác nhận B bị chặn bằng `pg_stat_activity` như T7 và `futureB.isDone() == false`; A commit → B xong trong 5 s với 409 `SLOT_SELECTION_NOT_ALLOWED`, đơn `HIRED`, `confirmed_*` vẫn NULL. Ca **ngược**: `HIRED` commit trước → `confirmSlot` 409 `SLOT_SELECTION_NOT_ALLOWED`. (Ca "khoá của A chặn `updateStatusIfCurrent` của B" đã có ở H12 T10(d), không viết lại.) | âm |
 | T9 | K1 (R-K1): giấy mời 3 khung chưa chốt → `forConversation(...).interview()` = `null`; sau C1 khung 2 → `interview` = (`scheduledAt`, `location`) của khung 2 (so đúng giá trị, không phải khung sớm nhất). `ConversationContextSignatureTest` không sửa, xanh | dương + âm |
 | T10 | Thông báo (R-N): sau C1 200 → đúng **một** dòng `INTERVIEW_SLOT_CONFIRMED`, `user_id` = chủ công ty, `entity_type = 'APPLICATION'`, `entity_id` = id đơn, `link` = `/hr/applications/{id}?tab=invitation`, `email_status = 'PENDING'`, `title` đúng, `body` đúng câu R-N3 (giờ VN của khung đã chọn, không `\n`, không địa điểm), `email_body` đúng nguyên văn khối R-N4 (`app.frontend-base-url` của profile test); ứng viên **không** có thông báo mới; JSON `GET /api/notifications` của HR không có khoá `emailBody`. Sau một lượt C1 409 (`ALREADY_CONFIRMED`) và một lượt 409 (`PASSED`) → số thông báo không đổi | dương + âm |
 | T11 | `NotificationContentBuilder.forSlotConfirmed` (test đơn vị): khung `2026-10-20T18:30:00Z` → "01:30 21/10/2026" trong `body` và `emailBody`; `location` `null` → "Địa điểm: Chưa có dữ liệu"; `body` không chứa `\n`; dòng cuối đúng URL; các hàm cũ (gồm `forInvitationResent`) không đổi (test có sẵn xanh) | dương |
@@ -548,7 +548,7 @@ chạy lại khối: `reset-test-data.sql` + nạp lại seed.
 | Gửi lại sau khi ứng viên đã chọn | HR test | A10 → "Gửi lại giấy mời" 2 khung | "Giấy mời trước đó (1)" mở ra có khung 2 "Đã chốt" + "Ứng viên đã chọn lúc …"; phía Lan: giấy mời mới chưa chốt, có radio |
 | Giấy mời 1 khung | `quochuyuv@gmail.com` | `/candidate/applications/e8000000-0000-0000-0000-000000000002` | Không radio, không nút, không câu "Bạn đã chọn…" (khung tự chốt), dấu "Đã chốt" |
 | Đơn đã có kết quả | Quốc Huy | `…/e8000000-0000-0000-0000-000000000004` | Danh sách chỉ đọc như H12 |
-| Mọi khung đã qua (Q6, O5) | Lan | Trên DB seed sạch (chưa chọn khung), chạy trên DB dev: `docker compose exec -T postgres psql -U recruitment -d recruitment -c "UPDATE interview_invitation_slots SET scheduled_at = now() - INTERVAL '1 hour' WHERE id IN ('f1000000-0000-0000-0000-000000000032', 'f1000000-0000-0000-0000-000000000033');"` rồi tải lại `/candidate/applications/f1000000-0000-0000-0000-000000000001`. **Ngay sau khi soát**, đưa seed về gốc: `reset-test-data.sql` (lệnh `db/seed/README.md` mục 8.2) → `seed-test.sql` → `.\db\seed\install-test-files.ps1` (mục 8.1) | Không radio, không nút; câu "Các khung giờ trong giấy mời đã qua…" |
+| Mọi khung đã qua (Q6, O5) | Lan | Trên DB seed sạch (chưa chọn khung), chạy trên DB dev: `docker compose exec -T postgres psql -U recruitment -d recruitment -c "UPDATE interview_invitation_slots SET scheduled_at = date_trunc('minute', now()) - CASE id WHEN 'f1000000-0000-0000-0000-000000000032' THEN INTERVAL '2 hours' ELSE INTERVAL '1 hour' END WHERE id IN ('f1000000-0000-0000-0000-000000000032', 'f1000000-0000-0000-0000-000000000033');"` (hai mốc khác nhau — mục 13, L2) rồi tải lại `/candidate/applications/f1000000-0000-0000-0000-000000000001`. **Ngay sau khi soát**, đưa seed về gốc: `reset-test-data.sql` (lệnh `db/seed/README.md` mục 8.2) → `seed-test.sql` → `.\db\seed\install-test-files.ps1` (mục 8.1) | Không radio, không nút; câu "Các khung giờ trong giấy mời đã qua…" |
 | Tab khác vừa chọn (409) | Lan, hai tab | Tab 1 xác nhận khung 2; tab 2 (chưa tải lại) xác nhận khung 3 | Hộp thoại tab 2 hiện câu backend `INTERVIEW_SLOT_ALREADY_CONFIRMED`; đóng hộp thoại thấy trạng thái đã chốt khung 2 |
 | A9 (giữ nguyên) | `tran.bao.ngoc@test.local` (qua onboarding) | `…/e8000000-0000-0000-0000-000000000009` | 3 khung chọn được, không khung đã qua |
 | 375px | cả hai | Các màn trên | Không cuộn ngang toàn trang; mỗi khung một dòng radio + giờ, địa điểm dòng dưới; nút "Xác nhận khung giờ" `w-full`; vùng chạm radio ≥ 48px |
@@ -655,3 +655,64 @@ lint`. Full `.\mvnw.cmd test` đúng **một** lần ở đợt 6.
 ## 12. Điểm còn mở
 
 Không còn điểm mở nào — O1–O6 đã chốt ở mục 11.3.
+
+## 13. Làm rõ sau Plan Mode (duyệt 14/10/2026)
+
+Đối chiếu lại trên `feat/fr-u10-pick-slot` tại `aed0165` (chỉ khác `f4665a3` ở hai file đặc tả U10; mục 0 a1–a30 không
+tham chiếu file:dòng nào lệch). Thử SQL trên Postgres dev: chạy nguyên `V16__interview_invitation_slots.sql` trong **một**
+transaction (DDL Postgres có transaction), dựng giấy mời 3 khung chưa chốt cho đơn A9, chạy từng ca bằng `SAVEPOINT`, rồi
+`ROLLBACK` — sau đó `flyway_schema_history` vẫn `14`, bảng `interview_invitation_slots` không tồn tại. Mục này thắng chỗ
+viết cũ ở các mục được dẫn nếu lệch.
+
+- **L1 (môi trường; 7.2, 7.4, mục 9 đợt 3) — DB dev đang ở V14.** Chưa có V15, V16; seed test trên DB dev là bản trước
+  FR-H12 (3 giấy mời `ea…`, cột `scheduled_at`/`location` cũ). Chốt: đợt 3 khởi động backend một lần để Flyway lên V16, rồi
+  **bắt buộc** `reset-test-data.sql` trước khi nạp `seed-test.sql` (comment có sẵn `seed-test.sql:446-448`). Khối 7.2 và soát
+  tay 7.4 cần cùng bước này.
+- **L2 (7.4, O5) — câu SQL soát tay "mọi khung đã qua" cũ vi phạm unique.** Ràng buộc thật của `interview_invitation_slots`
+  (đọc `pg_constraint` sau V16): `uq_invitation_slot_time UNIQUE (invitation_id, scheduled_at)`, `uq_invitation_slot_order`,
+  `uq_invitation_slot_owner`, CHECK `display_order BETWEEN 1 AND 5`; **không** CHECK tròn phút, **không** trigger. Câu cũ đặt
+  hai khung …32, …33 cùng `now() - INTERVAL '1 hour'` → tái hiện được `ERROR: duplicate key value violates unique constraint
+  "uq_invitation_slot_time"`. Chốt câu mới (đã chạy thử: `UPDATE 2`, ba khung đều đã qua, thứ tự thời gian 31 < 32 < 33):
+
+  ```sql
+  UPDATE interview_invitation_slots
+  SET scheduled_at = date_trunc('minute', now())
+      - CASE id WHEN 'f1000000-0000-0000-0000-000000000032' THEN INTERVAL '2 hours' ELSE INTERVAL '1 hour' END
+  WHERE id IN ('f1000000-0000-0000-0000-000000000032', 'f1000000-0000-0000-0000-000000000033');
+  ```
+
+  `date_trunc('minute', …)` không bắt buộc về DB (không CHECK) — giữ để khớp quy ước cắt về đầu phút của ứng dụng (H12 R-S3).
+  Hai mốc mới không trùng khung …31 (02:00 UTC hôm qua; hai mốc mới thuộc hôm nay trừ 1–2 giờ). Bước đưa seed về gốc ngay
+  sau khi soát giữ nguyên. Bảng 7.4 đã sửa theo.
+- **L3 (T6) — không cần vòng thăm chờ listener.** `@TransactionalEventListener(AFTER_COMMIT)` chạy đồng bộ trên luồng commit,
+  trước khi method service trả về cho nơi gọi; H12 T10a đếm thông báo ngay sau `future.get`. Chốt: T6 đếm thông báo ngay sau
+  khi hai luồng xong. T6 đã sửa theo.
+- **L4 (T7) — xác nhận "B đang bị chặn" bằng `pg_stat_activity`, không bằng mốc 500 ms.** Theo khuôn FR-U09 T8
+  (`ScreeningCaptureConcurrencyIntegrationTest.awaitOtherSessionBlockedOnLock`): trước mỗi lần thăm `SELECT
+  pg_stat_clear_snapshot()` (A đang trong transaction, Postgres giữ nguyên ảnh chụp `pg_stat_activity` tới hết transaction —
+  U09 L9); điều kiện `datname = current_database() AND pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND query ILIKE
+  '%SET status = status%'` (câu `lockIfInterviewInvited` của B); thăm mỗi 50 ms, hạn 10 s, hết hạn thì đỏ; thêm khẳng định
+  `futureB.isDone() == false`. `JdbcTemplate` trong `TransactionTemplate` của A dùng chung kết nối với transaction JPA. T7 đã
+  sửa theo.
+- **L5 (T8) — thêm ca đơn luồng chiều thuận.** A khoá (`lockIfInterviewInvited`) rồi `updateStatusIfCurrent(…, HIRED)` trong
+  cùng transaction, giữ chưa commit; B `confirmSlot` bị chặn (xác nhận như L4); A commit → B 409 `SLOT_SELECTION_NOT_ALLOWED`.
+  Giữ ca ngược ("`HIRED` commit trước"). T8 đã sửa theo.
+- **L6 (R-W1 bước 4, T2) — `Instant` trong phép so sánh của native query.** Tham số `UUID` có tiền lệ (`lockIfInterviewInvited`);
+  `Instant` có tiền lệ ở `SET` (`JobApplicationRepository.revokeTalentPoolConsentIfActive`, `:50`), chưa có ở phép so sánh
+  `>`. T2 phủ ba mốc (−1 phút, đúng `now`, +1 phút): bind sai kiểu thì T2 đỏ ngay ở đợt 2.
+- **L7 (R-W1 bước 4) — cờ `@Modifying`.** Giữ `clearAutomatically = true` (bước 5 phải đọc lại giấy mời/khung từ DB — câu
+  `UPDATE` chạy ngoài ORM, entity còn trong persistence context sẽ trả bản cũ) và `flushAutomatically = true` (hiện không bắt
+  buộc vì không có ghi ORM nào trước câu này; giữ phòng hờ như comment `JobApplicationRepository.java:27-29`). Ghi lý do vào
+  comment của method.
+- **L8 (ngoài phạm vi) — comment cũ của H12.** `InterviewInvitationResendConcurrencyIntegrationTest.java:99` ghi "1 khung, da
+  chot" nhưng `request(2)` gửi 2 khung. Không sửa ở U10; ghi vào walkthrough. Test của U10 viết comment đúng.
+- **L9 (UI.md mục 9) — focus ban đầu của hộp xác nhận.** `DialogFooter` đặt "Huỷ" trước "Xác nhận", nút X của shadcn render
+  sau cùng → Radix tự focus "Huỷ", không cần `onOpenAutoFocus`. Soát tay kiểm lại ở đợt 4.
+- **L10 (R-W5 dòng 3) — `slotRepository.findById`.** Đọc bình thường trên entity `@Immutable` (Hibernate chỉ chặn ghi); không
+  cần method repository mới.
+- **L11 (môi trường) — file thử nghiệm trong container.** Hai file `/tmp/u10-V16.sql`, `/tmp/u10-plan-sql.sql` trong container
+  postgres (Plan Mode) đã xoá bằng `docker compose exec postgres rm -f …`.
+- **L12 (môi trường) — script thử nghiệm.** `u10-plan-sql.sql` giữ trong scratchpad của phiên làm bằng chứng đợt 1, không đưa
+  vào repo.
+- **L13 (quy trình) — nơi ghi L1–L13.** Ghi vào mục này + sửa 7.4 (L2), T6 (L3), T7 (L4), T8 (L5) thành một commit tài liệu
+  riêng trước đợt 2, như FR-H12 mục 12.
