@@ -7,7 +7,7 @@
 --
 -- Doc lap voi bo demo (seed-demo-structural.sql / seed-demo-ai-output.sql):
 -- nap duoc tren DB chi co schema, va nap cung DB voi hai tang demo khong va
--- cham - UUID tien to rieng e0..ef, f0 (demo tang 1 dung d0..d6, tang 2 UUID
+-- cham - UUID tien to rieng e0..ef, f0, f1 (demo tang 1 dung d0..d6, tang 2 UUID
 -- ngau nhien), email rieng, ten cong ty rieng.
 --
 -- Idempotent: moi INSERT co ON CONFLICT (id) DO NOTHING, chay lai nhieu lan
@@ -354,6 +354,7 @@ ON CONFLICT (id) DO NOTHING;
 --    A7 Pham Van Khoa  -> J1 REJECTED
 --    A8 Pham Van Khoa  -> J2 PENDING
 --    A9 Tran Bao Ngoc  -> J1 INTERVIEW_INVITED (co giay moi 3 khung, chua chot)
+--    (A10 Le Thi Lan -> J2 INTERVIEW_INVITED cua FR-U10 nam rieng o muc 16, dai f1.)
 --    screening_captured_at (FR-H10 R-S4) = applied_at cua A1, A9 (co ban chup, muc
 --    15) va A2 (tin J2 khong co cau hoi -> NO_QUESTIONS); don khac NULL
 --    (NOT_CAPTURED - don nop truoc khi co buoc chup).
@@ -719,6 +720,71 @@ INSERT INTO application_screening_answers (
      NULL, NULL, '2026-09-07 03:00:00+00')
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- 16. FR-U10 (REQUIREMENT muc 4.6, Q10) - dai UUID f1, de soat tay chon khung gio
+--     ma khong phai qua onboarding (A9 Tran Bao Ngoc giu nguyen).
+--     A10 Le Thi Lan -> J2 (OPEN, 0 cau sang loc -> screening_captured_at = applied_at,
+--        NO_QUESTIONS nhu A2), CV R4, INTERVIEW_INVITED, giay moi f1..21 hieu luc,
+--        3 khung CHUA chot: f1..31 DA QUA, f1..32 va f1..33 con han.
+--     NGOAI LE CO CHU DICH voi FR-H12 muc 4.5 ("seed khong ghi du lieu ma API moi khong
+--     tao duoc"): khung f1..31 o qua khu. API khong tao NGAY duoc khung qua khu (H12 R-S4),
+--     nhung moi giay moi deu toi trang thai nay khi thoi gian troi qua - day la trang thai
+--     that FR-U10 phai xu ly (R-C6, Q6). Moc tinh tuong doi theo luc nap: nap tu 11/10/2026
+--     tro di thi f1..31 luon sau sent_at (2026-10-09 02:00).
+--     Khong co thong bao INTERVIEW_SLOT_CONFIRMED (chua ai chon). Thong bao HR f1..41 DA
+--     DOC (giu so chua doc cua HR test la 4); Lan co 1 thong bao chua doc (f1..42).
+-- ---------------------------------------------------------------------------
+
+INSERT INTO job_applications (
+    id, job_id, candidate_id, resume_id, recruitment_cycle, status,
+    ai_consent, ai_consent_at, cover_letter, applied_at, updated_at, screening_captured_at,
+    talent_pool_consent, talent_pool_consent_at
+) VALUES
+    ('f1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000003',
+     'e7000000-0000-0000-0000-000000000004', 1, 'INTERVIEW_INVITED', TRUE, '2026-10-08 03:00:00+00', NULL,
+     '2026-10-08 03:00:00+00', '2026-10-09 02:00:00+00', '2026-10-08 03:00:00+00', FALSE, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO application_status_history (id, application_id, from_status, to_status, changed_by, note, changed_at) VALUES
+    ('f1000000-0000-0000-0000-000000000011', 'f1000000-0000-0000-0000-000000000001', NULL, 'PENDING', 'e0000000-0000-0000-0000-000000000003', NULL, '2026-10-08 03:00:00+00'),
+    ('f1000000-0000-0000-0000-000000000012', 'f1000000-0000-0000-0000-000000000001', 'PENDING', 'INTERVIEW_INVITED', 'e0000000-0000-0000-0000-000000000001', NULL, '2026-10-09 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO interview_invitations (id, application_id, subject, rendered_content, sent_at, sent_by, superseded_at, created_at) VALUES
+    ('f1000000-0000-0000-0000-000000000021', 'f1000000-0000-0000-0000-000000000001',
+     'Thư mời phỏng vấn vị trí Nhân viên Hành chính văn phòng - Công ty TNHH Thử Nghiệm Ánh Dương',
+     'Kính gửi Lê Thị Lan,' || E'\n\n'
+     || 'Cảm ơn bạn đã ứng tuyển vị trí Nhân viên Hành chính văn phòng tại Công ty TNHH Thử Nghiệm Ánh Dương. '
+     || 'Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn theo thời gian và địa điểm ghi trong thư này.' || E'\n\n'
+     || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
+     || 'Trân trọng,',
+     '2026-10-09 02:00:00+00', 'e0000000-0000-0000-0000-000000000001', NULL, '2026-10-09 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- confirmed_* de NULL (giay moi nhieu khung, chua chon) - khong UPDATE chot nhu muc 11.
+INSERT INTO interview_invitation_slots (id, invitation_id, display_order, scheduled_at, location, created_at) VALUES
+    ('f1000000-0000-0000-0000-000000000031', 'f1000000-0000-0000-0000-000000000021', 1,
+     date_trunc('day', now()) - INTERVAL '1 day' + INTERVAL '2 hours', 'Tầng 3, 45 Bạch Đằng, Quận Hải Châu, Đà Nẵng',
+     '2026-10-09 02:00:00+00'),
+    ('f1000000-0000-0000-0000-000000000032', 'f1000000-0000-0000-0000-000000000021', 2,
+     date_trunc('day', now()) + INTERVAL '9 days 2 hours', 'Phòng họp Sông Hàn, tầng 5', '2026-10-09 02:00:00+00'),
+    ('f1000000-0000-0000-0000-000000000033', 'f1000000-0000-0000-0000-000000000021', 3,
+     date_trunc('day', now()) + INTERVAL '10 days 7 hours', 'https://meet.example.com/lan-u10-test', '2026-10-09 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- Khop su kien that: nop don -> HR (link moi /hr/applications/{id}, sau FR-H09); gui giay moi -> ung vien (link
+-- /candidate/applications/{id}, sau FR-U08). Gui lan dau KHONG co thong bao gui lai (FR-H12 R-F2).
+INSERT INTO notifications (id, user_id, type, title, body, link, entity_type, entity_id, is_read, read_at, email_status, created_at) VALUES
+    ('f1000000-0000-0000-0000-000000000041', 'e0000000-0000-0000-0000-000000000001', 'APPLICATION_SUBMITTED', 'Có đơn ứng tuyển mới',
+     'Ứng viên Lê Thị Lan vừa ứng tuyển vị trí "Nhân viên Hành chính văn phòng"',
+     '/hr/applications/f1000000-0000-0000-0000-000000000001', 'APPLICATION', 'f1000000-0000-0000-0000-000000000001',
+     TRUE, '2026-10-08 05:00:00+00', 'SKIPPED', '2026-10-08 03:00:01+00'),
+    ('f1000000-0000-0000-0000-000000000042', 'e0000000-0000-0000-0000-000000000003', 'APPLICATION_STATUS_CHANGED', 'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "Nhân viên Hành chính văn phòng" của bạn đã chuyển sang trạng thái: Đã mời phỏng vấn',
+     '/candidate/applications/f1000000-0000-0000-0000-000000000001', 'APPLICATION', 'f1000000-0000-0000-0000-000000000001',
+     FALSE, NULL, 'SKIPPED', '2026-10-09 02:00:01+00')
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;
 
 -- ---------------------------------------------------------------------------
@@ -728,6 +794,8 @@ COMMIT;
 -- application_status_history 16, interview_invitations 4, interview_invitation_slots 6,
 -- scoring_runs 2, notifications 17, application_messages 6, job_screening_questions 3,
 -- application_screening_answers 6.
+-- Va dai f1 (FR-U10, muc 16): job_applications 1, application_status_history 2,
+-- interview_invitations 1, interview_invitation_slots 3, notifications 2.
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'e0000000-%'
 UNION ALL SELECT 'candidate_profiles', count(*) FROM candidate_profiles WHERE id::text LIKE 'e6000000-%'
@@ -746,4 +814,9 @@ UNION ALL SELECT 'scoring_runs', count(*) FROM scoring_runs WHERE id::text LIKE 
 UNION ALL SELECT 'notifications', count(*) FROM notifications WHERE id::text LIKE 'ec000000-%'
 UNION ALL SELECT 'application_messages', count(*) FROM application_messages WHERE id::text LIKE 'ed000000-%'
 UNION ALL SELECT 'job_screening_questions', count(*) FROM job_screening_questions WHERE id::text LIKE 'ee000000-%'
-UNION ALL SELECT 'application_screening_answers', count(*) FROM application_screening_answers WHERE id::text LIKE 'ef000000-%';
+UNION ALL SELECT 'application_screening_answers', count(*) FROM application_screening_answers WHERE id::text LIKE 'ef000000-%'
+UNION ALL SELECT 'f1 job_applications', count(*) FROM job_applications WHERE id::text LIKE 'f1000000-%'
+UNION ALL SELECT 'f1 application_status_history', count(*) FROM application_status_history WHERE id::text LIKE 'f1000000-%'
+UNION ALL SELECT 'f1 interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'f1000000-%'
+UNION ALL SELECT 'f1 interview_invitation_slots', count(*) FROM interview_invitation_slots WHERE id::text LIKE 'f1000000-%'
+UNION ALL SELECT 'f1 notifications', count(*) FROM notifications WHERE id::text LIKE 'f1000000-%';

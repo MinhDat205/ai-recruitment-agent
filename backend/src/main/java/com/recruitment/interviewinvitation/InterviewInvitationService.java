@@ -29,6 +29,7 @@ import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
 import com.recruitment.notification.InterviewInvitationResentEvent;
 import com.recruitment.notification.InterviewInvitationResentEvent.SlotInfo;
+import com.recruitment.notification.InterviewSlotConfirmedEvent;
 import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import java.time.Instant;
@@ -272,11 +273,13 @@ public class InterviewInvitationService {
     // (2) khoa hang don + kiem INTERVIEW_INVITED trong CUNG mot cau (lockIfInterviewInvited) - 0 dong -> 409;
     // (3) lay now MOT lan - dung cho CA dieu kien "chua qua" LAN confirmed_at;
     // (4) ghi khung chot bang MOT cau UPDATE co dieu kien (confirmSlotIfAvailable);
-    // (5) 1 dong -> doc lai giay moi + khung de dung DTO I4 (R-W7); 0 dong -> doc lai de tra dung ma (R-W5).
+    // (5) 1 dong -> doc lai giay moi + khung de dung DTO I4 (R-W7); 0 dong -> doc lai de tra dung ma (R-W5);
+    // (6) phat su kien thong bao (R-N1) - CHI tren nhanh 1 dong; listener AFTER_COMMIT nen transaction rollback thi khong co
+    // thong bao.
     // Khoa (2) PHAI chay TRUOC moi thao tac doc giay moi hieu luc (R-W2): I2, I3, Trung tuyen/Tu choi, Rut don deu ghi hang
     // job_applications, nen sau khi khoa giay moi hieu luc khong doi toi het transaction - doc o (5) phan anh dung ly do.
-    // KHONG goi ApplicationStatusService, KHONG ghi lich su trang thai, KHONG doi trang thai don (R-S1). Dot 2: CHUA phat su
-    // kien thong bao (R-N1 thuoc dot 3). KHONG khoa bang SELECT co menh de khoa hay annotation khoa cua JPA (R-W3).
+    // KHONG goi ApplicationStatusService, KHONG ghi lich su trang thai, KHONG doi trang thai don (R-S1). KHONG khoa bang
+    // SELECT co menh de khoa hay annotation khoa cua JPA (R-W3).
     @Transactional
     public CandidateInterviewInvitationResponse confirmSlot(UUID candidateId, UUID applicationId, UUID slotId) {
         JobApplication application = jobApplicationRepository
@@ -302,7 +305,21 @@ public class InterviewInvitationService {
         InterviewInvitation active = interviewInvitationRepository
                 .findByApplicationIdAndSupersededAtIsNull(applicationId)
                 .orElseThrow(() -> new IllegalStateException("Khong tim thay giay moi hieu luc vua chot: " + applicationId));
-        return toCandidateResponse(active);
+        CandidateInterviewInvitationResponse response = toCandidateResponse(active);
+
+        // (6) Gia tri khung VUA CHOT lay tu ket qua doc lai o (5) - listener dung noi dung tu day, khong doc lai bang giay moi.
+        CandidateInterviewInvitationResponse.Slot confirmed = response.slots().stream()
+                .filter(CandidateInterviewInvitationResponse.Slot::confirmed)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay khung vua chot: " + applicationId));
+        eventPublisher.publishEvent(new InterviewSlotConfirmedEvent(
+                applicationId,
+                application.getJobId(),
+                application.getCandidateId(),
+                confirmed.scheduledAt(),
+                confirmed.location()));
+
+        return response;
     }
 
     // FR-U10 R-W5 - cau UPDATE tra 0 dong: doc lai (SAU khoa, ket qua on dinh) va tra loi DAU TIEN khop theo thu tu bang R-W5.

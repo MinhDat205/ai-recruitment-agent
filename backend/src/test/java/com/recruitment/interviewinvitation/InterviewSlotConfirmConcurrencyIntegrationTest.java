@@ -59,7 +59,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 // "409" = dung loai exception mong doi, "khong 500" = khong exception nao khac. Ca don luong xac nhan "B dang bi khoa
 // chan" bang pg_stat_activity (khuon ScreeningCaptureConcurrencyIntegrationTest, REQUIREMENT muc 13 L4), khong cho co
 // dinh theo thoi gian. Du lieu ngau nhien rieng, chi khang dinh tren don cua test, khong don sau test.
-// Dot 2: chua co su kien thong bao - so thong bao (T6, T7) khang dinh o dot 3.
+// So thong bao INTERVIEW_SLOT_CONFIRMED (REQUIREMENT muc 13 L18) dem NGAY sau khi cac luong xong, khong vong tham: listener
+// AFTER_COMMIT chay dong bo tren luong commit truoc khi method service tra ve (L3).
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @ActiveProfiles("test")
@@ -215,6 +216,26 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
                 applicationId);
     }
 
+    // Thong bao "ung vien da chon lich" cua don, gui cho chu cong ty (R-N2).
+    private int slotConfirmedNotificationCount(Fixture fixture) {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM notifications
+                WHERE type = 'INTERVIEW_SLOT_CONFIRMED' AND entity_id = ? AND user_id = ?
+                """,
+                Integer.class,
+                fixture.applicationId(),
+                fixture.ownerId());
+    }
+
+    private int notificationCountOfApplication(Fixture fixture, String type) {
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM notifications WHERE type = ? AND entity_id = ?",
+                Integer.class,
+                type,
+                fixture.applicationId());
+    }
+
     private String statusOf(UUID applicationId) {
         return jdbcTemplate.queryForObject("SELECT status FROM job_applications WHERE id = ?", String.class, applicationId);
     }
@@ -307,6 +328,11 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
                 UUID winnerSlot = results[0] == null ? first : second;
                 assertThat(activeConfirmedSlot(fixture.applicationId())).as("vong %d", round).isEqualTo(winnerSlot);
                 assertThat(statusOf(fixture.applicationId())).isEqualTo("INTERVIEW_INVITED");
+                // T6 (L18): dung MOT thong bao cho chu cong ty - luot 409 khong tao them; tong cua don cung la 1.
+                assertThat(slotConfirmedNotificationCount(fixture)).as("thong bao vong %d", round).isEqualTo(1);
+                assertThat(notificationCountOfApplication(fixture, "INTERVIEW_SLOT_CONFIRMED"))
+                        .as("thong bao vong %d", round)
+                        .isEqualTo(1);
             }
         } finally {
             executor.shutdownNow();
@@ -341,6 +367,17 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
                 assertThat(activeConfirmedSlot(fixture.applicationId())).as("giay moi moi chua chot").isNull();
                 assertThat(activeInvitationCount(fixture.applicationId())).isEqualTo(1);
                 assertThat(statusOf(fixture.applicationId())).isEqualTo("INTERVIEW_INVITED");
+                // T7 (L18, R-R): HR nhan thong bao "da chon" chi khi luot chon thanh cong; ung vien luon nhan dung mot
+                // thong bao gui lai.
+                assertThat(slotConfirmedNotificationCount(fixture))
+                        .as("thong bao chon vong %d", round)
+                        .isEqualTo(confirm == null ? 1 : 0);
+                assertThat(notificationCountOfApplication(fixture, "INTERVIEW_SLOT_CONFIRMED"))
+                        .as("thong bao chon vong %d", round)
+                        .isEqualTo(confirm == null ? 1 : 0);
+                assertThat(notificationCountOfApplication(fixture, "INTERVIEW_INVITATION_RESENT"))
+                        .as("thong bao gui lai vong %d", round)
+                        .isEqualTo(1);
             }
         } finally {
             executor.shutdownNow();
@@ -377,6 +414,7 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
         assertThat(confirmedSlotOfInvitationContaining(chosen)).isNull();
         assertThat(activeConfirmedSlot(fixture.applicationId())).isNull();
         assertThat(activeInvitationCount(fixture.applicationId())).isEqualTo(1);
+        assertThat(notificationCountOfApplication(fixture, "INTERVIEW_SLOT_CONFIRMED")).isZero();
     }
 
     // Ca nguoc: A chi khoa roi commit khong doi gi -> B duoc nhan khoa, chon thanh cong.
@@ -400,6 +438,7 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
             executor.shutdownNow();
         }
         assertThat(activeConfirmedSlot(fixture.applicationId())).isEqualTo(chosen);
+        assertThat(slotConfirmedNotificationCount(fixture)).isEqualTo(1);
     }
 
     // Giay moi moi 2 khung CHUA chot (helper SQL, REQUIREMENT T7) - giay moi 1 khung tu chot se lam B nhan
@@ -464,6 +503,9 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
                     assertThat(activeConfirmedSlot(fixture.applicationId())).isNull();
                 }
                 assertThat(statusOf(fixture.applicationId())).isEqualTo(finalStatus.name());
+                assertThat(slotConfirmedNotificationCount(fixture))
+                        .as("thong bao chon vong %d", round)
+                        .isEqualTo(confirm == null ? 1 : 0);
             }
         } finally {
             executor.shutdownNow();
@@ -493,6 +535,9 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
                     assertThat(activeConfirmedSlot(fixture.applicationId())).isNull();
                 }
                 assertThat(statusOf(fixture.applicationId())).isEqualTo("WITHDRAWN");
+                assertThat(slotConfirmedNotificationCount(fixture))
+                        .as("thong bao chon vong %d", round)
+                        .isEqualTo(confirm == null ? 1 : 0);
             }
         } finally {
             executor.shutdownNow();
@@ -527,6 +572,7 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
         }
         assertThat(statusOf(fixture.applicationId())).isEqualTo("HIRED");
         assertThat(activeConfirmedSlot(fixture.applicationId())).isNull();
+        assertThat(notificationCountOfApplication(fixture, "INTERVIEW_SLOT_CONFIRMED")).isZero();
     }
 
     // Ca NGUOC: HIRED commit truoc -> confirmSlot 409 SLOT_SELECTION_NOT_ALLOWED.
@@ -542,5 +588,6 @@ class InterviewSlotConfirmConcurrencyIntegrationTest {
                 SlotSelectionNotAllowedException.class,
                 () -> invitationService.confirmSlot(fixture.candidateId(), fixture.applicationId(), fixture.slots().get(0)));
         assertThat(activeConfirmedSlot(fixture.applicationId())).isNull();
+        assertThat(notificationCountOfApplication(fixture, "INTERVIEW_SLOT_CONFIRMED")).isZero();
     }
 }

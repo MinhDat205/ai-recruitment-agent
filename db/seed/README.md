@@ -252,7 +252,7 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
 > khai và có thể xuất hiện trong gợi ý việc làm của ứng viên demo.
 
 Bộ test độc lập với hai tầng demo: nạp được trên DB chỉ có schema, hoặc nạp chung với
-demo mà không va chạm (UUID tiền tố `e0…`–`ef…` và `f0…`, email và tên công ty riêng). SQL viết
+demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, `f0…` và `f1…`, email và tên công ty riêng). SQL viết
 tay, idempotent (`ON CONFLICT (id) DO NOTHING`), với **một ngoại lệ**: dòng
 `resume_parsed_data` của CV R3 là output thật của pipeline trích xuất. Dòng này được chạy
 một lần rồi chép nguyên văn vào file (xem comment mục 8 trong `seed-test.sql`). Bộ test
@@ -312,7 +312,7 @@ không xoá file trên đĩa. `reset-demo-db.sql` (mục 1) `TRUNCATE` toàn b�
 |---|---|---|
 | `minhdathr@gmail.com` | HR | Minh Đạt, chủ "Công ty TNHH Thử Nghiệm Ánh Dương" (hồ sơ công ty đầy đủ) |
 | `quochuyuv@gmail.com` | Ứng viên | Quốc Huy: hồ sơ nghề nghiệp khai đủ, có đơn ở cả 5 trạng thái, 3 CV |
-| `le.thi.lan@test.local` | Ứng viên phụ | Lê Thị Lan: đã bỏ qua onboarding (hồ sơ rỗng) |
+| `le.thi.lan@test.local` | Ứng viên phụ | Lê Thị Lan: đã bỏ qua onboarding (hồ sơ rỗng); có đơn A10 đã mời phỏng vấn, giấy mời 3 khung chưa chốt (1 khung đã qua); 1 thông báo chưa đọc |
 | `pham.van.khoa@test.local` | Ứng viên phụ | Phạm Văn Khoa: đã bỏ qua onboarding, CV hỏng |
 | `tran.bao.ngoc@test.local` | Ứng viên phụ | Trần Bảo Ngọc: chưa có hồ sơ, đăng nhập sẽ bị đưa sang màn onboarding |
 
@@ -332,16 +332,17 @@ hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn on
 | Lượt chấm đang chờ (đóng băng) / thất bại có thông báo lỗi | HR test | Đơn của Quốc Huy ở tin CSKH / tin Hành chính |
 | Bấm "Chấm điểm" khi CV chưa trích xuất (bị từ chối) | HR test | Đơn của Lan / Khoa / Ngọc |
 | Xem CV gốc (PDF, DOCX) | HR test | Mọi đơn |
-| Thông báo đã đọc / chưa đọc (6 / 4) | HR test | Chuông thông báo |
+| Thông báo đã đọc / chưa đọc (7 / 4) | HR test | Chuông thông báo |
 | Tin nhắn: hộp thư hai phía (HR 3 dòng A9, A2, A3; Quốc Huy 2 dòng A2, A3, mỗi bên 1 tin chưa đọc), cuộc trao đổi chỉ còn xem, trạng thái rỗng | HR test, Quốc Huy | "Tin nhắn"; tab "Trao đổi" của đơn "Chuyên viên Pháp chế" (đã rút, chỉ còn xem) và đơn "Chuyên viên Chăm sóc khách hàng" của Quốc Huy (chưa có tin) |
 | Đơn đủ 5 trạng thái, lịch sử, giấy mời phỏng vấn | Quốc Huy | Đơn ứng tuyển |
 | Giấy mời nhiều khung giờ chưa chốt (3 khung, có khung là link), giấy mời đã gửi lại kèm giấy mời cũ, giấy mời một khung đã chốt, thông báo gửi lại (FR-H12) | HR test, Quốc Huy, Trần Bảo Ngọc | Đơn A9 của Trần Bảo Ngọc (chưa chốt), A2 của Quốc Huy (đã gửi lại, có 1 giấy mời trước đó), A4 của Quốc Huy (đã chốt, đơn `HIRED`); chuông thông báo của Quốc Huy |
+| Ứng viên chọn khung giờ phỏng vấn: khung đã qua không chọn được, chọn một lần, HR nhận thông báo "Ứng viên đã chọn lịch phỏng vấn" (FR-U10) | Lê Thị Lan, HR test | Đơn A10 `/candidate/applications/f1000000-0000-0000-0000-000000000001` (3 khung, khung 1 đã qua); phía HR tab "Giấy mời phỏng vấn" của đơn đó. Chọn xong muốn soát lại thì chạy `reset-test-data.sql` rồi nạp lại |
 | CV chờ trích xuất (đóng băng), thất bại, đã trích xuất | Quốc Huy | Hồ sơ → CV |
 | Thông báo đã đọc / chưa đọc (2 / 3) | Quốc Huy | Chuông thông báo |
 | Hồ sơ nghề nghiệp khai đủ | Quốc Huy | Hồ sơ |
 | Hồ sơ bỏ qua onboarding | Lê Thị Lan | Hồ sơ |
 | Màn onboarding | Trần Bảo Ngọc | Đăng nhập |
-| Đồng ý lưu hồ sơ đang hiệu lực + nút "Rút đồng ý" (FR-U09) | Quốc Huy | Đơn "Chuyên viên Chăm sóc khách hàng" (A1, đơn duy nhất ở trạng thái đồng ý); 8 đơn còn lại "không đồng ý". Rút xong muốn soát lại thì chạy `reset-test-data.sql` rồi nạp lại |
+| Đồng ý lưu hồ sơ đang hiệu lực + nút "Rút đồng ý" (FR-U09) | Quốc Huy | Đơn "Chuyên viên Chăm sóc khách hàng" (A1, đơn duy nhất ở trạng thái đồng ý); 9 đơn còn lại (gồm A10 của FR-U10) "không đồng ý". Rút xong muốn soát lại thì chạy `reset-test-data.sql` rồi nạp lại |
 | Nộp đơn có câu hỏi sàng lọc (FR-U09) | Ứng viên demo do đặc tả FR-U09 mục 7.4 chọn (`Demo1234`) | Tin "Chuyên viên Chăm sóc khách hàng" (3 câu); đơn demo vào tin test bị `reset-test-data.sql` xoá |
 | **Màn hình điểm số, evidence, giải thích AI** | **`hr@demo.local`** (demo) | Bộ test cố ý không có điểm AI |
 

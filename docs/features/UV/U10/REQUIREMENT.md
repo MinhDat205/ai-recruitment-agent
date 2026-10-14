@@ -740,3 +740,37 @@ Bổ sung trong đợt 2 (14/10/2026):
   ca đơn luồng (L4, L5). Đã hoàn nguyên, chạy lại lớp này 10/10 xanh.
 - **L18 (T6, T7) — đếm thông báo dời sang đợt 3.** Đợt 2 chưa phát sự kiện (R-N1), nên khẳng định "đúng một thông báo" của T6
   và phần thông báo của T7 thêm vào lớp concurrency ở đợt 3, như mục 9.
+
+Bổ sung trong đợt 3 (14/10/2026):
+
+- **L19 (quy trình) — nguồn kế hoạch đợt 3.** File kế hoạch Plan Mode của đợt 1 không còn trong thư mục plan của phiên
+  (chỉ còn plan FR-U09). Đợt 3 bám mục 9 (dòng "Đợt 3"), 3.6, 4.6 và mục 13 của file này.
+- **L20 (R-N1, R-W1 bước 6) — giá trị khung cho sự kiện.** Lấy `scheduledAt`/`location` từ phần tử `confirmed = true` của
+  DTO I4 vừa dựng ở bước 5 (đã đọc lại sau `clearAutomatically`), không thêm `slotRepository.findById`. Sự kiện phát sau khi
+  dựng response, chỉ trên nhánh `UPDATE` trả 1 dòng.
+- **L21 (T3, R-N5) — "không thông báo" của T3 không kiểm được trong lớp `@Transactional`.** Lớp
+  `InterviewSlotConfirmControllerIntegrationTest` rollback mọi test nên listener `AFTER_COMMIT` không bao giờ chạy — đếm
+  thông báo ở đó luôn 0, kể cả khi code sai. Không sửa T3; khẳng định thật đặt ở `InterviewSlotConfirmNotificationIntegrationTest`
+  (không `@Transactional`): `PASSED` và `ALREADY_CONFIRMED` (T10 như đặc tả), thêm 403, 400, `INTERVIEW_INVITATION_CONFLICT`,
+  `SLOT_SELECTION_NOT_ALLOWED`, và một ca rollback (gọi `confirmSlot` trong `TransactionTemplate` rồi `setRollbackOnly` → sự
+  kiện đã phát nhưng 0 thông báo, `confirmed_*` vẫn NULL).
+- **L22 (T6–T8) — phạm vi assert thông báo ở lớp concurrency.** Ngoài T6 (đúng 1/đơn) và T7 (1 nếu lượt chọn thành công, 0
+  nếu 409; ứng viên đúng 1 `INTERVIEW_INVITATION_RESENT`), thêm cho T8 song song (1 nếu chọn thành công, 0 nếu 409) và ba ca
+  đơn luồng (409 → 0, 200 → 1). Chỉ thêm assert và helper đếm; không sửa assert cũ.
+- **L23 (ngoài phạm vi) — comment lỗi thời.** `NotificationMailOrchestrator.java:58` ghi "email_body khác null (hiện chỉ
+  INTERVIEW_INVITATION_RESENT)"; từ U10 còn `INTERVIEW_SLOT_CONFIRMED`. Mục 4.2 không cho sửa file này (hành vi mail không
+  đổi) — ghi vào walkthrough.
+- **L24 (seed, mục 4.6) — dòng FR-U09 của `db/seed/README.md` mục 8.4.** "8 đơn còn lại 'không đồng ý'" đếm toàn bộ đơn
+  test; A10 thêm một đơn `talent_pool_consent = FALSE` nên sửa thành 9. Comment mục 9 của `seed-test.sql` (phạm vi A1–A9)
+  giữ nguyên.
+- **L25 (môi trường) — DB dev vẫn ở V14 khi vào đợt 3** (`flyway_schema_history` cao nhất `14 talent pool consent`), như
+  L1. Bước reset → seed → đếm → reset lần hai → nạp lại chờ người dùng khởi động backend một lần để Flyway lên V16.
+  Sau khi người dùng khởi động backend: `flyway_schema_history` cao nhất `16 interview invitation slots`; reset → seed →
+  câu đếm đúng (dải cũ không đổi, dải f1 1/2/1/3/2) → reset lần hai (dải f1 về 0 ở cả 5 bảng) → nạp lại; HR test 7 đã đọc /
+  4 chưa đọc, Lê Thị Lan 0 / 1.
+- **L26 (R-N5) — thử đột biến "phát sự kiện cả khi `UPDATE` trả 0 dòng": 0 ca đỏ, và đó là đúng.** Nhánh 0 dòng luôn ném
+  exception → `@Transactional` rollback → listener `AFTER_COMMIT` không chạy, nên đột biến tương đương về hành vi: "không
+  thông báo khi lỗi" được bảo đảm bởi rollback, không chỉ bởi vị trí câu `publishEvent`. Đột biến phụ quan sát được (bỏ phát
+  sự kiện ở nhánh thành công) làm đỏ 9/14 ca của hai lớp `InterviewSlotConfirmNotification*`/`*Concurrency*` (T6a, T6b, T7
+  song song, T7 ca ngược, T8a, T8b, T8c, hai ca T10) — test không rỗng. Đã hoàn nguyên cả hai, tìm dấu đột biến ra 0 kết quả,
+  chạy lại hai lớp 14/14 xanh.
