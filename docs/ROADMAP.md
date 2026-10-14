@@ -545,6 +545,10 @@ tương ứng ở đây.
   Nợ kỹ thuật:
   - Test chập chờn có từ trước: `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
     phụ thuộc thời gian thực (backoff test 50ms), đỏ khi máy chậm. Không sửa trong C05 (không đụng `scoring/`).
+    — **Đã xử lý ở `fix/scoring-orchestrator-flaky-test`** (14/10/2026): nguyên nhân thật là test dựa vào mốc
+    `next_attempt_at` ghi bằng đồng hồ JVM (+50ms) trong khi claim so với `now()` của Postgres trong container
+    (đồng hồ có thể lệch, đo được container chậm ~34s so với máy) — test nay cố định mốc +10 phút trước lần
+    gọi no-op.
   - `toPattern` của tìm kiếm C02 không thoát `%`/`_` (giữ cách hiện có).
   - Race embedding CV khi trích xuất lại: `ResumeEmbeddingScheduler` không claim, có thể ghi embedding của
     văn bản v1 đè lên sau khi trích xuất lại đặt NULL → lệch vĩnh viễn. Chữa: ghi có điều kiện theo
@@ -941,6 +945,17 @@ trọng số rubric gợi ý để trống.
 giấy mời đã gửi không đổi khi sửa mẫu.
 
 **Phase 2.5 — AI hỗ trợ đánh giá & kho ứng viên**
+- [x] `fix/scoring-orchestrator-flaky-test` — sửa test chập chờn
+  `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…` trước FR-C08 (14/10/2026, không gắn
+  mã FR, chỉ sửa test). Lần gọi no-op nay dùng mốc `next_attempt_at` cố định +10 phút thay vì mốc backoff 50ms
+  do `markTemporaryFailure` ghi; tái hiện chắc chắn trước khi sửa bằng `-Dapp.hardening.llm.backoff-ms=-120000,100`
+  (đỏ ở dòng khẳng định `PENDING`), sau khi sửa xanh.
+  Nợ kỹ thuật:
+  - Trộn hai đồng hồ ở cơ chế backoff: `claimForProcessing`/`findReadyForProcessing` so `next_attempt_at` với
+    `now()` của DB, còn `next_attempt_at` ghi bằng `Instant.now()` của JVM. Ở production, backoff lệch đúng
+    bằng độ lệch đồng hồ giữa máy chạy backend và máy DB. Cùng mẫu ở `resume/` (`ResumeRepository` +
+    `ResumeParsingStateService`, `ResumeReparseRequestRepository` + `ResumeReparseStateService`). Chữa: truyền
+    `:now` lấy từ `Clock` Java vào các câu claim/quét thay cho `now()` của DB.
 - [ ] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn
 - [ ] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên
 - [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
@@ -952,6 +967,8 @@ giấy mời đã gửi không đổi khi sửa mẫu.
 > - **Trước FR-C08:** sửa test chập chờn `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
 >   (nợ ghi ở FR-C05). FR-C08 tách K2 ra khỏi `CriterionScoringService` (FR-H04) và cổng "toàn bộ test
 >   cũ vẫn pass" dựa vào chính bộ test `scoring/` — test chập chờn làm cổng này mất giá trị.
+>   — **Đã sửa** ở `fix/scoring-orchestrator-flaky-test` (14/10/2026): test trộn mốc ghi bằng đồng hồ JVM với
+>   `now()` của DB trong khoảng backoff 50ms; nay cố định mốc. Nợ phía production ghi ở mục nhánh đó.
 > - Phụ thuộc ngầm qua K1–K4: FR-C08 cần FR-C07 (K1, K3); FR-H15 cần FR-C07 (K1, K3),
 >   FR-H11 (K4). FR-H14 hiển thị câu trả lời sàng lọc nên cần
 >   FR-H10/FR-U09.

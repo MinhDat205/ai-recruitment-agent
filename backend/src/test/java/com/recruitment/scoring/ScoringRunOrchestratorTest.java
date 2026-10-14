@@ -398,14 +398,24 @@ class ScoringRunOrchestratorTest {
         assertThat(afterFirstAttempt.getErrorMessage())
                 .isEqualTo(CriterionScoringErrorCode.LLM_TEMPORARILY_UNAVAILABLE.formatted());
         assertThat(afterFirstAttempt.getNextAttemptAt()).isNotNull();
-        List<CriterionScore> scoresAfterFirst = criterionScoreRepository.findAll().stream()
-                .filter(s -> s.getScoringRunId().equals(runId))
-                .toList();
+        List<CriterionScore> scoresAfterFirst = criterionScoreRepository.findByScoringRunId(runId);
         assertThat(scoresAfterFirst).hasSize(1);
         assertThat(scoresAfterFirst.get(0).getCriterionNameSnapshot()).isEqualTo("Kinh nghiem Java");
 
-        // Dot 4f - claim() tu choi ngay vi next_attempt_at con trong tuong lai (backoff-ms[0]=50ms
-        // trong application-test.yml) - goi lai NGAY (khong doi) phai la NO-OP hoan toan.
+        // Dot 4f - claim() tu choi khi next_attempt_at con trong tuong lai - goi lai phai la NO-OP
+        // hoan toan. Co dinh moc +10 phut thay vi dua vao moc markTemporaryFailure vua ghi: moc do
+        // tinh bang dong ho JVM (backoff-ms[0] chi 50ms trong application-test.yml), con
+        // claimForProcessing so voi now() cua Postgres trong container - dong ho container co the
+        // lech so voi may chay JVM, va may cham qua 50ms giua hai lan goi la claim thanh cong, test
+        // do khong xac dinh. Viec markTemporaryFailure ghi moc TUONG LAI that da duoc kiem rieng o
+        // ScoringRunStateServiceTest (markTemporaryFailure_firstFailure_..., dong 464-465); o day chi
+        // kiem mat xich "claim loc next_attempt_at". Cung khuon voi buoc day ve qua khu ben duoi va
+        // tien le ScoringRunStateServiceTest.claimForProcessing_nextAttemptInFuture_....
+        ScoringRun backoffRun = scoringRunRepository.findById(runId).orElseThrow();
+        backoffRun.setNextAttemptAt(Instant.now().plusSeconds(600));
+        scoringRunRepository.saveAndFlush(backoffRun);
+        entityManager.clear();
+
         orchestrator.processOne(runId);
         entityManager.clear();
         assertThat(scoringRunRepository.findById(runId).orElseThrow().getStatus()).isEqualTo(ScoringRunStatus.PENDING);
@@ -430,9 +440,7 @@ class ScoringRunOrchestratorTest {
         ScoringRun finalRun = scoringRunRepository.findById(runId).orElseThrow();
         assertThat(finalRun.getStatus()).isEqualTo(ScoringRunStatus.RUNNING);
         assertThat(finalRun.getFinishedAt()).isNotNull();
-        List<CriterionScore> finalScores = criterionScoreRepository.findAll().stream()
-                .filter(s -> s.getScoringRunId().equals(runId))
-                .toList();
+        List<CriterionScore> finalScores = criterionScoreRepository.findByScoringRunId(runId);
         assertThat(finalScores).hasSize(3);
         assertThat(finalScores)
                 .extracting(CriterionScore::getCriterionNameSnapshot)
