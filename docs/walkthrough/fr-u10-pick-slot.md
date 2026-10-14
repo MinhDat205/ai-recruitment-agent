@@ -201,4 +201,4 @@ Mọi chỗ lệch dưới đây đã ghi vào mục 13 REQUIREMENT.md và đư�
 | L19–L26: nguồn kế hoạch đợt 3; giá trị khung cho sự kiện; "không thông báo" của T3 kiểm ở lớp không `@Transactional`; phạm vi assert thông báo T6–T8; comment lỗi thời `NotificationMailOrchestrator`; dòng U09 của seed README; môi trường DB dev; thử đột biến phát sự kiện | 14/10/2026 (đợt 3) |
 | L27–L35: ngoặc kép lồng; focus sau xác nhận; `aria-invalid` trên `role="radiogroup"`; hộp xác nhận ở `InterviewInvitationDetails`; mốc `dataUpdatedAt` (L31, duyệt ở đợt 5); hai nút cùng hàng ở 375px; 409 khi đơn bị rút ở tab khác; 403 không câu riêng; tránh tên `passed` | 14/10/2026 (đợt 4, 5) |
 | L36, L37: vế `confirmedAt !== null` chỉ để thu hẹp kiểu; `CandidatePickedLine` đặt ở `PreviousInvitationCard.tsx` | 14/10/2026 (đợt 5) |
-| L38: SRS cột Trạng thái và tick ROADMAP dời sang đợt 6 phần B, cùng lúc với trạng thái đặc tả | Chờ duyệt (đợt 6 phần A) |
+| L38: SRS cột Trạng thái và tick ROADMAP dời sang đợt 6 phần B, cùng lúc với trạng thái đặc tả | 14/10/2026 (đợt 6 phần B) |
