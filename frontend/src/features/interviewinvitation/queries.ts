@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
+import { candidateApplicationDetailKey } from '../candidateApplicationDetail/queries'
 import { hrApplicationsKeyPrefix } from '../scoring/queries'
 import {
+  confirmInterviewSlotRequest,
   getInterviewInvitationRequest,
   listInterviewInvitationsRequest,
   previewInterviewInvitationRequest,
@@ -106,5 +108,34 @@ export function useInterviewInvitationQuery(applicationId: string | undefined, e
     queryKey: interviewInvitationKey(applicationId),
     queryFn: () => getInterviewInvitationRequest(applicationId as string),
     enabled: enabled && Boolean(applicationId),
+  })
+}
+
+// FR-U10 C1 (UI.md 4c, 5b) - ung vien chon khung. Thanh cong: ghi response (DTO I4) vao cache I4 de khoi chuyen ngay sang
+// trang thai da chot, roi van lam moi I4 tu backend. Loi 409/404: lam moi I4 (giay moi da chot / da bi thay / khung da qua).
+// SLOT_SELECTION_NOT_ALLOWED: trang thai don da doi o noi khac - lam moi them trang chi tiet don (badge, khoi theo trang
+// thai moi). Trang thai don KHONG doi khi chon thanh cong (R-S1) nen khong lam moi trang chi tiet o nhanh thanh cong.
+export function useConfirmInterviewSlotMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ applicationId, slotId }: { applicationId: string; slotId: string }) =>
+      confirmInterviewSlotRequest(applicationId, { slotId }),
+    onSuccess: (data, { applicationId }) => {
+      queryClient.setQueryData(interviewInvitationKey(applicationId), data)
+      void queryClient.invalidateQueries({ queryKey: interviewInvitationKey(applicationId) })
+    },
+    onError: (error, { applicationId }) => {
+      if (!isAxiosError(error)) {
+        return
+      }
+      const status = error.response?.status
+      if (status === 409 || status === 404) {
+        void queryClient.invalidateQueries({ queryKey: interviewInvitationKey(applicationId) })
+      }
+      const code = (error.response?.data as { error?: unknown } | undefined)?.error
+      if (code === 'SLOT_SELECTION_NOT_ALLOWED') {
+        void queryClient.invalidateQueries({ queryKey: candidateApplicationDetailKey(applicationId) })
+      }
+    },
   })
 }

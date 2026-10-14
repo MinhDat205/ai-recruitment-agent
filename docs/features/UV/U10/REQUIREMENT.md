@@ -774,3 +774,34 @@ Bổ sung trong đợt 3 (14/10/2026):
   sự kiện ở nhánh thành công) làm đỏ 9/14 ca của hai lớp `InterviewSlotConfirmNotification*`/`*Concurrency*` (T6a, T6b, T7
   song song, T7 ca ngược, T8a, T8b, T8c, hai ca T10) — test không rỗng. Đã hoàn nguyên cả hai, tìm dấu đột biến ra 0 kết quả,
   chạy lại hai lớp 14/14 xanh.
+
+Bổ sung trong đợt 4 (14/10/2026):
+
+- **L27 (UI.md mục 7) — chuỗi hướng dẫn chọn có ngoặc kép lồng.** `candidateUnconfirmed` khai bằng nháy đơn, giữ đúng ký tự
+  `"` quanh "Xác nhận khung giờ" như UI.md mục 7, không escape thành ký tự khác.
+- **L28 (UI.md 4c, mục 9) — focus sau khi xác nhận thành công.** Phần chọn bị gỡ nên Radix không còn trigger để trả focus.
+  `onCloseAutoFocus` của hộp xác nhận: thành công → `preventDefault` rồi focus `h2` "Giấy mời phỏng vấn" (`tabIndex={-1}`, ref
+  truyền từ `InvitationSection`); Huỷ/đóng → để Radix trả focus như thường (ngoại lệ ở L30).
+- **L29 (UI.md mục 9) — `aria-invalid` trên `<fieldset>`.** Role `group` không hỗ trợ `aria-invalid`. Giữ `<fieldset>`/`<legend>`,
+  đặt `role="radiogroup"` lên vùng chứa các radio, gắn `aria-invalid` và `aria-describedby` (trỏ tới câu lỗi `role="alert"`)
+  lên vùng đó.
+- **L30 (UI.md 5a, 4c) — hộp xác nhận đặt ở `InterviewInvitationDetails`, không ở `InterviewSlotPicker`.** `setQueryData` của
+  mutation đổi I4 sang "đã chốt" ngay khi thành công → phần chọn bị gỡ trong khi hộp thoại còn mở; nếu hộp thoại nằm trong
+  phần chọn thì bị gỡ theo (mất `onCloseAutoFocus`, mất callback `mutate`). Phần chọn vẫn là nơi mở hộp thoại (gọi
+  `onRequestConfirm(slot)`). Hệ quả thêm: Huỷ/đóng sau một lỗi làm I4 đổi sang không còn phần chọn (vd 409
+  `INTERVIEW_SLOT_ALREADY_CONFIRMED`) cũng focus `h2`, vì nút mở hộp thoại không còn.
+- **L31 (UI.md mục 6, R-U1) — mốc "giờ máy" lấy từ `dataUpdatedAt` của query I4, không gọi `Date.now()` trong render.**
+  `eslint-plugin-react-hooks` 7 (`react-hooks/purity`) báo lỗi `Date.now()` trong thân component. Mốc = lúc I4 tải xong lần
+  gần nhất; I4 tải lại khi quay lại tab (mặc định TanStack) và sau mọi 409/404 của C1. Khác "lúc render" ở chỗ: trang để mở
+  lâu không tải lại thì khung vừa qua vẫn hiện chọn được tới lần tải sau — backend chặn (409 `INTERVIEW_SLOT_PASSED`, R-C6),
+  I4 tải lại, khung thành "Đã qua". **Chờ duyệt**; phương án khác: giữ `Date.now()` kèm `eslint-disable-next-line
+  react-hooks/purity`.
+- **L32 (UI.md 4e) — hai nút hộp xác nhận cùng hàng ở 375px.** `DialogFooter` mặc định xếp dọc dưới `sm`
+  (`RevokeTalentPoolConsentDialog` cũng vậy); UI.md 4e ghi rõ "cùng hàng" nên truyền `className="flex-row justify-end"`.
+- **L33 (giới hạn đã biết) — 409 `SLOT_SELECTION_NOT_ALLOWED` khi đơn đã bị rút ở tab khác.** Mutation làm mới trang chi
+  tiết đơn ngay lúc lỗi (UI.md 5b); đơn `WITHDRAWN` thì `InvitationSection` ẩn cả khối (FR-U08 R-T3) nên hộp thoại cùng câu
+  lỗi biến mất theo, người dùng thấy badge "Đã rút" thay vì đọc câu lỗi. `HIRED`/`REJECTED` không bị (khối vẫn hiện).
+- **L34 (UI.md 4c) — 403 không đổi câu riêng.** Lỗi 403 hiện câu `message` backend hoặc câu fallback "Xác nhận khung giờ thất
+  bại…", không thay bằng "Không tìm thấy" — trang chi tiết đã chặn đơn người khác nên không xảy ra (UI.md 4c tự ghi).
+- **L35 (CLAUDE.md §7) — tránh tên `passed` trong code mới.** Biến/khoá dùng `elapsed`/`slotElapsed` thay cho `passed`;
+  chuỗi hiển thị vẫn là "Đã qua".
