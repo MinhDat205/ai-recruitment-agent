@@ -516,4 +516,103 @@ class RateLimitFilterTest {
         doFilter(filter, jobAiDraftRequest(JOB_AI_DRAFT_PATH), otherUser);
         assertThat(otherUser.getStatus()).isEqualTo(200);
     }
+
+    // ---- FR-C08 T15 - hoi dap CV (POST hai mau .../cv-qa) thuoc nhom "ai-sync" ----
+
+    private static final String HR_CV_QA_PATH = "/api/hr/applications/77777777-7777-7777-7777-777777777777/cv-qa";
+    private static final String CANDIDATE_CV_QA_PATH =
+            "/api/candidates/resumes/88888888-8888-8888-8888-888888888888/cv-qa";
+
+    @Test
+    void doFilter_cvQa_5thPasses_6thRejected_onBothPaths() throws Exception {
+        for (String path : List.of(HR_CV_QA_PATH, CANDIDATE_CV_QA_PATH)) {
+            RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 5, 2);
+            SecurityContextHolder.clearContext();
+            authenticateAs("fb111111-1111-1111-1111-111111111111");
+            for (int i = 0; i < 5; i++) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, new MockHttpServletRequest("POST", path), response);
+                assertThat(response.getStatus()).as("%s - request thu %d phai qua duoc", path, i + 1).isEqualTo(200);
+            }
+
+            MockHttpServletResponse rejected = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", path), rejected);
+            assertThat(rejected.getStatus()).as("%s - request thu 6", path).isEqualTo(429);
+            assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+        }
+    }
+
+    // Khoa ai-sync:{userId} chung bucket voi soan nhap tin nhan C07: het luot do ai-draft thi ca hai mau cv-qa cung 429.
+    @Test
+    void doFilter_cvQaSharesAiSyncBucketWithAiDraft_onBothPaths() throws Exception {
+        for (String path : List.of(HR_CV_QA_PATH, CANDIDATE_CV_QA_PATH)) {
+            RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 2, 2);
+            SecurityContextHolder.clearContext();
+            authenticateAs("fb222222-2222-2222-2222-222222222222");
+            doFilter(filter, new MockHttpServletRequest("POST", HR_AI_DRAFT_PATH), new MockHttpServletResponse());
+            MockHttpServletResponse second = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", path), second);
+            assertThat(second.getStatus()).as("%s - luot 2 cua bucket", path).isEqualTo(200);
+
+            MockHttpServletResponse exhausted = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", path), exhausted);
+            assertThat(exhausted.getStatus()).as("%s - luot 3", path).isEqualTo(429);
+            MockHttpServletResponse aiDraft = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_AI_DRAFT_PATH), aiDraft);
+            assertThat(aiDraft.getStatus()).as("ai-draft sau khi %s het luot", path).isEqualTo(429);
+        }
+    }
+
+    // Hai mau cv-qa chung bucket cua cung user; user khac khong bi anh huong.
+    @Test
+    void doFilter_cvQa_hrAndCandidatePathsShareUserBucket_otherUserUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 2, 2);
+        authenticateAs("fb333333-3333-3333-3333-333333333333");
+        doFilter(filter, new MockHttpServletRequest("POST", HR_CV_QA_PATH), new MockHttpServletResponse());
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_CV_QA_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_CV_QA_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        SecurityContextHolder.clearContext();
+        authenticateAs("fb444444-4444-4444-4444-444444444444");
+        MockHttpServletResponse otherUser = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_CV_QA_PATH), otherUser);
+        assertThat(otherUser.getStatus()).isEqualTo(200);
+    }
+
+    // GET cung duong dan va POST ".../cv-qa/x" khong bi tinh, ke ca khi bucket ai-sync da het.
+    @Test
+    void doFilter_cvQaGetAndSubPath_areNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        authenticateAs("fb555555-5555-5555-5555-555555555555");
+        doFilter(filter, new MockHttpServletRequest("POST", HR_CV_QA_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", HR_CV_QA_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        for (int i = 0; i < 5; i++) {
+            for (MockHttpServletRequest request : List.of(
+                    new MockHttpServletRequest("GET", HR_CV_QA_PATH),
+                    new MockHttpServletRequest("GET", CANDIDATE_CV_QA_PATH),
+                    new MockHttpServletRequest("POST", HR_CV_QA_PATH + "/x"),
+                    new MockHttpServletRequest("POST", CANDIDATE_CV_QA_PATH + "/x"))) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, request, response);
+                assertThat(response.getStatus()).as("%s %s", request.getMethod(), request.getRequestURI()).isEqualTo(200);
+            }
+        }
+    }
+
+    @Test
+    void doFilter_cvQaWithoutAuthentication_passesThroughUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        for (int i = 0; i < 3; i++) {
+            for (String path : List.of(HR_CV_QA_PATH, CANDIDATE_CV_QA_PATH)) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, new MockHttpServletRequest("POST", path), response);
+                assertThat(response.getStatus()).as(path).isEqualTo(200);
+            }
+        }
+    }
 }
