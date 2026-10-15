@@ -935,7 +935,22 @@ trọng số rubric gợi ý để trống.
     thật sự chặn" được bù bằng T10(d) đơn luồng, chắc chắn.
   - Kiểm phiên bản Flyway trên DB phải dùng `ORDER BY installed_rank DESC LIMIT 1`, không dùng `max(version)` (cột
     `version` là `varchar`, `max` so theo chuỗi: DB ở V16 trả `9`).
-- [ ] `feat/fr-u10-pick-slot` — FR-U10 · Chọn khung giờ phỏng vấn
+- [x] `feat/fr-u10-pick-slot` — FR-U10 · Chọn khung giờ phỏng vấn — **HOÀN THÀNH**
+  (14/10/2026, 6 đợt — xem `docs/walkthrough/fr-u10-pick-slot.md`). Ứng viên chọn **một** khung trong giấy mời hiệu lực nhiều khung
+  (`POST /api/candidates/applications/{id}/interview-invitation/confirm-slot`), qua hộp xác nhận; chọn một lần, không tự
+  đổi (muốn đổi: HR gửi lại giấy mời — H12). Một transaction ngắn: kiểm quyền → `lockIfInterviewInvited` → `now` một lần
+  → một câu `UPDATE` có điều kiện (`confirmed_slot_id IS NULL`, khung của chính giấy mời, chưa qua) → 0 dòng thì đọc lại
+  sau khoá trả đúng mã (404 / 409 `INTERVIEW_SLOT_ALREADY_CONFIRMED` / `INTERVIEW_INVITATION_CONFLICT` /
+  `INTERVIEW_SLOT_PASSED`). Không đổi trạng thái đơn, không ghi lịch sử, không migration. Thông báo
+  `INTERVIEW_SLOT_CONFIRMED` cho chủ công ty: web một dòng, email kèm địa điểm + link. Tab HR hiện "Ứng viên đã chọn lúc …";
+  sửa câu lưu ý "Gửi lại" của H12. Full suite 1270/1270; build + lint sạch; kiểm tĩnh 7.1, 7.3 đạt; kiểm HTTP 7.2 và soát tay 7.4
+  đạt. Làm rõ L1–L38.
+  Giới hạn đã biết:
+  - Chọn trùng lúc HR gửi lại (Q8): cả hai thứ tự đều hợp lệ; HR đang mở hộp thoại "Gửi lại" không được báo ứng viên vừa
+    chọn — muốn báo phải đổi I3 của H12.
+  - Giờ máy ứng viên: giao diện ẩn radio khung đã qua theo giờ máy (mốc `dataUpdatedAt` của I4, L31); máy lệch giờ hoặc
+    trang mở lâu thì khung đã qua vẫn hiện chọn được — backend trả 409 `INTERVIEW_SLOT_PASSED`, I4 tải lại.
+  - `slotId` sai định dạng UUID: rơi vào nợ có sẵn "body JSON hỏng trả 401 trên server thật" (mục FR-H11 ở Phase 2.3).
 
 **Xong khi:** đơn chuyển INTERVIEW_INVITED ngay khi gửi giấy mời, không phụ thuộc việc chọn giờ;
 giấy mời đã gửi không đổi khi sửa mẫu.

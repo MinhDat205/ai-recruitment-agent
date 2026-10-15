@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-// FR-H12 T20 - NotificationContentBuilder.forInvitationResent (ham thuan, khong Spring context). Gio theo
+// FR-H12 T20 - NotificationContentBuilder.forInvitationResent; FR-U10 T11 - forSlotConfirmed (ham thuan, khong Spring context). Gio theo
 // Asia/Ho_Chi_Minh, KHONG theo mui gio may chay test.
 class NotificationContentBuilderTest {
 
@@ -68,6 +68,41 @@ class NotificationContentBuilderTest {
                         + "\n2. 01:30 21/10/2026 — https://meet.example.com/abc-defg-hij"
                         + "\n3. 14:30 22/10/2026 — Chưa có dữ liệu"
                         + "\n\nXem giấy mời tại: http://localhost:5173/candidate/applications/" + APPLICATION_ID);
+    }
+
+    // FR-U10 T11 - 18:30Z ngay 20 = 01:30 ngay 21 gio Viet Nam; body MOT dong, khong dia diem; link mo tab giay moi cua HR.
+    @Test
+    void forSlotConfirmed_bodyIsOneLineInVietnamTime_emailHasLocationAndLink() {
+        NotificationContentBuilder.Content content = NotificationContentBuilder.forSlotConfirmed(
+                job(),
+                "Lê Thị Lan",
+                Instant.parse("2026-10-20T18:30:00Z"),
+                "Phòng họp Sông Hàn, tầng 5",
+                APPLICATION_ID,
+                BASE_URL);
+
+        assertThat(content.title()).isEqualTo("Ứng viên đã chọn lịch phỏng vấn");
+        assertThat(content.body())
+                .isEqualTo("Ứng viên Lê Thị Lan đã chọn khung giờ phỏng vấn 01:30 21/10/2026 (giờ Việt Nam) cho vị trí "
+                        + "\"Nhân viên Hành chính văn phòng\".")
+                .doesNotContain("\n")
+                .doesNotContain("Phòng họp Sông Hàn");
+        assertThat(content.link()).isEqualTo("/hr/applications/" + APPLICATION_ID + "?tab=invitation");
+        assertThat(content.emailBody())
+                .isEqualTo(content.body()
+                        + "\n\nĐịa điểm: Phòng họp Sông Hàn, tầng 5"
+                        + "\n\nXem giấy mời tại: http://localhost:5173/hr/applications/" + APPLICATION_ID + "?tab=invitation");
+        assertThat(content.emailBody().lines().reduce((first, second) -> second).orElseThrow())
+                .isEqualTo("Xem giấy mời tại: http://localhost:5173/hr/applications/" + APPLICATION_ID + "?tab=invitation");
+    }
+
+    @Test
+    void forSlotConfirmed_nullLocation_emailShowsMissingData() {
+        NotificationContentBuilder.Content content = NotificationContentBuilder.forSlotConfirmed(
+                job(), "Lê Thị Lan", Instant.parse("2026-10-20T02:00:00Z"), null, APPLICATION_ID, BASE_URL);
+
+        assertThat(content.body()).contains("09:00 20/10/2026").doesNotContain("\n").doesNotContain("null");
+        assertThat(content.emailBody()).contains("\n\nĐịa điểm: Chưa có dữ liệu\n\n").doesNotContain("null");
     }
 
     @Test

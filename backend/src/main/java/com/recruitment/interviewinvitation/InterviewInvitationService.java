@@ -2,10 +2,14 @@ package com.recruitment.interviewinvitation;
 
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
+import com.recruitment.common.exception.InterviewInvitationConflictException;
 import com.recruitment.common.exception.InterviewInvitationNotFoundException;
+import com.recruitment.common.exception.InterviewSlotAlreadyConfirmedException;
+import com.recruitment.common.exception.InterviewSlotPassedException;
 import com.recruitment.common.exception.InterviewTemplateNotFoundException;
 import com.recruitment.common.exception.InvitationResendNotAllowedException;
 import com.recruitment.common.exception.JobNotFoundException;
+import com.recruitment.common.exception.SlotSelectionNotAllowedException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.interviewinvitation.InterviewSlotValidator.ValidSlot;
@@ -25,9 +29,11 @@ import com.recruitment.jobapplication.JobApplication;
 import com.recruitment.jobapplication.JobApplicationRepository;
 import com.recruitment.notification.InterviewInvitationResentEvent;
 import com.recruitment.notification.InterviewInvitationResentEvent.SlotInfo;
+import com.recruitment.notification.InterviewSlotConfirmedEvent;
 import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -259,6 +265,92 @@ public class InterviewInvitationService {
 
         // Khong loc theo application.status - don da HIRED/REJECTED van doc lai duoc giay moi cu
         // (ung vien doi chieu lich hen sau khi da co ket qua cuoi).
+        return toCandidateResponse(active);
+    }
+
+    // FR-U10 C1 (R-W1..R-W8) - ung vien chon MOT khung cua giay moi hieu luc. MOT transaction ngan, DUNG thu tu R-W1 (bat buoc):
+    // (1) kiem quyen - CHI doc job_applications, khuon I4: don khong ton tai -> 404, don cua ung vien khac -> 403 (R-A1);
+    // (2) khoa hang don + kiem INTERVIEW_INVITED trong CUNG mot cau (lockIfInterviewInvited) - 0 dong -> 409;
+    // (3) lay now MOT lan - dung cho CA dieu kien "chua qua" LAN confirmed_at;
+    // (4) ghi khung chot bang MOT cau UPDATE co dieu kien (confirmSlotIfAvailable);
+    // (5) 1 dong -> doc lai giay moi + khung de dung DTO I4 (R-W7); 0 dong -> doc lai de tra dung ma (R-W5);
+    // (6) phat su kien thong bao (R-N1) - CHI tren nhanh 1 dong; listener AFTER_COMMIT nen transaction rollback thi khong co
+    // thong bao.
+    // Khoa (2) PHAI chay TRUOC moi thao tac doc giay moi hieu luc (R-W2): I2, I3, Trung tuyen/Tu choi, Rut don deu ghi hang
+    // job_applications, nen sau khi khoa giay moi hieu luc khong doi toi het transaction - doc o (5) phan anh dung ly do.
+    // KHONG goi ApplicationStatusService, KHONG ghi lich su trang thai, KHONG doi trang thai don (R-S1). KHONG khoa bang
+    // SELECT co menh de khoa hay annotation khoa cua JPA (R-W3).
+    @Transactional
+    public CandidateInterviewInvitationResponse confirmSlot(UUID candidateId, UUID applicationId, UUID slotId) {
+        JobApplication application = jobApplicationRepository
+                .findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId)); // (1)
+        if (!application.getCandidateId().equals(candidateId)) {
+            throw new AccessDeniedException("Khong co quyen chon khung gio cua don ung tuyen nay");
+        }
+
+        if (jobApplicationRepository.lockIfInterviewInvited(applicationId) == 0) { // (2)
+            throw new SlotSelectionNotAllowedException();
+        }
+
+        // (3) Cat ve micro giay (do chinh xac cua TIMESTAMPTZ): gia tri Java dung de phan loai loi o (5) va gia tri bind vao
+        // cau UPDATE phai la MOT - khong de JDBC lam tron nano giay khac voi phep so sanh Java (L14).
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        if (interviewInvitationRepository.confirmSlotIfAvailable(applicationId, slotId, now) == 0) { // (4)
+            throw rejection(applicationId, slotId, now); // (5) 0 dong
+        }
+
+        // (5) 1 dong - persistence context da bi xoa (clearAutomatically) nen day la SELECT that, thay confirmed_* vua ghi.
+        InterviewInvitation active = interviewInvitationRepository
+                .findByApplicationIdAndSupersededAtIsNull(applicationId)
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay giay moi hieu luc vua chot: " + applicationId));
+        CandidateInterviewInvitationResponse response = toCandidateResponse(active);
+
+        // (6) Gia tri khung VUA CHOT lay tu ket qua doc lai o (5) - listener dung noi dung tu day, khong doc lai bang giay moi.
+        CandidateInterviewInvitationResponse.Slot confirmed = response.slots().stream()
+                .filter(CandidateInterviewInvitationResponse.Slot::confirmed)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay khung vua chot: " + applicationId));
+        eventPublisher.publishEvent(new InterviewSlotConfirmedEvent(
+                applicationId,
+                application.getJobId(),
+                application.getCandidateId(),
+                confirmed.scheduledAt(),
+                confirmed.location()));
+
+        return response;
+    }
+
+    // FR-U10 R-W5 - cau UPDATE tra 0 dong: doc lai (SAU khoa, ket qua on dinh) va tra loi DAU TIEN khop theo thu tu bang R-W5.
+    // Dong 3 KHONG phan biet "khung khong ton tai" / "khung cua giay moi cu" / "khung cua don khac" - cung mot ma, cung mot
+    // cau, khong lo khung cua don nguoi khac. Dong 2 dung truoc dong 3 (Q3: chon lai dung khung da chot van la "da chot").
+    private RuntimeException rejection(UUID applicationId, UUID slotId, Instant now) {
+        InterviewInvitation active = interviewInvitationRepository
+                .findByApplicationIdAndSupersededAtIsNull(applicationId)
+                .orElse(null);
+        if (active == null) {
+            return new InterviewInvitationNotFoundException(applicationId); // dong 1
+        }
+        if (active.getConfirmedSlotId() != null) {
+            return new InterviewSlotAlreadyConfirmedException(); // dong 2
+        }
+        InterviewInvitationSlot slot = slotRepository
+                .findById(slotId)
+                .filter(candidate -> candidate.getInvitationId().equals(active.getId()))
+                .orElse(null);
+        if (slot == null) {
+            return new InterviewInvitationConflictException(); // dong 3
+        }
+        if (!slot.getScheduledAt().isAfter(now)) {
+            return new InterviewSlotPassedException(); // dong 4 - cung moc now voi cau UPDATE
+        }
+        // dong 5 - khong the xay ra duoi khoa; phong thu, khong 500.
+        return new InterviewInvitationConflictException();
+    }
+
+    // DTO I4 cua giay moi hieu luc - dung chung cho I4 (getActiveInvitationForCandidate) va C1 (confirmSlot), FR-U10 R-W7.
+    private CandidateInterviewInvitationResponse toCandidateResponse(InterviewInvitation active) {
         List<CandidateInterviewInvitationResponse.Slot> slots =
                 slotRepository.findByInvitationIdOrderByDisplayOrderAsc(active.getId()).stream()
                         .map(slot -> new CandidateInterviewInvitationResponse.Slot(

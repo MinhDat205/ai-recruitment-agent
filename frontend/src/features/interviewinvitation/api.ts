@@ -1,6 +1,7 @@
 import { http } from '../../lib/http'
 import type {
   CandidateInterviewInvitation,
+  ConfirmInterviewSlotRequest,
   InterviewInvitationList,
   InterviewInvitationPreview,
   InterviewInvitationResponse,
@@ -46,6 +47,18 @@ export async function listInterviewInvitationsRequest(applicationId: string): Pr
 export async function getInterviewInvitationRequest(applicationId: string): Promise<CandidateInterviewInvitation> {
   const response = await http.get<CandidateInterviewInvitation>(
     `/candidates/applications/${applicationId}/interview-invitation`,
+  )
+  return response.data
+}
+
+// FR-U10 C1 - ung vien chon MOT khung cua giay moi hieu luc; tra ve I4 sau khi ghi.
+export async function confirmInterviewSlotRequest(
+  applicationId: string,
+  payload: ConfirmInterviewSlotRequest,
+): Promise<CandidateInterviewInvitation> {
+  const response = await http.post<CandidateInterviewInvitation>(
+    `/candidates/applications/${applicationId}/interview-invitation/confirm-slot`,
+    payload,
   )
   return response.data
 }

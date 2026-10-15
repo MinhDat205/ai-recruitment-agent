@@ -108,6 +108,8 @@ Cùng component và bố cục 4a, khác ở đầu hộp thoại và nút:
 - Điền sẵn tiêu đề và nội dung **từ giấy mời hiệu lực** (dữ liệu I1 đã có ở tab 4c), không render lại mẫu, không gọi
   preview (Q6). Khung giờ: một khung trống. `maxSlots` lấy từ I1.
 - Không có cảnh báo tên công ty (cảnh báo đó thuộc bản render từ mẫu).
+- *Sửa bởi FR-U10 (R-H2): câu khi đã có khung chốt đổi từ "Ứng viên đã chốt khung {t}. …" thành "Giấy mời hiện tại đã
+  chốt khung {t}. Khung này sẽ không còn hiệu lực sau khi gửi lại." — câu cũ sai với giấy mời 1 khung tự chốt khi gửi.*
 
 ### 4c. Desktop — tab "Giấy mời phỏng vấn"
 
@@ -175,6 +177,9 @@ không có địa điểm ghi "Chưa có dữ liệu" (Q9):
 - Giờ khung hiện theo giờ Việt Nam (`Asia/Ho_Chi_Minh`, như `InterviewInvitationDetails.tsx:7-16` và email R-N3), ghi
   rõ "(giờ Việt Nam)"; "Gửi lúc" dùng `formatDateTimeVi` như "Nộp ngày" ở đầu trang.
 - Địa điểm dạng URL hiện **chữ thường**, không thành liên kết (B4).
+- *Sửa bởi FR-U10 (Q9, R-H1, O2): giấy mời ≥ 2 khung đã chốt (ứng viên đã chọn) có thêm dòng "Ứng viên đã chọn lúc
+  {confirmedAt}" ngay dưới "Gửi lúc …" (4c-1) và ngay dưới "Gửi lúc … · Đã được thay bằng …" (thẻ 4c-2). Giấy mời 1 khung
+  không có dòng này (U10 UI.md 4d).*
 
 ### 4d. Desktop — khối "Giấy mời phỏng vấn" phía ứng viên (FR-U08)
 
@@ -209,6 +214,10 @@ chốt":
 ```
 
 - Không nút, không ô chọn, không radio — phần chọn là của FR-U10.
+  *Sửa bởi FR-U10 (R-U1…R-U3, U10 UI.md 4a–4c, mục 6): đơn `INTERVIEW_INVITED` + giấy mời hiệu lực chưa chốt + còn khung
+  chưa qua → khối có phần chọn (radio, nút "Xác nhận khung giờ", hộp xác nhận) và câu hướng dẫn chọn thay câu Q8; mọi khung
+  đã qua → câu "Các khung giờ trong giấy mời đã qua. …"; giấy mời ≥ 2 khung đã chốt → câu "Bạn đã chọn khung giờ này lúc …".
+  Đơn `HIRED`/`REJECTED`, giấy mời 1 khung: giữ khối chỉ đọc như trên.*
 - Câu hướng dẫn (Q8) chỉ hiện khi `confirmedAt` là `null`. Giữ tiền tố "Địa điểm: " có sẵn; khung dữ liệu cũ không có
   địa điểm hiện "Địa điểm: Chưa có dữ liệu" (Q9 — trước đây dòng này bị bỏ, nay hiện rõ là thiếu theo UI_GUIDE mục 4).
 - Quy tắc gọi API, ẩn khối khi 404, lỗi + "Thử lại" của `InvitationSection` giữ nguyên (R-T3…R-T7 của FR-U08).
@@ -377,14 +386,14 @@ Không có trạng thái "AI đang xử lý": FR-H12 không gọi AI.
 | Nút thêm | "Thêm khung giờ" · khi khoá: "Đã đủ {maxSlots} khung giờ." |
 | Lỗi frontend (Zod) | "Vui lòng chọn thời điểm phỏng vấn" · "Thời điểm phỏng vấn phải ở trong tương lai" · "Khung giờ này trùng thời điểm với khung giờ {m}." · "Vui lòng nhập địa điểm hoặc link phỏng vấn" · "Địa điểm tối đa 500 ký tự" |
 | Lỗi backend (REQUIREMENT R-S8, mục 4.3 — đúng từng chữ) | "Vui lòng thêm ít nhất một khung giờ phỏng vấn." · "Giấy mời có tối đa 5 khung giờ." · "Khung giờ {n}: vui lòng chọn thời điểm phỏng vấn." · "Khung giờ {n}: thời điểm phỏng vấn phải ở trong tương lai." · "Khung giờ {n} trùng thời điểm với khung giờ {m}." · "Khung giờ {n}: vui lòng nhập địa điểm hoặc link phỏng vấn." · "Khung giờ {n}: địa điểm tối đa 500 ký tự." · "Khung giờ {n}: địa điểm chỉ được nằm trên một dòng." · "Chỉ gửi lại giấy mời được khi đơn đang ở trạng thái Đã mời phỏng vấn." · "Giấy mời của đơn này vừa được thay đổi ở nơi khác. Vui lòng tải lại trang." |
-| Lưu ý gửi lại (4b) | "Giấy mời mới sẽ thay giấy mời hiện tại. Giấy mời hiện tại vẫn được lưu nguyên văn ở mục "Giấy mời trước đó". Trạng thái đơn không đổi. Ứng viên sẽ nhận thông báo và email kèm các khung giờ mới." · khi đã chốt: "Ứng viên đã chốt khung {HH:mm dd/MM/yyyy}. Khung này sẽ không còn hiệu lực sau khi gửi lại." |
+| Lưu ý gửi lại (4b) | "Giấy mời mới sẽ thay giấy mời hiện tại. Giấy mời hiện tại vẫn được lưu nguyên văn ở mục "Giấy mời trước đó". Trạng thái đơn không đổi. Ứng viên sẽ nhận thông báo và email kèm các khung giờ mới." · khi đã chốt: "Ứng viên đã chốt khung {HH:mm dd/MM/yyyy}. Khung này sẽ không còn hiệu lực sau khi gửi lại." — *Sửa bởi FR-U10 (R-H2): "Giấy mời hiện tại đã chốt khung {HH:mm dd/MM/yyyy}. Khung này sẽ không còn hiệu lực sau khi gửi lại."* |
 | Nút gửi | "Gửi lời mời" (giữ) · "Gửi lại giấy mời" · đang gửi "Đang gửi..." |
 | Lỗi fallback | Gửi: "Gửi lời mời thất bại, vui lòng thử lại." (giữ) · Gửi lại: "Gửi lại giấy mời thất bại, vui lòng thử lại." · Tải I1: "Không tải được giấy mời, vui lòng thử lại." |
 | Tab — giấy mời hiệu lực | Tiêu đề "Giấy mời hiện tại" · "Gửi lúc {HH:mm dd/MM/yyyy}" · "Ứng viên chưa chọn khung giờ. Muốn chốt ngay một khung, hãy gửi lại giấy mời chỉ với khung đó." · nút "Gửi lại giấy mời" |
 | Tab — rỗng | `PENDING`: "Chưa gửi giấy mời phỏng vấn cho đơn này. Dùng nút "Mời phỏng vấn" ở đầu trang để gửi." · khác: "Đơn này chưa từng được mời phỏng vấn." |
 | Danh sách khung | "Khung giờ (giờ Việt Nam)" · địa điểm thiếu "Chưa có dữ liệu" · dấu "Đã chốt" |
 | Giấy mời cũ | Nút mở "Giấy mời trước đó ({n})" · "Gửi lúc {t} · Đã được thay bằng giấy mời gửi lúc {t2}" |
-| Khối ứng viên | Tiêu đề "Giấy mời phỏng vấn" (giữ) · câu hướng dẫn khi chưa chốt "Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp." (Q8) · "Địa điểm: " (giữ) · "Đang tải giấy mời..." (giữ) |
+| Khối ứng viên | Tiêu đề "Giấy mời phỏng vấn" (giữ) · câu hướng dẫn khi chưa chốt "Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp." (Q8) · "Địa điểm: " (giữ) · "Đang tải giấy mời..." (giữ) — *Sửa bởi FR-U10 (R-U2): câu Q8 thay bằng "Chọn một khung giờ phù hợp rồi bấm "Xác nhận khung giờ". Nếu không khung nào phù hợp, hãy nhắn cho nhà tuyển dụng qua tab Trao đổi." (U10 UI.md mục 7)* |
 | Thông báo (backend, REQUIREMENT R-N2) | Tiêu đề "Nhà tuyển dụng đã gửi lại giấy mời phỏng vấn" · nội dung một dòng theo R-N2 |
 
 Định dạng giờ khung: `HH:mm dd/MM/yyyy`, giờ Việt Nam (`Asia/Ho_Chi_Minh`) ở mọi nơi hiện khung (HR, ứng viên, email)
@@ -426,7 +435,8 @@ giữa giờ HR nhập (trình duyệt) và giờ hiển thị (Việt Nam) là 
 - Không đặt giấy mời vào tab "CV & điểm"; không đổi vị trí năm tab hiện có; không ẩn tab "Giấy mời phỏng vấn" theo trạng
   thái đơn.
 - Không lặp nút "Mời phỏng vấn" trong tab.
-- Không nút/ô chọn khung phía ứng viên (FR-U10); không câu hứa hẹn "sẽ có chức năng chọn".
+- Không nút/ô chọn khung phía ứng viên (FR-U10); không câu hứa hẹn "sẽ có chức năng chọn". *Sửa bởi FR-U10: phần
+  chọn khung phía ứng viên đã có (U10 UI.md 4a–4c); quy tắc này chỉ còn đúng với phạm vi của FR-H12.*
 - Không hiện giấy mời cũ phía ứng viên.
 - Không sửa được khung hay thư của giấy mời đã gửi (không nút Sửa, không chỉnh tại chỗ).
 - Không sắp xếp lại khung theo thời gian ở giao diện (thứ tự HR nhập — R-S7).

@@ -83,3 +83,9 @@ export interface CandidateInterviewInvitation {
   confirmedAt: string | null
   slots: CandidateInterviewInvitationSlot[]
 }
+
+// Khop ConfirmInterviewSlotRequest (backend) - than C1 cua FR-U10. KHONG id giay moi: backend tu xac dinh giay moi hieu
+// luc duoi khoa (R-W2). Response C1 = CandidateInterviewInvitation (I4, khong doi hinh dang - R-W7).
+export interface ConfirmInterviewSlotRequest {
+  slotId: string
+}

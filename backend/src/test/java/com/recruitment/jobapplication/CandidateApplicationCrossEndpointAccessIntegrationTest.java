@@ -206,6 +206,13 @@ class CandidateApplicationCrossEndpointAccessIntegrationTest {
         MvcResult invitation = mockMvc
                 .perform(get(base + "/interview-invitation").header("Authorization", "Bearer " + otherToken))
                 .andReturn();
+        // FR-U10 T12 - C1 chon khung cung quy uoc "invitation 403" (R-A1, Q4).
+        MvcResult confirmSlot = mockMvc
+                .perform(post(base + "/interview-invitation/confirm-slot")
+                        .header("Authorization", "Bearer " + otherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotId\":\"" + UUID.randomUUID() + "\"}"))
+                .andReturn();
 
         assertThat(detail.getResponse().getStatus()).isEqualTo(404);
         assertThat(errorCode(detail)).isEqualTo("APPLICATION_NOT_FOUND");
@@ -217,6 +224,7 @@ class CandidateApplicationCrossEndpointAccessIntegrationTest {
                 .isEqualTo(ApplicationStatus.INTERVIEW_INVITED);
         // Quy uoc cu co chu dich - xem comment dau lop.
         assertThat(invitation.getResponse().getStatus()).isEqualTo(403);
+        assertThat(confirmSlot.getResponse().getStatus()).isEqualTo(403);
 
         // Doi chung: chinh chu don doc duoc 3 endpoint doc (khong phai 404/403 vi du lieu sai).
         mockMvc.perform(get(base).header("Authorization", "Bearer " + ownerToken)).andExpect(status().isOk());

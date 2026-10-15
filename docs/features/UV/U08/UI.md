@@ -258,7 +258,7 @@ Theo field backend trả về (REQUIREMENT mục 3.4); dưới đây là cách h
 | **R-T3** đơn `PENDING`/`WITHDRAWN` | Khối giấy mời | Không render khối, không gọi API |
 | Đang tải giấy mời | Khối giấy mời | Tiêu đề "Giấy mời phỏng vấn" + câu có sẵn "Đang tải giấy mời..." |
 | **R-T5** 404 giấy mời | Khối giấy mời | Không render gì (cả tiêu đề) |
-| **R-T6** có giấy mời | Khối giấy mời | `InterviewInvitationDetails` — *sửa bởi FR-H12 (UI.md 4d): danh sách khung giờ chỉ đọc, dấu "Đã chốt", câu hướng dẫn khi chưa chốt* |
+| **R-T6** có giấy mời | Khối giấy mời | `InterviewInvitationDetails` — *sửa bởi FR-H12 (UI.md 4d): danh sách khung giờ chỉ đọc, dấu "Đã chốt", câu hướng dẫn khi chưa chốt*; *sửa bởi FR-U10 (U10 UI.md 4a–4c, mục 6): đơn `INTERVIEW_INVITED` và giấy mời hiệu lực chưa chốt, còn khung chưa qua → phần chọn khung (radio, nút "Xác nhận khung giờ", hộp xác nhận); mọi khung đã qua → câu hướng sang tab "Trao đổi"; ≥ 2 khung đã chốt → câu "Bạn đã chọn khung giờ này lúc …"* |
 | **R-T7** lỗi khác | Khối giấy mời | Câu có sẵn "Không tải được giấy mời, vui lòng thử lại." + nút "Thử lại" |
 | **R-T8** tin `OPEN` | Khối tin | Nhãn "Đang mở" + liên kết "Xem tin tuyển dụng →" (`/jobs/{jobId}`) |
 | **R-D5** tin khác `OPEN` | Khối tin | Nhãn tương ứng (mục 7), không liên kết |

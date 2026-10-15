@@ -26,4 +26,29 @@ public interface InterviewInvitationRepository extends JpaRepository<InterviewIn
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE InterviewInvitation i SET i.supersededAt = :at WHERE i.applicationId = :applicationId AND i.supersededAt IS NULL")
     int markActiveSuperseded(@Param("applicationId") UUID applicationId, @Param("at") Instant at);
+
+    // FR-U10 R-W1 buoc 4 - ung vien chot MOT khung bang MOT cau UPDATE co dieu kien (SQL nguyen van REQUIREMENT R-W1).
+    // Chay SAU khi da khoa hang don (JobApplicationRepository.lockIfInterviewInvited). Dieu kien nguyen tu tren hang:
+    // giay moi hieu luc + chua chot (bam dup / hai tab -> luot sau danh gia lai WHERE, 0 dong) + khung thuoc CHINH giay moi
+    // nay (s.invitation_id = i.id - slotId la / cua giay moi cu / cua don khac chi lam 0 dong, KHONG cham FK ghep
+    // fk_invitation_confirmed_slot -> khong 500, R-W4) + khung chua qua (strict >, R-C6). 0 dong -> service doc lai de tra
+    // dung ma (R-W5).
+    // clearAutomatically = true: cau UPDATE chay ngoai ORM, buoc 5 phai doc lai giay moi/khung tu DB (entity con trong
+    // persistence context se tra ban cu). flushAutomatically = true: hien KHONG bat buoc (truoc cau nay khong co ghi ORM
+    // nao), giu phong ho nhu updateStatusIfCurrent (JobApplicationRepository) - mo ta L7.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+            value =
+                    """
+                    UPDATE interview_invitations i
+                    SET confirmed_slot_id = :slotId, confirmed_at = :now
+                    WHERE i.application_id = :applicationId
+                      AND i.superseded_at IS NULL
+                      AND i.confirmed_slot_id IS NULL
+                      AND EXISTS (SELECT 1 FROM interview_invitation_slots s
+                                  WHERE s.id = :slotId AND s.invitation_id = i.id AND s.scheduled_at > :now)
+                    """,
+            nativeQuery = true)
+    int confirmSlotIfAvailable(
+            @Param("applicationId") UUID applicationId, @Param("slotId") UUID slotId, @Param("now") Instant now);
 }
