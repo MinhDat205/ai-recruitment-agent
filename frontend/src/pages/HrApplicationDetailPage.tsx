@@ -13,6 +13,9 @@ import { HistoryTab } from '../features/applicationDetail/HistoryTab'
 import { InterviewInvitationTab } from '../features/applicationDetail/InterviewInvitationTab'
 import { ScreeningTab } from '../features/applicationDetail/ScreeningTab'
 import { applicationDetailKey, useApplicationHrDetailQuery } from '../features/applicationDetail/queries'
+import { CvQaPanel } from '../features/cvQa/CvQaPanel'
+import { CvQaUnavailable } from '../features/cvQa/CvQaUnavailable'
+import { useCvQaSession } from '../features/cvQa/useCvQaSession'
 import { MessagesTab } from '../features/messages/MessagesTab'
 
 // FR-H09 R-P1 - 3 tab cua FR-H09; FR-C06 R-P3 them DUNG mot tab "Trao doi" (khoa messages) vao CUOI, khong doi
@@ -21,7 +24,9 @@ import { MessagesTab } from '../features/messages/MessagesTab'
 // mac dinh van cv.
 // FR-H12 (Q7, S7) chen "Giay moi phong van" giua "Sang loc" va "Lich su" - khong doi thu tu tuong doi cua nam tab cu, tab
 // hien o moi trang thai don, tab mac dinh van cv.
-const VALID_TABS = ['cv', 'explanation', 'screening', 'invitation', 'history', 'messages'] as const
+// FR-C08 (Q14) chen "Hoi dap CV" giua "Giai thich" va "Sang loc" - khong doi thu tu tuong doi cua sau tab cu, tab mac
+// dinh van cv.
+const VALID_TABS = ['cv', 'explanation', 'cvqa', 'screening', 'invitation', 'history', 'messages'] as const
 type DetailTab = (typeof VALID_TABS)[number]
 
 function parseTab(value: string | null): DetailTab {
@@ -98,6 +103,9 @@ function ApplicationDetailContent({
 }) {
   const detailQuery = useApplicationHrDetailQuery(applicationId)
   const queryClient = useQueryClient()
+  // FR-C08 - phien hoi dap CV o cap trang (doi tab khong mat luot, a25), khoa = applicationId (R-N3). Goi TRUOC moi
+  // return som ben duoi (luat hook React, L6).
+  const cvQaSession = useCvQaSession('hr', applicationId)
 
   if (detailQuery.isLoading) {
     return (
@@ -144,6 +152,7 @@ function ApplicationDetailContent({
         <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto overflow-y-hidden">
           <TabsTrigger value="cv">CV & điểm</TabsTrigger>
           <TabsTrigger value="explanation">Giải thích</TabsTrigger>
+          <TabsTrigger value="cvqa">Hỏi đáp CV</TabsTrigger>
           <TabsTrigger value="screening">Sàng lọc</TabsTrigger>
           <TabsTrigger value="invitation">Giấy mời phỏng vấn</TabsTrigger>
           <TabsTrigger value="history">Lịch sử</TabsTrigger>
@@ -156,6 +165,13 @@ function ApplicationDetailContent({
       </TabsContent>
       <TabsContent value="explanation" className="p-4 sm:p-6">
         <ExplanationTab applicationId={detail.id} />
+      </TabsContent>
+      <TabsContent value="cvqa" className="p-4 sm:p-6">
+        {detail.resumeParseStatus === 'DONE' ? (
+          <CvQaPanel side="hr" session={cvQaSession} />
+        ) : (
+          <CvQaUnavailable side="hr" parseStatus={detail.resumeParseStatus} />
+        )}
       </TabsContent>
       <TabsContent value="screening" className="p-4 sm:p-6">
         <ScreeningTab applicationId={detail.id} />
