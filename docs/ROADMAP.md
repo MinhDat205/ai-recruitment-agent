@@ -545,6 +545,10 @@ tương ứng ở đây.
   Nợ kỹ thuật:
   - Test chập chờn có từ trước: `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
     phụ thuộc thời gian thực (backoff test 50ms), đỏ khi máy chậm. Không sửa trong C05 (không đụng `scoring/`).
+    — **Đã xử lý ở `fix/scoring-orchestrator-flaky-test`** (14/10/2026): nguyên nhân thật là test dựa vào mốc
+    `next_attempt_at` ghi bằng đồng hồ JVM (+50ms) trong khi claim so với `now()` của Postgres trong container
+    (đồng hồ có thể lệch, đo được container chậm ~34s so với máy) — test nay cố định mốc +10 phút trước lần
+    gọi no-op.
   - `toPattern` của tìm kiếm C02 không thoát `%`/`_` (giữ cách hiện có).
   - Race embedding CV khi trích xuất lại: `ResumeEmbeddingScheduler` không claim, có thể ghi embedding của
     văn bản v1 đè lên sau khi trích xuất lại đặt NULL → lệch vĩnh viễn. Chữa: ghi có điều kiện theo
@@ -956,7 +960,41 @@ trọng số rubric gợi ý để trống.
 giấy mời đã gửi không đổi khi sửa mẫu.
 
 **Phase 2.5 — AI hỗ trợ đánh giá & kho ứng viên**
-- [ ] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn
+- [x] `fix/scoring-orchestrator-flaky-test` — sửa test chập chờn
+  `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…` trước FR-C08 (14/10/2026, không gắn
+  mã FR, chỉ sửa test). Lần gọi no-op nay dùng mốc `next_attempt_at` cố định +10 phút thay vì mốc backoff 50ms
+  do `markTemporaryFailure` ghi; tái hiện chắc chắn trước khi sửa bằng `-Dapp.hardening.llm.backoff-ms=-120000,100`
+  (đỏ ở dòng khẳng định `PENDING`), sau khi sửa xanh.
+  Nợ kỹ thuật:
+  - Trộn hai đồng hồ ở cơ chế backoff: `claimForProcessing`/`findReadyForProcessing` so `next_attempt_at` với
+    `now()` của DB, còn `next_attempt_at` ghi bằng `Instant.now()` của JVM. Ở production, backoff lệch đúng
+    bằng độ lệch đồng hồ giữa máy chạy backend và máy DB. Cùng mẫu ở `resume/` (`ResumeRepository` +
+    `ResumeParsingStateService`, `ResumeReparseRequestRepository` + `ResumeReparseStateService`). Chữa: truyền
+    `:now` lấy từ `Clock` Java vào các câu claim/quét thay cho `now()` của DB.
+- [x] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn — **HOÀN THÀNH**
+  (15/10/2026, 7 đợt, đợt 3 và 7 tách đôi — xem `docs/walkthrough/fr-c08-cv-qa.md`). HR hỏi về CV đã nộp của một đơn
+  (tab "Hỏi đáp CV" ở `/hr/applications/:id`, mọi trạng thái kể cả `WITHDRAWN`); ứng viên hỏi về một CV của chính mình
+  (`/candidate/resumes/:id/qa`, nút ở danh sách CV). AI gọi đồng bộ qua K3 trả `ANSWERED` (câu trả lời ≤ 800 ký tự + 1–5
+  trích dẫn nguyên văn 15–200 ký tự) / `NOT_FOUND` / `REFUSED`; một trích dẫn không qua K2 là cả câu trả lời hỏng, thử
+  lại 1 lần rồi 502. Xây K2 (`ai/citation/VerbatimQuoteVerifier`): tách từ FR-H04, hành vi giữ nguyên, test `ai/criterion`
+  và `scoring` không sửa. K1 thêm `CvQaContext` (HR: CV + tiêu đề/mô tả/yêu cầu tin; ứng viên: chỉ CV; không rubric, điểm,
+  giải thích, ghi chú). Chặn sớm bằng từ khoá trước K1 (`PERSONAL_INFO` chỉ phía HR); bean `cvQaChatClient` trần 1000
+  token; hai mẫu đường dẫn vào nhóm `ai-sync`. Không lưu gì, không migration; lượt hỏi đáp chỉ ở state trang, khoá theo
+  đơn/CV (epoch). Full suite 1471 (L56); build + lint sạch; kiểm tĩnh 7.1, 7.3 đạt; 7.2 hai phía và soát tay 7.4 đạt
+  (L57, L58); `srs-guard` sạch (ngoại lệ đích danh L59). Làm rõ L1–L61. Nợ kỹ thuật / giới hạn đã biết:
+  - K2 giữ lỗ hổng của H04: trích dẫn rỗng/khoảng trắng qua K2 (a5, R-K2-3) — C08 tự chặn bằng ngưỡng ≥ 15 ký tự, H04
+    vẫn hở.
+  - NFC (R-K2-8): đã đo trên seed (10 CV), không có NFD; chưa có số đo trên CV thật ngoài seed (L2). K2 cũng không gộp
+    NBSP/U+202F với dấu cách (L26).
+  - Danh sách từ khoá chặn sớm không đầy đủ (R-G4): không bắt biến thể không dấu, tiếng Anh, cách nói vòng; có thể chặn
+    nhầm câu chứa cụm. Lớp prompt bù phần còn lại (L58).
+  - Phần lời của câu trả lời không kiểm được bằng code (R-O6) — chỉ trích dẫn qua K2.
+  - CV > 45 000 ký tự: cắt phần giữa trước khi gửi AI, có cờ `cvTruncated` và câu báo trên UI (R-A3, O8); phần giữa
+    không được đọc.
+  - Ký tự `‹`/`›` thật trong CV: trích dẫn chứa chúng không qua K2 (R-I3, O5).
+  - Bucket `ai-sync` dùng chung với soạn nháp C07 và tạo tin H11 (Q8): hỏi đáp nhiều làm hết lượt của chức năng kia.
+  - Quy tắc R-N3 (khoá phiên theo đơn/CV, bỏ kết quả về muộn) là phòng trước, chưa có liên kết nào kích hoạt.
+  - Việc tài liệu: đoạn tổng quan SRS.md:13-17 ('18 chức năng đã hoàn thành…') đã cũ — sửa ở nhánh docs/ riêng (L60 FR-C08)
 - [ ] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên
 - [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
 
@@ -967,6 +1005,8 @@ giấy mời đã gửi không đổi khi sửa mẫu.
 > - **Trước FR-C08:** sửa test chập chờn `ScoringRunOrchestratorTest.processOne_temporaryErrorOnSecondCriterion_…`
 >   (nợ ghi ở FR-C05). FR-C08 tách K2 ra khỏi `CriterionScoringService` (FR-H04) và cổng "toàn bộ test
 >   cũ vẫn pass" dựa vào chính bộ test `scoring/` — test chập chờn làm cổng này mất giá trị.
+>   — **Đã sửa** ở `fix/scoring-orchestrator-flaky-test` (14/10/2026): test trộn mốc ghi bằng đồng hồ JVM với
+>   `now()` của DB trong khoảng backoff 50ms; nay cố định mốc. Nợ phía production ghi ở mục nhánh đó.
 > - Phụ thuộc ngầm qua K1–K4: FR-C08 cần FR-C07 (K1, K3); FR-H15 cần FR-C07 (K1, K3),
 >   FR-H11 (K4). FR-H14 hiển thị câu trả lời sàng lọc nên cần
 >   FR-H10/FR-U09.

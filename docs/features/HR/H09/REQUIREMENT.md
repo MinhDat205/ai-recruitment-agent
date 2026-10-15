@@ -91,6 +91,8 @@ mỗi FR tự thêm tab/nút của mình.
 - **R-P1.** Đúng 3 tab: "CV & điểm", "Giải thích", "Lịch sử". Thanh thao tác chỉ gồm 3 nút FR-H07 (Mời
   phỏng vấn, Từ chối, Trúng tuyển). Nút "Chấm điểm hồ sơ" (R-S) và "Xem CV gốc" (R-V) thuộc tab "CV &
   điểm", không thuộc thanh thao tác.
+  > Sửa bởi FR-C08 (15/10/2026): thêm tab "Hỏi đáp CV" (`?tab=cvqa`) sau "Giải thích" — đặc tả ở
+  > `docs/features/CHUNG/C08/UI.md`.
 - **R-P2.** Không dựng tab rỗng, tab bị khoá hay nút bị khoá cho Sàng lọc (H10), Câu hỏi phỏng vấn
   (H13), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15). FR nào tự thêm phần của FR đó.
 - **R-P3.** Bỏ hẳn Sheet "Hồ sơ ứng viên" ở `ApplicationsTab.tsx`. Không tồn tại hai nơi xem hồ sơ đơn
@@ -232,6 +234,7 @@ Nguồn trạng thái là field backend trả về; frontend không suy từ d�
 - **R-E3.** Liên kết quay lại ở đầu trang luôn trỏ `/hr/jobs/{jobId}/edit?tab=applications`.
 - **R-E4.** Route `/hr/applications/:id` nằm trong nhóm `ProtectedRoute(HR)` + `RequireCompany`
   (`App.tsx:80-94`). Tab đang mở lưu ở `?tab=` (`cv` mặc định, `explanation`, `history`), giống trang sửa Job.
+  > Sửa bởi FR-C08 (15/10/2026): thêm giá trị `cvqa` (tab "Hỏi đáp CV", sau "Giải thích").
 
 ### 3.10 Thông báo (R-N)
 

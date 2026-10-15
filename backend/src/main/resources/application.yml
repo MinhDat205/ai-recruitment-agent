@@ -134,6 +134,11 @@ app:
   # QUESTIONS; moi phan mot lan goi K3). 800 token sinh trong 10-13 s < han 15 s cua K3 - KHONG nang khi chua duyet.
   job-ai-draft:
     max-output-tokens: 800
+  # FR-C08 R-A4 - tran token dau ra cua RIENG bean cvQaChatClient. Lon nhat hop le: answer 800 ky tu + 5 x 200 ky tu
+  # trich dan ~ 800-900 token + vo JSON ~ 60 -> 1000 du ~10-15%. Cong do AI that (7.2 B) quyet dinh giu hay ha - KHONG
+  # nang tran hay han K3 khi chua duyet.
+  cv-qa:
+    max-output-tokens: 1000
 
   # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
   # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint

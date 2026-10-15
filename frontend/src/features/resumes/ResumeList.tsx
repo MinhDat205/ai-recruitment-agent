@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { Download, FileSearch, FileText, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
+import { Download, FileSearch, FileText, MessageSquareText, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -252,6 +252,17 @@ export function ResumeList() {
                     >
                       <Sparkles className="h-4 w-4" aria-hidden="true" />
                       Gợi ý cải thiện CV
+                    </Button>
+                  )}
+                  {resume.parseStatus === 'DONE' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/candidate/resumes/${resume.id}/qa`)}
+                    >
+                      <MessageSquareText className="h-4 w-4" aria-hidden="true" />
+                      Hỏi đáp CV
                     </Button>
                   )}
                   <Button

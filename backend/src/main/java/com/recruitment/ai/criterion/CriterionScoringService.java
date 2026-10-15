@@ -5,6 +5,7 @@ import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
+import com.recruitment.ai.citation.VerbatimQuoteVerifier;
 import com.recruitment.rubric.ScaleLevelDescription;
 import com.recruitment.scoring.RubricSnapshot;
 import java.util.List;
@@ -233,19 +234,17 @@ public class CriterionScoringService {
             }
         }
 
-        String normalizedRawText = normalizeWhitespace(rawText);
+        // Kiem nguyen van qua K2 (FR-C08, R-K2-4) - hanh vi giu nguyen.
         for (CriterionScorePayload.EvidenceQuote quote : evidence) {
-            if (quote.quote() == null || !normalizedRawText.contains(normalizeWhitespace(quote.quote()))) {
+            if (!VerbatimQuoteVerifier.isVerbatim(quote.quote(), rawText)) {
                 throw new CriterionScoringFailedException(CriterionScoringErrorCode.EVIDENCE_NOT_VERIFIED);
             }
         }
     }
 
-    // Gop moi chuoi khoang trang lien tiep (ke ca xuong dong, tab) thanh mot space, trim hai dau.
-    // KHONG lowercase, KHONG bo dau tieng Viet - ha thap yeu cau khop theo huong do de khien mot
-    // cau bia noi dung khac nhung na na lot qua, nguy hiem hon la chan nham (xem Q3, ke hoach D2).
+    // Lop chuyen tiep (FR-C08, R-K2-5): giu chu ky cho CriterionScoringServiceTest, logic nam o K2.
     static String normalizeWhitespace(String text) {
-        return text.replaceAll("\\s+", " ").trim();
+        return VerbatimQuoteVerifier.normalizeWhitespace(text);
     }
 
     private String buildScaleDescriptionText(RubricSnapshot.CriterionSnapshot criterion) {

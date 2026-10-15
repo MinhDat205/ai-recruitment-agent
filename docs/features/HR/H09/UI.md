@@ -22,6 +22,9 @@ Query `?tab=cv|explanation|history` (mặc định `cv`, giá trị lạ → `cv
 `HrJobEditPage.tsx:480-481` (R-E4). Đổi tab thì cập nhật URL bằng `replace` (không đẩy lịch sử mới mỗi lần
 bấm tab). Dòng UI_GUIDE mục 7 cho route này được sửa ở đợt 3 cho khớp phạm vi 3 tab.
 
+> Sửa bởi FR-C08 (15/10/2026): thêm tab "Hỏi đáp CV" (`?tab=cvqa`) sau "Giải thích" — đặc tả ở
+> `docs/features/CHUNG/C08/UI.md`.
+
 ## 3. Điểm vào
 
 - Tab "Ứng viên" của `/hr/jobs/:id/edit`: nút "Xem hồ sơ" (giữ vị trí, icon `FileText`, `variant="outline"
