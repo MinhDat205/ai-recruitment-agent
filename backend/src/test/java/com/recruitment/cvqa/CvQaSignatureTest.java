@@ -15,13 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-// FR-C08 T17 - khong transaction quanh loi goi AI (R-A1, CLAUDE.md muc 3c): CvQaFacade, CvQaService, CvQaHrController
-// khong @Transactional (ca hai loai annotation, cap lop va cap method); goi facade ben trong TransactionTemplate ->
-// IllegalStateException cua K3, 0 lan goi ChatModel. Kem R-K1-4: tham so constructor/field khong thuoc scoring/, rubric/.
-// Phia ung vien (CvQaCandidateController) them o dot 4.
+// FR-C08 T17 - khong transaction quanh loi goi AI (R-A1, CLAUDE.md muc 3c): CvQaFacade, CvQaService, CvQaHrController,
+// CvQaCandidateController khong @Transactional (ca hai loai annotation, cap lop va cap method); goi facade (ca hai phia)
+// ben trong TransactionTemplate -> IllegalStateException cua K3, 0 lan goi ChatModel. Kem R-K1-4: tham so
+// constructor/field khong thuoc scoring/, rubric/.
 class CvQaSignatureTest extends CvQaIntegrationTestSupport {
 
-    private static final List<Class<?>> CHECKED = List.of(CvQaFacade.class, CvQaService.class, CvQaHrController.class);
+    private static final List<Class<?>> CHECKED = List.of(
+            CvQaFacade.class, CvQaService.class, CvQaHrController.class, CvQaCandidateController.class);
 
     private static final List<String> FORBIDDEN_PACKAGES = List.of("com.recruitment.scoring", "com.recruitment.rubric");
 
@@ -32,7 +33,7 @@ class CvQaSignatureTest extends CvQaIntegrationTestSupport {
     TransactionTemplate transactionTemplate;
 
     @Test
-    void facadeServiceAndHrController_areNotTransactional() {
+    void facadeServiceAndControllers_areNotTransactional() {
         for (Class<?> type : CHECKED) {
             assertThat(type.isAnnotationPresent(Transactional.class)).as(type.getSimpleName()).isFalse();
             assertThat(type.isAnnotationPresent(jakarta.transaction.Transactional.class))
@@ -50,7 +51,7 @@ class CvQaSignatureTest extends CvQaIntegrationTestSupport {
     }
 
     @Test
-    void facadeServiceAndHrController_doNotDependOnScoringOrRubric() {
+    void facadeServiceAndControllers_doNotDependOnScoringOrRubric() {
         List<String> violations = new ArrayList<>();
         for (Class<?> type : CHECKED) {
             for (Constructor<?> constructor : type.getDeclaredConstructors()) {
@@ -74,6 +75,19 @@ class CvQaSignatureTest extends CvQaIntegrationTestSupport {
 
         assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status ->
                         facade.askAsHr(f.hrUserId(), f.applicationId(), new CvQaRequest(DEFAULT_QUESTION))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("R-K3-4");
+        assertNoModelCall();
+    }
+
+    // Phia ung vien: qua quyen (R-Q2), R-H1, R-G, K1 roi toi K3, K3 tu choi vi dang co transaction.
+    @Test
+    void candidateFacadeInsideTransaction_throwsIllegalStateFromK3_noModelCall() throws Exception {
+        Fixture f = createApplicationWithText("c08-t17-tx-uv", RAW_TEXT);
+        stubDefaultAnswer();
+
+        assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> facade.askAsCandidate(
+                        f.candidateUserId(), f.resumeId(), new CvQaRequest("CV của tôi ghi kinh nghiệm Java ở đâu?"))))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("R-K3-4");
         assertNoModelCall();

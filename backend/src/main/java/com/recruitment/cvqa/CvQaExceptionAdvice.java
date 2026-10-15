@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 // controller hoi dap CV (assignableTypes): moi endpoint JSON khac giu nguyen 400 mac dinh - KHONG dua handler nay vao
 // GlobalExceptionHandler. Chi bat MOT loai exception; exception khac roi xuong GlobalExceptionHandler.
 //
-// L5: dot 3 chi khai CvQaHrController; CvQaCandidateController them vao assignableTypes o dot 4.
+// L5: dot 3 chi khai CvQaHrController; dot 4 them CvQaCandidateController.
 //
 // @Order(HIGHEST_PRECEDENCE): resolver duyet advice theo OrderComparator va lay handler khop dau tien - giu advice nay
 // dung truoc ke ca khi sau nay GlobalExceptionHandler co handler bat Exception.
-@RestControllerAdvice(assignableTypes = {CvQaHrController.class})
+@RestControllerAdvice(assignableTypes = {CvQaHrController.class, CvQaCandidateController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CvQaExceptionAdvice {
 

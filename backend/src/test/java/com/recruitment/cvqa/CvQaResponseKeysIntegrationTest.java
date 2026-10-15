@@ -6,12 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 
 // FR-C08 T16 (khuon C07 T11) - phia HR: ba outcome -> JSON co DUNG 5 khoa goc; phan tu citations chi co "quote"; khong
-// khoa cam muc 4.5 o moi cap (so nguyen ten khoa, duyet de quy). Phia ung vien them o dot 4.
+// khoa cam muc 4.5 o moi cap (so nguyen ten khoa, duyet de quy). Ca hai endpoint (phia ung vien them o dot 4).
 class CvQaResponseKeysIntegrationTest extends CvQaIntegrationTestSupport {
 
     private static final List<String> ROOT_KEYS = List.of("outcome", "answer", "citations", "refusalReason", "cvTruncated");
@@ -33,6 +34,28 @@ class CvQaResponseKeysIntegrationTest extends CvQaIntegrationTestSupport {
         resetChatModelMock();
         MvcResult refused = ask(f, "Ứng viên bao nhiêu tuổi?");
 
+        assertKeys(answered, notFound, refused);
+    }
+
+    // Phia ung vien (dot 4): CV cua chinh minh, REFUSED tu bo chan tu khoa CV_IMPROVEMENT.
+    @Test
+    void candidate_allThreeOutcomes_haveExactlyFiveRootKeys_noForbiddenKeys() throws Exception {
+        String token = register("candidate", uniqueEmail("c08-t16-uv"));
+        UUID resumeId = uploadResume(token);
+        insertParsedData(resumeId, RAW_TEXT);
+
+        stubOutputs(answeredJson(DEFAULT_ANSWER, QUOTE_EXPERIENCE, QUOTE_SKILLS));
+        MvcResult answered = askAsCandidate(resumeId, token, "CV của tôi ghi kinh nghiệm Java ở đâu?");
+        resetChatModelMock();
+        stubOutputs(notFoundJson());
+        MvcResult notFound = askAsCandidate(resumeId, token, "CV của tôi có chứng chỉ AWS không?");
+        resetChatModelMock();
+        MvcResult refused = askAsCandidate(resumeId, token, "Tôi nên học thêm gì?");
+
+        assertKeys(answered, notFound, refused);
+    }
+
+    private static void assertKeys(MvcResult answered, MvcResult notFound, MvcResult refused) throws Exception {
         assertOutcome(answered, "ANSWERED");
         assertOutcome(notFound, "NOT_FOUND");
         assertOutcome(refused, "REFUSED");

@@ -3,10 +3,11 @@ package com.recruitment.cvqa;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-// FR-C08 T7 (R-H1 qua HTTP, bien 1/499/500/501) va T8b (bo chan tu khoa R-G qua HTTP) - phia HR. Moi ca 400 va moi ca
-// bi chan: 0 lan goi ChatModel.
+// FR-C08 T7 (R-H1 qua HTTP, bien 1/499/500/501) va T8b (bo chan tu khoa R-G qua HTTP) - phia HR; them ca JSON hong va
+// R-H1 phia ung vien (dot 4). Moi ca 400 va moi ca bi chan: 0 lan goi ChatModel.
 class CvQaQuestionIntegrationTest extends CvQaIntegrationTestSupport {
 
     // ---- T7 ----
@@ -87,6 +88,33 @@ class CvQaQuestionIntegrationTest extends CvQaIntegrationTestSupport {
 
         assertError(result, 400, "INVALID_CV_QA_REQUEST", UNREADABLE_MESSAGE);
         assertThat(body(result).propertyNames()).containsExactlyInAnyOrder("error", "message");
+        assertNoModelCall();
+    }
+
+    // Phia ung vien (dot 4): CvQaExceptionAdvice khai CvQaCandidateController (L5) -> JSON hong 400 INVALID_CV_QA_REQUEST.
+    @Test
+    void t7_candidateMalformedJson_returns400InvalidRequest_noCall() throws Exception {
+        String token = register("candidate", uniqueEmail("c08-t7-json-uv"));
+        UUID resumeId = uploadResume(token);
+        insertParsedData(resumeId, RAW_TEXT);
+
+        var result = postRawAsCandidate(resumeId, token, "{\"question\":");
+
+        assertError(result, 400, "INVALID_CV_QA_REQUEST", UNREADABLE_MESSAGE);
+        assertThat(body(result).propertyNames()).containsExactlyInAnyOrder("error", "message");
+        assertNoModelCall();
+    }
+
+    // Phia ung vien dung chung R-H1: rong -> "Vui lòng nhập câu hỏi.", 501 -> "Câu hỏi tối đa 500 ký tự.".
+    @Test
+    void t7_candidateEmptyOr501Question_returns400_noCall() throws Exception {
+        String token = register("candidate", uniqueEmail("c08-t7-q-uv"));
+        UUID resumeId = uploadResume(token);
+        insertParsedData(resumeId, RAW_TEXT);
+
+        assertError(postRawAsCandidate(resumeId, token, "{\"question\": \"   \"}"), 400, "INVALID_CV_QA_QUESTION",
+                EMPTY_QUESTION_MESSAGE);
+        assertError(askAsCandidate(resumeId, token, "a".repeat(501)), 400, "INVALID_CV_QA_QUESTION", TOO_LONG_MESSAGE);
         assertNoModelCall();
     }
 

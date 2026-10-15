@@ -34,6 +34,7 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -191,6 +192,25 @@ abstract class CvQaIntegrationTestSupport {
 
     MvcResult ask(Fixture f, String question) throws Exception {
         return ask(f.applicationId(), f.hrToken(), question);
+    }
+
+    // Phia ung vien (Q2, dot 4).
+    static String candidatePath(Object resumeId) {
+        return "/api/candidates/resumes/" + resumeId + "/cv-qa";
+    }
+
+    MvcResult postRawAsCandidate(Object resumeId, String token, String rawJson) throws Exception {
+        var request = post(candidatePath(resumeId)).contentType(MediaType.APPLICATION_JSON).content(rawJson);
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        return mockMvc.perform(request).andReturn();
+    }
+
+    MvcResult askAsCandidate(Object resumeId, String token, String question) throws Exception {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("question", question);
+        return postRawAsCandidate(resumeId, token, JSON.writeValueAsString(body));
     }
 
     static JsonNode body(MvcResult result) throws Exception {
@@ -402,5 +422,44 @@ abstract class CvQaIntegrationTestSupport {
                 description,
                 requirements,
                 jobId);
+    }
+
+    // Du lieu chi HR thay cho don (T4, T21): tieu chi rubric (ten = criterionName cua fixture), luot cham voi reasoning +
+    // evidence, giai thich, lich su trang thai co ghi chu.
+    void seedHrOnlyData(Fixture f) {
+        UUID runId = jdbcTemplate.queryForObject(
+                "INSERT INTO scoring_runs (application_id, status, total_score, model, prompt_version, started_at,"
+                        + " finished_at) VALUES (?, 'DONE', 7.345, 'claude-test', 'criterion-score-v1', now(), now())"
+                        + " RETURNING id",
+                UUID.class,
+                f.applicationId());
+        jdbcTemplate.update(
+                "INSERT INTO criterion_scores (scoring_run_id, criterion_name_snapshot, weight_snapshot,"
+                        + " max_score_snapshot, score, reasoning, evidence) VALUES (?, ?, 100, 5, 4.5, ?, ?::jsonb)",
+                runId,
+                "TIEU_CHI_BI_MAT_C08",
+                "LY_DO_BI_MAT_C08",
+                "[{\"quote\":\"TRICH_DAN_BI_MAT_C08\",\"section\":\"experience\"}]");
+        jdbcTemplate.update(
+                "INSERT INTO score_explanations (scoring_run_id, summary, model, prompt_version)"
+                        + " VALUES (?, ?, 'claude-test', 'score-explanation-v1')",
+                runId,
+                "TOM_TAT_BI_MAT_C08");
+        jdbcTemplate.update(
+                "INSERT INTO application_status_history (application_id, from_status, to_status, changed_by, note)"
+                        + " VALUES (?, 'PENDING', 'INTERVIEW_INVITED', ?, ?)",
+                f.applicationId(),
+                f.hrUserId(),
+                "GHI_CHU_BI_MAT_C08");
+    }
+
+    // Phan system truoc {format}, {viewer} da dien - noi dung cv-qa-v1.st nguyen van.
+    static String promptHead(String viewer) throws Exception {
+        String template = new ClassPathResource("ai/prompt/cv-qa-v1.st").getContentAsString(StandardCharsets.UTF_8);
+        return template.substring(0, template.indexOf("{format}")).replace("{viewer}", viewer);
+    }
+
+    static String lf(String text) {
+        return text.replace("\r\n", "\n");
     }
 }

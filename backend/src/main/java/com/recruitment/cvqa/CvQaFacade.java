@@ -7,9 +7,11 @@ import com.recruitment.aicontext.ContextViewer;
 import com.recruitment.aicontext.CvQaContext;
 import com.recruitment.aicontext.CvQaContextAssembler;
 import com.recruitment.common.exception.InvalidCvQaQuestionException;
+import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.cvqa.dto.CvQaRequest;
 import com.recruitment.cvqa.dto.CvQaResponse;
 import com.recruitment.jobapplication.HrApplicationAccess;
+import com.recruitment.resume.ResumeRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,8 @@ import org.springframework.stereotype.Service;
 // transaction.
 //
 // Thu tu R-Q6, dung o loi dau tien; moi loi truoc buoc 5 khong goi ChatModel:
-//   1. quyen (R-Q1: HrApplicationAccess.loadOwned - khong cong ty 404, khong co don 404, don cong ty khac 403);
+//   1. quyen (R-Q1: HrApplicationAccess.loadOwned - khong cong ty 404, khong co don 404, don cong ty khac 403;
+//      R-Q2: ResumeRepository.findByIdAndCandidateId - CV nguoi khac va CV khong ton tai CUNG 404 RESUME_NOT_FOUND);
 //   2. cau hoi hop le (R-H1) -> 400 INVALID_CV_QA_QUESTION;
 //   3. chan tu khoa (R-G) -> 200 REFUSED, dung - KHONG dung K1, khong doc raw_text;
 //   4. dung ngu canh K1 -> 409 CV_TEXT_NOT_AVAILABLE khi thieu van ban (R-Q3);
@@ -35,16 +38,19 @@ public class CvQaFacade {
     static final int MAX_QUESTION_LENGTH = 500;
 
     private final HrApplicationAccess hrApplicationAccess;
+    private final ResumeRepository resumeRepository;
     private final CvQaQuestionGuard questionGuard;
     private final CvQaContextAssembler contextAssembler;
     private final CvQaService cvQaService;
 
     public CvQaFacade(
             HrApplicationAccess hrApplicationAccess,
+            ResumeRepository resumeRepository,
             CvQaQuestionGuard questionGuard,
             CvQaContextAssembler contextAssembler,
             CvQaService cvQaService) {
         this.hrApplicationAccess = hrApplicationAccess;
+        this.resumeRepository = resumeRepository;
         this.questionGuard = questionGuard;
         this.contextAssembler = contextAssembler;
         this.cvQaService = cvQaService;
@@ -60,6 +66,21 @@ public class CvQaFacade {
             return CvQaResponse.from(CvQaAnswer.refused(refusal.get()));
         }
         CvQaContext context = contextAssembler.forHrApplication(applicationId);
+        return CvQaResponse.from(cvQaService.answer(context, question));
+    }
+
+    // Q2 - phia ung vien. Moi CV cua minh co van ban trich xuat, dung trong don hay khong; khong chon JD (R-Q2, Q9).
+    // Khong can dong y AI - CV cua chinh minh (R-Q4). Nhan than KHONG chan o R-G phia ung vien (R-G5).
+    public CvQaResponse askAsCandidate(UUID candidateId, UUID resumeId, CvQaRequest request) {
+        resumeRepository
+                .findByIdAndCandidateId(resumeId, candidateId)
+                .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        String question = normalizeQuestion(request.question());
+        Optional<CvQaRefusalReason> refusal = questionGuard.check(question, ContextViewer.CANDIDATE);
+        if (refusal.isPresent()) {
+            return CvQaResponse.from(CvQaAnswer.refused(refusal.get()));
+        }
+        CvQaContext context = contextAssembler.forCandidateResume(resumeId);
         return CvQaResponse.from(cvQaService.answer(context, question));
     }
 
