@@ -16,8 +16,8 @@ interface CvQaSessionState {
   error: string | null
   // Cau hoi cua lan loi - "Thu lai" gui dung cau nay, khong doc lai o hoi (UI.md muc 6).
   retryQuestion: string | null
-  // Dang cho request cua CHINH khoa nay - khong lay mutation.isPending (request cua khoa cu con treo khong duoc khoa
-  // nut cua khoa moi).
+  // Dang cho request cua CHINH the he phien nay (epoch) - khong lay mutation.isPending (request cua the he cu con treo
+  // khong duoc khoa nut cua the he moi).
   pending: boolean
 }
 

@@ -5,6 +5,7 @@ import { RequireCandidateProfileOnboarding } from './features/candidateProfile/R
 import { RequireCompany } from './features/companies/RequireCompany'
 import { CandidateApplicationDetailPage } from './pages/CandidateApplicationDetailPage'
 import { CandidateApplicationsPage } from './pages/CandidateApplicationsPage'
+import { CandidateCvQaPage } from './pages/CandidateCvQaPage'
 import { CandidateHomePage } from './pages/CandidateHomePage'
 import { CandidateJobListPage } from './pages/CandidateJobListPage'
 import { CandidateMessagesPage } from './pages/CandidateMessagesPage'
@@ -79,6 +80,7 @@ function App() {
               path="/candidate/resumes/:id/improvement-suggestions"
               element={<CvImprovementSuggestionsPage />}
             />
+            <Route path="/candidate/resumes/:id/qa" element={<CandidateCvQaPage />} />
           </Route>
           {/* Moi route /hr/* MOI mac dinh dat trong nhom nay (can ho so cong ty). Chi route nao
               chac chan dung duoc khi HR chua co cong ty moi dat ngoai nhom, nhu /hr/company va
