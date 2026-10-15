@@ -405,6 +405,21 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_AI_GENERATION_TOKEN", ex.getMessage()));
     }
 
+    // FR-C08 R-H1 - mot ma loi, hai cau co dinh qua getMessage(). Body JSON hong (R-Q7) KHONG di qua day ma qua
+    // CvQaExceptionAdvice (chi ap cho controller hoi dap CV).
+    @ExceptionHandler(InvalidCvQaQuestionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCvQaQuestion(InvalidCvQaQuestionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CV_QA_QUESTION", ex.getMessage()));
+    }
+
+    // FR-C08 R-Q3 - CV chua co van ban trich xuat.
+    @ExceptionHandler(CvTextNotAvailableException.class)
+    public ResponseEntity<ErrorResponse> handleCvTextNotAvailable(CvTextNotAvailableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CV_TEXT_NOT_AVAILABLE", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
