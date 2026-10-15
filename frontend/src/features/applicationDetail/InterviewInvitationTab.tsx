@@ -5,7 +5,11 @@ import { formatDateTimeVi } from '../../lib/date'
 import { InterviewInvitationDialog } from '../interviewinvitation/InterviewInvitationDialog'
 import { InterviewSlotList } from '../interviewinvitation/InterviewSlotList'
 import { INVITATION_TEXT } from '../interviewinvitation/invitationLabels'
-import { InvitationLetter, PreviousInvitationCard } from '../interviewinvitation/PreviousInvitationCard'
+import {
+  CandidatePickedLine,
+  InvitationLetter,
+  PreviousInvitationCard,
+} from '../interviewinvitation/PreviousInvitationCard'
 import { useInterviewInvitationsQuery } from '../interviewinvitation/queries'
 import { applicationDetailInvalidateKeys } from './queries'
 import type { ApplicationHrDetail } from './types'
@@ -76,6 +80,8 @@ export function InterviewInvitationTab({ detail }: { detail: ApplicationHrDetail
               <p className="text-sm text-m3-on-surface-variant">
                 {INVITATION_TEXT.sentAt(formatDateTimeVi(active.sentAt))}
               </p>
+              {/* FR-U10 UI.md 4d - ngay duoi "Gui luc", ke ca 375px (muc 8) */}
+              <CandidatePickedLine invitation={active} />
             </div>
             {canResend && (
               <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setResendOpen(true)}>

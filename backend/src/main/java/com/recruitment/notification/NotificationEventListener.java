@@ -114,6 +114,29 @@ public class NotificationEventListener {
         }
     }
 
+    // FR-U10 R-N1 - khuon onApplicationWithdrawn: AFTER_COMMIT + REQUIRES_NEW, loi KHONG vang ra ngoai. Khung lay tu su kien
+    // (gia tri vua chot) - KHONG doc bang giay moi. Nguoi nhan la chu cong ty; ung vien KHONG nhan (Q7). C1 loi hoac
+    // transaction chon khung rollback thi Spring khong goi toi day - khong thong bao (R-N5).
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onInterviewSlotConfirmed(InterviewSlotConfirmedEvent event) {
+        try {
+            Job job = jobRepository.findById(event.jobId()).orElseThrow();
+            Company company = companyRepository.findById(job.getCompanyId()).orElseThrow();
+            User candidate = userRepository.findById(event.candidateId()).orElseThrow();
+            Content content = NotificationContentBuilder.forSlotConfirmed(
+                    job,
+                    candidate.getFullName(),
+                    event.scheduledAt(),
+                    event.location(),
+                    event.applicationId(),
+                    frontendBaseUrl);
+            save(company.getOwnerId(), NotificationType.INTERVIEW_SLOT_CONFIRMED, content, event.applicationId());
+        } catch (RuntimeException e) {
+            log.error("Khong tao duoc thong bao ung vien chon khung gio: applicationId={}", event.applicationId(), e);
+        }
+    }
+
     @EventListener
     @Transactional
     public void onAggregationFinished(AggregationFinishedEvent event) {

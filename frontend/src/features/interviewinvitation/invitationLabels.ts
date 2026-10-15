@@ -18,7 +18,7 @@ export const INVITATION_TEXT = {
   resendNotice:
     'Giấy mời mới sẽ thay giấy mời hiện tại. Giấy mời hiện tại vẫn được lưu nguyên văn ở mục "Giấy mời trước đó". Trạng thái đơn không đổi. Ứng viên sẽ nhận thông báo và email kèm các khung giờ mới.',
   resendConfirmedNotice: (time: string) =>
-    `Ứng viên đã chốt khung ${time}. Khung này sẽ không còn hiệu lực sau khi gửi lại.`,
+    `Giấy mời hiện tại đã chốt khung ${time}. Khung này sẽ không còn hiệu lực sau khi gửi lại.`,
   submitInvite: 'Gửi lời mời',
   submitResend: 'Gửi lại giấy mời',
   submitting: 'Đang gửi...',
@@ -32,8 +32,30 @@ export const INVITATION_TEXT = {
   resendButton: 'Gửi lại giấy mời',
   emptyPending: 'Chưa gửi giấy mời phỏng vấn cho đơn này. Dùng nút "Mời phỏng vấn" ở đầu trang để gửi.',
   emptyOther: 'Đơn này chưa từng được mời phỏng vấn.',
-  // Q8 - phia ung vien, chi khi giay moi hieu luc chua chot (FR-U10 thay cau nay).
-  candidateUnconfirmed: 'Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để xác nhận khung giờ phù hợp.',
+  // FR-U10 UI.md muc 7 (R-U2) - thay cau Q8 cua H12: huong dan chon, chi khi phan chon hien (4a). Nhay don de giu nguyen
+  // dau ngoac kep lon trong chuoi (L27).
+  candidateUnconfirmed:
+    'Chọn một khung giờ phù hợp rồi bấm "Xác nhận khung giờ". Nếu không khung nào phù hợp, hãy nhắn cho nhà tuyển dụng qua tab Trao đổi.',
+  // FR-U10 UI.md muc 7 - phia ung vien (4a, 4b-1, 4b-3) va hop xac nhan (4c).
+  candidateAllPassed:
+    'Các khung giờ trong giấy mời đã qua. Hãy nhắn cho nhà tuyển dụng qua tab Trao đổi để sắp xếp lịch khác.',
+  candidateConfirmedAt: (time: string) =>
+    `Bạn đã chọn khung giờ này lúc ${time}. Muốn đổi lịch, hãy nhắn cho nhà tuyển dụng qua tab Trao đổi.`,
+  slotElapsed: 'Đã qua',
+  locationPrefix: 'Địa điểm: ',
+  confirmSlotButton: 'Xác nhận khung giờ',
+  slotRequired: 'Vui lòng chọn một khung giờ.',
+  confirmDialogTitle: 'Xác nhận khung giờ phỏng vấn',
+  confirmDialogIntro: 'Bạn chọn khung giờ:',
+  confirmDialogTime: (time: string) => `${time} (giờ Việt Nam)`,
+  confirmDialogWarning:
+    'Sau khi xác nhận, bạn không tự đổi được khung giờ. Muốn đổi lịch, bạn cần nhắn cho nhà tuyển dụng qua tab Trao đổi.',
+  confirmDialogCancel: 'Huỷ',
+  confirmDialogConfirm: 'Xác nhận',
+  confirmDialogConfirming: 'Đang xác nhận...',
+  confirmSlotFailed: 'Xác nhận khung giờ thất bại, vui lòng thử lại.',
+  // FR-U10 UI.md 4d, muc 7 (Q9, R-H1) - phia HR: giay moi >= 2 khung da chot (ung vien da chon).
+  candidatePickedAt: (time: string) => `Ứng viên đã chọn lúc ${time}`,
   slotListTitle: 'Khung giờ (giờ Việt Nam)',
   missingLocation: 'Chưa có dữ liệu',
   confirmed: 'Đã chốt',

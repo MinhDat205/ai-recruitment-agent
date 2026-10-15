@@ -3,6 +3,7 @@ package com.recruitment.notification;
 import com.recruitment.job.Job;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.notification.InterviewInvitationResentEvent.SlotInfo;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.UUID;
 final class NotificationContentBuilder {
 
     private static final String MESSAGES_TAB_QUERY = "?tab=messages";
+    private static final String INVITATION_TAB_QUERY = "?tab=invitation";
 
     // FR-H12 R-N3 - gio trong email theo gio Viet Nam, cung dinh dang MessageDraftService.INTERVIEW_TIME.
     private static final DateTimeFormatter SLOT_TIME =
@@ -107,6 +109,24 @@ final class NotificationContentBuilder {
         email.append("\n\nXem giấy mời tại: ").append(frontendBaseUrl).append(link);
 
         return new Content("Nhà tuyển dụng đã gửi lại giấy mời phỏng vấn", body, link, email.toString());
+    }
+
+    // FR-U10 R-N3, R-N4 - ung vien chon khung gio. body MOT dong co gio Viet Nam, KHONG dia diem, KHONG xuong dong (web);
+    // emailBody = body + dia diem + dong lien ket. Link mo thang tab giay moi cua ho so don HR.
+    static Content forSlotConfirmed(
+            Job job,
+            String candidateName,
+            Instant scheduledAt,
+            String location,
+            UUID applicationId,
+            String frontendBaseUrl) {
+        String body = "Ứng viên " + candidateName + " đã chọn khung giờ phỏng vấn " + SLOT_TIME.format(scheduledAt)
+                + " (giờ Việt Nam) cho vị trí \"" + job.getTitle() + "\".";
+        String link = hrApplicationLink(applicationId) + INVITATION_TAB_QUERY;
+        String email = body
+                + "\n\nĐịa điểm: " + (location == null ? MISSING_LOCATION : location)
+                + "\n\nXem giấy mời tại: " + frontendBaseUrl + link;
+        return new Content("Ứng viên đã chọn lịch phỏng vấn", body, link, email);
     }
 
     private static String hrApplicationLink(UUID applicationId) {

@@ -6,6 +6,8 @@ export type NotificationType =
   | 'NEW_MESSAGE'
   // FR-H12 R-N1 - HR gui lai giay moi; hien mot dong nhu cac loai cu (Q5).
   | 'INTERVIEW_INVITATION_RESENT'
+  // FR-U10 R-N2 - ung vien da chon khung gio (chi chu cong ty nhan); mot dong nhu cac loai cu.
+  | 'INTERVIEW_SLOT_CONFIRMED'
 
 export interface NotificationItem {
   id: string

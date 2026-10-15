@@ -8,14 +8,32 @@ import type { InterviewInvitationResponse } from './types'
 export function PreviousInvitationCard({ invitation }: { invitation: InterviewInvitationResponse }) {
   return (
     <article className="flex min-w-0 flex-col gap-3 rounded-m3-sm border border-m3-outline-variant bg-m3-surface p-4">
-      <p className="text-sm break-words text-m3-on-surface-variant">
-        {invitation.supersededAt
-          ? INVITATION_TEXT.previousMeta(formatDateTimeVi(invitation.sentAt), formatDateTimeVi(invitation.supersededAt))
-          : INVITATION_TEXT.sentAt(formatDateTimeVi(invitation.sentAt))}
-      </p>
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-sm break-words text-m3-on-surface-variant">
+          {invitation.supersededAt
+            ? INVITATION_TEXT.previousMeta(formatDateTimeVi(invitation.sentAt), formatDateTimeVi(invitation.supersededAt))
+            : INVITATION_TEXT.sentAt(formatDateTimeVi(invitation.sentAt))}
+        </p>
+        {/* FR-U10 O2 - cung quy tac voi giay moi hieu luc */}
+        <CandidatePickedLine invitation={invitation} />
+      </div>
       <InterviewSlotList slots={invitation.slots} confirmedSlotId={invitation.confirmedSlotId} variant="hr" />
       <InvitationLetter subject={invitation.subject} content={invitation.renderedContent} />
     </article>
+  )
+}
+
+// FR-U10 UI.md 4d (Q9, R-H1) - "Ung vien da chon luc ..." khi giay moi >= 2 khung DA CHOT: H12 chi tu chot giay moi 1 khung,
+// nen >= 2 khung da chot <=> ung vien da chon. KHONG suy bang cach so confirmedAt voi sentAt. confirmedAt !== null chi de
+// thu hep kieu - CHECK chk_invitation_confirmed_pair bao dam di cap voi confirmedSlotId (L36).
+export function CandidatePickedLine({ invitation }: { invitation: InterviewInvitationResponse }) {
+  if (invitation.slots.length < 2 || invitation.confirmedSlotId === null || invitation.confirmedAt === null) {
+    return null
+  }
+  return (
+    <p className="text-sm break-words text-m3-on-surface">
+      {INVITATION_TEXT.candidatePickedAt(formatDateTimeVi(invitation.confirmedAt))}
+    </p>
   )
 }
 

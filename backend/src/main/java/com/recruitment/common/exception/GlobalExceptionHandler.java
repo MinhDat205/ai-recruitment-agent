@@ -259,6 +259,34 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVITATION_RESEND_NOT_ALLOWED", ex.getMessage()));
     }
 
+    // FR-U10 R-W1 buoc 2 - 409, xem SlotSelectionNotAllowedException.
+    @ExceptionHandler(SlotSelectionNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleSlotSelectionNotAllowed(SlotSelectionNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("SLOT_SELECTION_NOT_ALLOWED", ex.getMessage()));
+    }
+
+    // FR-U10 R-W5 dong 2 (Q3).
+    @ExceptionHandler(InterviewSlotAlreadyConfirmedException.class)
+    public ResponseEntity<ErrorResponse> handleInterviewSlotAlreadyConfirmed(InterviewSlotAlreadyConfirmedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("INTERVIEW_SLOT_ALREADY_CONFIRMED", ex.getMessage()));
+    }
+
+    // FR-U10 R-W5 dong 3, 5 - dung lai ma INTERVIEW_INVITATION_CONFLICT cua FR-H12 (cung cau, xem nhanh uq_invitation_active).
+    @ExceptionHandler(InterviewInvitationConflictException.class)
+    public ResponseEntity<ErrorResponse> handleInterviewInvitationConflict(InterviewInvitationConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("INTERVIEW_INVITATION_CONFLICT", ex.getMessage()));
+    }
+
+    // FR-U10 R-W5 dong 4 (R-C6).
+    @ExceptionHandler(InterviewSlotPassedException.class)
+    public ResponseEntity<ErrorResponse> handleInterviewSlotPassed(InterviewSlotPassedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("INTERVIEW_SLOT_PASSED", ex.getMessage()));
+    }
+
     @ExceptionHandler(ResumeNotParsedException.class)
     public ResponseEntity<ErrorResponse> handleResumeNotParsed(ResumeNotParsedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -456,11 +484,12 @@ public class GlobalExceptionHandler {
         }
         // uq_invitation_active (V16, FR-H12 R-F4, R-G6) - chot chan cuoi chong hai giay moi hieu luc cho mot don (vd du
         // lieu ghi tay); luong gui lai binh thuong da tuan tu hoa bang khoa hang don (R-G3) nen khong cham toi day.
+        // FR-U10 (muc 4.2) - lay cau tu InterviewInvitationConflictException (khuon uq_scoring_run_in_progress ben tren) de
+        // nhanh nay va duong chon khung (R-W5) tra DUNG mot chuoi; ma va HTTP khong doi.
         if (message != null && message.contains("uq_invitation_active")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new ErrorResponse(
-                            "INTERVIEW_INVITATION_CONFLICT",
-                            "Giấy mời của đơn này vừa được thay đổi ở nơi khác. Vui lòng tải lại trang."));
+                            "INTERVIEW_INVITATION_CONFLICT", new InterviewInvitationConflictException().getMessage()));
         }
         throw ex;
     }
