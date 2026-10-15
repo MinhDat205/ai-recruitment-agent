@@ -1,6 +1,6 @@
 # FR-C08 — Hỏi đáp CV có trích dẫn
 
-> Trạng thái: ĐÃ DUYỆT (14/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (15/10/2026). Duyệt: 14/10/2026.
 >
 > Quyết định Q1–Q14, M1–M8 và quyết định K1 đã chốt 14/10/2026 (mục 11.1, 11.2). Lượt sửa sau `spec-review` và sau soát
 > toàn văn (O1–O9, S1–S6, 14/10/2026): mục 11.3. Không còn điểm mở (mục 12).
@@ -819,6 +819,10 @@ Lê Thị Lan). `raw_text` R3 không có "Kubernetes", chứng chỉ hay ngày s
 | L55 | (Đợt 7a) Bước merge `main` (M6) của đợt 7: `main` vẫn ở `f4665a3`, PR U10 và PR fix chưa merge | M6 dời sang lúc mở PR (thứ tự U10 → fix → C08), gỡ xung đột SRS/ROADMAP khi đó |
 | L56 | (Đợt 7a) Full suite 1467 test, 1 lỗi hạ tầng: `CatalogSeedConsistencyTest` không khởi động được container `pgvector/pgvector:pg17` (Testcontainers chờ log 'ready' quá hạn); lớp không đổi so với `main`; chạy lại riêng lớp bằng `-Dtest`: 5 test xanh. Lần chạy full tính lớp lỗi khởi động là 1 test (lỗi cấp lớp); chạy riêng ra 5 test, nên tổng khi xanh hết là 1471 (1467 − 1 + 5). Walkthrough và ROADMAP ghi 1471 | Full suite coi là đạt |
 | L57 | (Đợt 7a, 15/10/2026) 7.2 đạt: phần A 11/11 bước; phần B HR 10 lượt (ANSWERED 6, NOT_FOUND 4, 0 lỗi 5xx, thời gian 1,3/4,0/7,4 s), phần B ứng viên 10 lượt (ANSWERED 6, NOT_FOUND 4, 0 lỗi 5xx, 1,3/3,6/6,2 s); Kubernetes NOT_FOUND cả 2 vòng hai phía; 30/30 trích dẫn có trong raw_text R3 (đối chứng chuỗi sai ra f); người duyệt đọc toàn văn 12 câu trả lời: không đánh giá, không khen chê, không thông tin ngoài CV | Giữ trần 1000 token (O2). Khoá API được thay ngày 15/10/2026, cổng dời từ đợt 3 (L36) đã đo xong. |
+| L58 | (Đợt 7b) Soát tay 7.4 (người dùng, 15/10/2026): đạt 19/19 bước, desktop/768px/375px. Ngoài kịch bản: câu 'cv của tôi đã ổn chưa' (không chứa từ khoá) được AI xếp CV_IMPROVEMENT kèm liên kết U05; 'hello' ra OUT_OF_SCOPE — lớp prompt hoạt động. Dòng CV dài: đệm R3 lên 47 019 ký tự, câu truncatedNotice hiện, trích dẫn vẫn khớp; đã khôi phục md5. | Ghi nhận |
+| L59 | (Đợt 7b) `srs-guard` nguyên tắc 13 lệnh 2 (prompt, "kỳ vọng 0 kết quả tuyệt đối") ra 2 dòng: `cv-qa-v1.st:35` (định nghĩa `PERSONAL_INFO` liệt kê "tuổi, ngày sinh, giới tính, tình trạng hôn nhân, … tôn giáo …" để AI **từ chối**) và `:37` (ví dụ "CV của tôi có ghi ngày sinh không?" phía ứng viên). Nội dung là lệnh từ chối/không suy đoán, đúng R-G/S3 và bản prompt đã duyệt (13.3); nhưng luật skill không có ngoại lệ, D7 ghi "không đổi" | Chọn (a) với danh sách cho phép đích danh; lệch D7 (skill có đổi). Loại (b): làm yếu lớp từ chối và phải đo lại cổng AI; loại (c): srs-guard đỏ mãi, che lỗi thật. |
+| L60 | (Đợt 7b) `docs/SRS.md:13-17` đoạn tổng quan vẫn ghi "18 chức năng đã hoàn thành … 20 chức năng bổ sung đang ở giai đoạn đặc tả" — đã cũ từ trước C08 (C05–C07, H09–H12, U07–U09, U14–U15 đều đã xong); D1 chỉ sửa dòng 28 | Đã duyệt: nhánh docs/ riêng |
+| L61 | (Đợt 7b) Chỗ lệch còn lại ngoài chữ D4/D5: README §14 câu "Câu trả lời không còn trích dẫn hợp lệ hiển thị 'Không tìm thấy căn cứ trong CV'" trái Q4 (hỏng → `AI_INVALID_OUTPUT`); "Lưu ý" ghi "thay bằng đối chiếu từng yêu cầu với nội dung CV" (C08 chỉ từ chối, không đối chiếu); README dòng 4 "Cập nhật: 14/10/2026". CLAUDE.md §3d K1 câu "**Chưa có:** phần CV/JD/rubric/điểm — C08/H15 tự thêm record riêng" vẫn nhắc C08. D4 mục M2 (bỏ chọn Job) đã áp cả cho câu ngữ cảnh ứng viên "JD của Job được chọn (nếu có)" | Đã duyệt: sửa trong C08 |
 
 ### 13.3 Toàn văn `cv-qa-v1.st` đã duyệt (15/10/2026)
 

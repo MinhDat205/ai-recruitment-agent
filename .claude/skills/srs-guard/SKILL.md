@@ -196,9 +196,14 @@ rg -i "gender|dateOfBirth|date_of_birth|ngày sinh|giới tính|tuổi|hôn nhâ
 Lệnh 1 tìm field nhân thân trong code (kỳ vọng ra `CandidateProfile.dateOfBirth` và DTO liên quan
 — dữ liệu candidate tự quản lý, FR-U01, KHÔNG vi phạm miễn KHÔNG bị đọc ở `ai/`,
 `jobrecommendation/`, hay logic lọc/tìm kiếm). Lệnh 2 soát riêng prompt gửi LLM — **kỳ vọng 0 kết
-quả tuyệt đối**, không có "trường hợp cho phép" nào ở đây.
+quả**, ngoài đúng các dòng trong ngoại lệ đích danh dưới đây; không có "trường hợp cho phép" chung nào.
 
-Vi phạm nếu: lệnh 2 ra kết quả, hoặc field từ lệnh 1 bị dùng làm điều kiện lọc/bị hỏi ở form sàng
+Ngoại lệ đã duyệt (L59 FR-C08): `backend/src/main/resources/ai/prompt/cv-qa-v1.st` — dòng định nghĩa mã
+`PERSONAL_INFO` (liệt kê thuộc tính để AI TỪ CHỐI) và dòng ví dụ phía ứng viên 'CV của tôi có ghi ngày sinh
+không?' (cho phép ứng viên kiểm CV của chính mình, R-G5). Mọi kết quả khác vẫn là vi phạm. Thêm file/dòng vào
+ngoại lệ này phải có quyết định duyệt của FR tương ứng.
+
+Vi phạm nếu: lệnh 2 ra kết quả ngoài ngoại lệ trên, hoặc field từ lệnh 1 bị dùng làm điều kiện lọc/bị hỏi ở form sàng
 lọc (H10). Dương tính giả đã gặp: `tuoi` khớp cả comment không dấu viết "TƯƠI" (mới, không phải
 "tuổi") — đọc ngữ cảnh dòng khớp trước khi kết luận.
 

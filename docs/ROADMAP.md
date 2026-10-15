@@ -956,7 +956,30 @@ giấy mời đã gửi không đổi khi sửa mẫu.
     bằng độ lệch đồng hồ giữa máy chạy backend và máy DB. Cùng mẫu ở `resume/` (`ResumeRepository` +
     `ResumeParsingStateService`, `ResumeReparseRequestRepository` + `ResumeReparseStateService`). Chữa: truyền
     `:now` lấy từ `Clock` Java vào các câu claim/quét thay cho `now()` của DB.
-- [ ] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn
+- [x] `feat/fr-c08-cv-qa` — FR-C08 · Hỏi đáp CV có trích dẫn — **HOÀN THÀNH**
+  (15/10/2026, 7 đợt, đợt 3 và 7 tách đôi — xem `docs/walkthrough/fr-c08-cv-qa.md`). HR hỏi về CV đã nộp của một đơn
+  (tab "Hỏi đáp CV" ở `/hr/applications/:id`, mọi trạng thái kể cả `WITHDRAWN`); ứng viên hỏi về một CV của chính mình
+  (`/candidate/resumes/:id/qa`, nút ở danh sách CV). AI gọi đồng bộ qua K3 trả `ANSWERED` (câu trả lời ≤ 800 ký tự + 1–5
+  trích dẫn nguyên văn 15–200 ký tự) / `NOT_FOUND` / `REFUSED`; một trích dẫn không qua K2 là cả câu trả lời hỏng, thử
+  lại 1 lần rồi 502. Xây K2 (`ai/citation/VerbatimQuoteVerifier`): tách từ FR-H04, hành vi giữ nguyên, test `ai/criterion`
+  và `scoring` không sửa. K1 thêm `CvQaContext` (HR: CV + tiêu đề/mô tả/yêu cầu tin; ứng viên: chỉ CV; không rubric, điểm,
+  giải thích, ghi chú). Chặn sớm bằng từ khoá trước K1 (`PERSONAL_INFO` chỉ phía HR); bean `cvQaChatClient` trần 1000
+  token; hai mẫu đường dẫn vào nhóm `ai-sync`. Không lưu gì, không migration; lượt hỏi đáp chỉ ở state trang, khoá theo
+  đơn/CV (epoch). Full suite 1471 (L56); build + lint sạch; kiểm tĩnh 7.1, 7.3 đạt; 7.2 hai phía và soát tay 7.4 đạt
+  (L57, L58); `srs-guard` sạch (ngoại lệ đích danh L59). Làm rõ L1–L61. Nợ kỹ thuật / giới hạn đã biết:
+  - K2 giữ lỗ hổng của H04: trích dẫn rỗng/khoảng trắng qua K2 (a5, R-K2-3) — C08 tự chặn bằng ngưỡng ≥ 15 ký tự, H04
+    vẫn hở.
+  - NFC (R-K2-8): đã đo trên seed (10 CV), không có NFD; chưa có số đo trên CV thật ngoài seed (L2). K2 cũng không gộp
+    NBSP/U+202F với dấu cách (L26).
+  - Danh sách từ khoá chặn sớm không đầy đủ (R-G4): không bắt biến thể không dấu, tiếng Anh, cách nói vòng; có thể chặn
+    nhầm câu chứa cụm. Lớp prompt bù phần còn lại (L58).
+  - Phần lời của câu trả lời không kiểm được bằng code (R-O6) — chỉ trích dẫn qua K2.
+  - CV > 45 000 ký tự: cắt phần giữa trước khi gửi AI, có cờ `cvTruncated` và câu báo trên UI (R-A3, O8); phần giữa
+    không được đọc.
+  - Ký tự `‹`/`›` thật trong CV: trích dẫn chứa chúng không qua K2 (R-I3, O5).
+  - Bucket `ai-sync` dùng chung với soạn nháp C07 và tạo tin H11 (Q8): hỏi đáp nhiều làm hết lượt của chức năng kia.
+  - Quy tắc R-N3 (khoá phiên theo đơn/CV, bỏ kết quả về muộn) là phòng trước, chưa có liên kết nào kích hoạt.
+  - Việc tài liệu: đoạn tổng quan SRS.md:13-17 ('18 chức năng đã hoàn thành…') đã cũ — sửa ở nhánh docs/ riêng (L60 FR-C08)
 - [ ] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên
 - [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
 

@@ -249,6 +249,8 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 hỏi đáp CV, gợi ý diễn đạt): luôn có nhãn "Do AI tạo" + icon (lucide `Sparkles`), nằm trong
 khối `m3-surface-container-high`, và chỉ có hiệu lực sau khi người dùng bấm (Dùng bản nháp / Lưu /
 Bỏ qua). Không có luồng tự gửi.
+Nội dung AI chỉ để đọc, không có hiệu lực nào (câu trả lời hỏi đáp CV — FR-C08) thì không cần nút
+Dùng/Lưu/Bỏ qua; vẫn có nhãn và khối AI.
 - Khối AI = `bg-m3-surface-container-high` + viền `border border-m3-outline-variant` (bắt buộc: nền
   này so với nền trắng chỉ 1.12:1, thiếu viền thì không thấy khối).
 - Chữ trong khối chỉ dùng `text-m3-on-surface` (13.06:1). KHÔNG dùng màu chữ phụ
@@ -336,7 +338,7 @@ thêm lúc code.
 |---|---|---|---|
 | `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
 | `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U11 (thống kê), FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
-| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp) |
+| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |
@@ -357,7 +359,7 @@ thêm lúc code.
 | `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, ★FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá); FR-H09 |
 | ★`/hr/jobs/:id/compare` | So sánh ứng viên | ★Mới | FR-H14 |
 | `/hr/candidates` | "Ứng viên" | Hiện có | FR-H08, FR-H09 |
-| ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Sàng lọc" (bản chụp câu trả lời sàng lọc lúc nộp, chỉ đọc), "Giấy mời phỏng vấn" (khung giờ, khung đã chốt, gửi lại giấy mời, giấy mời trước đó), "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển. Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi); FR-H10 (tab Sàng lọc); FR-H12 (tab Giấy mời phỏng vấn) |
+| ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Hỏi đáp CV", "Sàng lọc" (bản chụp câu trả lời sàng lọc lúc nộp, chỉ đọc), "Giấy mời phỏng vấn" (khung giờ, khung đã chốt, gửi lại giấy mời, giấy mời trước đó), "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển. Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi); FR-H10 (tab Sàng lọc); FR-H12 (tab Giấy mời phỏng vấn); FR-C08 (tab Hỏi đáp CV) |
 | ★`/hr/talent-pools`, ★`/hr/talent-pools/:id` | "Kho ứng viên" | ★Mới | FR-H15 |
 | ★`/hr/messages` | "Tin nhắn" | ★Mới | FR-C06 |
 | `/hr/company` | "Hồ sơ công ty" | Hiện có | FR-H01 |
@@ -365,7 +367,7 @@ thêm lúc code.
 
 **Ghi chú `/hr/applications/:id`:** FR-H09 chỉ dựng 3 tab và thanh thao tác FR-H07, không dựng tab rỗng
 hay nút khoá trước. Các FR sau tự thêm phần của mình vào trang này trong đặc tả của chính FR đó và sửa
-dòng trên cùng đợt: Hỏi đáp CV (FR-C08); nút Thêm vào kho (FR-H15); chế độ ẩn danh (FR-H16).
+dòng trên cùng đợt: Hỏi đáp CV (FR-C08 — đã thêm phần của mình); nút Thêm vào kho (FR-H15); chế độ ẩn danh (FR-H16).
 
 ---
 

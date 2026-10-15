@@ -1,6 +1,6 @@
 # FR-C08 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT (14/10/2026). Đi cùng `REQUIREMENT.md` (cùng trạng thái). Quy tắc nghiệp vụ, mã lỗi,
+> Trạng thái: ĐÃ HOÀN THÀNH (15/10/2026). Duyệt: 14/10/2026. Đi cùng `REQUIREMENT.md` (cùng trạng thái). Quy tắc nghiệp vụ, mã lỗi,
 > DTO: `REQUIREMENT.md`; file này chỉ nói về màn hình.
 
 Nguồn: `docs/UI_GUIDE.md` (token mục 1, ràng buộc mục 4 "Nội dung do AI tạo", "Trích dẫn từ CV", trạng thái mục 5, tiếp cận
@@ -9,7 +9,7 @@ chữ theo `side` (`hr` | `candidate`).
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT (14/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (15/10/2026). Duyệt: 14/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

@@ -1,7 +1,7 @@
 # Chức năng bổ sung — thứ tự thực hiện và mô tả định hướng
 
 > Đọc file này ở ĐẦU mỗi phiên làm một FR bổ sung, TRƯỚC khi đọc REQUIREMENT.md của FR đó.
-> Cập nhật: 14/10/2026.
+> Cập nhật: 15/10/2026 (sửa theo FR-C08 đã duyệt).
 
 ## 0. Cách dùng file này
 
@@ -625,15 +625,15 @@ Hỏi trực tiếp về nội dung một CV cụ thể và nhận câu trả l�
 
 **Người dùng thao tác**
 
-- HR: tại hồ sơ đơn (H09) → tab Hỏi đáp CV → đặt câu hỏi (ví dụ "Ứng viên đã dùng Kubernetes trong dự án nào?") → đọc câu trả lời, bấm vào trích dẫn để xem đoạn tương ứng trong CV.
-- Ứng viên: tại CV của tôi → chọn một CV → Hỏi đáp; tuỳ chọn chọn một Job đang mở để hỏi đối chiếu (ví dụ "JD yêu cầu gì mà CV của tôi chưa đề cập?").
+- HR: tại hồ sơ đơn (H09) → tab Hỏi đáp CV → đặt câu hỏi (ví dụ "Ứng viên đã dùng Kubernetes trong dự án nào?") → đọc câu trả lời và đọc trích dẫn nguyên văn từ CV (sửa theo FR-C08 đã duyệt).
+- Ứng viên: tại CV của tôi → chọn một CV → Hỏi đáp (sửa theo FR-C08 đã duyệt: không chọn Job để hỏi đối chiếu).
 
 **Hệ thống**
 
-- Ngữ cảnh qua K1 theo vai trò. HR: CV của đơn, JD và rubric của Job đó. Ứng viên: CV của chính mình và JD của Job được chọn (nếu có), không bao giờ có điểm hay rubric.
+- Ngữ cảnh qua K1 theo vai trò. HR: CV của đơn và JD của Job đó, không có rubric (sửa theo FR-C08 đã duyệt). Ứng viên: CV của chính mình (sửa theo FR-C08 đã duyệt: không có JD), không bao giờ có điểm hay rubric.
 - Kiểm tra quyền: HR chỉ hỏi CV của đơn thuộc Job công ty mình; ứng viên chỉ hỏi CV của mình.
-- Mọi trích dẫn được kiểm tra qua K2; trích dẫn không khớp bị loại. Câu trả lời không còn trích dẫn hợp lệ hiển thị "Không tìm thấy căn cứ trong CV".
-- Lưu lịch sử hỏi đáp theo người dùng và CV/đơn. Gọi AI theo K3.
+- Mọi trích dẫn được kiểm tra qua K2; một trích dẫn không khớp là cả câu trả lời hỏng, thử lại một lần (sửa theo FR-C08 đã duyệt). CV không có thông tin thì hiện "Không tìm thấy căn cứ trong CV"; trích dẫn không khớp thì thử lại một lần rồi báo lỗi, không hiện câu trả lời (sửa theo FR-C08 đã duyệt).
+- Không lưu lịch sử hỏi đáp (sửa theo FR-C08 đã duyệt). Gọi AI theo K3.
 
 **AI**
 
@@ -641,11 +641,11 @@ Trả lời chỉ dựa trên CV/JD được cung cấp, kèm trích dẫn nguy�
 
 **Kết quả**
 
-Câu trả lời có trích dẫn đã được kiểm chứng; lịch sử hỏi đáp mở lại được.
+Câu trả lời có trích dẫn đã được kiểm chứng (sửa theo FR-C08 đã duyệt: bỏ "lịch sử hỏi đáp mở lại được").
 
 **Lưu ý**
 
-- Từ chối câu hỏi mang tính phán quyết ("có nên tuyển không", "CV có đạt không", "có phù hợp không"), thay bằng đối chiếu từng yêu cầu với nội dung CV, không kết luận.
+- Từ chối câu hỏi mang tính phán quyết ("có nên tuyển không", "CV có đạt không", "có phù hợp không"): C08 từ chối câu hỏi phán quyết (`HIRING_JUDGEMENT`), không đối chiếu đạt/không đạt (sửa theo FR-C08 đã duyệt).
 - Không trả lời hay suy đoán tuổi, giới tính, thông tin nhân thân.
 - Phía Ứng viên, câu hỏi dạng "nên bổ sung kỹ năng gì" được chuyển tới FR-U05.
 - Khi đơn đang ẩn danh (H16), trích dẫn hiển thị cho HR được che thông tin nhân thân.
