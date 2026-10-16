@@ -325,6 +325,21 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_JOB_FILTER", ex.getMessage()));
     }
 
+    // FR-H14 R-S8 - danh sach don cua bang so sanh sai (dinh dang, trung, so luong, khong thuoc tin, khac chu ky). Mot
+    // ma loi chung, thong diep co dinh qua getMessage() (khuon InvalidJobFilterException o tren).
+    @ExceptionHandler(InvalidCompareSelectionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCompareSelection(InvalidCompareSelectionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_COMPARE_SELECTION", ex.getMessage()));
+    }
+
+    // FR-H14 R-S5 - co don chua co luot cham DONE.
+    @ExceptionHandler(CompareApplicationNotScoredException.class)
+    public ResponseEntity<ErrorResponse> handleCompareApplicationNotScored(CompareApplicationNotScoredException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("COMPARE_APPLICATION_NOT_SCORED", ex.getMessage()));
+    }
+
     // FR-U14 R-V2 - sau dedupe van qua gioi han so luong (nganh/khu vuc/ky nang), ky nang sai do dai,
     // hinh thuc lam viec mong muon ngoai tap. Mot ma loi chung, thong diep khac nhau qua getMessage(),
     // dung khuon InvalidJobFilterException o tren.

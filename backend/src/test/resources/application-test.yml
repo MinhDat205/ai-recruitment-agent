@@ -77,3 +77,15 @@ app:
     # gia tri phu hop cho tinh huong cu the, khong khai truoc "phong khi".
 
 ANTHROPIC_API_KEY: test-only-fake-anthropic-key
+
+# FR-H14 T30 (REQUIREMENT S4) - thong ke Hibernate de dem so cau lenh cua C1 (getPrepareStatementCount), bat cho moi
+# test (khong tao Spring context rieng). Tat log thong ke moi phien bang muc WARN.
+spring:
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
+
+logging:
+  level:
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN
