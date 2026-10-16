@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 // K4 (FR-H11 R-K4-1) - sieu du lieu cua MOT ket qua AI duoc luu: model, phien ban prompt, thoi diem sinh. Dung chung cho
-// moi FR luu ket qua AI (H11, H15): bang cua FR do nhung record nay (3 cot ai_model, ai_prompt_version,
+// moi FR luu ket qua AI (H11): bang cua FR do nhung record nay (3 cot ai_model, ai_prompt_version,
 // ai_generated_at) - K4 khong biet FR nao dung no, FR sau khong phai sua file nay.
 //
 // Gia tri KHONG BAO GIO lay tu request cua client: hoac do backend dung ngay luc sinh (cung request), hoac lay tu token

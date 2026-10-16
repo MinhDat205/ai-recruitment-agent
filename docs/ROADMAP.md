@@ -849,7 +849,7 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
 > - "Rút đồng ý lưu hồ sơ" đang mô tả ở FR-U08, nhưng cờ đồng ý chỉ có từ FR-U09 (Phase 2.3) và việc
 >   xoá khỏi kho chỉ có từ FR-H15 (Phase 2.5). Đặt cờ + nút Rút đồng ý vào đặc tả FR-U09; phần xoá khỏi
 >   kho vào FR-H15. FR-U08 không làm phần này.
-> - FR-C07 xây K1 và K3. Mọi FR dùng K1/K3 về sau (C08, H11, H15, U12, U13) phụ thuộc ngầm FR-C07
+> - FR-C07 xây K1 và K3. Mọi FR dùng K1/K3 về sau (C08, H11, U12, U13) phụ thuộc ngầm FR-C07
 >   dù cột "Phụ thuộc" không ghi — không làm song song/nhảy cóc qua FR-C07.
 
 **Xong khi:** gọi API đơn/cuộc trao đổi không thuộc về mình bị chặn (kiểm bằng curl, không qua
@@ -1011,7 +1011,8 @@ giấy mời đã gửi không đổi khi sửa mẫu.
   - Kiểm tĩnh 7.1 và 7.3 đều 0 dòng.
   - Khối HTTP 7.2 khớp 8/8 nhóm.
   - Soát tay 7.4 nhóm A, B, C đạt.
-- [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
+- [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên (rút gọn 16/10/2026: tạo kho, thêm đơn đã đồng ý lưu hồ sơ,
+  mở lại hồ sơ đơn H09; không ghi chú, AI tóm tắt, bộ lọc — xem `docs/features/README.md` mục 5)
 
 > FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-H13 không dùng lại; các mã khác giữ nguyên.
@@ -1022,19 +1023,20 @@ giấy mời đã gửi không đổi khi sửa mẫu.
 >   cũ vẫn pass" dựa vào chính bộ test `scoring/` — test chập chờn làm cổng này mất giá trị.
 >   — **Đã sửa** ở `fix/scoring-orchestrator-flaky-test` (14/10/2026): test trộn mốc ghi bằng đồng hồ JVM với
 >   `now()` của DB trong khoảng backoff 50ms; nay cố định mốc. Nợ phía production ghi ở mục nhánh đó.
-> - Phụ thuộc ngầm qua K1–K4: FR-C08 cần FR-C07 (K1, K3); FR-H15 cần FR-C07 (K1, K3),
->   FR-H11 (K4). FR-H14 hiển thị câu trả lời sàng lọc nên cần
->   FR-H10/FR-U09.
+> - Phụ thuộc ngầm qua K1–K4: FR-C08 cần FR-C07 (K1, K3). FR-H15 (rút gọn 16/10/2026) không dùng K1–K4.
+>   FR-H14 hiển thị câu trả lời sàng lọc nên cần FR-H10/FR-U09.
 > - FR-H15 nhận phần "ứng viên rút đồng ý → xoá mục khỏi mọi kho" (xem Phase 2.2).
 
 **Xong khi:** mọi trích dẫn hiển thị đều đã qua K2; FR-H04 chuyển sang dùng K2 mà toàn bộ test cũ
 vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 
 **Phase 2.6 — Tiện ích ứng viên & ẩn danh**
-- [ ] `feat/fr-u11-stats` — FR-U11 · Thống kê ứng tuyển cá nhân
 - [ ] `feat/fr-u12-cv-builder` — FR-U12 · Tạo CV (CV builder)
 - [ ] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên
 - [ ] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh
+
+> FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.
+> Mã FR-U11 không dùng lại; các mã khác giữ nguyên.
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026):
 > - FR-U12 ghi thẳng "CV đã trích xuất" từ form nên phải theo schema v2 của FR-C05 (mã ngành nghề/khu

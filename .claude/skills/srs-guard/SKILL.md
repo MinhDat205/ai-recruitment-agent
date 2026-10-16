@@ -1,6 +1,6 @@
 ---
 name: srs-guard
-description: Soát codebase tìm vi phạm các nguyên tắc thiết kế bắt buộc trong SRS của dự án AI Recruitment Agent (AI không được gán nhãn đậu/rớt, backend tính tổng điểm, không hard delete, consent bắt buộc, và các nguyên tắc bổ sung cho 20 FR mới). Dùng khi người dùng yêu cầu "kiểm tra vi phạm SRS", "soát ranh giới AI", "review trước khi merge", hoặc trước khi merge BẤT KỲ nhánh FR nào (cũ hay bổ sung).
+description: Soát codebase tìm vi phạm các nguyên tắc thiết kế bắt buộc trong SRS của dự án AI Recruitment Agent (AI không được gán nhãn đậu/rớt, backend tính tổng điểm, không hard delete, consent bắt buộc, và các nguyên tắc bổ sung cho 19 FR mới). Dùng khi người dùng yêu cầu "kiểm tra vi phạm SRS", "soát ranh giới AI", "review trước khi merge", hoặc trước khi merge BẤT KỲ nhánh FR nào (cũ hay bổ sung).
 ---
 
 # Soát vi phạm nguyên tắc SRS
@@ -103,7 +103,7 @@ Vi phạm nếu: xoá bản ghi `job_applications`, `resumes`, `scoring_runs`, `
 Dương tính giả thường gặp: xoá `rubric_criteria` khi HR sửa rubric — cái này được phép.
 
 **Ngoại lệ hợp lệ (FR-H15/FR-U08)**: khi ứng viên rút đồng ý lưu hồ sơ, mục tương ứng trong kho
-ứng viên (kèm ghi chú/tóm tắt AI) phải **xoá hẳn** — yêu cầu quyền riêng tư, không phải vi phạm
+ứng viên phải **xoá hẳn** — yêu cầu quyền riêng tư, không phải vi phạm
 soft-delete. `job_applications`/`resumes`/`scoring_runs` gốc KHÔNG bị xoá theo hành động này.
 
 ## 7. Consent bắt buộc, không tick sẵn (FR-U02)
@@ -147,7 +147,7 @@ request, cho `DataIntegrityViolationException` nổi lên và `GlobalExceptionHa
 
 ---
 
-## Nguyên tắc bổ sung cho 20 FR mới (10-15)
+## Nguyên tắc bổ sung cho 19 FR mới (10-15)
 
 ## 10. Phía ứng viên không nhận dữ liệu nội bộ
 
@@ -179,7 +179,7 @@ rg -n "ChatClient|ChatModel|EmbeddingModel" backend/src/main/java/com/recruitmen
 
 Với mỗi kết quả nằm trên đường request (gọi được từ một `Controller` không qua job nền/scheduler):
 xác nhận FR chứa nó có trong danh sách ngoại lệ K3 ở CLAUDE.md §7 (FR-C07, FR-C08, FR-H11,
-FR-H15 tóm tắt, FR-U12, FR-U13), và có đủ: timeout, thử lại tối đa 1 lần, rate limit theo `userId`,
+FR-U12, FR-U13), và có đủ: timeout, thử lại tối đa 1 lần, rate limit theo `userId`,
 không `@Transactional` bao quanh lời gọi.
 
 Vi phạm nếu: một service/controller gọi `ChatClient`/`ChatModel`/`EmbeddingModel` trực tiếp trong
@@ -224,7 +224,7 @@ sánh ứng viên (H14) khi đã có code frontend.
 
 Vi phạm nếu: hiển thị % phù hợp, nhãn "phù hợp"/"không phù hợp", tô màu theo ngưỡng ở kết quả gợi
 ý/tìm kiếm, hoặc đánh dấu người thắng trong màn hình so sánh ứng viên. Nội dung do AI tạo (bản
-nháp, tóm tắt, câu hỏi...) phải có nhãn "Do AI tạo" kèm icon — thiếu nhãn này cũng là vi phạm
+nháp, câu hỏi...) phải có nhãn "Do AI tạo" kèm icon — thiếu nhãn này cũng là vi phạm
 (UI_GUIDE mục 4).
 Chưa có code frontend cho ba FR này → đánh dấu "chưa có gì để soát".
 
