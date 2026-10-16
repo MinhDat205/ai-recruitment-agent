@@ -1,9 +1,10 @@
 # FR-H14 — So sánh song song 2–3 ứng viên
 
-> Trạng thái: ĐÃ DUYỆT 15/10/2026
+> Trạng thái: ĐÃ DUYỆT 16/10/2026
 >
-> Mục 11 đã chốt (Q1–Q11 và S1–S6, 15/10/2026); `[Q…]`/`[S…]` trong thân là tham chiếu tới câu đã chốt. Chỉ còn tên method
-> trên `ApplicationOwnerService` và hình dạng chính xác của DTO (mục 4.2, 4.4) để Plan Mode (đợt 1) chốt.
+> Mục 11 đã chốt (Q1–Q11 và S1–S6, 15/10/2026); `[Q…]`/`[S…]` trong thân là tham chiếu tới câu đã chốt.
+>
+> Sửa sau Plan Mode đợt 1 (16/10/2026): L1 (13 câu SQL), L2 (số dòng mục 0), chốt tên method và DTO.
 
 - Nhóm: HR
 - Tóm tắt: Ở tab "Ứng viên" của trang sửa tin, HR tick chọn 2–3 đơn của cùng một Job, cùng chu kỳ tuyển dụng, đã có
@@ -42,11 +43,11 @@ sạch).
 | a11 | Rubric bị khoá khi tạo lượt chấm đầu tiên | Có, cùng transaction với `INSERT scoring_runs` | `ScoringRunStateService.create` (`ScoringRunStateService.java:66-90`); sửa rubric khi khoá → 409 `RUBRIC_LOCKED` (`RubricOwnerService.java:122-128`) |
 | a12 | Rubric chỉ mở khoá khi Job **chưa từng có** dòng `criterion_scores` nào và không còn lượt đang chạy | Đúng | `unlockRubricIfSafe` (`ScoringRunStateService.java:233-240`) + `ScoringRunRepository.isSafeToUnlock` (`ScoringRunRepository.java:179-198`); mở lại Job (`CLOSED → OPEN`) **không** mở khoá (`JobOwnerService.java:158-177`) |
 | a13 | Hệ quả a11–a12: hai đơn của cùng Job có thể được chấm theo hai phiên bản rubric khác nhau không? | **Theo luồng API: không** — lượt DONE nào cũng có `criterion_scores`, nên từ lượt DONE đầu tiên rubric khoá vĩnh viễn và mọi lượt sau chụp cùng một rubric. **Theo dữ liệu thật: có thể** — seed demo đặt `is_locked = FALSE` cho rubric đã có lượt DONE (`db/seed/seed-demo-structural.sql:381-383` …`:396`; lượt DONE ở `seed-demo-ai-output.sql:552-565`), HR demo sửa được rubric rồi chấm đơn khác → hai snapshot khác nhau. Vì vậy H14 vẫn phải ghép tiêu chí an toàn (R-C4, `[Q4]`) | Như cột trái |
-| a14 | Khoá ghép tiêu chí giữa hai lượt | `RubricSnapshot.CriterionSnapshot.criterionId` (UUID của `rubric_criteria`, có trong mọi snapshot đã soát) | `RubricSnapshot.java:118-125`; ví dụ snapshot thật `seed-demo-ai-output.sql:552` (`"criterionId": "d4000000-…11"`). `criterion_scores.criterion_id` có thể `NULL` (`ON DELETE SET NULL`, `V1:281`) nên **không** dùng cột đó làm khoá; `uq_score_per_criterion (scoring_run_id, criterion_name_snapshot)` (`V1:290`) chỉ duy nhất **trong một lượt** |
-| a15 | CV đã trích xuất phía HR | Đọc theo `job_applications.resume_id` (CV đã nộp, không phải CV chính hiện tại); chưa có dòng → 404 `RESUME_PARSED_DATA_NOT_FOUND` | `ResumeHrService.getParsedDataForApplication` (`ResumeHrService.java:93-99`); map dùng chung `ResumeParsedDataResponseMapper` (`:71-101`) |
-| a16 | Kinh nghiệm (C05) | `experience_months` do backend tính; **cả bốn cột** kinh nghiệm `NULL` = chưa tính; `months` `NULL` = đã tính nhưng không có mục nào đọc được (không lưu 0). Năm do backend quy đổi (`toYears`, 1 chữ số thập phân) | `ResumeParsedData.java:65-78`; `ResumeParsedDataResponseMapper.toExperience` (`:89-101`); `ExperienceCalculator.java:86-88` |
-| a17 | Kỹ năng, học vấn | `skills: List<String>`, `education: List<Education(school, degree, major, startDate, endDate, gpa)>`; danh sách `null` → `List.of()`; chuỗi nguyên văn CV | `ResumeParsedPayload.java:98-123`, `:140-142` |
-| a18 | Bản chụp sàng lọc | `application_screening_answers`: `question_id` (`NULL` được, `ON DELETE SET NULL`), `display_order`, `*_snapshot`, `answer_text`/`answer_yes_no`; trạng thái `NOT_CAPTURED`/`NO_QUESTIONS`/`CAPTURED` tính từ `screening_captured_at` | `V13__screening_questions.sql:39-74`; `ApplicationScreeningReader.read` (`ApplicationScreeningReader.java:21-47`); `ScreeningCaptureState.java` |
+| a14 | Khoá ghép tiêu chí giữa hai lượt | `RubricSnapshot.CriterionSnapshot.criterionId` (UUID của `rubric_criteria`, có trong mọi snapshot đã soát) | `RubricSnapshot.java:27-34`; ví dụ snapshot thật `seed-demo-ai-output.sql:552` (`"criterionId": "d4000000-…11"`). `criterion_scores.criterion_id` có thể `NULL` (`ON DELETE SET NULL`, `V1:281`) nên **không** dùng cột đó làm khoá; `uq_score_per_criterion (scoring_run_id, criterion_name_snapshot)` (`V1:290`) chỉ duy nhất **trong một lượt** |
+| a15 | CV đã trích xuất phía HR | Đọc theo `job_applications.resume_id` (CV đã nộp, không phải CV chính hiện tại); chưa có dòng → 404 `RESUME_PARSED_DATA_NOT_FOUND` | `ResumeHrService.getParsedDataForApplication` (`ResumeHrService.java:93-99`); map dùng chung `ResumeParsedDataResponseMapper.toResponse` (`ResumeParsedDataResponseMapper.java:21-33`) |
+| a16 | Kinh nghiệm (C05) | `experience_months` do backend tính; **cả bốn cột** kinh nghiệm `NULL` = chưa tính; `months` `NULL` = đã tính nhưng không có mục nào đọc được (không lưu 0). Năm do backend quy đổi (`toYears`, 1 chữ số thập phân) | `ResumeParsedData.java:65-78`; `ResumeParsedDataResponseMapper.toExperience` (`:40-51`); `ExperienceCalculator.java:86-88` |
+| a17 | Kỹ năng, học vấn | `skills: List<String>`, `education: List<Education(school, degree, major, startDate, endDate, gpa)>`; danh sách `null` → `List.of()`; chuỗi nguyên văn CV | `ResumeParsedPayload.java:19-32` (record), `:61-63` (`Education`), `:38-44` (compact constructor) |
+| a18 | Bản chụp sàng lọc | `application_screening_answers`: `question_id` (`NULL` được, `ON DELETE SET NULL`), `display_order`, `*_snapshot`, `answer_text`/`answer_yes_no`; trạng thái `NOT_CAPTURED`/`NO_QUESTIONS`/`CAPTURED` tính từ `screening_captured_at` | `V13__screening_questions.sql:39-74`; `ApplicationScreeningReader.read` (`ApplicationScreeningReader.java:21-47`); `ScreeningCaptureState.java`. Entity `JobApplication` **đã map** `screening_captured_at` (`JobApplication.java:58-59`, FR-U09) — câu nạp đơn theo Job đã có sẵn cột này; comment `ApplicationScreeningAnswerRepository.java:15` ("KHONG them field vao entity") đã cũ |
 | a19 | `screening_revision` **không** lưu theo đơn | Đúng — chỉ là cột của `jobs`, tăng ở mọi thao tác ghi bộ câu hỏi | `V13:77`; `ScreeningQuestionOwnerService.java:79-87` (`incrementRevision`). Đơn chỉ có `screening_captured_at` (`V13:74`) |
 | a20 | Sửa câu hỏi giữ nguyên `id`, đổi nội dung tại chỗ; sắp lại đổi `display_order` | Đúng | `ScreeningQuestionOwnerService.update` (`:77-87`) + `apply` (`:152-157`: đổi `type`, `text`, `options`, `required`); `reorder` (`:102`). ⇒ Cùng `question_id` có thể mang **nội dung khác nhau** ở hai đơn; cùng `display_order` có thể là **hai câu khác nhau** |
 | a21 | DTO sàng lọc phía HR không có `questionId` (cố ý) | Đúng | `ApplicationScreeningResponse.java:10-11`, `:20-27` (FR-H10 mục 4.4) |
@@ -326,16 +327,16 @@ Package mới `comparison/` `[Q11]` (CLAUDE.md §3: "mỗi mã FR nằm gọn tr
 | File | Thay đổi |
 |---|---|
 | `comparison/ApplicationComparisonController.java` (mới) | C1. Nhận `ids` là `String` (`@RequestParam(required = false)`), **không** `List<UUID>` — tự parse để trả đúng R-S8 (a31) |
-| `comparison/ApplicationComparisonService.java` (mới) | Điểm dựng DTO duy nhất (R-B1): kiểm R-S theo R-S7, gọi bốn nguồn hàng loạt, ghép R-C, R-Q, tính `valuesDiffer`, `rubricVersionsDiffer`, `newerRunInProgress`. Không `@Transactional` ghi; `@Transactional(readOnly = true)` nếu cần cho JSONB |
+| `comparison/ApplicationComparisonService.java` (mới) | Điểm dựng DTO duy nhất (R-B1): kiểm R-S theo R-S7, gọi bốn nguồn hàng loạt, ghép R-C, R-Q, tính `valuesDiffer`, `rubricVersionsDiffer`, `newerRunInProgress`. **Không** `@Transactional` (kể cả `readOnly`) — cùng quy ước `ApplicationOwnerService.java:40`: chỉ đọc, các repository độc lập; JSON đọc qua `@JdbcTypeCode` trong cùng câu SELECT nên không cần transaction |
 | `comparison/CompareSelectionParser.java` (mới) | Parse + kiểm R-S1, R-S2 (đơn vị, không cần Spring) |
 | `comparison/dto/ApplicationComparisonResponse.java` (mới) | Mục 4.4 |
-| `jobapplication/ApplicationOwnerService.java` | Thêm `public Map<UUID, ApplicationEvaluation> evaluateApplications(Job job, Collection<UUID> applicationIds)` dùng **chính** `rankApplications` (một công thức hạng — a5) và thêm `scoringRunId`/rubric snapshot cần cho R-C1; thêm `public Job loadOwnedJobForCompare(...)` **hoặc** đổi `loadOwnedJob` sang `public` `[Plan Mode chốt tên]`. `listApplications`/`evaluateApplication` không đổi hành vi; `ApplicationOwnerServiceTest` và `ApplicationOwnerControllerIntegrationTest` xanh không sửa khẳng định |
-| `jobapplication/ApplicationEvaluation.java` | Thêm `List<RubricSnapshot.CriterionSnapshot> rubricCriteria` (snapshot của lượt DONE, để ghép theo `criterionId`) và `boolean newerRunInProgress` — hoặc một record riêng cho H14 `[Plan Mode chốt]`; E3/E4 của FR-H09 không đổi JSON |
+| `jobapplication/ApplicationOwnerService.java` | Đổi `loadOwnedJob(UUID jobId, UUID ownerId)` sang `public` (không thêm method mới — một quy tắc sở hữu, giữ thứ tự 404 `COMPANY_NOT_FOUND` → 404 `JOB_NOT_FOUND` → 403). Thêm `public Map<UUID, ApplicationComparisonSource> evaluateApplications(Job job, Collection<UUID> applicationIds)`: gọi `rankApplications(job)` **đúng một lần** cho mỗi request (một công thức hạng — a5), trả map chỉ gồm id thuộc Job (id thiếu → R-S3 ở `comparison/`). `RankableRow` thêm `resumeId`, `recruitmentCycle`, `screeningCapturedAt`, `rubricCriteria` (đọc từ dữ liệu đã nạp, không thêm query). `listApplications`/`evaluateApplication` không đổi hành vi; `ApplicationOwnerServiceTest` và `ApplicationOwnerControllerIntegrationTest` xanh không sửa khẳng định |
+| `jobapplication/ApplicationComparisonSource.java` (mới, public record) | Dữ liệu một đơn cho H14, rút từ `RankableRow`: `UUID applicationId`, `String candidateName`, `ApplicationStatus status`, `Instant appliedAt`, `UUID resumeId`, `int recruitmentCycle`, `Instant screeningCapturedAt`, `UUID scoringRunId` (lượt DONE mới nhất, `null` nếu chưa có), `Instant scoredAt`, `BigDecimal totalScore`, `Integer rank`, `ScoringRunStatus latestRunStatus` (lượt mới nhất bất kể trạng thái — nguồn `newerRunInProgress`), `List<ApplicationHrListItemResponse.CriterionScoreItem> criterionScores`, `List<RubricSnapshot.CriterionSnapshot> rubricCriteria` (snapshot của lượt DONE, để ghép theo `criterionId`), `ApplicationHrListItemResponse.ExplanationStatus explanationStatus`, `ApplicationHrListItemResponse.Explanation explanation`. Đặt ở `jobapplication/` để không package nào import ngược `comparison/`. **`ApplicationEvaluation` không đổi**, JSON của E3/E4 (FR-H09) không đổi |
 | `jobapplication/dto/ApplicationHrListItemResponse.java` | Thêm `int recruitmentCycle` `[Q7]` (field đọc, thêm vào cuối; không đổi field cũ) |
 | `resume/ResumeParsedDataRepository.java` | Thêm `List<ResumeParsedData> findByResumeIdIn(Collection<UUID>)` |
-| `screening/ApplicationScreeningAnswerRepository.java` | Thêm `findByApplicationIdInOrderByApplicationIdAscDisplayOrderAsc(Collection<UUID>)` và một câu đọc `screening_captured_at` cho nhiều đơn (native, như `findScreeningCapturedAt` `:17-18`) |
+| `screening/ApplicationScreeningAnswerRepository.java` | Thêm `findByApplicationIdInOrderByApplicationIdAscDisplayOrderAsc(Collection<UUID>)`. **Không** thêm câu đọc `screening_captured_at`: giá trị lấy từ entity `JobApplication` đã nạp ở `rankApplications` (a18) |
 | `screening/ScreeningAnswerSnapshot.java` (mới, public record) | Bản đọc **có** `questionId` cho H14 ghép R-Q1; chỉ dùng nội bộ backend — `questionId` **không** ra API (giữ quyết định FR-H10 mục 4.4, a21) |
-| `screening/ApplicationScreeningReader.java` | Thêm `public Map<UUID, ScreeningBundle> readMany(Collection<UUID>)` (trạng thái + bản chụp theo đơn, 2 query); `read(...)` cũ không đổi |
+| `screening/ApplicationScreeningReader.java` | Thêm `public Map<UUID, ScreeningBundle> readMany(Map<UUID, Instant> capturedAtByApplicationId)` (trạng thái + bản chụp theo đơn, 1 query; `capturedAt` do nơi gọi truyền từ entity đã nạp, `null` = `NOT_CAPTURED`); `read(...)` cũ không đổi |
 | `common/exception/InvalidCompareSelectionException.java`, `CompareApplicationNotScoredException.java` (mới) + hai nhánh trong `GlobalExceptionHandler` | R-S8 |
 
 Không sửa: `scoring/` (chỉ đọc qua `ApplicationOwnerService`), `interviewinvitation/`, `rubric/`, `ai/**`, `SecurityConfig`
@@ -349,8 +350,12 @@ Không sửa: `scoring/` (chỉ đọc qua `ApplicationOwnerService`), `intervie
 | — | `GET /api/hr/jobs/{jobId}/applications` | Có sẵn; thêm field `recruitmentCycle` vào mỗi phần tử `[Q7]` | 200 | Không đổi |
 
 `/compare` là đường dẫn tĩnh dưới `ApplicationOwnerController` (`/api/hr/jobs/{jobId}/applications`) nhưng ở controller
-khác; không trùng mapping nào hiện có (route `GET …/applications` không có biến con). Plan Mode kiểm bằng `rg
-"@RequestMapping\(\"/api/hr/jobs" backend/src/main`.
+khác; không trùng mapping nào hiện có (route `GET …/applications` không có biến con). Plan Mode kiểm bằng
+`MSYS_NO_PATHCONV=1 rg -n '@RequestMapping\("/api/hr/jobs' backend/src/main` — trong Git Bash phải có
+`MSYS_NO_PATHCONV=1`: thiếu nó, MSYS đổi đoạn `/api/hr/jobs` thành đường dẫn Windows và `rg` âm thầm ra 0 dòng (đã thử
+16/10/2026, cả nháy đơn lẫn nháy kép). Kết quả 16/10/2026: 5 controller (`JobOwnerController` `/api/hr/jobs`,
+`InterviewTemplateOwnerController`, `ScreeningQuestionOwnerController`, `ApplicationOwnerController`
+`/api/hr/jobs/{jobId}/applications`, `RubricOwnerController`); không controller nào có `/compare`.
 
 Không endpoint ghi nào. Không rate limit (đọc thuần, không AI — giống E3/E4 của FR-H09).
 
@@ -364,7 +369,7 @@ record ApplicationComparisonResponse(
         boolean rubricVersionsDiffer,                 // R-C6
         List<Column> columns,                         // dung thu tu ids (R-O1), 2..3 phan tu
         Row totalScore,                               // R-D2
-        Row rank,                                     // R-D3 [Q2]
+        IntRow rank,                                  // R-D3 [Q2]
         List<CriterionRow> criteria,                  // R-C
         ExperienceRow experience,                     // R-D5
         List<ProfileCell> profiles,                   // R-D6, R-D7 - theo thu tu columns
@@ -376,7 +381,8 @@ record ApplicationComparisonResponse(
                   boolean newerRunInProgress) {}                // R-D10 [Q6]
 
     // Gia tri so theo cot; valuesDiffer = khong giong nhau o moi cot (R-W2)
-    record Row(List<BigDecimal> values, boolean valuesDiffer) {}   // rank: values la so nguyen dang BigDecimal - Plan Mode co the tach IntRow
+    record Row(List<BigDecimal> values, boolean valuesDiffer) {}    // tong diem (so sanh bang compareTo)
+    record IntRow(List<Integer> values, boolean valuesDiffer) {}    // hang (FR-H05), cung kieu Integer voi danh sach
 
     record CriterionRow(String key,                     // criterionId (hoac "name:" + ten, R-C2) - chi de React key
                         String criterionName,           // ten o cot dau tien co tieu chi (R-C5)
@@ -409,8 +415,10 @@ record ApplicationComparisonResponse(
   nghĩa — R-C4). Số từ DB giữ `BigDecimal` như DTO hiện có.
 - Không `questionId`, không `criterionId` thô ngoài `CriterionRow.key`; không `rawText`, `model`, `promptVersion`,
   `tokenUsage`, `contact` (thông tin liên hệ không có trong bảng — chỉ tên ở `Column`).
-- Hình dạng chính xác (tách `IntRow` cho hạng, gộp `profiles`/`explanations` vào `Column`…) chốt ở Plan Mode; ràng buộc
-  không đổi: **một** DTO, **một** method dựng.
+- Đã chốt ở Plan Mode 16/10/2026: hạng dùng `IntRow` (`Integer` như `rank` của danh sách), tổng điểm giữ `Row`
+  (`BigDecimal`); `profiles`/`explanations` **không** gộp vào `Column` (giữ đúng đường dẫn field R-B3 cho FR-H16).
+  `CriterionRow.cells` dựng bằng `Collections.unmodifiableList(new ArrayList<>(…))` vì `List.of()`/`List.copyOf()` ném lỗi
+  với phần tử `null`. Ràng buộc không đổi: **một** DTO, **một** method dựng.
 
 ### 4.5 Seed
 
@@ -421,24 +429,26 @@ bằng `reset-demo-db.sql` + nạp lại hai tầng seed demo.
 
 ### 4.6 Số query của C1 (cố định, không N+1)
 
-Đường thành công (2–3 đơn hợp lệ) chạy **đúng 14** câu SQL, **không phụ thuộc** số đơn của Job hay số đơn được chọn:
+Đường thành công (2–3 đơn hợp lệ) chạy **đúng 13** câu SQL, **không phụ thuộc** số đơn của Job hay số đơn được chọn:
 
 | # | Câu | Nguồn |
 |---|---|---|
 | 1–2 | Công ty theo chủ, Job theo id | `loadOwnedJob` (a1) |
 | 3–11 | 9 câu hàng loạt của `rankApplications` (a40) | `ApplicationOwnerService` — dùng nguyên, một công thức hạng |
 | 12 | `resume_parsed_data` theo danh sách `resume_id` của các đơn được chọn | `ResumeParsedDataRepository.findByResumeIdIn` (mới) |
-| 13 | `screening_captured_at` của các đơn được chọn | `ApplicationScreeningAnswerRepository` (mới) |
-| 14 | `application_screening_answers` của các đơn được chọn | `ApplicationScreeningAnswerRepository` (mới) |
+| 13 | `application_screening_answers` của các đơn được chọn | `ApplicationScreeningAnswerRepository` (mới) |
 
 `newerRunInProgress` suy từ dữ liệu câu 6–7 (lượt mới nhất khác lượt DONE mới nhất và có trạng thái `PENDING`/`RUNNING`) —
-không thêm query. R-S3/R-S4/R-S5 kiểm trên danh sách đơn đã nạp ở câu 3 — không thêm query. Đường lỗi dừng sớm hơn nên ít
+không thêm query. R-S3/R-S4/R-S5 kiểm trên danh sách đơn đã nạp ở câu 3 — không thêm query. `screening_captured_at`
+cũng đọc từ entity đã nạp ở câu 3 (a18) — không thêm query (bản trước có một câu native riêng; bỏ ở Plan Mode 16/10/2026). Đường lỗi dừng sớm hơn nên ít
 câu hơn. Lượng dữ liệu đọc tỉ lệ với số đơn của Job (giống danh sách theo Job, a5) — chấp nhận, vì hạng bắt buộc tính trên
-toàn Job (R-D3). Con số 14 là **tài liệu thiết kế**, không phải khẳng định cứng của test: T30 chỉ khẳng định số câu
+toàn Job (R-D3). Con số 13 là **tài liệu thiết kế**, không phải khẳng định cứng của test: T30 chỉ khẳng định số câu
 lệnh **không đổi** theo số đơn của Job (không N+1) và in con số đo được trong thông báo của assert (S4). Plan Mode đổi
 thiết kế làm đổi con số thì sửa bảng này cùng đợt.
 
-**Plan Mode (đợt 1) phải kiểm:** cả 14 câu có đi qua Hibernate không — thống kê Hibernate (`getPrepareStatementCount`)
+**Plan Mode (đợt 1) đã kiểm 16/10/2026:** cả 13 câu đều qua Hibernate (Spring Data derived/`findAllById`/`@Query`
+native); không entity nào trên đường C1 có quan hệ JPA (không lazy-load ẩn); JSON đọc qua `@JdbcTypeCode` cùng câu
+SELECT. Yêu cầu gốc: kiểm cả các câu có đi qua Hibernate không — thống kê Hibernate (`getPrepareStatementCount`)
 không đếm câu chạy bằng `JdbcTemplate` hay JDBC trực tiếp (tiền lệ trong dự án: `JobEmbedding.java:20` ghi rõ phần vector
 dùng `JdbcTemplate` riêng). Nếu có câu không qua Hibernate thì **dừng và báo** cách đếm thay thế, không tự chọn.
 
@@ -500,7 +510,7 @@ chạm `ChatModel`; mock `ChatModel` mặc định của suite vẫn ném lỗi 
 | T27 | R-A1, R-A2: sau một lần gọi C1 — số dòng `scoring_runs`, `criterion_scores`, `score_explanations`, `notifications` không đổi; `ChatModel`/`EmbeddingModel` mock không được gọi (`verifyNoInteractions`) | âm |
 | T28 | Danh sách (a8, `[Q7]`): `GET …/applications` có `recruitmentCycle` đúng từng đơn; mọi khẳng định có sẵn của `ApplicationOwnerControllerIntegrationTest`, `ApplicationOwnerServiceTest`, `ApplicationHrDetailControllerIntegrationTest` (E3/E4) xanh **không sửa** | dương |
 | T29 | `CompareSelectionParserTest` (đơn vị): `null`, `""`, `" "`, `"a"`, `"<uuid>"`, `"<uuid>,<uuid>"`, `"<uuid>, <uuid>"` (khoảng trắng quanh phần tử — chấp nhận, bỏ khoảng trắng hai đầu), `"<UUID viết hoa>,<uuid>"` (chấp nhận), `"<uuid>,<uuid>,<uuid>,<uuid>"`, trùng hoa/thường cùng UUID → trùng | biên + âm |
-| T30 | **Không N+1** (mục 4.6, S4). Không tạo Spring context riêng: bật `spring.jpa.properties.hibernate.generate_statistics: true` trong cấu hình test dùng chung `backend/src/test/resources/application-test.yml` (79 dòng, chưa có khối `spring:` — thêm khối mới sau dòng 79), kèm `logging.level.org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN` để test không in thống kê mỗi phiên. Test nằm trong `ApplicationComparisonControllerIntegrationTest`: lấy `Statistics` từ `EntityManagerFactory.unwrap(SessionFactory.class)`, `clear()` → gọi C1 với Job có 3 đơn → đọc `getPrepareStatementCount()` = n3; `clear()` → gọi C1 (cùng 2 đơn được chọn) sau khi thêm vào Job thành 30 đơn → n30. **Khẳng định duy nhất: n3 == n30**; thông báo của assert in cả hai con số (kỳ vọng thiết kế 14, mục 4.6). Không assert cứng 14 | biên |
+| T30 | **Không N+1** (mục 4.6, S4). Không tạo Spring context riêng: bật `spring.jpa.properties.hibernate.generate_statistics: true` trong cấu hình test dùng chung `backend/src/test/resources/application-test.yml` (79 dòng, chưa có khối `spring:` — thêm khối mới sau dòng 79), kèm `logging.level.org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN` để test không in thống kê mỗi phiên. Test nằm trong `ApplicationComparisonControllerIntegrationTest`: lấy `Statistics` từ `EntityManagerFactory.unwrap(SessionFactory.class)`, `clear()` → gọi C1 với Job có 3 đơn → đọc `getPrepareStatementCount()` = n3; `clear()` → gọi C1 (cùng 2 đơn được chọn) sau khi thêm vào Job thành 30 đơn → n30. **Khẳng định duy nhất: n3 == n30**; thông báo của assert in cả hai con số (kỳ vọng thiết kế 13, mục 4.6). Không assert cứng 13 | biên |
 | T31 | `ids` qua HTTP (R-S2, R-S7): khoảng trắng quanh phần tử (`%20<a>%20,%20<b>`) → 200; UUID viết hoa toàn bộ / lẫn hoa thường → 200, `columns[].applicationId` trả dạng chữ thường; `ids=<a>,<b>,` (dấu phẩy cuối) → 400 "Danh sách đơn cần so sánh không hợp lệ."; `ids=<a>,<a viết hoa>` → 400 "Mỗi đơn chỉ được chọn một lần." | biên + âm |
 | T32 | Trạng thái Job (R-S10): cùng hai đơn DONE, đặt Job lần lượt `DRAFT`, `PAUSED`, `CLOSED` (native update) → 200; Job đã xoá mềm (`deleted_at` khác `NULL`) → 200; HR công ty khác với Job `CLOSED` → vẫn 403 | dương + âm |
 | T33 | Hoà điểm (R-D3, R-W2): Job có 4 đơn 80, 70, 70, 60 → so sánh **hai đơn 70** → `rank.values` = [2, 2], `rank.valuesDiffer = false`, `totalScore.valuesDiffer = false`; so sánh 80 và một đơn 70 → [1, 2], `true` | biên |
@@ -819,8 +829,8 @@ full `.\mvnw.cmd test` đúng một lần + build + lint.
 
 | Đợt | Nội dung | Kiểm |
 |---|---|---|
-| 1 | Plan Mode: đối chiếu lại mục 0 trên HEAD lúc đó; chốt tên method trên `ApplicationOwnerService`, hình dạng chính xác DTO mục 4.4; kiểm cả 14 query của mục 4.6 đều qua Hibernate (có câu không qua → dừng, báo cách đếm thay thế); chốt danh sách file | — |
-| 2 | Backend nguồn dữ liệu: `ApplicationOwnerService.evaluateApplications` (dùng `rankApplications`) + sửa comment `:128-135` (D7), `ApplicationEvaluation` mở rộng, `recruitmentCycle` ở danh sách `[Q7]`, `findByResumeIdIn`, `ApplicationScreeningReader.readMany` + repository; T12, T13, T14 (phần nguồn), T28 | test-compile; `-Dtest` `ApplicationOwner*Test`, `ApplicationHrDetailControllerIntegrationTest`, `ApplicationScreening*Test`, lớp mới |
+| 1 | Plan Mode: đối chiếu lại mục 0 trên HEAD lúc đó; chốt tên method trên `ApplicationOwnerService`, hình dạng chính xác DTO mục 4.4; kiểm cả 13 query của mục 4.6 đều qua Hibernate (có câu không qua → dừng, báo cách đếm thay thế); chốt danh sách file | — |
+| 2 | Backend nguồn dữ liệu: `ApplicationOwnerService.evaluateApplications` (dùng `rankApplications`) + sửa comment `:128-135` (D7) + sửa comment `ApplicationScreeningAnswerRepository.java:15` (D7), `ApplicationComparisonSource` (record mới), `recruitmentCycle` ở danh sách `[Q7]`, `findByResumeIdIn`, `ApplicationScreeningReader.readMany` + repository; T12, T13, T14 (phần nguồn), T28 | test-compile; `-Dtest` `ApplicationOwner*Test`, `ApplicationHrDetailControllerIntegrationTest`, `ApplicationScreening*Test`, lớp mới |
 | 3 | Backend C1: `comparison/` (parser, service, controller, DTO), hai exception + handler; R-S, R-C, R-Q, R-W2, R-D10; T1–T11, T15–T27, T29–T35; bật thống kê Hibernate trong `application-test.yml` (T30, S4) | test-compile; `-Dtest` lớp mới + `HrApplicationCrossEndpointAccessIntegrationTest` |
 | 4 | Frontend tab "Ứng viên": cột ô chọn, thanh chọn, điều kiện khoá + câu lý do, hằng `MAX_COMPARE`, kiểu `recruitmentCycle`; route `/hr/jobs/:id/compare` (trang khung gọi C1, trạng thái tải/lỗi) | build + lint |
 | 5 | Frontend trang so sánh: bảng desktop/medium, bố cục compact, ô tiêu chí mở rộng evidence (tách `EvidenceQuoteList` khỏi `CriterionScoreBreakdown`, giao diện trang hồ sơ đơn không đổi — UI.md 5a), giải thích, sàng lọc, hàng "Khác nhau", khối lưu ý rubric, nút "Mở hồ sơ"/"Mời phỏng vấn" (hộp thoại có sẵn) | build + lint; lệnh 7.3 |
@@ -836,7 +846,7 @@ full `.\mvnw.cmd test` đúng một lần + build + lint.
 | D4 | `docs/features/README.md` mục 15 | "Nút Mời phỏng vấn mở đúng hộp thoại của FR-H07" → thêm "(chỉ khi đơn Chờ duyệt; hộp thoại nhiều khung giờ của FR-H12)" (M5); "chỉ các đơn … đã chấm xong" giữ; thêm "Trạng thái đơn không giới hạn việc chọn" (`[Q3]`) |
 | D5 | `docs/features/HR/H16/REQUIREMENT.md` (khung) | Ghi chú một dòng: "Bảng so sánh H14 dựng ở `ApplicationComparisonService.compare` — điểm che duy nhất (H14 R-B1)" |
 | D6 | `CLAUDE.md` §3 | Thêm `comparison/` (FR-H14) vào danh sách package `[Q11]` |
-| D7 | `ApplicationOwnerService.java:128-135` (comment code, **sửa ở đợt 2**, cùng lúc thêm `evaluateApplications` — không chờ đợt cuối) | Comment ghi "10 query (2 ownership + 8)" nhưng liệt kê và chạy 9 câu trong `rankApplications`, tổng 11 (a40) — sửa thành "11 query (2 ownership + 9)". Chỉ sửa comment, không đổi code |
+| D7 | `ApplicationOwnerService.java:128-135` (comment code, **sửa ở đợt 2**, cùng lúc thêm `evaluateApplications` — không chờ đợt cuối) | Comment ghi "10 query (2 ownership + 8)" nhưng liệt kê và chạy 9 câu trong `rankApplications`, tổng 11 (a40) — sửa thành "11 query (2 ownership + 9)". Chỉ sửa comment, không đổi code. **Ý thứ hai (cũng sửa ở đợt 2):** comment `ApplicationScreeningAnswerRepository.java:15` ("KHONG them field vao entity JobApplication") đã cũ, vì entity đã map `screening_captured_at` từ FR-U09 (a18) — sửa comment cho đúng, **không** đổi code `findScreeningCapturedAt` (FR-H10 vẫn dùng) |
 
 ## 11. Quyết định — Đã chốt 15/10/2026
 
@@ -871,6 +881,6 @@ viết theo cột "Đã chốt"; cột "Phương án đã loại / đánh đổi
 | S1 | Cách hiện kinh nghiệm lệch FR-C05 (`C05/UI.md:190`, `:220`) | **Giữ cách đơn giản của R-D5**: mọi trường hợp thiếu đều hiện "Chưa có dữ liệu"; không dòng cơ sở, không "Đang tính…"; DTO `Experience(months, years)` không đổi. Cố ý khác FR-C05 | Trang so sánh không tự tải lại (nên "Đang tính…" không tự đổi); dòng cơ sở làm ô dài thêm ở cả 3 cột; HR xem chi tiết qua "Mở hồ sơ". Đánh đổi: HR không phân biệt được "chưa tính" với "không đọc được mốc" ngay trên bảng | R-D5, mục 4.4 |
 | S2 | Hàng Tổng điểm/Hạng không tự mở evidence | **Chấp nhận**: evidence của tổng điểm và hạng là evidence các hàng tiêu chí trên cùng trang (R-D13), giống danh sách theo Job; coi yêu cầu CLAUDE.md §8 / UI_GUIDE mục 4 là đã đáp ứng | Thêm nút mở rộng riêng cho hàng tổng điểm sẽ lặp lại đúng nội dung các hàng tiêu chí | R-D13 |
 | S3 | Nhãn "Do AI tạo" cho giải thích FR-H06 | **Giữ ở H14** đúng UI_GUIDE mục 4. Không sửa H09 ở nhánh này; ghi nợ ở D2 | Hai màn hình tạm thời không đồng nhất (tab Giải thích của H09 chưa có nhãn) cho tới khi nhánh riêng sửa | UI.md 4a, 5d; D2 |
-| S4 | Cách chạy T30 (đếm query) | **Người dùng chốt 15/10/2026:** không tạo Spring context riêng; bật `hibernate.generate_statistics` trong `backend/src/test/resources/application-test.yml` dùng chung (thêm khối `spring:` sau dòng 79), tắt log thống kê bằng mức `WARN` cho `StatisticalLoggingSessionEventListener`. T30 chỉ khẳng định số câu lệnh khi Job có 3 đơn **bằng** khi Job có 30 đơn; con số 14 chỉ in trong thông báo assert và giữ làm tài liệu ở 4.6. Plan Mode kiểm cả 14 câu qua Hibernate; có câu không qua thì dừng và báo | Lớp riêng có `@SpringBootTest(properties=…)`: tách context, làm full suite chậm hơn. Assert cứng 14: vỡ mỗi khi Plan Mode/đợt sau đổi số câu dù không có N+1. Đánh đổi của cách đã chốt: thống kê Hibernate bật cho mọi test (chi phí nhỏ, không đổi hành vi) | 4.6, T30, 7.5, 9 |
+| S4 | Cách chạy T30 (đếm query) | **Người dùng chốt 15/10/2026:** không tạo Spring context riêng; bật `hibernate.generate_statistics` trong `backend/src/test/resources/application-test.yml` dùng chung (thêm khối `spring:` sau dòng 79), tắt log thống kê bằng mức `WARN` cho `StatisticalLoggingSessionEventListener`. T30 chỉ khẳng định số câu lệnh khi Job có 3 đơn **bằng** khi Job có 30 đơn; con số 13 (14 trước Plan Mode 16/10/2026) chỉ in trong thông báo assert và giữ làm tài liệu ở 4.6. Plan Mode kiểm cả 13 câu qua Hibernate; có câu không qua thì dừng và báo | Lớp riêng có `@SpringBootTest(properties=…)`: tách context, làm full suite chậm hơn. Assert cứng số câu: vỡ mỗi khi Plan Mode/đợt sau đổi số câu dù không có N+1. Đánh đổi của cách đã chốt: thống kê Hibernate bật cho mọi test (chi phí nhỏ, không đổi hành vi) | 4.6, T30, 7.5, 9 |
 | S5 | Chú thích hàng Hạng | **Người dùng chốt 15/10/2026:** hiện sẵn thành chữ ngay dưới nhãn "Hạng", không dùng tooltip | Tooltip không mở được bằng chạm và trình đọc màn hình dễ bỏ qua; đánh đổi: hàng Hạng cao hơn một dòng | UI.md 4a, mục 7 |
 | S6 | So sánh trên Job đã xoá mềm (R-S10) | **Người dùng chốt 15/10/2026:** Job đã xoá mềm (và Job `DRAFT`/`PAUSED`/`CLOSED`) vẫn so sánh được, cho khớp danh sách theo Job hiện có (a39). Muốn chặn Job đã xoá mềm thì thuộc FR-H05 (chặn cả danh sách), không làm ở H14 | Chặn riêng ở C1: lệch với danh sách — HR thấy đơn ở tab "Ứng viên" nhưng bấm "So sánh" lại bị chặn | R-S10, T32 |
