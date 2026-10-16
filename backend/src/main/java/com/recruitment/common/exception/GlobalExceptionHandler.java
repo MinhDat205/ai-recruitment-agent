@@ -327,6 +327,43 @@ public class GlobalExceptionHandler {
 
     // FR-H14 R-S8 - danh sach don cua bang so sanh sai (dinh dang, trung, so luong, khong thuoc tin, khac chu ky). Mot
     // ma loi chung, thong diep co dinh qua getMessage() (khuon InvalidJobFilterException o tren).
+    // FR-H15 (REQUIREMENT muc 4.3) - sau ma loi, cau tieng Viet co dinh nam trong tung exception.
+    @ExceptionHandler(InvalidTalentPoolNameException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTalentPoolName(InvalidTalentPoolNameException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_TALENT_POOL_NAME", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TalentPoolNameTakenException.class)
+    public ResponseEntity<ErrorResponse> handleTalentPoolNameTaken(TalentPoolNameTakenException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("TALENT_POOL_NAME_TAKEN", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TalentPoolNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTalentPoolNotFound(TalentPoolNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("TALENT_POOL_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TalentPoolEntryNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTalentPoolEntryNotFound(TalentPoolEntryNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("TALENT_POOL_ENTRY_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidTalentPoolSelectionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTalentPoolSelection(InvalidTalentPoolSelectionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_TALENT_POOL_SELECTION", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TalentPoolConsentRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleTalentPoolConsentRequired(TalentPoolConsentRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("TALENT_POOL_CONSENT_REQUIRED", ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidCompareSelectionException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCompareSelection(InvalidCompareSelectionException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -507,10 +544,11 @@ public class GlobalExceptionHandler {
                             "INTERVIEW_INVITATION_CONFLICT", new InterviewInvitationConflictException().getMessage()));
         }
         // uq_talent_pool_name_per_company (V17, FR-H15 R-K3) - chot chan cuoi cho hai request tao/doi ten kho trung ten cung
-        // luc; service da kiem truoc (existsActiveName). Ma va cau trung voi duong kiem truoc (REQUIREMENT muc 4.3).
+        // luc; service da kiem truoc (existsActiveName). Lay cau tu TalentPoolNameTakenException (khuon
+        // uq_scoring_run_in_progress) de hai duong tra DUNG mot ma va mot chuoi.
         if (message != null && message.contains("uq_talent_pool_name_per_company")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ErrorResponse("TALENT_POOL_NAME_TAKEN", "Công ty đã có kho ứng viên với tên này."));
+                    .body(new ErrorResponse("TALENT_POOL_NAME_TAKEN", new TalentPoolNameTakenException().getMessage()));
         }
         throw ex;
     }
