@@ -94,7 +94,7 @@ mỗi FR tự thêm tab/nút của mình.
   > Sửa bởi FR-C08 (15/10/2026): thêm tab "Hỏi đáp CV" (`?tab=cvqa`) sau "Giải thích" — đặc tả ở
   > `docs/features/CHUNG/C08/UI.md`.
 - **R-P2.** Không dựng tab rỗng, tab bị khoá hay nút bị khoá cho Sàng lọc (H10), Câu hỏi phỏng vấn
-  (H13), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15). FR nào tự thêm phần của FR đó.
+  (H13), Trao đổi (C06), Hỏi đáp CV (C08), Lưu vào kho (H15). FR nào tự thêm phần của FR đó.
 - **R-P3.** Bỏ hẳn Sheet "Hồ sơ ứng viên" ở `ApplicationsTab.tsx`. Không tồn tại hai nơi xem hồ sơ đơn
   song song. Sau FR-H09, nút quyết định FR-H07 **chỉ** còn ở trang này.
 - **R-P4.** Giữ nguyên ở danh sách theo Job: cột Hạng/Tổng điểm, `ScoringProgressHint`, nút "Xem CV

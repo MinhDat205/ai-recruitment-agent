@@ -359,15 +359,15 @@ thêm lúc code.
 | `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá); FR-H09 |
 | `/hr/jobs/:id/compare` | So sánh ứng viên | Hiện có | FR-H14 |
 | `/hr/candidates` | "Ứng viên" | Hiện có | FR-H08, FR-H09 |
-| ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Hỏi đáp CV", "Sàng lọc" (bản chụp câu trả lời sàng lọc lúc nộp, chỉ đọc), "Giấy mời phỏng vấn" (khung giờ, khung đã chốt, thời điểm ứng viên chọn khung, gửi lại giấy mời, giấy mời trước đó), "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển. Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi); FR-H10 (tab Sàng lọc); FR-H12 (tab Giấy mời phỏng vấn); FR-U10 (thời điểm ứng viên chọn khung); FR-C08 (tab Hỏi đáp CV) |
-| ★`/hr/talent-pools`, ★`/hr/talent-pools/:id` | "Kho ứng viên" | ★Mới | FR-H15 |
+| `/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Hỏi đáp CV", "Sàng lọc" (bản chụp câu trả lời sàng lọc lúc nộp, chỉ đọc), "Giấy mời phỏng vấn" (khung giờ, khung đã chốt, thời điểm ứng viên chọn khung, gửi lại giấy mời, giấy mời trước đó), "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển; nút Lưu vào kho (FR-H15). Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | Hiện có | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi); FR-H10 (tab Sàng lọc); FR-H12 (tab Giấy mời phỏng vấn); FR-U10 (thời điểm ứng viên chọn khung); FR-C08 (tab Hỏi đáp CV); FR-H15 |
+| `/hr/talent-pools`, `/hr/talent-pools/:id` | "Kho ứng viên" | Hiện có | FR-H15 |
 | ★`/hr/messages` | "Tin nhắn" | ★Mới | FR-C06 |
 | `/hr/company` | "Hồ sơ công ty" | Hiện có | FR-H01 |
 | `/hr/notifications` | Thông báo (vào từ chuông ở topbar, không nằm trong sidebar) | Hiện có | FR-C03 |
 
 **Ghi chú `/hr/applications/:id`:** FR-H09 chỉ dựng 3 tab và thanh thao tác FR-H07, không dựng tab rỗng
 hay nút khoá trước. Các FR sau tự thêm phần của mình vào trang này trong đặc tả của chính FR đó và sửa
-dòng trên cùng đợt: Hỏi đáp CV (FR-C08 — đã thêm phần của mình); nút Thêm vào kho (FR-H15); chế độ ẩn danh (FR-H16).
+dòng trên cùng đợt: Hỏi đáp CV (FR-C08 — đã thêm phần của mình); nút Lưu vào kho (FR-H15 — đã thêm phần của mình); chế độ ẩn danh (FR-H16).
 
 ---
 

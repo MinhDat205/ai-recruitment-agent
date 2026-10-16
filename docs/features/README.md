@@ -278,7 +278,7 @@ Gom mọi thông tin và thao tác về một đơn ứng tuyển vào một mà
 - Từ danh sách xếp hạng của Job, danh sách Ứng viên hoặc thông báo → mở hồ sơ đơn.
 - Ba tab: CV & điểm (file CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí, evidence, nút Chấm điểm hồ sơ), Giải thích (FR-H06), Lịch sử trạng thái.
 - Thanh thao tác: Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07).
-- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Giấy mời phỏng vấn (H12), Trao đổi (C06), Hỏi đáp CV (C08), Thêm vào kho (H15).
+- Tab/nút của FR sau do chính FR đó thêm vào trang này, không dựng sẵn ở H09: Sàng lọc (H10), Giấy mời phỏng vấn (H12), Trao đổi (C06), Hỏi đáp CV (C08), Lưu vào kho (H15).
 
 **Hệ thống**
 
@@ -693,7 +693,7 @@ So sánh trong phạm vi một Job; chưa so sánh giữa các Job.
 - **Phase:** 2.5 · **Nhánh:** `feat/fr-h15-talent-pool` · **Phía sử dụng:** HR
 - **Đặc tả chi tiết:** `docs/features/HR/H15/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-H09, FR-U09
-- **Màn hình (UI_GUIDE mục 7):** ★`/hr/talent-pools`, ★`/hr/talent-pools/:id`; nút "Thêm vào kho" ở ★`/hr/applications/:id`.
+- **Màn hình (UI_GUIDE mục 7):** `/hr/talent-pools`, `/hr/talent-pools/:id`; nút "Lưu vào kho" ở `/hr/applications/:id`.
 
 **Mục đích**
 
@@ -701,16 +701,17 @@ Giúp HR giữ lại ứng viên tiềm năng đã nộp đơn để dùng cho c
 
 **Người dùng thao tác**
 
-- HR tạo một hoặc nhiều kho (ví dụ "Backend tiềm năng", "Thực tập 2027").
-- Từ hồ sơ đơn (H09) bấm Thêm vào kho → chọn kho → Lưu.
-- Trang Kho ứng viên: chọn kho → xem danh sách đơn đã lưu (phân trang, sắp theo thời điểm thêm vào kho) → mở hồ sơ đơn (H09) để xem lại CV, điểm và giải thích AI (FR-H04/H06), trao đổi và soạn nháp tin nhắn/email bằng AI (C06/C07).
+- HR tạo, đổi tên, xoá kho (ví dụ "Backend tiềm năng", "Thực tập 2027").
+- Từ hồ sơ đơn (H09) bấm Lưu vào kho → chọn kho → Lưu; lưu được ở cả 5 trạng thái đơn.
+- Trang Kho ứng viên: chọn kho → xem danh sách đơn đã lưu (phân trang, sắp theo thời điểm thêm vào kho) → gỡ đơn khỏi kho; mở hồ sơ đơn (H09) để xem lại CV, điểm và giải thích AI (FR-H04/H06), trao đổi và soạn nháp tin nhắn/email bằng AI (C06/C07).
 
 **Hệ thống**
 
-- Kho thuộc công ty. Mỗi mục trong kho trỏ tới một đơn ứng tuyển (qua đó tới CV, Job); một đơn có thể thuộc nhiều kho, không trùng trong cùng một kho.
-- Chỉ thêm được đơn mà ứng viên đã đồng ý lưu hồ sơ (U09); kiểm tra ở backend.
+- Kho thuộc công ty. Mỗi mục trong kho trỏ tới một đơn ứng tuyển (qua đó tới CV, Job); một đơn có thể thuộc nhiều kho, không trùng trong cùng một kho. Lưu được đơn ở mọi trạng thái đơn.
+- Chỉ thêm được đơn mà ứng viên đang đồng ý lưu hồ sơ (U09, trạng thái ACTIVE); gỡ đơn được ở mọi trạng thái đồng ý; kiểm tra ở backend.
+- Xoá mềm cả kho và mục; đổi tên kho không trùng trong các kho chưa xoá cùng công ty.
 - Danh sách mục trong kho có phân trang, sắp theo thời điểm thêm vào kho.
-- Khi ứng viên rút đồng ý (U09), mục bị xoá khỏi mọi kho trong chính transaction rút đồng ý.
+- Khi ứng viên rút đồng ý (U09), mục bị gỡ khỏi mọi kho trong chính transaction rút đồng ý.
 - Mục trong kho chỉ là liên kết tới đơn; CV, điểm, giải thích và trao đổi được đọc từ các chức năng sẵn có khi mở hồ sơ đơn.
 
 **AI**
@@ -825,7 +826,7 @@ HR bật Ẩn danh cho một Job → ở danh sách xếp hạng, hồ sơ đơn
 - Che ở backend khi dựng dữ liệu trả cho HR, bằng một bộ che dùng chung; không che ở frontend.
 - Nội dung văn bản (evidence, giải thích, trích dẫn C08, CV đã trích xuất) được che bằng cách thay đúng các giá trị liên hệ đã biết (họ tên, email, số điện thoại, địa chỉ lấy từ phần liên hệ của CV đã trích xuất và hồ sơ ứng viên).
 - Tự bỏ ẩn danh cho đơn khi HR gửi giấy mời phỏng vấn. HR có thể tắt chủ động; hệ thống ghi lại người và thời điểm bật/tắt.
-- Khi đơn đang ẩn danh: tab Trao đổi hiển thị tên đã che; nút Thêm vào kho chỉ mở sau khi bỏ ẩn danh.
+- Khi đơn đang ẩn danh: tab Trao đổi hiển thị tên đã che; nút Lưu vào kho chỉ mở sau khi bỏ ẩn danh.
 
 **AI**
 
@@ -859,5 +860,5 @@ Bật theo Job; chưa ẩn danh trong email/tin nhắn gửi ứng viên; không
 | FR-U04 chỉ gợi ý khi đã có CV trích xuất, hiển thị riêng ở trang Tổng quan | Mở rộng thành U15: gợi ý được cả khi chưa có CV (dựa trên hồ sơ U14), hiển thị ở trang Việc làm và trang Tổng quan, dùng chung bộ máy với U13 để chỉ còn một nguồn gợi ý. |
 | AI giải thích lý do phù hợp cho từng kết quả tìm kiếm (UV 3) | Mỗi kết quả tốn một lượt gọi AI. Thay bằng hiển thị điều kiện đã khớp. |
 | FR-H13 — AI tạo câu hỏi phỏng vấn riêng cho từng CV (loại ngày 14/10/2026, trước khi đặc tả) | Chủ động bỏ khỏi phạm vi. Mã FR-H13 không dùng lại; các mã khác giữ nguyên. HR tự chuẩn bị câu hỏi dựa trên tab CV & điểm, Giải thích (H06) và Hỏi đáp CV (C08). |
-| FR-H15 — ghi chú, AI tóm tắt và bộ lọc trong Kho ứng viên (rút gọn ngày 16/10/2026, trước khi đặc tả) | Chủ động bỏ khỏi phạm vi. FR-H15 chỉ còn: tạo kho, thêm đơn đã đồng ý lưu hồ sơ (U09), liệt kê đơn đã lưu và mở lại hồ sơ đơn (H09). Không dùng AI; không còn phụ thuộc C05, K1, K3, K4. Xem lại CV, đánh giá AI và soạn nháp tin nhắn bằng AI đã có sẵn ở hồ sơ đơn (H04/H06, C06/C07). |
+| FR-H15 — ghi chú, AI tóm tắt và bộ lọc trong Kho ứng viên (rút gọn ngày 16/10/2026, trước khi đặc tả) | Chủ động bỏ khỏi phạm vi. FR-H15 chỉ còn: tạo, đổi tên, xoá kho; lưu đơn đã đồng ý lưu hồ sơ (U09, ACTIVE) vào một hoặc nhiều kho và gỡ ra; lưu ở mọi trạng thái đơn; liệt kê đơn đã lưu và mở lại hồ sơ đơn (H09). Không dùng AI; không còn phụ thuộc C05, K1, K3, K4. Xem lại CV, đánh giá AI và soạn nháp tin nhắn bằng AI đã có sẵn ở hồ sơ đơn (H04/H06, C06/C07). |
 | FR-U11 — Thống kê hoạt động ứng tuyển cá nhân (loại ngày 16/10/2026, trước khi đặc tả) | Chủ động bỏ khỏi phạm vi. Mã FR-U11 không dùng lại; các mã khác giữ nguyên. Ứng viên theo dõi đơn qua danh sách Đơn ứng tuyển (U03) và trang chi tiết đơn (U08). |

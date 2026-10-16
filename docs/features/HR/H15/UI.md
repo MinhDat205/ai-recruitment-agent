@@ -1,6 +1,6 @@
 # FR-H15 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 16/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH 17/10/2026
 >
 > Làm rõ sau Plan Mode 16/10/2026: L3 (mục 5a thêm `talentPoolLabels.ts`). Làm rõ trong đợt 4 (17/10/2026): L7 (mục 4a,
 > 6: nút "Tạo kho" khi danh sách rỗng). Làm rõ trong đợt 5 (17/10/2026): L8 (mục 6: hộp thoại "Lưu vào kho" lúc đang
@@ -12,7 +12,7 @@ Table, Checkbox, Dialog, badge trạng thái), 5 (rỗng/tải/lỗi), 6 (khả 
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 16/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH 17/10/2026
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

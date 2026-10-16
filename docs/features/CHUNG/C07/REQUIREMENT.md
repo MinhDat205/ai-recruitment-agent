@@ -38,7 +38,7 @@
 | b1 | Giấy mời | Bảng `interview_invitations`: `scheduled_at` NOT NULL, `location`, `subject`, `rendered_content`. Không có unique theo đơn; lấy bản mới nhất bằng `findByApplicationIdOrderByCreatedAtDesc(...).findFirst()` như phía ứng viên | `V1__init_schema.sql:239-250`; `InterviewInvitationService.java:134-152` |
 | b2 | Máy trạng thái | `PENDING → {INTERVIEW_INVITED, REJECTED}`, `INTERVIEW_INVITED → {HIRED, REJECTED}`; `WITHDRAWN` do ứng viên | `ApplicationStatusService.java:33-35` |
 | b3 | Tên | `users.full_name` (ứng viên), `jobs.title`, `companies.name` | entity `User`, `Job`, `Company` |
-| b4 | "Ghi chú nội bộ" hiện có trong schema | Chỉ có `application_status_history.note` (ứng viên **có** thấy ở FR-U03). Ghi chú HR thật sự chỉ có từ FR-H15 | `V1__init_schema.sql:234`; `ApplicationService.java:247` |
+| b4 | "Ghi chú nội bộ" hiện có trong schema | Chỉ có `application_status_history.note` (ứng viên **có** thấy ở FR-U03). Hệ thống không có ghi chú HR (FR-H15 rút gọn 16/10/2026 không có ghi chú) | `V1__init_schema.sql:234`; `ApplicationService.java:247` |
 | b6 | Nhãn trạng thái tiếng Việt ở backend | Chỉ có trong `NotificationContentBuilder.STATUS_LABELS`, khai `private static` (gói `notification/`, ngoài danh sách phụ thuộc của K1); frontend có bản riêng `APPLICATION_STATUS_LABELS` | `NotificationContentBuilder.java:12-20`; `frontend/src/features/applications/applicationLabels.ts` |
 | b7 | Body JSON hỏng hiện xử lý thế nào | `GlobalExceptionHandler` **không** có handler cho `HttpMessageNotReadableException` (chỉ `MethodArgumentNotValidException`, dòng 22-23) → Spring trả 400 mặc định, không có mã `{"error": …}` chuẩn hoá. Chưa controller nào có `@ExceptionHandler` riêng | `GlobalExceptionHandler.java`; tìm `@ExceptionHandler` trong `*Controller.java` → 0 |
 | b8 | M2 của C06 có đọc body JSON không | **Không** — chỉ `@RequestParam` `body`/`file`, không `@RequestBody`. Request `Content-Type: application/json` (kể cả JSON hỏng) → `body = null`, `file = null` → 400 `MESSAGE_EMPTY` (đường giống T24 của C06 với urlencoded) | `MessageHrController.send`; `MessageService.java:220-226`; `GlobalExceptionHandler.java:264-268` |
@@ -178,7 +178,7 @@ Hệ thống: không lưu bản nháp; không đổi trạng thái đơn; không
 ### 3.5 K1 — bộ gom ngữ cảnh theo vai trò, phần cuộc trao đổi (R-K1)
 
 - **R-K1-1.** FR-C07 chỉ xây phần K1 mà C07 cần: **ngữ cảnh cuộc trao đổi** của một đơn. Không xây phần CV,
-  JD, rubric, kết quả chấm (C08, H13, H15 tự thêm khi tới lượt — Q9).
+  JD, rubric, kết quả chấm (FR sau cần thì tự thêm — Q9; H13 đã loại, H15 rút gọn không dùng AI).
 - **R-K1-2. Chặn bằng kiểu dữ liệu.** Ngữ cảnh là record bất biến, **chỉ** có đúng các thành phần sau — không
   thành phần nào khác, không `Map`, không `Object`, không `JsonNode`, không chuỗi "phụ" tự do:
 
@@ -375,7 +375,7 @@ Khoá **cấm** ở mọi cấp của A1/A2 (test T11, so nguyên tên khoá): `
 - Lưu bản nháp, lịch sử bản nháp, mẫu tin nhắn tự lưu; đánh dấu tin "do AI soạn" (R-D1, R-D3).
 - Soạn hàng loạt; soạn ngoài cuộc trao đổi theo đơn (email riêng, giấy mời FR-H07, tin tuyển dụng FR-H11).
 - AI viết lại/sửa đoạn người dùng đang gõ; gợi ý trong lúc gõ; dịch.
-- Phần K1 cho CV, JD, rubric, kết quả chấm (C08, H13, H15); K2; K4.
+- Phần K1 cho CV, JD, rubric, kết quả chấm (FR sau cần thì tự thêm; H13 đã loại, H15 rút gọn không dùng AI); K2; K4.
 - Che tên ứng viên trong ngữ cảnh khi ẩn danh (FR-H16).
 - Đổi `maxRetries`/timeout của job nền D1/D2/D4/F2 (Q10).
 - Chặn nút "Gửi" khi bản nháp còn chỗ trống `[…]` (Q12).

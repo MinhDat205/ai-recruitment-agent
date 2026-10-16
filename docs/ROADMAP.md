@@ -881,8 +881,7 @@ UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa đi�
   nút "Rút đồng ý" (một chiều, `UPDATE` có điều kiện, không đổi trạng thái đơn). Migration `V14` (3 cột đồng ý + CHECK ba
   trạng thái). Endpoint F1, F3, F4; E1 thêm khoá `talentPoolConsent`. Không gọi AI; cờ và câu trả lời không đổi điểm/hạng
   (T14). Full suite 1047/1047; kiểm HTTP 7/7 nhóm; `srs-guard` sạch. Lệch L1–L32 ghi ở walkthrough mục 8. Nợ kỹ thuật:
-  - FR-H15 phải xoá mục khỏi mọi kho **trong chính transaction** rút đồng ý (`ApplicationService.revokeTalentPoolConsent`)
-    và chặn thêm vào kho mọi đơn không `ACTIVE`; hiện rút đồng ý chỉ đặt cờ + thời điểm.
+  - Nợ giao cho FR-H15 (gỡ mục khỏi mọi kho trong chính transaction rút đồng ý, chặn thêm đơn không ACTIVE) đã đóng (R-C1, R-M3).
   - `ApplicationService.withdraw` vẫn đọc entity rồi `save` (lost update với HR đổi trạng thái); FR-U09 chỉ chặn hậu quả
     lên cột đồng ý bằng `updatable = false`. Sửa ở một nhánh `chore/` riêng.
   - Nợ của FR-H10 "đơn mới hiện `NOT_CAPTURED` tới khi FR-U09 xong" đã đóng.
@@ -1011,8 +1010,15 @@ giấy mời đã gửi không đổi khi sửa mẫu.
   - Kiểm tĩnh 7.1 và 7.3 đều 0 dòng.
   - Khối HTTP 7.2 khớp 8/8 nhóm.
   - Soát tay 7.4 nhóm A, B, C đạt.
-- [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên (rút gọn 16/10/2026: tạo kho, thêm đơn đã đồng ý lưu hồ sơ,
-  mở lại hồ sơ đơn H09; không ghi chú, AI tóm tắt, bộ lọc — xem `docs/features/README.md` mục 5)
+- [x] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên — **HOÀN THÀNH**
+  (17/10/2026, 6 đợt — phạm vi rút gọn 16/10/2026: không AI, không ghi chú, không thẻ, không bộ lọc/tìm kiếm). HR
+  tạo, đổi tên, xoá kho; lưu đơn có đồng ý ACTIVE vào một hoặc nhiều kho và gỡ ra; từ kho mở lại hồ sơ đơn H09;
+  tự động gỡ mục khỏi mọi kho khi ứng viên rút đồng ý.
+  Kết quả kiểm (17/10/2026):
+  - Full suite 1610/1610 (`./mvnw test`), build + lint sạch.
+  - Kiểm tĩnh 7.3 đều 0 dòng.
+  - Khối HTTP 7.2 khớp 7/7 nhóm.
+  - Soát tay 7.4 nhóm A, B, C đạt.
 
 > FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-H13 không dùng lại; các mã khác giữ nguyên.

@@ -1,6 +1,6 @@
 # FR-H15 — Kho ứng viên
 
-> Trạng thái: ĐÃ DUYỆT 16/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH 17/10/2026
 >
 > Phạm vi rút gọn ngày 16/10/2026 (ghi đè mọi mô tả H15 cũ trong `docs/SRS.md`, `docs/ROADMAP.md`,
 > `docs/features/README.md` mục 16). Quyết định đã chốt ở mục 0(b); `[Qn]` trong thân là tham chiếu tới câu đã chốt.

@@ -39,7 +39,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H11 | AI tạo tin tuyển dụng | HR | Đã hoàn thành | [features/HR/H11/REQUIREMENT.md](features/HR/H11/REQUIREMENT.md) |
 | FR-H12 | Giấy mời phỏng vấn nhiều khung giờ | HR | Đã hoàn thành | [features/HR/H12/REQUIREMENT.md](features/HR/H12/REQUIREMENT.md) |
 | FR-H14 | So sánh 2–3 ứng viên | HR | Đã hoàn thành | [features/HR/H14/REQUIREMENT.md](features/HR/H14/REQUIREMENT.md) |
-| FR-H15 | Kho ứng viên | HR | Chưa đặc tả | [features/HR/H15/REQUIREMENT.md](features/HR/H15/REQUIREMENT.md) |
+| FR-H15 | Kho ứng viên | HR | Đã hoàn thành | [features/HR/H15/REQUIREMENT.md](features/HR/H15/REQUIREMENT.md) |
 | FR-H16 | Chế độ ẩn danh | HR | Chưa đặc tả | [features/HR/H16/REQUIREMENT.md](features/HR/H16/REQUIREMENT.md) |
 | FR-U01 | Quản lý Hồ sơ Cá nhân & Upload CV | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
 | FR-U02 | Tìm kiếm & Ứng tuyển Việc làm | Ứng viên | Đã hoàn thành | Mục 3 bên dưới |
@@ -106,7 +106,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H11 | AI tạo tin tuyển dụng | Từ mô tả tự do sinh bản nháp Job, gợi ý tiêu chí rubric và câu hỏi sàng lọc; trọng số do HR nhập | HR | FR-H02, FR-H03, FR-C05, FR-H10 |
 | FR-H12 | Giấy mời phỏng vấn nhiều khung giờ | Giấy mời có 1–5 khung giờ để ứng viên chọn; thêm thao tác gửi lại giấy mời | HR | FR-H07, FR-C03 |
 | FR-H14 | So sánh 2–3 ứng viên | Bảng song song điểm, tiêu chí, kinh nghiệm, kỹ năng của các đơn cùng Job; không đánh dấu người thắng | HR | FR-H05, FR-H06, FR-H09, FR-H10, FR-U09 |
-| FR-H15 | Kho ứng viên | Lưu đơn đã được ứng viên đồng ý vào các kho; mở lại hồ sơ đơn (CV, đánh giá AI, trao đổi) từ kho | HR | FR-H09, FR-U09 |
+| FR-H15 | Kho ứng viên | Tạo, đổi tên, xoá kho; lưu đơn đã được ứng viên đồng ý vào các kho và gỡ đơn khỏi kho; mở lại hồ sơ đơn (CV, đánh giá AI, trao đổi) từ kho | HR | FR-H09, FR-U09 |
 | FR-H16 | Chế độ ẩn danh | Che thông tin nhân thân khi HR duyệt hồ sơ của một Job; tự bỏ khi mời phỏng vấn | HR | FR-H09, FR-H14, FR-C08 |
 
 # 3. Chức năng Ứng viên (Candidate)
