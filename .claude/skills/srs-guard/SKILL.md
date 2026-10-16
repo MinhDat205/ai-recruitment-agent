@@ -92,7 +92,7 @@ là soát code Java thật, không phải suy luận qua nội dung prompt.
 dùng chung K2 (CLAUDE.md §3d, tách từ `validate()` trên) — khi K2 tồn tại, vi phạm nếu C08 tự
 viết lại phép so khớp riêng thay vì gọi K2.
 
-## 6. Không hard delete, trừ ngoại lệ quyền riêng tư đã chốt (FR-U06, FR-H15)
+## 6. Không hard delete (FR-U06, FR-H15)
 
 ```bash
 rg "\.delete\(|deleteById|DELETE FROM" --type java --type sql
@@ -102,9 +102,11 @@ Vi phạm nếu: xoá bản ghi `job_applications`, `resumes`, `scoring_runs`, `
 Đúng: đổi `status` sang `WITHDRAWN`, hoặc set `deleted_at` với `jobs`.
 Dương tính giả thường gặp: xoá `rubric_criteria` khi HR sửa rubric — cái này được phép.
 
-**Ngoại lệ hợp lệ (FR-H15/FR-U08)**: khi ứng viên rút đồng ý lưu hồ sơ, mục tương ứng trong kho
-ứng viên phải **xoá hẳn** — yêu cầu quyền riêng tư, không phải vi phạm
-soft-delete. `job_applications`/`resumes`/`scoring_runs` gốc KHÔNG bị xoá theo hành động này.
+**Kho ứng viên (FR-H15, FR-U09)**: khi ứng viên rút đồng ý lưu hồ sơ (FR-U09), mục của đơn đó bị gỡ
+khỏi mọi kho ứng viên trong chính transaction rút đồng ý, bằng xoá mềm (đặt `removed_at`), không
+`DELETE`. Mục đã gỡ, và mục của đơn không còn đồng ý `ACTIVE`, không được hiện ở bất kỳ màn hình hay
+response nào. Chỉ thêm được đơn có đồng ý `ACTIVE` vào kho; kiểm ở backend.
+`job_applications`/`resumes`/`scoring_runs` gốc KHÔNG bị xoá theo hành động này.
 
 ## 7. Consent bắt buộc, không tick sẵn (FR-U02)
 
@@ -213,9 +215,11 @@ Khi FR-U09/FR-H15 đã có code: soát bằng cùng khuôn nguyên tắc 7 — t
 hồ sơ (tên cụ thể tuỳ lúc code, tra theo REQUIREMENT.md của FR-U09).
 
 Vi phạm nếu: giá trị mặc định là `true`/tick sẵn ở frontend, hoặc backend cho thêm đơn vào kho
-ứng viên (FR-H15) khi đơn đó chưa có đồng ý. Rút đồng ý sau đó phải xoá khỏi MỌI kho đã lưu (xem
-nguyên tắc 6, ngoại lệ hard-delete hợp lệ).
-Chưa có code cho hai FR này → đánh dấu "chưa có gì để soát".
+ứng viên (FR-H15) khi đơn đó không có đồng ý `ACTIVE` (chỉ thêm được đơn có đồng ý `ACTIVE` vào kho;
+kiểm ở backend). Khi ứng viên rút đồng ý lưu hồ sơ (FR-U09), mục của đơn đó phải bị gỡ khỏi mọi kho
+ứng viên trong chính transaction rút đồng ý, bằng xoá mềm (đặt `removed_at`), không `DELETE`. Mục đã
+gỡ, và mục của đơn không còn đồng ý `ACTIVE`, không được hiện ở bất kỳ màn hình hay response nào
+(xem nguyên tắc 6).
 
 ## 15. Giao diện không phán quyết cho chức năng mới
 
