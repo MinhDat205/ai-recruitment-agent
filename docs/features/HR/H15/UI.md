@@ -3,7 +3,8 @@
 > Trạng thái: ĐÃ DUYỆT 16/10/2026
 >
 > Làm rõ sau Plan Mode 16/10/2026: L3 (mục 5a thêm `talentPoolLabels.ts`). Làm rõ trong đợt 4 (17/10/2026): L7 (mục 4a,
-> 6: nút "Tạo kho" khi danh sách rỗng) — chi tiết ở `REQUIREMENT.md` mục 11.
+> 6: nút "Tạo kho" khi danh sách rỗng). Làm rõ trong đợt 5 (17/10/2026): L8 (mục 6: hộp thoại "Lưu vào kho" lúc đang
+> tải) — chi tiết ở `REQUIREMENT.md` mục 11.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1d (thang chữ), 1h (vùng chạm), 2 (layout HR), 3 (Button, Card,
 Table, Checkbox, Dialog, badge trạng thái), 5 (rỗng/tải/lỗi), 6 (khả năng tiếp cận). Mã `R-…`, `P1`–`P9`, `[Q…]` là của
@@ -204,7 +205,7 @@ Khi consentState ≠ ACTIVE:
 |---|---|---|---|
 | Danh sách kho | Skeleton 3 dòng trong Card | "Chưa có kho ứng viên nào." + nút "Tạo kho" | "Không tải được danh sách kho." + [Thử lại] |
 | Chi tiết kho | Skeleton tiêu đề + 3 dòng | "Kho này chưa có hồ sơ nào. Mở trang hồ sơ đơn và bấm “Lưu vào kho” để thêm." | 403/404: "Không tìm thấy kho ứng viên." + liên kết "Về danh sách kho" (cùng một câu, UI_GUIDE mục 5); lỗi khác: câu chung + [Thử lại] |
-| Hộp thoại lưu | Skeleton 2 dòng ô chọn; nút "Lưu" khoá | "Chưa có kho ứng viên nào." + "Tạo kho" | P6 lỗi: "Không tải được danh sách kho." + [Thử lại]; P7 lỗi: câu backend trong hộp thoại, giữ lựa chọn |
+| Hộp thoại lưu | Skeleton 2 dòng ô chọn; chỉ có nút "Đóng" — chưa biết `consentState` nên chưa biết có nút "Lưu" (L8) | "Chưa có kho ứng viên nào." + "Tạo kho" | P6 lỗi: "Không tải được danh sách kho." + [Thử lại]; P7 lỗi: câu backend trong hộp thoại, giữ lựa chọn |
 | Thao tác ghi | Nút đang gửi bị khoá, nhãn "Đang lưu…" | — | Câu backend tại chỗ |
 
 ## 7. Nội dung chữ (tiếng Việt có dấu)

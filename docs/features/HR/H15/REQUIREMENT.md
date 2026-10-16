@@ -7,7 +7,8 @@
 >
 > Làm rõ sau Plan Mode 16/10/2026: L1–L3 (L1: R-P5, T16, mục 8; L2: T3; L3: `UI.md` mục 5a). Làm rõ trong đợt 2
 > (17/10/2026): L4 (R-C1, mục 8). Làm rõ trong đợt 3 (17/10/2026): L5 (T2), L6 (T16). Làm rõ trong đợt 4
-> (17/10/2026): L7 (`UI.md` mục 4a, 6) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
+> (17/10/2026): L7 (`UI.md` mục 4a, 6). Làm rõ trong đợt 5 (17/10/2026): L8 (`UI.md` mục 6) — chi tiết ở mục 11. Mục 11
+> thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR tạo, đổi tên, xoá các kho ứng viên của công ty mình; lưu một đơn ứng tuyển vào một hoặc nhiều kho và gỡ
@@ -402,6 +403,7 @@ hoặc cùng demo). Seed demo không có đơn nào đồng ý lưu hồ sơ (a2
 | Tên dài | Hộp thoại "Tạo kho" | Gõ quá 100 ký tự → câu lỗi tại ô, nút "Lưu" khoá |
 | Kho rỗng | `/hr/talent-pools/:id` | "Kho này chưa có hồ sơ nào." + hướng dẫn lưu từ trang hồ sơ đơn |
 | `NOT_GIVEN` | `/hr/applications/e8000000-0000-0000-0000-000000000007` (A7) → "Lưu vào kho" | Hộp thoại hiện câu `NOT_GIVEN`; ô kho khoá; không có nút "Lưu" bấm được. Lặp lại với A2: như trên |
+| Đơn trạng thái cuối, 375px | `/hr/applications/e8000000-0000-0000-0000-000000000007` (A7, `REJECTED`) ở 375px | Câu chữ trung tính của H07 ("Đơn đã có kết quả cuối…") và nút "Lưu vào kho" xếp dọc, không chồng nhau; không cuộn ngang toàn trang |
 
 **B. Trên đơn `ACTIVE`** — `minhdathr@gmail.com`, đơn A1 `/hr/applications/e8000000-0000-0000-0000-000000000001`.
 
@@ -521,7 +523,7 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
   không N+1; `candidateName` ở P8 luôn có vì `JOIN users` theo FK `job_applications.candidate_id ON DELETE RESTRICT`
   (`V1__init_schema.sql:209`).
 
-### 11.1 Làm rõ trong đợt 2–4 (duyệt 17/10/2026)
+### 11.1 Làm rõ trong đợt 2–5 (duyệt 17/10/2026)
 
 - **L4 (R-C1, mục 8) — mốc thời gian của `removed_at`.** Mọi câu gỡ mục (R-C1, gỡ của P7, P9) đặt `removed_at =
   statement_timestamp()` của DB. Không dùng `Instant` của JVM: `added_at` lấy đồng hồ DB, JVM chậm hơn container thì
@@ -545,3 +547,6 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
   nút "Tạo kho" trong trạng thái rỗng — làm đúng cả hai thì danh sách rỗng hiện hai nút giống nhau. Chốt: header chỉ có
   nút khi đã có ít nhất 1 kho; danh sách rỗng chỉ hiện nút trong trạng thái rỗng; đang tải hoặc lỗi thì header không có
   nút. `UI.md` 4a sửa câu chữ cho khớp.
+- **L8 (`UI.md` mục 6) — hộp thoại "Lưu vào kho" lúc đang tải.** Câu cũ "Skeleton 2 dòng ô chọn; nút 'Lưu' khoá" không
+  khớp 4d: khi P6 chưa trả về thì chưa biết `consentState`, nên chưa biết hộp thoại có nút "Lưu" (`ACTIVE`) hay chỉ có
+  nút "Đóng" (không `ACTIVE`). Chốt: lúc đang tải hiện skeleton 2 dòng và chỉ nút "Đóng". `UI.md` mục 6 sửa ô tương ứng.
