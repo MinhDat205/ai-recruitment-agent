@@ -69,7 +69,8 @@ Chia package theo TÍNH NĂNG, không theo tầng: `auth/`, `user/`, `company/`,
 `storage/`, `common/`, `ai/client/`, `ai/criterion/`, `ai/explanation/`, `ai/cvimprovement/`,
 `ai/embedding/`, `aicontext/` (K1), `ai/sync/` (K3), `ai/messagedraft/`, `messagedraft/` (FR-C07),
 `screening/` (FR-H10), `aigeneration/` (K4), `ai/jobdraft/`, `jobdraft/` (FR-H11),
-`ai/citation/` (K2), `ai/cvqa/`, `cvqa/` (FR-C08).
+`ai/citation/` (K2), `ai/cvqa/`, `cvqa/` (FR-C08),
+`comparison/` (FR-H14).
 Mỗi mã FR nằm gọn trong một package; package mới chỉ tạo khi FR thật sự cần.
 
 ## 3b. Bẫy đã trả giá — đọc trước khi động vào Spring AI

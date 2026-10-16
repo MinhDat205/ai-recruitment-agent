@@ -1,9 +1,6 @@
 # FR-H14 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 15/10/2026
->
-> Mục 11 của `REQUIREMENT.md` đã chốt (Q1–Q11 và S1–S6); chỉ còn tên method trên `ApplicationOwnerService` và hình dạng
-> chính xác của DTO để Plan Mode chốt.
+> Trạng thái: ĐÃ HOÀN THÀNH 16/10/2026
 >
 > Làm rõ đợt 5 (16/10/2026): 4c sàng lọc liệt kê đủ cột; nền ô gộp dọc 4a.
 
@@ -14,10 +11,7 @@ mục; `[Q…]` là tham chiếu tới quyết định đã chốt 15/10/2026 �
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 15/10/2026
->
-> Mục 11 của `REQUIREMENT.md` đã chốt (Q1–Q11 và S1–S6); chỉ còn tên method trên `ApplicationOwnerService` và hình dạng
-> chính xác của DTO để Plan Mode chốt.
+> Trạng thái: ĐÃ HOÀN THÀNH 16/10/2026
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

@@ -995,7 +995,22 @@ giấy mời đã gửi không đổi khi sửa mẫu.
   - Bucket `ai-sync` dùng chung với soạn nháp C07 và tạo tin H11 (Q8): hỏi đáp nhiều làm hết lượt của chức năng kia.
   - Quy tắc R-N3 (khoá phiên theo đơn/CV, bỏ kết quả về muộn) là phòng trước, chưa có liên kết nào kích hoạt.
   - Việc tài liệu: đoạn tổng quan SRS.md:13-17 ('18 chức năng đã hoàn thành…') đã cũ — sửa ở nhánh docs/ riêng (L60 FR-C08)
-- [ ] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên
+- [x] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên — **HOÀN THÀNH**
+  (16/10/2026, 6 đợt). Bảng song song điểm, tiêu chí, kinh nghiệm, kỹ năng của 2–3 đơn cùng Job; không đánh dấu người thắng.
+  Giới hạn đã biết:
+  - Hạng là hạng toàn Job mọi chu kỳ (M1, câu hỏi mở cho FR-H05).
+  - Kinh nghiệm/kỹ năng theo bản trích xuất hiện tại, còn điểm theo lúc chấm (R-D12).
+  - Lựa chọn ở tab Ứng viên không giữ qua tải lại (R-L3).
+  - Khoá ô thứ 4 và khoá ô khác chu kỳ không có dữ liệu để soát tay; backend chặn qua T3/T9 và T7.
+  Nợ kỹ thuật:
+  - (S3) Tab Giải thích của FR-H09 chưa có nhãn "Do AI tạo"; sửa ở nhánh riêng.
+  - Lượt DONE có rubric_snapshot NULL làm buildCriterionScores ném NullPointerException → GET …/applications, E3/E4 và C1 trả 500 cho cả Job. Chỉ xảy ra với dữ liệu sửa tay; luồng API luôn ghi snapshot. Hành vi có sẵn của FR-H05/H09; H14 chọn không sửa (16/10/2026).
+  - (M4) CLAUDE.md §1 ghi "39 mã / 21 FR bổ sung", lệch SRS.md và features/README.md (38 / 20, FR-H13 đã loại).
+  Kết quả kiểm (16/10/2026):
+  - Full test backend 1569 test, 0 lỗi.
+  - Build + lint frontend sạch.
+  - Khối HTTP 7.2 khớp 8/8 nhóm.
+  - Soát tay 7.4 nhóm A, B, C đạt.
 - [ ] `feat/fr-h15-talent-pool` — FR-H15 · Kho ứng viên
 
 > FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026 — xem `docs/features/README.md` mục 5.

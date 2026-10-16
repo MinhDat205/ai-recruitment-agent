@@ -1,6 +1,6 @@
 # FR-H14 — So sánh song song 2–3 ứng viên
 
-> Trạng thái: ĐÃ DUYỆT 16/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH 16/10/2026
 >
 > Mục 11 đã chốt (Q1–Q11 và S1–S6, 15/10/2026); `[Q…]`/`[S…]` trong thân là tham chiếu tới câu đã chốt.
 >
