@@ -23,6 +23,8 @@ import { HrJobEditPage } from './pages/HrJobEditPage'
 import { HrJobListPage } from './pages/HrJobListPage'
 import { HrMessagesPage } from './pages/HrMessagesPage'
 import { HrNotificationsPage } from './pages/HrNotificationsPage'
+import { HrTalentPoolDetailPage } from './pages/HrTalentPoolDetailPage'
+import { HrTalentPoolListPage } from './pages/HrTalentPoolListPage'
 import { JobApplyPage } from './pages/JobApplyPage'
 import { LoginPage } from './pages/LoginPage'
 import { PublicCompanyProfilePage } from './pages/PublicCompanyProfilePage'
@@ -103,6 +105,9 @@ function App() {
             <Route path="/hr/jobs/:id/compare" element={<HrJobComparePage />} />
             <Route path="/hr/applications/:id" element={<HrApplicationDetailPage />} />
             <Route path="/hr/messages" element={<HrMessagesPage />} />
+            {/* FR-H15 - kho ung vien */}
+            <Route path="/hr/talent-pools" element={<HrTalentPoolListPage />} />
+            <Route path="/hr/talent-pools/:id" element={<HrTalentPoolDetailPage />} />
           </Route>
           <Route
             path="/hr/company"
