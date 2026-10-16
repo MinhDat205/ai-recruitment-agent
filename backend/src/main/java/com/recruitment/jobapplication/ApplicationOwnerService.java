@@ -26,11 +26,13 @@ import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
@@ -115,6 +117,23 @@ public class ApplicationOwnerService {
                 row.explanation());
     }
 
+    // FR-H14 (REQUIREMENT muc 4.2, 4.6) - nguon du lieu cua bang so sanh: chay rankApplications() DUNG MOT LAN cho
+    // ca nhom don (KHONG goi evaluateApplication lap lai - moi lan se chay lai toan bo rankApplications), nen hang o
+    // bang so sanh luon bang hang o danh sach theo Job (R-D3). Map CHI gom id thuoc job; id la bi bo qua - noi goi
+    // (comparison/) tu so kich thuoc map voi so id de tra R-S3. KHONG kiem quyen o day - noi goi da kiem qua
+    // loadOwnedJob va truyen Job da nap.
+    public Map<UUID, ApplicationComparisonSource> evaluateApplications(Job job, Collection<UUID> applicationIds) {
+        Set<UUID> wanted = Set.copyOf(applicationIds);
+        RankedRows ranked = rankApplications(job);
+        Map<UUID, ApplicationComparisonSource> result = new LinkedHashMap<>();
+        for (RankableRow row : ranked.rows()) {
+            if (wanted.contains(row.applicationId())) {
+                result.put(row.applicationId(), row.toComparisonSource(ranked.rankByApplicationId().get(row.applicationId())));
+            }
+        }
+        return result;
+    }
+
     // Phan dung chung cua listApplications/evaluateApplication: dung moi dong (diem, tieu chi, giai
     // thich cua lot DONE moi nhat) + hang 1-2-2-4. Tach nguyen van tu listApplications cu (FR-H09 Q1),
     // khong doi so query hay logic.
@@ -125,8 +144,8 @@ public class ApplicationOwnerService {
         }
         List<UUID> applicationIds = applications.stream().map(JobApplication::getId).toList();
 
-        // Nam lan tra cuu HANG LOAT (khong phai tung don mot trong vong lap) - tranh N+1. Dung
-        // dung 10 query bat ke danh sach dai bao nhieu (2 cho ownership da chay o loadOwnedJob, 8 o
+        // Tra cuu HANG LOAT (khong phai tung don mot trong vong lap) - tranh N+1. Dung dung 11 query
+        // (2 ownership + 9) bat ke danh sach dai bao nhieu (2 cho ownership da chay o loadOwnedJob, 9 o
         // day): findByJobId, findAllById (resume), findAllById (user), findLatestByApplicationIdIn
         // (tien do), findLatestDoneByApplicationIdIn (nguon diem xep hang, Q5), findAllById (full
         // ScoringRun cua CAC lot DONE do - chi de doc rubric_snapshot lam thu tu tieu chi, Diem 3),
@@ -247,6 +266,12 @@ public class ApplicationOwnerService {
         // va giai thich cung mot lot. finished_at doc tu entity da nap san (doneRunById), khong them query.
         ScoringRun doneRun = latestDoneRun == null ? null : doneRunById.get(latestDoneRun.getId());
 
+        // FR-H14: snapshot tieu chi cua CHINH lot DONE (ghep cot theo criterionId, R-C1) - doc tu entity da nap san
+        // (doneRunById), khong them query.
+        List<RubricSnapshot.CriterionSnapshot> rubricCriteria = doneRun == null || doneRun.getRubricSnapshot() == null
+                ? List.of()
+                : doneRun.getRubricSnapshot().criteria();
+
         return new RankableRow(
                 application.getId(),
                 candidateNameById.get(application.getCandidateId()),
@@ -261,7 +286,11 @@ public class ApplicationOwnerService {
                 criterionScores,
                 explanationStatus,
                 explanation,
-                application.getStatus());
+                application.getStatus(),
+                application.getResumeId(),
+                application.getRecruitmentCycle(),
+                application.getScreeningCapturedAt(),
+                rubricCriteria);
     }
 
     private ApplicationHrListItemResponse.Explanation toExplanation(ScoreExplanation explanation) {
@@ -342,7 +371,10 @@ public class ApplicationOwnerService {
     // ScoringRunAuditService.loadOwnedApplication - HR chua tao ho so cong ty phai nhan dung 404
     // COMPANY_NOT_FOUND thay vi 404 JOB_NOT_FOUND gay hieu nham, va tranh doc thua bang jobs khi da
     // biet chac se loi.
-    private Job loadOwnedJob(UUID jobId, UUID ownerId) {
+    //
+    // public tu FR-H14 (REQUIREMENT muc 4.2): bang so sanh dung CHINH quy tac so huu nay (mot quy tac, cung thu tu
+    // 404 COMPANY_NOT_FOUND -> 404 JOB_NOT_FOUND -> 403), khong them method thu hai.
+    public Job loadOwnedJob(UUID jobId, UUID ownerId) {
         Company company = requireOwnCompany(ownerId);
         Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
         if (!job.getCompanyId().equals(company.getId())) {
@@ -374,7 +406,12 @@ public class ApplicationOwnerService {
             List<ApplicationHrListItemResponse.CriterionScoreItem> criterionScores,
             ApplicationHrListItemResponse.ExplanationStatus explanationStatus,
             ApplicationHrListItemResponse.Explanation explanation,
-            ApplicationStatus status) {
+            ApplicationStatus status,
+            // FR-H14 - doc tu JobApplication/ScoringRun da nap, khong them query.
+            UUID resumeId,
+            int recruitmentCycle,
+            Instant screeningCapturedAt,
+            List<RubricSnapshot.CriterionSnapshot> rubricCriteria) {
 
         ApplicationHrListItemResponse toResponse(Integer rank) {
             return new ApplicationHrListItemResponse(
@@ -390,7 +427,28 @@ public class ApplicationOwnerService {
                     criterionScores,
                     explanationStatus,
                     explanation,
-                    status);
+                    status,
+                    recruitmentCycle);
+        }
+
+        ApplicationComparisonSource toComparisonSource(Integer rank) {
+            return new ApplicationComparisonSource(
+                    applicationId,
+                    candidateName,
+                    status,
+                    appliedAt,
+                    resumeId,
+                    recruitmentCycle,
+                    screeningCapturedAt,
+                    latestDoneRunId,
+                    latestDoneRunFinishedAt,
+                    totalScore,
+                    rank,
+                    latestScoringRunStatus,
+                    criterionScores,
+                    rubricCriteria,
+                    explanationStatus,
+                    explanation);
         }
     }
 

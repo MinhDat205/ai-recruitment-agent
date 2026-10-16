@@ -15,6 +15,10 @@ public interface ResumeParsedDataRepository extends JpaRepository<ResumeParsedDa
 
     Optional<ResumeParsedData> findByResumeId(UUID resumeId);
 
+    // FR-H14 (REQUIREMENT muc 4.6, cau 12) - ban trich xuat cua NHIEU CV da nop trong MOT cau (bang so sanh), tranh
+    // goi findByResumeId trong vong lap (N+1). CV chua co dong resume_parsed_data khong co trong ket qua.
+    List<ResumeParsedData> findByResumeIdIn(Collection<UUID> resumeIds);
+
     // Chi quet CV CHINH (resumes.is_primary = true) - CV khong phai chinh khong bao gio duoc doc lai
     // o truy van similarity (chi dung CV chinh, xem Plan Mode F1 muc F), embed no la goi API thua,
     // ton tien vo ich (muc J). ORDER BY rpd.parsed_at ASC, rpd.id ASC: CV cho lau nhat duoc uu tien,

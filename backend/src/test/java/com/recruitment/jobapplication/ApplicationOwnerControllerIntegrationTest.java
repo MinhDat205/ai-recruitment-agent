@@ -25,8 +25,11 @@ import com.recruitment.scoring.ScoringRun;
 import com.recruitment.scoring.ScoringRunRepository;
 import com.recruitment.scoring.ScoringRunStatus;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,6 +44,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 // Mau y het ScoringRunHrControllerIntegrationTest (cung mot bo helper dang ky/dang nhap/tao du
 // lieu, khong tach thanh tien ich dung chung - dung tien le cua toan bo cac test file trong du an
@@ -51,6 +56,8 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 class ApplicationOwnerControllerIntegrationTest {
+
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     @Autowired
     private MockMvc mockMvc;
@@ -178,6 +185,18 @@ class ApplicationOwnerControllerIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    // FR-H14 T28 - dong Job (OPEN -> CLOSED) de mo lai thanh chu ky moi (CLOSED -> OPEN tang recruitment_cycle).
+    private void closeJob(String token, String jobId) throws Exception {
+        mockMvc
+                .perform(patch("/api/hr/jobs/" + jobId + "/status")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"CLOSED"}
+                                """))
+                .andExpect(status().isOk());
+    }
+
     private String uploadResume(String candidateToken) throws Exception {
         MockMultipartFile file =
                 new MockMultipartFile("file", "cv.pdf", "application/pdf", "%PDF-1.4 noi dung CV gia lap".getBytes());
@@ -296,6 +315,45 @@ class ApplicationOwnerControllerIntegrationTest {
     }
 
     // ---- Case duong ----
+
+    // FR-H14 T28 [Q7] - moi phan tu cua danh sach co recruitmentCycle = job_applications.recruitment_cycle cua CHINH
+    // don do: don nop o chu ky 1 giu 1 sau khi Job mo lai sang chu ky 2; don nop sau khi mo lai mang 2 (khong lay
+    // chu ky hien tai cua Job cho moi don).
+    @Test
+    void listApplications_applicationsFromTwoCycles_eachItemHasOwnRecruitmentCycle() throws Exception {
+        String hrToken = registerAndLoginHr("hr-cycle");
+        createCompany(hrToken, uniqueName("Cong ty Cycle"));
+        String jobId = createJob(hrToken, uniqueName("Job Cycle"));
+        addCriterion(hrToken, jobId, """
+                {"name":"Tieu chi","weight":100}
+                """);
+        openJob(hrToken, jobId);
+
+        String firstCandidateToken = registerAndLoginCandidate("cand-cycle-1", "Ung Vien Chu Ky Mot");
+        String firstResumeId = uploadResume(firstCandidateToken);
+        markResumeParsedDone(UUID.fromString(firstResumeId));
+        String firstApplicationId = apply(firstCandidateToken, jobId, firstResumeId);
+
+        closeJob(hrToken, jobId);
+        openJob(hrToken, jobId);
+
+        String secondCandidateToken = registerAndLoginCandidate("cand-cycle-2", "Ung Vien Chu Ky Hai");
+        String secondResumeId = uploadResume(secondCandidateToken);
+        markResumeParsedDone(UUID.fromString(secondResumeId));
+        String secondApplicationId = apply(secondCandidateToken, jobId, secondResumeId);
+
+        MvcResult result = listApplications(hrToken, jobId);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode items = JSON.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));
+        assertThat(items.size()).isEqualTo(2);
+        Map<String, Integer> cycleById = new HashMap<>();
+        for (JsonNode item : items) {
+            assertThat(item.has("recruitmentCycle")).isTrue();
+            cycleById.put(item.get("id").asString(), item.get("recruitmentCycle").asInt());
+        }
+        assertThat(cycleById).containsEntry(firstApplicationId, 1).containsEntry(secondApplicationId, 2);
+    }
 
     // Doi ten tu ...WithoutTotalScoreOrRank (D2): D4 (Dot 4, FR-H05) THEM totalScore/rank/
     // criterionScores vao chinh response nay - don CHUA cham phai co ca ba field, gia tri null/[],
