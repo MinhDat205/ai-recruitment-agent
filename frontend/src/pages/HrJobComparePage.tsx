@@ -1,17 +1,34 @@
 import { isAxiosError } from 'axios'
-import { AlertCircle, ArrowLeft, RotateCw } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Info, RotateCw } from 'lucide-react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { HrLayout } from '../components/layout/HrLayout'
+import { ComparisonStacked } from '../features/comparison/ComparisonStacked'
+import { ComparisonTable } from '../features/comparison/ComparisonTable'
 import { COMPARE_ERROR_TEXT, COMPARE_PAGE_TEXT } from '../features/comparison/comparisonLabels'
 import { useApplicationComparisonQuery } from '../features/comparison/queries'
-import type { ApplicationComparisonResponse } from '../features/comparison/types'
 import { extractErrorMessage } from '../lib/httpError'
 
 // FR-H14 - trang so sanh /hr/jobs/:id/compare?ids=... (trong nhom ProtectedRoute(HR) + RequireCompany, HrLayout; muc
 // dieu huong "Tin tuyen dung" sang vi duong dan bat dau bang /hr/jobs/). Chi goi DUNG mot endpoint C1 (R-B1). ids gui
 // NGUYEN VAN len backend (R-S9): khong bo trung, khong cat, khong sap - backend la chot chan va tra cau R-S8.
-// Dot 4: KHUNG trang (dau trang, cac trang thai muc 6); than bang so sanh lam o dot 5.
+// Bo cuc: >= md bang 4a (ComparisonTable), < md theo hang 4c (ComparisonStacked) - chon bang matchMedia de chi MOT bo
+// cuc ton tai trong DOM (khong trung id aria-controls, khong hai hop thoai moi). Trang thai mo rong tieu chi giu O DAY
+// theo CriterionRow.key nen doi qua nguong md khong mat (UI.md muc 8).
+
+// Tailwind md = 48rem.
+const MD_UP_QUERY = '(min-width: 48rem)'
+
+function subscribeMdUp(onChange: () => void): () => void {
+  const mediaQuery = window.matchMedia(MD_UP_QUERY)
+  mediaQuery.addEventListener('change', onChange)
+  return () => mediaQuery.removeEventListener('change', onChange)
+}
+
+function useIsMdUp(): boolean {
+  return useSyncExternalStore(subscribeMdUp, () => window.matchMedia(MD_UP_QUERY).matches)
+}
 
 type ComparisonErrorKind = 'selection' | 'notScored' | 'notFound' | 'companyMissing' | 'network'
 
@@ -60,9 +77,22 @@ function ComparePageContent({ jobId, idsParam }: { jobId: string; idsParam: stri
   const comparisonQuery = useApplicationComparisonQuery(jobId, idsParam)
   const backToListHref = `/hr/jobs/${jobId}/edit?tab=applications`
   const data = comparisonQuery.data
+  const isMdUp = useIsMdUp()
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(() => new Set())
+  const toggleCriterion = useCallback((key: string) => {
+    setExpandedKeys((current) => {
+      const next = new Set(current)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }, [])
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-[1200px] min-w-0 flex-col gap-4">
       <Link
         to={backToListHref}
         className="inline-flex min-h-12 items-center gap-1.5 self-start text-m3-label-lg text-m3-on-primary-container hover:underline sm:min-h-0"
@@ -106,7 +136,14 @@ function ComparePageContent({ jobId, idsParam }: { jobId: string; idsParam: stri
         />
       )}
 
-      {data && <ComparisonPlaceholder data={data} />}
+      {data && data.rubricVersionsDiffer && <RubricVersionsNotice />}
+
+      {data &&
+        (isMdUp ? (
+          <ComparisonTable data={data} expandedKeys={expandedKeys} onToggleCriterion={toggleCriterion} />
+        ) : (
+          <ComparisonStacked data={data} expandedKeys={expandedKeys} onToggleCriterion={toggleCriterion} />
+        ))}
     </div>
   )
 }
@@ -186,11 +223,15 @@ function ComparisonError({
   )
 }
 
-// Dot 4: khoi giu cho trung tinh, chi ghi so cot. Dot 5 thay bang bang so sanh (ComparisonTable/ComparisonStacked).
-function ComparisonPlaceholder({ data }: { data: ApplicationComparisonResponse }) {
+// R-C6 - khoi luu y trung tinh o dau trang khi co hang tieu chi lech phien ban (nhu khoi luu y FR-H10/H12; khong vang/do).
+function RubricVersionsNotice() {
   return (
-    <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface px-4 py-6 text-m3-body-md text-m3-on-surface">
-      {data.columns.length} cột
+    <div
+      role="note"
+      className="flex items-start gap-3 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface-container px-4 py-3 text-m3-body-md text-m3-on-surface"
+    >
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-m3-on-surface" aria-hidden="true" />
+      <p className="min-w-0 break-words">{COMPARE_PAGE_TEXT.rubricVersionsNotice}</p>
     </div>
   )
 }

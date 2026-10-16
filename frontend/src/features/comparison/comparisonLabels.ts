@@ -1,5 +1,14 @@
+import { formatDateTimeVi } from '../../lib/date'
+import { EMPTY_VALUE_PLACEHOLDER } from '../../lib/score'
+import { SCREENING_ANSWER_TEXT, SCREENING_QUESTION_TYPE_LABELS } from '../screening/screeningLabels'
+import type { ScreeningCaptureState, ScreeningQuestionType } from '../screening/types'
 import { MAX_COMPARE, MIN_COMPARE } from './compareLimits'
-import type { ComparisonEducationItem, ComparisonExperience } from './types'
+import type {
+  ComparisonEducationItem,
+  ComparisonExperience,
+  ComparisonExplanationCell,
+  ComparisonScreeningCell,
+} from './types'
 
 // FR-H14 UI.md muc 7 - moi chuoi cua tab "Ung vien" (phan chon don) va trang so sanh, dung nguyen van. Cau sang loc
 // dung lai SCREENING_ANSWER_TEXT/SCREENING_QUESTION_TYPE_LABELS (features/screening/screeningLabels.ts), khong chep o day.
@@ -72,8 +81,6 @@ export const COMPARE_CRITERION_TEXT = {
   expand: 'Lý giải và trích dẫn',
   // Giu nguyen cau cua FR-H06 (CriterionScoreBreakdown.tsx).
   aiReasoningNote: 'Diễn giải của AI cho tiêu chí này — không phải khuyến nghị tuyển dụng',
-  source: (section: string) => `Nguồn: ${section}`,
-  noEvidence: 'Không tìm thấy trích dẫn nào trong CV cho tiêu chí này.',
   nameInRubric: (name: string) => `Tên trong rubric của đơn: ${name}`,
   missingCriterion: 'Đơn này được chấm theo phiên bản rubric không có tiêu chí này.',
   rowVersionsDiffer: 'Các đơn được chấm theo phiên bản rubric khác nhau ở tiêu chí này.',
@@ -91,6 +98,8 @@ export const COMPARE_EXPLANATION_TEXT = {
 // Cau MOI cua H14 (R-Q2/R-Q4); cac cau sang loc con lai dung SCREENING_ANSWER_TEXT.
 export const COMPARE_SCREENING_TEXT = {
   notAsked: 'Không có câu hỏi này lúc ứng viên nộp đơn.',
+  // O khoi cau hoi 4c cua cot NOT_CAPTURED (lam ro dot 5) - cau day du nam o khoi "Trang thai" dau nhom.
+  notCapturedShort: 'Không có câu trả lời được ghi nhận.',
   statusRow: 'Trạng thái',
 } as const
 
@@ -114,6 +123,54 @@ export function formatExperience(experience: ComparisonExperience): string {
   }
   const years = experience.years.toLocaleString('vi-VN', { maximumFractionDigits: 1 })
   return `${years} năm (${experience.months} tháng)`
+}
+
+// R-Q4 - cau trang thai cua ca khoi sang loc cho don NOT_CAPTURED/NO_QUESTIONS (dung cau FR-H10/U09). CAPTURED khong
+// co cau trang thai -> null.
+export function screeningStatusText(state: ScreeningCaptureState, capturedAt: string | null): string | null {
+  if (state === 'NOT_CAPTURED') {
+    return SCREENING_ANSWER_TEXT.notCaptured
+  }
+  if (state === 'NO_QUESTIONS') {
+    return SCREENING_ANSWER_TEXT.noQuestions(capturedAt ? formatDateTimeVi(capturedAt) : EMPTY_VALUE_PLACEHOLDER)
+  }
+  return null
+}
+
+// R-Q4 - mot o cau hoi. YES_NO: "Co"/"Khong"; SINGLE_CHOICE/SHORT_TEXT: nguyen van answerText.
+export function screeningCellText(questionType: ScreeningQuestionType, cell: ComparisonScreeningCell): string {
+  switch (cell.state) {
+    case 'ANSWERED':
+      if (questionType === 'YES_NO') {
+        return cell.answerYesNo ? SCREENING_ANSWER_TEXT.yes : SCREENING_ANSWER_TEXT.no
+      }
+      return cell.answerText ?? MISSING_DATA
+    case 'NOT_ANSWERED':
+      return SCREENING_ANSWER_TEXT.noAnswer
+    case 'NOT_ASKED':
+      return COMPARE_SCREENING_TEXT.notAsked
+    case 'NOT_CAPTURED':
+      return SCREENING_ANSWER_TEXT.notCaptured
+    case 'NO_QUESTIONS':
+      return SCREENING_ANSWER_TEXT.noQuestions(EMPTY_VALUE_PLACEHOLDER)
+  }
+}
+
+// Nhan hang cau hoi: cau hoi nguyen van + loai cau (screeningLabels.ts).
+export function screeningQuestionLabel(questionType: ScreeningQuestionType): string {
+  return `(${SCREENING_QUESTION_TYPE_LABELS[questionType]})`
+}
+
+// R-D8 - cau trang thai cua o giai thich: PENDING/FAILED la chu thuong (khong khoi AI); co giai thich -> null.
+// Khong co metCriteria/missingCriteria (R-W4).
+export function explanationStatusText(cell: ComparisonExplanationCell): string | null {
+  if (cell.status === 'PENDING') {
+    return COMPARE_EXPLANATION_TEXT.pending
+  }
+  if (cell.status === 'FAILED') {
+    return COMPARE_EXPLANATION_TEXT.failed
+  }
+  return cell.summary === null ? MISSING_DATA : null
 }
 
 // Moi muc hoc van mot dong: "bang cap · chuyen nganh · truong · bat dau–ket thuc", chi ghep truong khac rong, chuoi
