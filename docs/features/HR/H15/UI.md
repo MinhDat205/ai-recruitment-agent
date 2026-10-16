@@ -2,7 +2,8 @@
 
 > Trạng thái: ĐÃ DUYỆT 16/10/2026
 >
-> Làm rõ sau Plan Mode 16/10/2026: L3 (mục 5a thêm `talentPoolLabels.ts`) — chi tiết ở `REQUIREMENT.md` mục 11.
+> Làm rõ sau Plan Mode 16/10/2026: L3 (mục 5a thêm `talentPoolLabels.ts`). Làm rõ trong đợt 4 (17/10/2026): L7 (mục 4a,
+> 6: nút "Tạo kho" khi danh sách rỗng) — chi tiết ở `REQUIREMENT.md` mục 11.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1d (thang chữ), 1h (vùng chạm), 2 (layout HR), 3 (Button, Card,
 Table, Checkbox, Dialog, badge trạng thái), 5 (rỗng/tải/lỗi), 6 (khả năng tiếp cận). Mã `R-…`, `P1`–`P9`, `[Q…]` là của
@@ -62,6 +63,8 @@ min-h-screen`, không `sticky`/`fixed`.
 ```
 
 Danh sách là một Card chứa các dòng (List MD3), sắp theo tên (R-K7), không phân trang. Đổi tên/xoá đặt ở trang chi tiết.
+Nút "Tạo kho" ở header chỉ hiện khi đã có ít nhất 1 kho (L7): danh sách rỗng thì chỉ hiện nút trong trạng thái rỗng (mục
+6); đang tải hoặc lỗi thì header không có nút.
 
 ### 4b. Desktop — `/hr/talent-pools/:id`
 

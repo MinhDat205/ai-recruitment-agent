@@ -6,8 +6,8 @@
 > `docs/features/README.md` mục 16). Quyết định đã chốt ở mục 0(b); `[Qn]` trong thân là tham chiếu tới câu đã chốt.
 >
 > Làm rõ sau Plan Mode 16/10/2026: L1–L3 (L1: R-P5, T16, mục 8; L2: T3; L3: `UI.md` mục 5a). Làm rõ trong đợt 2
-> (17/10/2026): L4 (R-C1, mục 8). Làm rõ trong đợt 3 (17/10/2026): L5 (T2), L6 (T16) — chi tiết ở mục 11. Mục 11
-> thắng chỗ viết cũ nếu lệch.
+> (17/10/2026): L4 (R-C1, mục 8). Làm rõ trong đợt 3 (17/10/2026): L5 (T2), L6 (T16). Làm rõ trong đợt 4
+> (17/10/2026): L7 (`UI.md` mục 4a, 6) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR tạo, đổi tên, xoá các kho ứng viên của công ty mình; lưu một đơn ứng tuyển vào một hoặc nhiều kho và gỡ
@@ -521,7 +521,7 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
   không N+1; `candidateName` ở P8 luôn có vì `JOIN users` theo FK `job_applications.candidate_id ON DELETE RESTRICT`
   (`V1__init_schema.sql:209`).
 
-### 11.1 Làm rõ trong đợt 2–3 (duyệt 17/10/2026)
+### 11.1 Làm rõ trong đợt 2–4 (duyệt 17/10/2026)
 
 - **L4 (R-C1, mục 8) — mốc thời gian của `removed_at`.** Mọi câu gỡ mục (R-C1, gỡ của P7, P9) đặt `removed_at =
   statement_timestamp()` của DB. Không dùng `Instant` của JVM: `added_at` lấy đồng hồ DB, JVM chậm hơn container thì
@@ -541,3 +541,7 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
   chưa commit trên `uq_talent_pool_entry_active` (xác nhận qua `pg_stat_activity`, không chờ cố định theo thời gian); A
   commit → B `ON CONFLICT DO NOTHING` → cả hai trả về bình thường, đúng một dòng hiệu lực. Kiểm đột biến M2 (bỏ
   `ON CONFLICT … DO NOTHING`): B nhận `duplicate key … uq_talent_pool_entry_active` → test đỏ.
+- **L7 (`UI.md` mục 4a, 6) — nút "Tạo kho" khi danh sách rỗng.** `UI.md` 4a đặt nút "Tạo kho" ở header, mục 6 đặt thêm
+  nút "Tạo kho" trong trạng thái rỗng — làm đúng cả hai thì danh sách rỗng hiện hai nút giống nhau. Chốt: header chỉ có
+  nút khi đã có ít nhất 1 kho; danh sách rỗng chỉ hiện nút trong trạng thái rỗng; đang tải hoặc lỗi thì header không có
+  nút. `UI.md` 4a sửa câu chữ cho khớp.
