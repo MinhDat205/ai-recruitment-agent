@@ -671,7 +671,7 @@ Tại danh sách xếp hạng của một Job, HR tick chọn 2–3 đơn → b�
 
 **Hệ thống**
 
-Hiển thị theo hàng: tổng điểm, điểm từng tiêu chí, số năm kinh nghiệm (C05), kỹ năng, học vấn, tóm tắt điểm mạnh/yếu từ FR-H06, câu trả lời sàng lọc (H10); mở được evidence ở từng ô. Tối đa 3 đơn, chỉ các đơn cùng Job, cùng chu kỳ tuyển dụng và đã chấm xong. Nút Mời phỏng vấn mở đúng hộp thoại của FR-H07.
+Hiển thị theo hàng: tổng điểm, điểm từng tiêu chí, số năm kinh nghiệm (C05), kỹ năng, học vấn, tóm tắt điểm mạnh/yếu từ FR-H06, câu trả lời sàng lọc (H10); mở được evidence ở từng ô. Tối đa 3 đơn, chỉ các đơn cùng Job, cùng chu kỳ tuyển dụng và đã chấm xong. Trạng thái đơn không giới hạn việc chọn. Nút Mời phỏng vấn mở đúng hộp thoại của FR-H07 (chỉ khi đơn Chờ duyệt; hộp thoại nhiều khung giờ của FR-H12).
 
 **AI**
 

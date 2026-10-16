@@ -17,6 +17,7 @@ import { CvImprovementSuggestionsPage } from './pages/CvImprovementSuggestionsPa
 import { HrApplicationDetailPage } from './pages/HrApplicationDetailPage'
 import { HrCandidatesPage } from './pages/HrCandidatesPage'
 import { HrHomePage } from './pages/HrHomePage'
+import { HrJobComparePage } from './pages/HrJobComparePage'
 import { HrJobCreatePage } from './pages/HrJobCreatePage'
 import { HrJobEditPage } from './pages/HrJobEditPage'
 import { HrJobListPage } from './pages/HrJobListPage'
@@ -99,6 +100,7 @@ function App() {
             <Route path="/hr/jobs" element={<HrJobListPage />} />
             <Route path="/hr/jobs/new" element={<HrJobCreatePage />} />
             <Route path="/hr/jobs/:id/edit" element={<HrJobEditPage />} />
+            <Route path="/hr/jobs/:id/compare" element={<HrJobComparePage />} />
             <Route path="/hr/applications/:id" element={<HrApplicationDetailPage />} />
             <Route path="/hr/messages" element={<HrMessagesPage />} />
           </Route>

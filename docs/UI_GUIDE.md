@@ -262,7 +262,7 @@ thích điểm" ở trên).
 **Lý do gợi ý/khớp** (U13, U15): chỉ là chip trung tính liệt kê điều kiện đã khớp. Không %, không
 thanh màu, không nhãn "phù hợp".
 
-**So sánh ứng viên** (H14): không đánh dấu người thắng; khác biệt chỉ tô nền trung tính.
+**So sánh ứng viên** (H14): không đánh dấu người thắng; khác biệt chỉ tô nền trung tính, tô theo hàng, không theo ô.
 
 **Ẩn danh** (H16): hiển thị "Ứng viên #<mã>" + banner "Đang ở chế độ ẩn danh".
 
@@ -356,8 +356,8 @@ thêm lúc code.
 | `/hr` | "Dashboard" | Hiện có | FR-H08 |
 | `/hr/jobs` | "Tin tuyển dụng" | Hiện có | FR-H02, FR-C05 (cột Địa điểm) |
 | `/hr/jobs/new` | Tạo tin (nút "Tạo tin bằng AI") | Hiện có | FR-H02, FR-H11 (tạo tin bằng AI: wizard 5 bước — bản nháp tin, tiêu chí, câu hỏi sàng lọc), FR-C05 (ô ngành nghề, tỉnh/thành) |
-| `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, ★FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá); FR-H09 |
-| ★`/hr/jobs/:id/compare` | So sánh ứng viên | ★Mới | FR-H14 |
+| `/hr/jobs/:id/edit` | Sửa tin — tab "Thông tin tin tuyển dụng" (bật ẩn danh), "Mẫu giấy mời phỏng vấn", "Rubric chấm điểm", "Ứng viên" (chọn 2–3 đơn → So sánh) + ★tab "Câu hỏi sàng lọc" | Hiện có + ★tab mới | FR-H02, FR-H03, FR-H07; ★FR-H16, ★FR-H10, FR-H14; FR-C05 (ô ngành nghề, tỉnh/thành, cảnh báo tin chưa chuẩn hoá); FR-H09 |
+| `/hr/jobs/:id/compare` | So sánh ứng viên | Hiện có | FR-H14 |
 | `/hr/candidates` | "Ứng viên" | Hiện có | FR-H08, FR-H09 |
 | ★`/hr/applications/:id` | Trang hồ sơ đơn ứng tuyển — tab "CV & điểm" (CV gốc, thư giới thiệu, CV đã trích xuất, điểm từng tiêu chí + evidence, nút "Chấm điểm hồ sơ"), "Giải thích", "Hỏi đáp CV", "Sàng lọc" (bản chụp câu trả lời sàng lọc lúc nộp, chỉ đọc), "Giấy mời phỏng vấn" (khung giờ, khung đã chốt, thời điểm ứng viên chọn khung, gửi lại giấy mời, giấy mời trước đó), "Lịch sử", "Trao đổi"; thanh thao tác Mời phỏng vấn / Từ chối / Trúng tuyển. Tab/nút của FR sau do chính FR đó thêm (ghi chú dưới bảng) | ★Mới | FR-H09; FR-H04, FR-H05, FR-H06, FR-H07; FR-C06 (trao đổi); FR-C07 (soạn bằng AI ở tab Trao đổi); FR-H10 (tab Sàng lọc); FR-H12 (tab Giấy mời phỏng vấn); FR-U10 (thời điểm ứng viên chọn khung); FR-C08 (tab Hỏi đáp CV) |
 | ★`/hr/talent-pools`, ★`/hr/talent-pools/:id` | "Kho ứng viên" | ★Mới | FR-H15 |

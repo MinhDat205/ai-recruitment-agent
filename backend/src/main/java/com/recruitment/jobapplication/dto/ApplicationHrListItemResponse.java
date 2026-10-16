@@ -41,7 +41,10 @@ public record ApplicationHrListItemResponse(
         // FR-H07 (E1, Dot 3) - trang thai don (PENDING/INTERVIEW_INVITED/HIRED/REJECTED/WITHDRAWN),
         // de frontend biet nut hanh dong nao hop le. Doc thang tu JobApplication.status dang co san
         // trong vong lap, khong query them.
-        ApplicationStatus status) {
+        ApplicationStatus status,
+        // FR-H14 [Q7] - chu ky tuyen dung cua don (job_applications.recruitment_cycle), de tab "Ung vien" khoa o
+        // chon cua don khac chu ky voi don chon dau. Doc tu JobApplication da nap, khong query them.
+        int recruitmentCycle) {
 
     public ApplicationHrListItemResponse {
         criterionScores = criterionScores == null ? List.of() : criterionScores;
