@@ -12,7 +12,7 @@ mật độ thông tin cao, bố cục dạng thẻ, xanh dương làm màu thư
 
 ## 0. Phạm vi áp dụng
 
-Bắt buộc cho mọi màn hình — cả 20 FR bổ sung lẫn màn hình cũ (đã đồng bộ ở
+Bắt buộc cho mọi màn hình — cả 19 FR bổ sung lẫn màn hình cũ (đã đồng bộ ở
 `refactor/ui-md3-legacy`). Khi làm FR mới, không tự sửa màn hình khác ngoài phạm vi trừ khi
 REQUIREMENT.md/UI.md đã duyệt yêu cầu.
 
@@ -201,7 +201,7 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
   vùng bấm được, `hover:shadow-sm hover:border-m3-primary`.
   Lưới: 2 cột `lg`, 1 cột `md` trở xuống. Icon dùng `lucide-react`: `Banknote` (lương), `MapPin`
   (địa điểm) — không dùng emoji.
-- **Chip**: filter chip cho bộ lọc (U07, H15); input chip cho kỹ năng (U14); assist chip TRUNG TÍNH
+- **Chip**: filter chip cho bộ lọc (U07); input chip cho kỹ năng (U14); assist chip TRUNG TÍNH
   để hiện "điều kiện đã khớp" (U13, U15).
 - **Tabs** (primary tabs) cho trang có tab (H09, U08, trang sửa Job); **Segmented button** cho lựa
   chọn 2–3 giá trị (giọng văn ở C07); **Dialog**; **Sheet**; **Snackbar** (toast) để xác nhận thao
@@ -245,7 +245,7 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 **Ô đồng ý lưu hồ sơ (FR-U09)**
 - Checkbox riêng, không tick sẵn, KHÔNG chặn nút "Nộp đơn"; ghi rõ có thể rút sau ở trang chi tiết đơn. Không gộp với ô consent AI.
 
-**Nội dung do AI tạo** (bản nháp tin nhắn, tin tuyển dụng nháp, tóm tắt, câu trả lời
+**Nội dung do AI tạo** (bản nháp tin nhắn, tin tuyển dụng nháp, câu trả lời
 hỏi đáp CV, gợi ý diễn đạt): luôn có nhãn "Do AI tạo" + icon (lucide `Sparkles`), nằm trong
 khối `m3-surface-container-high`, và chỉ có hiệu lực sau khi người dùng bấm (Dùng bản nháp / Lưu /
 Bỏ qua). Không có luồng tự gửi.
@@ -337,7 +337,7 @@ thêm lúc code.
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
 | `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
-| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U11 (thống kê), FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
+| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
 | `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |

@@ -7,10 +7,10 @@
 
 Nền tảng tuyển dụng có AI hỗ trợ, 2 loại tài khoản: **HR** và **Ứng viên (Candidate)**.
 Mọi thay đổi hành vi phải bám theo mã yêu cầu (FR-C / FR-H / FR-U). Hai nguồn đặc tả:
-- `docs/SRS.md`: tóm tắt toàn hệ thống (38 mã) + đặc tả đầy đủ của 18 FR đã hoàn thành.
+- `docs/SRS.md`: tóm tắt toàn hệ thống (37 mã) + đặc tả đầy đủ của 18 FR đã hoàn thành.
 - `docs/features/<CHUNG|HR|UV>/<mã>/REQUIREMENT.md` (đặc tả chức năng) và `UI.md` (đặc tả giao
-  diện): nguồn sự thật của 20 FR bổ sung.
-- `docs/features/README.md`: thứ tự thực hiện + mô tả định hướng 20 FR bổ sung — đọc đầu mỗi
+  diện): nguồn sự thật của 19 FR bổ sung.
+- `docs/features/README.md`: thứ tự thực hiện + mô tả định hướng 19 FR bổ sung — đọc đầu mỗi
   phiên làm FR bổ sung; không phải đặc tả để code.
 
 Thứ tự ưu tiên khi mâu thuẫn: REQUIREMENT.md/UI.md đã duyệt > SRS.md > ROADMAP.md/walkthrough.
@@ -123,10 +123,10 @@ trong `ResumeParsingStateService.java`/`ScoringRunStateService.java`.
 
 | Mã | Trách nhiệm | Xây lần đầu ở | Dùng bởi |
 |---|---|---|---|
-| K1 | Bộ gom ngữ cảnh theo vai trò (`aicontext/`): gom dữ liệu đơn, CV đã trích xuất, JD, rubric, kết quả chấm thành ngữ cảnh gửi AI, lọc theo vai trò người gọi. Phía ứng viên không bao giờ nhận điểm, rubric, giải thích AI hay ghi chú HR; chặn bằng **kiểu dữ liệu** (record chỉ có thành phần cho phép), không bằng lời dặn trong prompt. **Đã có:** phần ngữ cảnh cuộc trao đổi (`ConversationContext` + `ConversationContextAssembler`, FR-C07); phần ngữ cảnh hỏi đáp CV (`CvQaContext` + `CvQaContextAssembler`, FR-C08). **Chưa có:** phần CV/JD/rubric/điểm — H15 tự thêm record riêng (sửa theo FR-C08 đã duyệt) (dữ liệu chỉ cho HR nằm ở record dựng bằng method nhận `ContextViewer.HR` cố định), không thêm field vào `ConversationContext`. FR-H12 đổi nguồn `InterviewSchedule` sang khung đã chốt của giấy mời hiệu lực (`superseded_at IS NULL`; chưa chốt → `null`), hình dạng record giữ nguyên | FR-C07 | C07, C08, H12, H15 |
+| K1 | Bộ gom ngữ cảnh theo vai trò (`aicontext/`): gom dữ liệu đơn, CV đã trích xuất, JD, rubric, kết quả chấm thành ngữ cảnh gửi AI, lọc theo vai trò người gọi. Phía ứng viên không bao giờ nhận điểm, rubric, giải thích AI hay ghi chú HR; chặn bằng **kiểu dữ liệu** (record chỉ có thành phần cho phép), không bằng lời dặn trong prompt. **Đã có:** phần ngữ cảnh cuộc trao đổi (`ConversationContext` + `ConversationContextAssembler`, FR-C07); phần ngữ cảnh hỏi đáp CV (`CvQaContext` + `CvQaContextAssembler`, FR-C08). **Chưa có:** phần CV/JD/rubric/điểm — hiện chưa FR nào cần (FR-H15 rút gọn 16/10/2026, không dùng AI); FR sau cần thì tự thêm record riêng (dữ liệu chỉ cho HR nằm ở record dựng bằng method nhận `ContextViewer.HR` cố định), không thêm field vào `ConversationContext`. FR-H12 đổi nguồn `InterviewSchedule` sang khung đã chốt của giấy mời hiệu lực (`superseded_at IS NULL`; chưa chốt → `null`), hình dạng record giữ nguyên | FR-C07 | C07, C08, H12 |
 | K2 | Bộ kiểm tra trích dẫn nguyên văn: tách từ phần kiểm evidence trong `CriterionScoringService` (FR-H04) thành thành phần dùng chung; FR-H04 chuyển sang dùng nó, hành vi không đổi, toàn bộ test cũ vẫn pass. **Đã có** (`ai/citation/VerbatimQuoteVerifier`, hành vi = H04); điều kiện riêng của từng FR (vd độ dài trích dẫn của C08) đặt ở FR đó, không thêm vào K2 | FR-C08 | FR-H04, C08 |
-| K3 | Gọi AI đồng bộ có giới hạn (xem ngoại lệ ở §7) | FR-C07 | C07, C08, H11, H15, U12, U13 |
-| K4 | Siêu dữ liệu kết quả AI được lưu: model, phiên bản prompt, thời điểm sinh. **Đã có** (`aigeneration/`): `AiGenerationStamp` (record `@Embeddable`, nhúng 3 cột `ai_model`/`ai_prompt_version`/`ai_generated_at` vào bảng của FR) + `AiGenerationTokenCodec` (token ký lúc sinh, kiểm lúc lưu ở request khác; khoá dẫn xuất HMAC từ `JWT_SECRET` với nhãn riêng của K4, hạn 7 ngày, `purpose` do FR tự đặt). FR-H11 lưu ở bảng `job_ai_generations`. FR sinh và lưu trong cùng một request thì dùng thẳng `new AiGenerationStamp(...)`, không cần token | FR-H11 | H11, H15 |
+| K3 | Gọi AI đồng bộ có giới hạn (xem ngoại lệ ở §7) | FR-C07 | C07, C08, H11, U12, U13 |
+| K4 | Siêu dữ liệu kết quả AI được lưu: model, phiên bản prompt, thời điểm sinh. **Đã có** (`aigeneration/`): `AiGenerationStamp` (record `@Embeddable`, nhúng 3 cột `ai_model`/`ai_prompt_version`/`ai_generated_at` vào bảng của FR) + `AiGenerationTokenCodec` (token ký lúc sinh, kiểm lúc lưu ở request khác; khoá dẫn xuất HMAC từ `JWT_SECRET` với nhãn riêng của K4, hạn 7 ngày, `purpose` do FR tự đặt). FR-H11 lưu ở bảng `job_ai_generations`. FR sinh và lưu trong cùng một request thì dùng thẳng `new AiGenerationStamp(...)`, không cần token | FR-H11 | H11 |
 
 Không cài lại riêng trong từng FR. FR cần thành phần mà thành phần đó chưa có thì dừng lại hỏi.
 
@@ -222,7 +222,7 @@ trò của `mvn test` với backend, chạy sau mỗi lần sửa code frontend,
 - Không xoá cột `weight_snapshot` / `rubric_snapshot` dù trông có vẻ trùng dữ liệu — chúng giữ lịch
   sử audit.
 - Không gọi LLM/embedding đồng bộ trong request của người dùng — luôn qua job nền. Ngoại lệ DUY
-  NHẤT (K3), chỉ khi đặc tả đã duyệt của FR yêu cầu: FR-C07, FR-C08, FR-H11, FR-H15 (tóm tắt),
+  NHẤT (K3), chỉ khi đặc tả đã duyệt của FR yêu cầu: FR-C07, FR-C08, FR-H11,
   FR-U12 (gợi ý diễn đạt), FR-U13 (tách câu truy vấn + embedding câu truy vấn). Điều kiện bắt
   buộc: có thời gian chờ tối đa; thử lại tối đa 1 lần **ở tầng K3** và chỉ khi output hỏng (lỗi nhà cung cấp
   không thử lại ở K3, vì SDK Anthropic đã tự thử lại ngầm và không tắt được qua `ChatModel` — FR-C07 L1); rate limit
