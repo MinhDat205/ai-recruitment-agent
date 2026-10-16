@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { AlertCircle, Download, FileText, RotateCw } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
+import { MAX_COMPARE, MIN_COMPARE } from '../comparison/compareLimits'
+import { COMPARE_SELECTION_TEXT } from '../comparison/comparisonLabels'
 import { extractErrorMessage } from '../../lib/httpError'
 import { EMPTY_VALUE_PLACEHOLDER, formatTotalScore } from '../../lib/score'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
@@ -103,14 +106,55 @@ function ScoringProgressHint({
   )
 }
 
+// FR-H14 R-L1 - ly do khoa o chon, theo thu tu uu tien: chua cham xong -> khac chu ky voi don chon dau -> da du
+// MAX_COMPARE. Don DANG duoc chon luon bo chon duoc (khong khoa). null = o bat. Backend van la chot chan (R-S1,
+// R-S4, R-S5); day chi de bao som.
+type SelectionBlockReason = 'notScored' | 'differentCycle' | 'limit'
+
+function selectionBlockReason(
+  application: ApplicationHrListItem,
+  selectedIds: string[],
+  firstSelectedCycle: number | null,
+): SelectionBlockReason | null {
+  if (selectedIds.includes(application.id)) {
+    return null
+  }
+  if (application.totalScore === null) {
+    return 'notScored'
+  }
+  if (firstSelectedCycle !== null && application.recruitmentCycle !== firstSelectedCycle) {
+    return 'differentCycle'
+  }
+  if (selectedIds.length >= MAX_COMPARE) {
+    return 'limit'
+  }
+  return null
+}
+
+// Id cua cau "Da chon du {MAX_COMPARE} don." o thanh chon - o khoa vi ly do nay tro aria-describedby ve day thay vi
+// lap cau o tung dong (UI.md 4b).
+const LIMIT_NOTE_ID = 'compare-selection-limit-note'
+
+function selectionReasonId(applicationId: string): string {
+  return `compare-selection-reason-${applicationId}`
+}
+
+interface RowSelection {
+  checked: boolean
+  blockReason: SelectionBlockReason | null
+  onToggle: () => void
+}
+
 function ApplicationRow({
   application,
   onScore,
   isScoring,
+  selection,
 }: {
   application: ApplicationHrListItem
   onScore: () => void
   isScoring: boolean
+  selection: RowSelection
 }) {
   const [isDownloadingResume, setDownloadingResume] = useState(false)
   const [resumeDownloadError, setResumeDownloadError] = useState<string | null>(null)
@@ -142,9 +186,41 @@ function ApplicationRow({
     }
   }
 
+  // Cau ly do hien thanh chu duoi ten ung vien (khong chi title); ly do "du MAX_COMPARE" khong lap o dong - tro ve
+  // cau o thanh chon.
+  const rowReasonText =
+    selection.blockReason === 'notScored'
+      ? COMPARE_SELECTION_TEXT.notScored
+      : selection.blockReason === 'differentCycle'
+        ? COMPARE_SELECTION_TEXT.differentCycle
+        : null
+  const describedBy =
+    selection.blockReason === 'limit' ? LIMIT_NOTE_ID : rowReasonText ? selectionReasonId(application.id) : undefined
+
   return (
     <TableRow>
-      <TableCell className="whitespace-normal break-words">{application.candidateName}</TableCell>
+      {/* FR-H14 - o chon dau bang. Label 48x48 boc o 16px: vung cham >= 48px (UI_GUIDE 1h); khoa = disabled +
+          aria-describedby (R-L2). */}
+      <TableCell className="w-12 p-0 align-top">
+        <label className="flex h-12 w-12 cursor-pointer items-center justify-center has-disabled:cursor-not-allowed">
+          <Checkbox
+            checked={selection.checked}
+            disabled={selection.blockReason !== null}
+            onCheckedChange={selection.onToggle}
+            aria-label={COMPARE_SELECTION_TEXT.checkboxLabel(application.candidateName)}
+            aria-describedby={describedBy}
+            className="border-m3-outline disabled:opacity-38"
+          />
+        </label>
+      </TableCell>
+      <TableCell className="whitespace-normal break-words">
+        {application.candidateName}
+        {rowReasonText && (
+          <p id={selectionReasonId(application.id)} className="mt-1 text-m3-body-sm text-m3-on-surface-variant">
+            {rowReasonText}
+          </p>
+        )}
+      </TableCell>
       <TableCell className="text-m3-on-surface-variant">{formatAppliedAt(application.appliedAt)}</TableCell>
       <TableCell>
         <ParseStatusBadge status={application.resumeParseStatus} />
@@ -219,8 +295,59 @@ function ApplicationRow({
   )
 }
 
+// FR-H14 (UI.md 4b, 4d) - thanh chon nam TRONG luong trang (khong fixed/sticky). < sm: xep doc, hai nut chia doi
+// hang, cao >= 48px.
+function CompareSelectionBar({
+  selectedCount,
+  onClear,
+  onCompare,
+}: {
+  selectedCount: number
+  onClear: () => void
+  onCompare: () => void
+}) {
+  const canCompare = selectedCount >= MIN_COMPARE && selectedCount <= MAX_COMPARE
+  return (
+    <div className="flex flex-col gap-2 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-0.5">
+        <p aria-live="polite" className="text-m3-body-md text-m3-on-surface">
+          {COMPARE_SELECTION_TEXT.selectedCount(selectedCount)}
+        </p>
+        {selectedCount < MIN_COMPARE && (
+          <p className="text-m3-body-sm text-m3-on-surface-variant">{COMPARE_SELECTION_TEXT.needMore}</p>
+        )}
+        {selectedCount >= MAX_COMPARE && (
+          <p id={LIMIT_NOTE_ID} className="text-m3-body-sm text-m3-on-surface-variant">
+            {COMPARE_SELECTION_TEXT.limitReached}
+          </p>
+        )}
+      </div>
+      <div className="flex gap-2">
+        {selectedCount > 0 && (
+          <Button type="button" variant="outline" className="min-h-12 flex-1 sm:min-h-0 sm:flex-none" onClick={onClear}>
+            {COMPARE_SELECTION_TEXT.clear}
+          </Button>
+        )}
+        <Button
+          type="button"
+          className="min-h-12 flex-1 bg-m3-primary text-m3-on-primary hover:bg-m3-primary/90 sm:min-h-0 sm:flex-none"
+          disabled={!canCompare}
+          onClick={onCompare}
+        >
+          {COMPARE_SELECTION_TEXT.compare}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function ApplicationsTab({ jobId }: { jobId: string }) {
   const [sort, setSort] = useState<ApplicationSortOption>('total_score,desc')
+  // FR-H14 R-L3 - id don theo THU TU TICK (cot trang so sanh theo dung thu tu nay, R-O1). State nam o ApplicationsTab:
+  // doi "Sap xep theo" chi doi queryKey (component KHONG remount, khong doi key) va polling chi lam moi du lieu nen
+  // lua chon giu nguyen. Roi tab/tai lai trang thi mat (chap nhan theo R-L3).
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const navigate = useNavigate()
 
   const {
     data: applications,
@@ -236,6 +363,25 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
   }
   if (isError || !applications) {
     return <p className="p-6 text-sm text-m3-error">Không tải được danh sách ứng viên, vui lòng thử lại.</p>
+  }
+
+  // Chu ky cua don DUNG DAU mang lua chon (bo chon don dau thi don ke tiep thanh don chon dau).
+  const firstSelectedCycle =
+    selectedIds.length === 0
+      ? null
+      : (applications.find((application) => application.id === selectedIds[0])?.recruitmentCycle ?? null)
+
+  function toggleSelection(applicationId: string) {
+    setSelectedIds((previous) =>
+      previous.includes(applicationId)
+        ? previous.filter((id) => id !== applicationId)
+        : [...previous, applicationId],
+    )
+  }
+
+  // Gui ids dung thu tu tick, khong sap lai (R-O1).
+  function openComparison() {
+    navigate(`/hr/jobs/${jobId}/compare?ids=${selectedIds.join(',')}`)
   }
 
   return (
@@ -273,33 +419,46 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
           <p className="text-sm text-m3-on-surface-variant">Chưa có ứng viên nào nộp đơn cho tin tuyển dụng này.</p>
         </div>
       ) : (
-        <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ứng viên</TableHead>
-                <TableHead>Ngày nộp</TableHead>
-                <TableHead>Trạng thái CV</TableHead>
-                <TableHead>Trạng thái đơn</TableHead>
-                <TableHead>Hạng</TableHead>
-                <TableHead>Tổng điểm</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {applications.map((application) => (
-                <ApplicationRow
-                  key={application.id}
-                  application={application}
-                  isScoring={
-                    createScoringRunMutation.isPending && createScoringRunMutation.variables === application.id
-                  }
-                  onScore={() => createScoringRunMutation.mutate(application.id)}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          <CompareSelectionBar
+            selectedCount={selectedIds.length}
+            onClear={() => setSelectedIds([])}
+            onCompare={openComparison}
+          />
+          <div className="rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12 text-center">{COMPARE_SELECTION_TEXT.columnHeader}</TableHead>
+                  <TableHead>Ứng viên</TableHead>
+                  <TableHead>Ngày nộp</TableHead>
+                  <TableHead>Trạng thái CV</TableHead>
+                  <TableHead>Trạng thái đơn</TableHead>
+                  <TableHead>Hạng</TableHead>
+                  <TableHead>Tổng điểm</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {applications.map((application) => (
+                  <ApplicationRow
+                    key={application.id}
+                    application={application}
+                    isScoring={
+                      createScoringRunMutation.isPending && createScoringRunMutation.variables === application.id
+                    }
+                    onScore={() => createScoringRunMutation.mutate(application.id)}
+                    selection={{
+                      checked: selectedIds.includes(application.id),
+                      blockReason: selectionBlockReason(application, selectedIds, firstSelectedCycle),
+                      onToggle: () => toggleSelection(application.id),
+                    }}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
 
       {createScoringRunMutation.isError && (

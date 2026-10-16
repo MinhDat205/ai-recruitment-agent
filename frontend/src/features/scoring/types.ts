@@ -86,6 +86,9 @@ export interface ApplicationHrListItem {
   // van/Tu choi/Trung tuyen). Chi la tien dung UI - backend (ApplicationStatusService) moi la chot
   // chan that su cho moi luong chuyen trang thai.
   status: ApplicationStatus
+  // FR-H14 [Q7] - chu ky tuyen dung cua don (job_applications.recruitment_cycle), de tab "Ung vien" khoa o chon cua
+  // don khac chu ky voi don chon dau. Backend van chan khac chu ky (R-S4).
+  recruitmentCycle: number
 }
 
 // Khop ApplicationSortOption (backend) - gia tri gui qua tham so ?sort= cua GET .../applications.
