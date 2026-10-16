@@ -5,8 +5,8 @@
 > Phạm vi rút gọn ngày 16/10/2026 (ghi đè mọi mô tả H15 cũ trong `docs/SRS.md`, `docs/ROADMAP.md`,
 > `docs/features/README.md` mục 16). Quyết định đã chốt ở mục 0(b); `[Qn]` trong thân là tham chiếu tới câu đã chốt.
 >
-> Làm rõ sau Plan Mode 16/10/2026: L1–L3 (L1: R-P5, T16, mục 8; L2: T3; L3: `UI.md` mục 5a) — chi tiết ở mục 11. Mục 11
-> thắng chỗ viết cũ nếu lệch.
+> Làm rõ sau Plan Mode 16/10/2026: L1–L3 (L1: R-P5, T16, mục 8; L2: T3; L3: `UI.md` mục 5a). Làm rõ trong đợt 2
+> (17/10/2026): L4 (R-C1, mục 8) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR tạo, đổi tên, xoá các kho ứng viên của công ty mình; lưu một đơn ứng tuyển vào một hoặc nhiều kho và gỡ
@@ -154,8 +154,8 @@ sau — chỉ với những đơn mà ứng viên đã đồng ý cho lưu.
 ### 3.5 Rút đồng ý và tranh chấp (R-C)
 
 - **R-C1** `ApplicationService.revokeTalentPoolConsent`: sau khi `UPDATE` có điều kiện trả 1 dòng, cùng transaction chạy
-  một `UPDATE talent_pool_entries SET removed_at = :now WHERE application_id = :id AND removed_at IS NULL`
-  (`@Modifying(clearAutomatically = true)`). Nhánh 409 `TALENT_POOL_CONSENT_NOT_ACTIVE` không chạm vào mục. Response,
+  một `UPDATE talent_pool_entries SET removed_at = statement_timestamp() WHERE application_id = :id AND removed_at IS
+  NULL` (`@Modifying(clearAutomatically = true)`; L4). Nhánh 409 `TALENT_POOL_CONSENT_NOT_ACTIVE` không chạm vào mục. Response,
   trạng thái đơn, lịch sử, thông báo của F4 không đổi (U09 R-K8).
 - **R-C2** P7 khoá hàng đơn bằng `SELECT … FROM job_applications WHERE id = :id FOR SHARE` **trước** khi đọc trạng thái
   đồng ý, rồi khoá các kho trong `poolIds` bằng `FOR SHARE` (chặn xoá kho đồng thời). Lý do: khoá `FOR KEY SHARE` mà FK
@@ -471,6 +471,8 @@ hoặc cùng demo). Seed demo không có đơn nào đồng ý lưu hồ sơ (a2
 - Đặt test T16 trong lớp `@Transactional` toàn lớp (hai luồng không thấy nhau, test pass giả).
 - Thêm mục bằng `INSERT` thường (hoặc `save()`) rồi để vi phạm `uq_talent_pool_entry_active` khi hai P7 chạy đồng thời
   nổi lên thành 500 — dùng `ON CONFLICT … DO NOTHING` (R-P5, L1).
+- Dùng `now()` (thời điểm bắt đầu transaction) hoặc `Instant` của JVM cho `removed_at` — vỡ CHECK `removed_at >=
+  added_at` thành 500; dùng `statement_timestamp()` (L4).
 
 ## 9. Kế hoạch đợt code
 
@@ -517,3 +519,13 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
 - Không đổi spec (ghi nhận): không thêm test đếm số câu SQL — P1 đếm bằng subquery trong một câu, P8 một câu + câu đếm,
   không N+1; `candidateName` ở P8 luôn có vì `JOIN users` theo FK `job_applications.candidate_id ON DELETE RESTRICT`
   (`V1__init_schema.sql:209`).
+
+### 11.1 Làm rõ trong đợt 2 (duyệt 17/10/2026)
+
+- **L4 (R-C1, mục 8) — mốc thời gian của `removed_at`.** Mọi câu gỡ mục (R-C1, gỡ của P7, P9) đặt `removed_at =
+  statement_timestamp()` của DB. Không dùng `Instant` của JVM: `added_at` lấy đồng hồ DB, JVM chậm hơn container thì
+  `removed_at < added_at`. Không dùng `now()`: `now()` là thời điểm **bắt đầu** transaction — transaction rút đồng ý bắt
+  đầu ở t0, P7 bắt đầu ở t1 > t0 thêm mục (`added_at` = t1) và commit, câu gỡ của R-C1 đặt `removed_at` = t0 < t1 → vỡ
+  CHECK `removed_at >= added_at` → rút đồng ý 500; tương tự cho P7 gỡ và P9. Hệ quả chấp nhận: `removed_at` của R-C1
+  không trùng từng mili giây với `talent_pool_consent_revoked_at` (giá trị JVM của câu rút đồng ý). Mục 8 thêm dòng tương
+  ứng.
