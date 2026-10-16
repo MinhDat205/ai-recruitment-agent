@@ -1,5 +1,5 @@
 import { http } from '../../lib/http'
-import type { PageResponse, TalentPool, TalentPoolEntry } from './types'
+import type { ApplicationTalentPools, PageResponse, TalentPool, TalentPoolEntry } from './types'
 
 // FR-H15 - REQUIREMENT muc 4.3. ownerId lay tu JWT o backend; frontend chi gui id tren duong dan.
 const BASE = '/hr/talent-pools'
@@ -42,4 +42,21 @@ export async function getTalentPoolEntriesRequest(poolId: string, page: number):
 // P9 - 204 khong co body.
 export async function removeTalentPoolEntryRequest(poolId: string, applicationId: string): Promise<void> {
   await http.delete(`${BASE}/${poolId}/entries/${applicationId}`)
+}
+
+// P6 - kho cua MOT don + trang thai dong y (hop thoai "Luu vao kho").
+export async function getApplicationTalentPoolsRequest(applicationId: string): Promise<ApplicationTalentPools> {
+  const response = await http.get<ApplicationTalentPools>(`/hr/applications/${applicationId}/talent-pools`)
+  return response.data
+}
+
+// P7 - poolIds = TOAN BO tap kho mong muon chua don (R-P1); backend tu tinh them/go.
+export async function replaceApplicationTalentPoolsRequest(
+  applicationId: string,
+  poolIds: string[],
+): Promise<ApplicationTalentPools> {
+  const response = await http.put<ApplicationTalentPools>(`/hr/applications/${applicationId}/talent-pools`, {
+    poolIds,
+  })
+  return response.data
 }

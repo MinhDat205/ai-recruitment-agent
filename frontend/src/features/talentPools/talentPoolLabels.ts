@@ -45,6 +45,17 @@ export const TALENT_POOL_TEXT = {
   openApplicationLabel: (candidateName: string) => `Mở hồ sơ của ${candidateName}`,
   messagesLabel: (candidateName: string) => `Trao đổi với ${candidateName}`,
   removeFromPoolLabel: (candidateName: string) => `Gỡ hồ sơ của ${candidateName} khỏi kho`,
+  // Hop thoai "Luu vao kho" (UI.md 4d, muc 7).
+  saveToPool: 'Lưu vào kho',
+  saveDialogTitle: (candidateName: string) => `Lưu hồ sơ của ${candidateName} vào kho`,
+  close: 'Đóng',
+  saved: 'Đã cập nhật kho ứng viên.',
+} as const
+
+// Cau cho don khong ACTIVE (UI.md muc 7). ACTIVE khong co cau.
+export const TALENT_POOL_CONSENT_TEXT = {
+  NOT_GIVEN: 'Ứng viên chưa đồng ý cho công ty lưu hồ sơ khi nộp đơn này nên không thể thêm vào kho.',
+  REVOKED: 'Ứng viên đã rút đồng ý lưu hồ sơ của đơn này nên không thể thêm vào kho.',
 } as const
 
 export const TALENT_POOL_COLUMNS = {

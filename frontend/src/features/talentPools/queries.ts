@@ -1,6 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createTalentPoolRequest,
+  getApplicationTalentPoolsRequest,
+  replaceApplicationTalentPoolsRequest,
   deleteTalentPoolRequest,
   getTalentPoolEntriesRequest,
   getTalentPoolRequest,
@@ -19,6 +21,10 @@ export function talentPoolKey(poolId: string) {
 
 export function talentPoolEntriesKey(poolId: string, page: number) {
   return ['talentPools', poolId, 'entries', page] as const
+}
+
+export function applicationTalentPoolsKey(applicationId: string) {
+  return ['applicationTalentPools', applicationId] as const
 }
 
 export function useTalentPoolsQuery() {
@@ -67,6 +73,25 @@ export function useRemoveTalentPoolEntryMutation(poolId: string) {
   const invalidate = useInvalidateAll()
   return useMutation({
     mutationFn: (applicationId: string) => removeTalentPoolEntryRequest(poolId, applicationId),
+    onSuccess: invalidate,
+  })
+}
+
+// P6 - chi goi khi hop thoai mo. Khong tu tai lai khi doi tab trinh duyet: tai lai giua chung se ghi de lua chon dang tick.
+export function useApplicationTalentPoolsQuery(applicationId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: applicationTalentPoolsKey(applicationId),
+    queryFn: () => getApplicationTalentPoolsRequest(applicationId),
+    enabled,
+    refetchOnWindowFocus: false,
+  })
+}
+
+// P7 - thanh cong thi lam moi hop thoai cua don va tien to 'talentPools' (entryCount, danh sach muc).
+export function useReplaceApplicationTalentPoolsMutation(applicationId: string) {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: (poolIds: string[]) => replaceApplicationTalentPoolsRequest(applicationId, poolIds),
     onSuccess: invalidate,
   })
 }

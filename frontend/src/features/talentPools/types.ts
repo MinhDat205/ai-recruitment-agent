@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from '../applications/types'
+import type { TalentPoolConsentState } from '../candidateApplicationDetail/types'
 
 export type { PageResponse } from '../jobs/types'
 
@@ -20,4 +21,11 @@ export interface TalentPoolEntry {
   applicationStatus: ApplicationStatus
   appliedAt: string
   addedAt: string
+}
+
+// P6, P7 (hop thoai "Luu vao kho", UI.md 4d). pools = MOI kho chua xoa cua cong ty; contains loc dong y o backend (R-M6)
+// nen don khong ACTIVE luon contains = false.
+export interface ApplicationTalentPools {
+  consentState: TalentPoolConsentState
+  pools: { id: string; name: string; contains: boolean }[]
 }

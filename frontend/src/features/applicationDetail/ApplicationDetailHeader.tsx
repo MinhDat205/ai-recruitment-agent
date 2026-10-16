@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Archive, ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import { formatDateTimeVi } from '../../lib/date'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
+import { SaveToTalentPoolDialog } from '../talentPools/SaveToTalentPoolDialog'
+import { TALENT_POOL_TEXT } from '../talentPools/talentPoolLabels'
 import { ApplicationActionBar } from './ApplicationActionBar'
 import type { ApplicationHrDetail } from './types'
 
@@ -11,6 +14,9 @@ import type { ApplicationHrDetail } from './types'
 //
 // Responsive (UI.md muc 8): >= lg ten ben trai, thanh thao tac ben phai cung hang; sm-lg thanh thao
 // tac xuong hang duoi, nut nam ngang; < sm moi thu xep doc, nut w-full.
+// FR-H15 UI.md 4d - nut "Luu vao kho" (Outlined) o cum ben phai, SAU thanh thao tac H07, cach bang gap-2, KHONG nam
+// trong ApplicationActionBar (khong doi thu tu/kieu nut H07). Nut luon hien; hop thoai tu giai thich khi don khong co
+// dong y. Luu xong: cau "Da cap nhat kho ung vien." canh nut (aria-live), focus ve nut.
 export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetail }) {
   // UI.md muc 9 - doi trang thai thanh cong thi dat focus ve badge: nut da mo hop thoai co the bien mat
   // khi trang thai doi, Radix khong tra focus ve dau duoc. Bo qua lan render dau.
@@ -22,6 +28,10 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
       badgeRef.current?.focus()
     }
   }, [detail.status])
+
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const saveButtonRef = useRef<HTMLButtonElement>(null)
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,8 +53,40 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
             <span className="text-sm text-m3-on-surface-variant">Nộp ngày {formatDateTimeVi(detail.appliedAt)}</span>
           </div>
         </div>
-        <ApplicationActionBar detail={detail} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
+          <ApplicationActionBar detail={detail} />
+          <div className="flex flex-col gap-1">
+            <Button
+              ref={saveButtonRef}
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setSaved(false)
+                setSaveOpen(true)
+              }}
+            >
+              <Archive aria-hidden="true" />
+              {TALENT_POOL_TEXT.saveToPool}
+            </Button>
+            {/* Vung aria-live luon co trong DOM de trinh doc man hinh doc duoc khi noi dung xuat hien. */}
+            <p aria-live="polite" className="text-sm text-m3-on-surface-variant">
+              {saved ? TALENT_POOL_TEXT.saved : ''}
+            </p>
+          </div>
+        </div>
       </div>
+      <SaveToTalentPoolDialog
+        applicationId={detail.id}
+        candidateName={detail.candidateName}
+        open={saveOpen}
+        onOpenChange={(open) => {
+          setSaveOpen(open)
+          // Radix tra focus ve phan tu da mo hop thoai; dat lai tuong minh cho chac (UI.md 4d, muc 9).
+          if (!open) requestAnimationFrame(() => saveButtonRef.current?.focus())
+        }}
+        onSaved={() => setSaved(true)}
+      />
     </div>
   )
 }
