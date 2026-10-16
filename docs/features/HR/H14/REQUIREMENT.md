@@ -4,7 +4,8 @@
 >
 > Mục 11 đã chốt (Q1–Q11 và S1–S6, 15/10/2026); `[Q…]`/`[S…]` trong thân là tham chiếu tới câu đã chốt.
 >
-> Sửa sau Plan Mode đợt 1 (16/10/2026): L1 (13 câu SQL), L2 (số dòng mục 0), chốt tên method và DTO.
+> Sửa sau Plan Mode đợt 1 (16/10/2026): L1 (13 câu SQL), L2 (số dòng mục 0), chốt tên method và DTO. Làm rõ đợt 3
+> (16/10/2026): `Screening.capturedAt` cho phép phần tử `null`.
 
 - Nhóm: HR
 - Tóm tắt: Ở tab "Ứng viên" của trang sửa tin, HR tick chọn 2–3 đơn của cùng một Job, cùng chu kỳ tuyển dụng, đã có
@@ -412,7 +413,8 @@ record ApplicationComparisonResponse(
 ```
 
 - Mọi `List` chuẩn hoá `null` → `List.of()` trong compact constructor, **trừ** `CriterionRow.cells` (phần tử `null` có
-  nghĩa — R-C4). Số từ DB giữ `BigDecimal` như DTO hiện có.
+  nghĩa — R-C4) và `Screening.capturedAt` (phần tử `null` = đơn `NOT_CAPTURED`); hai danh sách này dựng bằng
+  `Collections.unmodifiableList(new ArrayList<>(…))`. Số từ DB giữ `BigDecimal` như DTO hiện có.
 - Không `questionId`, không `criterionId` thô ngoài `CriterionRow.key`; không `rawText`, `model`, `promptVersion`,
   `tokenUsage`, `contact` (thông tin liên hệ không có trong bảng — chỉ tên ở `Column`).
 - Đã chốt ở Plan Mode 16/10/2026: hạng dùng `IntRow` (`Integer` như `rank` của danh sách), tổng điểm giữ `Row`
