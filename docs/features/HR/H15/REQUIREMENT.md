@@ -4,6 +4,9 @@
 >
 > Phạm vi rút gọn ngày 16/10/2026 (ghi đè mọi mô tả H15 cũ trong `docs/SRS.md`, `docs/ROADMAP.md`,
 > `docs/features/README.md` mục 16). Quyết định đã chốt ở mục 0(b); `[Qn]` trong thân là tham chiếu tới câu đã chốt.
+>
+> Làm rõ sau Plan Mode 16/10/2026: L1–L3 (L1: R-P5, T16, mục 8; L2: T3; L3: `UI.md` mục 5a) — chi tiết ở mục 11. Mục 11
+> thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR tạo, đổi tên, xoá các kho ứng viên của công ty mình; lưu một đơn ứng tuyển vào một hoặc nhiều kho và gỡ
@@ -145,6 +148,8 @@ sau — chỉ với những đơn mà ứng viên đã đồng ý cho lưu.
 - **R-P3** Lỗi ở bất kỳ bước nào → **không ghi gì** (một transaction, rollback toàn bộ), kể cả phần `gỡ` hợp lệ.
 - **R-P4** Không giới hạn độ dài `poolIds` ngoài R-P2 (mọi id phải là kho hợp lệ, không trùng ⇒ tự bị chặn bởi số kho).
 - **R-P5** Idempotent: gửi lại cùng tập → không tạo dòng mới, không đặt `removed_at`. Response 200 = hình dạng của P6.
+  Thêm mục bằng native `INSERT … ON CONFLICT (pool_id, application_id) WHERE removed_at IS NULL DO NOTHING` (L1): hai P7
+  đồng thời cùng thêm một mục (khoá `FOR SHARE` của R-C2 không chặn lẫn nhau) đều 200, đúng một dòng hiệu lực.
 
 ### 3.5 Rút đồng ý và tranh chấp (R-C)
 
@@ -321,7 +326,7 @@ Không dùng AI (R-A1). Không dùng K1–K4.
 |---|---|---|
 | T1 | `TalentPoolNameRules`: rỗng, chỉ khoảng trắng → lỗi; 1, 100 code point → đạt; 101 → lỗi; strip hai đầu; 100 ký tự có dấu tiếng Việt đạt | Unit |
 | T2 | P2: 201, tên đã strip; 0/1/100/101 ký tự (400/201/201/400); trùng khác hoa thường cùng công ty → 409; trùng tên ở công ty khác → 201; trùng tên kho đã xoá → 201; JSON hỏng, `name` là số → 400 `INVALID_TALENT_POOL_NAME`, body lỗi không lặp lại nội dung gửi lên (P2 và P4) | Integration |
-| T3 | Chốt DB: `INSERT` thẳng hai kho cùng `lower(name)` → vi phạm `uq_talent_pool_name_per_company`; handler trả 409 `TALENT_POOL_NAME_TAKEN` | Integration |
+| T3 | Chốt DB (L2), hai phần: (a) `INSERT` thẳng bằng JDBC hai kho cùng công ty, cùng `lower(name)`, chưa xoá → `DataIntegrityViolationException` có tên `uq_talent_pool_name_per_company`; (b) gọi thẳng `GlobalExceptionHandler.handleDataIntegrityViolation` với chính exception ở (a) → 409 `TALENT_POOL_NAME_TAKEN` | Integration |
 | T4 | P4: đổi tên đạt; đổi hoa thường tên của chính mình → 200; trùng kho khác → 409; kho đã xoá → 404; kho công ty khác → 403 | Integration |
 | T5 | P5: 204; sau đó P3/P4/P8/P9 → 404; P1, P6 không còn kho; hàng `talent_pools` còn, `deleted_at` khác null; hàng mục không đổi | Integration |
 | T6 | P1: chỉ kho của công ty mình, chưa xoá, sắp theo R-K7; `entryCount` không đếm mục đã gỡ, không đếm mục lệch của đơn không `ACTIVE` (R-M6 đường đọc); HR chưa có công ty → 404 | Integration |
@@ -334,7 +339,7 @@ Không dùng AI (R-A1). Không dùng K1–K4.
 | T13 | Thêm được ở cả 5 trạng thái đơn (tham số hoá); đổi trạng thái sau khi thêm không gỡ mục | Integration |
 | T14 | Idempotent: P7 cùng tập hai lần → số dòng không đổi; gỡ rồi thêm lại → dòng mới, dòng cũ giữ `removed_at` | Integration |
 | T15 | R-C1: rút đồng ý gỡ mục ở mọi kho (hai kho, hai công ty không lẫn); rút lần hai 409 không chạm mục; response F4 giữ nguyên hình dạng | Integration |
-| T16 | R-C2 tranh chấp (lớp **không** `@Transactional` toàn lớp, CLAUDE.md §3c): luồng A mở transaction, `UPDATE` rút đồng ý chưa commit; luồng B gọi P7 thêm → bị chặn; A commit; B nhận 409, không mục nào hiệu lực | Integration |
+| T16 | R-C2 tranh chấp (lớp **không** `@Transactional` toàn lớp, CLAUDE.md §3c): luồng A mở transaction, `UPDATE` rút đồng ý chưa commit; luồng B gọi P7 thêm → bị chặn; A commit; B nhận 409, không mục nào hiệu lực. Ca thêm (L1): hai P7 đồng thời cùng thêm một (kho, đơn) `ACTIVE`, phát cùng lúc qua `CountDownLatch` → cả hai 200, đúng 1 dòng `removed_at IS NULL` cho cặp đó | Integration |
 | T17 | P8: mặc định size 10; `size=50` → 50; `size=51` → 50; `size=0` → 10; `page=-1` → 0; sắp `added_at DESC`; `jobDeleted = true` khi Job xoá mềm; đơn có mục hiệu lực bị đặt thẳng bằng SQL sang trạng thái `REVOKED` (`talent_pool_consent = FALSE` **và** `talent_pool_consent_revoked_at` khác null — chỉ đặt cờ sẽ vi phạm CHECK V14) mà không qua R-C1 → không hiện ở P8, không đếm ở P1, `contains = false` ở P6 (R-M6); mục lệch đó vẫn gỡ được: P9 → 204, `removed_at` được đặt; dựng lại mục lệch khác, P7 `[]` → 200, `removed_at` được đặt (R-M5) | Integration |
 | T18 | P9: 204, `removed_at` đặt; gỡ lần hai → 404 `TALENT_POOL_ENTRY_NOT_FOUND`; đơn chưa từng ở kho → 404; kho đã xoá → 404; kho công ty khác → 403 | Integration |
 | T19 | Vai trò: token ứng viên → 403 ở P1–P9; không token → 401 | Integration |
@@ -439,7 +444,7 @@ hoặc cùng demo). Seed demo không có đơn nào đồng ý lưu hồ sơ (a2
 | R-M7 | T17 |
 | R-M8 | T17, T20 |
 | R-M9 | Không test riêng (hệ quả của khoá `(pool_id, application_id)`) |
-| R-P1, R-P5 | T7, T9, T10, T14, T17 |
+| R-P1, R-P5 | T7, T9, T10, T14, T16 (L1), T17 |
 | R-P2, R-P3 | T10, T11, T12 |
 | R-C1 | T15; 7.2 nhóm 5 |
 | R-C2 | T16 |
@@ -464,6 +469,8 @@ hoặc cùng demo). Seed demo không có đơn nào đồng ý lưu hồ sơ (a2
 - Hiện điểm/hạng trong danh sách mục; vẽ lại CV hay tin nhắn trong trang kho thay vì dẫn sang H09.
 - Thêm thông tin kho vào bất kỳ response nào phía ứng viên.
 - Đặt test T16 trong lớp `@Transactional` toàn lớp (hai luồng không thấy nhau, test pass giả).
+- Thêm mục bằng `INSERT` thường (hoặc `save()`) rồi để vi phạm `uq_talent_pool_entry_active` khi hai P7 chạy đồng thời
+  nổi lên thành 500 — dùng `ON CONFLICT … DO NOTHING` (R-P5, L1).
 
 ## 9. Kế hoạch đợt code
 
@@ -489,3 +496,24 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
 | D5 | `CLAUDE.md` §3 | Thêm `talentpool/` (FR-H15) vào danh sách package |
 | D6 | `docs/features/HR/H16/REQUIREMENT.md` (khung) | Một dòng: "Danh sách mục trong kho (H15 P8, `TalentPoolEntryResponse.candidateName`) hiện tên ứng viên — H16 tự quyết có che không" |
 | D7 | `docs/features/CHUNG/C07/REQUIREMENT.md` | Chỉ sửa câu sai, không viết lại. `:41` (b4): "Ghi chú HR thật sự chỉ có từ FR-H15" → "Hệ thống không có ghi chú HR (FR-H15 rút gọn 16/10/2026 không có ghi chú)". `:181`: "(C08, H13, H15 tự thêm khi tới lượt — Q9)" → "(FR sau cần thì tự thêm — Q9; H13 đã loại, H15 rút gọn không dùng AI)". `:378`: "(C08, H13, H15)" → "(FR sau cần thì tự thêm; H13 đã loại, H15 rút gọn không dùng AI)". Không sửa `:618` (ghi lịch sử) |
+
+## 11. Làm rõ sau Plan Mode (duyệt 16/10/2026)
+
+Đối chiếu lại trên `feat/fr-h15-talent-pool` tại `347f47c` (chỉ khác `f4757b4` ở hai file đặc tả; mục 0 a1–a20 và dữ liệu
+7.4 không dòng nào lệch). Mục này thắng chỗ viết cũ ở các mục được dẫn nếu lệch.
+
+- **L1 (R-P5, T16, mục 8) — thêm mục đồng thời.** Khoá `FOR SHARE` của R-C2 chặn rút đồng ý nhưng **không** chặn hai P7
+  với nhau (hai khoá chia sẻ không xung đột). Hai P7 cùng thêm một (kho, đơn) đều thấy "hiện có" rỗng, request thứ hai vi
+  phạm `uq_talent_pool_entry_active`; handler không ánh xạ constraint này nên thành 500. Chốt: thêm bằng native
+  `INSERT … ON CONFLICT (pool_id, application_id) WHERE removed_at IS NULL DO NOTHING` (tiền lệ cú pháp `ON CONFLICT`:
+  `ScoreExplanationAttemptRepository.java:41`) — idempotent, khớp R-P5; không thêm mã lỗi. T16 thêm ca hai P7 đồng thời;
+  mục 8 thêm dòng tương ứng.
+- **L2 (T3) — cách kiểm ánh xạ constraint.** `INSERT` thẳng bằng JDBC không đi qua `GlobalExceptionHandler`, nên câu cũ
+  "handler trả 409" không kiểm được bằng một bước. Chốt: tách (a) JDBC → exception mang tên constraint; (b) gọi thẳng
+  `handleDataIntegrityViolation` với exception đó → 409 `TALENT_POOL_NAME_TAKEN`. Không đổi hành vi.
+- **L3 (`UI.md` mục 5a) — file chuỗi giao diện.** Thêm `frontend/src/features/talentPools/talentPoolLabels.ts` chứa chuỗi
+  `UI.md` mục 7, theo mẫu `features/screening/screeningLabels.ts`, `features/comparison/comparisonLabels.ts`. Lệnh 7.3
+  quét cả thư mục `features/talentPools` nên không phải sửa.
+- Không đổi spec (ghi nhận): không thêm test đếm số câu SQL — P1 đếm bằng subquery trong một câu, P8 một câu + câu đếm,
+  không N+1; `candidateName` ở P8 luôn có vì `JOIN users` theo FK `job_applications.candidate_id ON DELETE RESTRICT`
+  (`V1__init_schema.sql:209`).

@@ -1,6 +1,8 @@
 # FR-H15 — Giao diện
 
 > Trạng thái: ĐÃ DUYỆT 16/10/2026
+>
+> Làm rõ sau Plan Mode 16/10/2026: L3 (mục 5a thêm `talentPoolLabels.ts`) — chi tiết ở `REQUIREMENT.md` mục 11.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1d (thang chữ), 1h (vùng chạm), 2 (layout HR), 3 (Button, Card,
 Table, Checkbox, Dialog, badge trạng thái), 5 (rỗng/tải/lỗi), 6 (khả năng tiếp cận). Mã `R-…`, `P1`–`P9`, `[Q…]` là của
@@ -163,6 +165,7 @@ Khi consentState ≠ ACTIVE:
 | `frontend/src/features/talentPools/TalentPoolNameDialog.tsx` | Tạo / đổi tên (React Hook Form + Zod) |
 | `frontend/src/features/talentPools/ConfirmTalentPoolDialog.tsx` | Xác nhận xoá kho / gỡ hồ sơ |
 | `frontend/src/features/talentPools/TalentPoolEntryList.tsx` | Bảng (≥ `md`) / thẻ (< `md`) |
+| `frontend/src/features/talentPools/talentPoolLabels.ts` | Chuỗi mục 7 (L3), mẫu `features/screening/screeningLabels.ts` |
 | `frontend/src/features/talentPools/SaveToTalentPoolDialog.tsx` | Hộp thoại 4d |
 
 ### 5b. File có sẵn bị sửa
