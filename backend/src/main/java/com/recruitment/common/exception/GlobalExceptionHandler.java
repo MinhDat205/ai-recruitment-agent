@@ -506,6 +506,12 @@ public class GlobalExceptionHandler {
                     .body(new ErrorResponse(
                             "INTERVIEW_INVITATION_CONFLICT", new InterviewInvitationConflictException().getMessage()));
         }
+        // uq_talent_pool_name_per_company (V17, FR-H15 R-K3) - chot chan cuoi cho hai request tao/doi ten kho trung ten cung
+        // luc; service da kiem truoc (existsActiveName). Ma va cau trung voi duong kiem truoc (REQUIREMENT muc 4.3).
+        if (message != null && message.contains("uq_talent_pool_name_per_company")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("TALENT_POOL_NAME_TAKEN", "Công ty đã có kho ứng viên với tên này."));
+        }
         throw ex;
     }
 }

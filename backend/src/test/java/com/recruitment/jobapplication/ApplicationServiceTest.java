@@ -21,6 +21,7 @@ import com.recruitment.notification.ApplicationWithdrawnEvent;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.screening.ScreeningCaptureService;
+import com.recruitment.talentpool.TalentPoolEntryRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,10 @@ class ApplicationServiceTest {
     @Mock
     private ScreeningCaptureService screeningCaptureService;
 
+    // FR-H15 R-C1: dependency moi cua revokeTalentPoolConsent - cac test o day khong cham toi, mock chi de dung constructor.
+    @Mock
+    private TalentPoolEntryRepository talentPoolEntryRepository;
+
     private ApplicationService newService() {
         return new ApplicationService(
                 applicationRepository,
@@ -72,7 +77,8 @@ class ApplicationServiceTest {
                 eventPublisher,
                 companyRepository,
                 catalogRegistry,
-                screeningCaptureService);
+                screeningCaptureService,
+                talentPoolEntryRepository);
     }
 
     @Test

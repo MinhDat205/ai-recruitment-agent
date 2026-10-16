@@ -398,6 +398,112 @@ class TalentPoolConsentIntegrationTest {
         assertThat(keys).doesNotContainAnyElementsOf(FORBIDDEN_KEYS);
     }
 
+    // ---- FR-H15 T15 (R-C1): rut dong y go muc khoi MOI kho trong chinh transaction rut ----
+    // Kho va muc dung truc tiep bang JDBC (P1-P9 chua co o dot nay). Lop KHONG @Transactional: rut dong y commit that roi
+    // moi doc lai bang JDBC.
+
+    private UUID companyOfJob(String jobId) {
+        return jdbcTemplate.queryForObject("SELECT company_id FROM jobs WHERE id = ?", UUID.class, UUID.fromString(jobId));
+    }
+
+    private UUID insertPool(UUID companyId) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO talent_pools (id, company_id, name) VALUES (?, ?, ?)", id, companyId, "Kho " + id);
+        return id;
+    }
+
+    private UUID insertEntry(UUID poolId, String applicationId) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO talent_pool_entries (id, pool_id, application_id) VALUES (?, ?, ?)",
+                id, poolId, UUID.fromString(applicationId));
+        return id;
+    }
+
+    // Moi hang muc cua mot don (ca muc da go), theo id - de so sanh truoc/sau.
+    private Map<UUID, Object> removedAtByEntry(String applicationId) {
+        Map<UUID, Object> result = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT id, removed_at FROM talent_pool_entries WHERE application_id = ?",
+                rs -> {
+                    result.put(rs.getObject("id", UUID.class), rs.getTimestamp("removed_at"));
+                },
+                UUID.fromString(applicationId));
+        return result;
+    }
+
+    private int activeEntryCount(String applicationId) {
+        return count(
+                "SELECT COUNT(*) FROM talent_pool_entries WHERE application_id = ? AND removed_at IS NULL", applicationId);
+    }
+
+    @Test
+    void t15_revokeRemovesEntriesFromEveryPool_otherApplicationsAndOldRemovedEntryUntouched() throws Exception {
+        String hrToken = hrWithCompany();
+        String jobId = createOpenJob(hrToken);
+        UUID companyId = companyOfJob(jobId);
+        Candidate revoker = newCandidate("h15-t15-a");
+        Candidate sameCompany = newCandidate("h15-t15-b");
+        String revokerApp = apply(revoker, jobId, true);
+        String sameCompanyApp = apply(sameCompany, jobId, true);
+
+        String otherHrToken = hrWithCompany();
+        String otherJobId = createOpenJob(otherHrToken);
+        Candidate otherCompany = newCandidate("h15-t15-c");
+        String otherCompanyApp = apply(otherCompany, otherJobId, true);
+
+        UUID pool1 = insertPool(companyId);
+        UUID pool2 = insertPool(companyId);
+        UUID otherPool = insertPool(companyOfJob(otherJobId));
+        // Muc da go tu truoc cua chinh don rut: removed_at cu phai giu nguyen.
+        UUID oldEntry = insertEntry(pool1, revokerApp);
+        jdbcTemplate.update(
+                "UPDATE talent_pool_entries SET removed_at = now() WHERE id = ?", oldEntry);
+        insertEntry(pool1, revokerApp);
+        insertEntry(pool2, revokerApp);
+        insertEntry(pool1, sameCompanyApp);
+        insertEntry(otherPool, otherCompanyApp);
+        Object oldRemovedAt = removedAtByEntry(revokerApp).get(oldEntry);
+        assertThat(activeEntryCount(revokerApp)).isEqualTo(2);
+
+        MvcResult result = revoke(revoker.token(), revokerApp);
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode json = body(result);
+        assertThat(Set.copyOf(json.propertyNames()))
+                .as("response F4 giu nguyen hinh dang")
+                .containsExactlyInAnyOrder("state", "consentedAt", "revokedAt");
+        assertThat(json.get("state").asString()).isEqualTo("REVOKED");
+
+        Map<UUID, Object> after = removedAtByEntry(revokerApp);
+        assertThat(after).hasSize(3);
+        assertThat(after.values()).as("ca hai kho deu da go").doesNotContainNull();
+        assertThat(after.get(oldEntry)).as("muc go tu truoc khong doi").isEqualTo(oldRemovedAt);
+        assertThat(activeEntryCount(sameCompanyApp)).as("don khac cung cong ty").isEqualTo(1);
+        assertThat(activeEntryCount(otherCompanyApp)).as("don cua cong ty khac").isEqualTo(1);
+    }
+
+    @Test
+    void t15_revokeTwice_conflict_entriesUntouched() throws Exception {
+        String hrToken = hrWithCompany();
+        String jobId = createOpenJob(hrToken);
+        Candidate candidate = newCandidate("h15-t15-twice");
+        String applicationId = apply(candidate, jobId, true);
+        insertEntry(insertPool(companyOfJob(jobId)), applicationId);
+
+        assertThat(revoke(candidate.token(), applicationId).getResponse().getStatus()).isEqualTo(200);
+        Map<UUID, Object> afterFirst = removedAtByEntry(applicationId);
+        // Muc lech dung tay sau lan rut dau (vd du lieu sua tay): lan rut hai la 409 nen KHONG duoc go no.
+        UUID strayEntry = insertEntry(insertPool(companyOfJob(jobId)), applicationId);
+
+        assertConsentError(revoke(candidate.token(), applicationId));
+
+        Map<UUID, Object> afterSecond = removedAtByEntry(applicationId);
+        assertThat(afterSecond.get(strayEntry)).as("nhanh 409 khong cham muc").isNull();
+        afterFirst.forEach((id, removedAt) -> assertThat(afterSecond.get(id)).isEqualTo(removedAt));
+    }
+
     private static void collectKeys(JsonNode node, List<String> sink) {
         if (node.isObject()) {
             for (Map.Entry<String, JsonNode> entry : node.properties()) {

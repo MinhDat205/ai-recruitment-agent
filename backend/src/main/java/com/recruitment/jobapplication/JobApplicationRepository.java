@@ -50,6 +50,22 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     int revokeTalentPoolConsentIfActive(
             @Param("id") UUID id, @Param("candidateId") UUID candidateId, @Param("revokedAt") Instant revokedAt);
 
+    // FR-H15 R-C2 - P7 khoa hang don (FOR SHARE) TRUOC khi doc trang thai dong y, giu toi commit. Xung dot voi khoa cua
+    // cau UPDATE rut dong y o tren: P7 cho rut dong y commit roi doc gia tri moi (409), hoac rut dong y cho P7 commit roi
+    // cau go muc cua R-C1 thay muc P7 vua them. Khoa FOR KEY SHARE ma FK tu lay khi INSERT muc KHONG xung dot voi UPDATE
+    // cot khong phai khoa, nen thieu cau nay thi mot muc co the chen vao sau khi R-C1 da go. Doc hai cot dong y tu CHINH
+    // cau khoa (khong dung entity da nap truoc, co the cu). Native, khong @Lock, khong @Modifying; CHI goi trong
+    // transaction GHI (khuon ScreeningQuestionRepository.findRevisionForShare).
+    @Query(
+            value =
+                    """
+                    SELECT talent_pool_consent AS talentPoolConsent,
+                           talent_pool_consent_revoked_at AS talentPoolConsentRevokedAt
+                    FROM job_applications WHERE id = :id FOR SHARE
+                    """,
+            nativeQuery = true)
+    Optional<ConsentLockRow> lockConsentForShare(@Param("id") UUID id);
+
     // FR-H12 R-G3 buoc 3, R-G4 - khoa hang don VA kiem trang thai trong CUNG mot cau, khuon updateStatusIfCurrent. SET
     // status = status: khong doi gia tri nghiep vu nao (updated_at doi do trigger V1 - chap nhan, tien le FR-U09 Q19).
     // Khoa hang giu toi het transaction: updateStatusIfCurrent (Trung tuyen/Tu choi), save cua rut don va mot lan gui lai

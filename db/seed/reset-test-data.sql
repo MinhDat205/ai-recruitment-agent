@@ -89,6 +89,14 @@ DELETE FROM score_explanations         WHERE scoring_run_id IN (SELECT id FROM t
 DELETE FROM criterion_scores           WHERE scoring_run_id IN (SELECT id FROM t_runs);
 DELETE FROM scoring_runs               WHERE id IN (SELECT id FROM t_runs);
 
+-- 2b. FR-H15 (V17): muc kho tro toi don test (ke ca trong kho cua cong ty demo, khi ung vien test nop vao tin demo) va
+--     moi muc trong kho cua cong ty test, roi chinh kho. Phai chay TRUOC buoc 3: talent_pool_entries.application_id
+--     ON DELETE RESTRICT chan xoa don. Day la script don du lieu test, khong phai duong nghiep vu (khong trai Q2 xoa mem).
+DELETE FROM talent_pool_entries
+WHERE application_id IN (SELECT id FROM t_apps)
+   OR pool_id IN (SELECT id FROM talent_pools WHERE company_id IN (SELECT id FROM t_companies));
+DELETE FROM talent_pools WHERE company_id IN (SELECT id FROM t_companies);
+
 -- 3. Con cua job_applications, roi chinh don
 DELETE FROM application_screening_answers WHERE application_id IN (SELECT id FROM t_apps);
 DELETE FROM application_messages       WHERE application_id IN (SELECT id FROM t_apps);

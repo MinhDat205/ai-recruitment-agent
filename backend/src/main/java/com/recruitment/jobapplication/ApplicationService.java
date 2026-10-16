@@ -24,6 +24,7 @@ import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.screening.ScreeningAnswerDraft;
 import com.recruitment.screening.ScreeningCaptureService;
+import com.recruitment.talentpool.TalentPoolEntryRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +44,7 @@ public class ApplicationService {
     private final CompanyRepository companyRepository;
     private final CatalogRegistry catalogRegistry;
     private final ScreeningCaptureService screeningCaptureService;
+    private final TalentPoolEntryRepository talentPoolEntryRepository;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
@@ -53,7 +55,8 @@ public class ApplicationService {
             ApplicationEventPublisher eventPublisher,
             CompanyRepository companyRepository,
             CatalogRegistry catalogRegistry,
-            ScreeningCaptureService screeningCaptureService) {
+            ScreeningCaptureService screeningCaptureService,
+            TalentPoolEntryRepository talentPoolEntryRepository) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
@@ -63,6 +66,7 @@ public class ApplicationService {
         this.companyRepository = companyRepository;
         this.catalogRegistry = catalogRegistry;
         this.screeningCaptureService = screeningCaptureService;
+        this.talentPoolEntryRepository = talentPoolEntryRepository;
     }
 
     @Transactional
@@ -231,11 +235,15 @@ public class ApplicationService {
                 .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
 
         // UPDATE co dieu kien (talent_pool_consent = TRUE): 0 dong = khong con dong y de rut -> 409. Khong doi status,
-        // khong ghi lich su, khong thong bao, khong event (R-K8); H15 se them viec xoa khoi kho vao CHINH transaction nay.
+        // khong ghi lich su, khong thong bao, khong event (R-K8).
         int updated = applicationRepository.revokeTalentPoolConsentIfActive(applicationId, candidateId, Instant.now());
         if (updated == 0) {
             throw new TalentPoolConsentNotActiveException();
         }
+
+        // FR-H15 R-C1 - go don khoi MOI kho trong CHINH transaction nay, SAU cau UPDATE tren (giu khoa hang don truoc,
+        // cung thu tu voi P7 - R-C2). Nhanh 409 o tren khong cham toi muc.
+        talentPoolEntryRepository.removeAllActiveByApplicationId(applicationId);
 
         // clearAutomatically da xoa persistence context: findById la SELECT that, thay gia tri vua ghi.
         JobApplication reloaded = applicationRepository
