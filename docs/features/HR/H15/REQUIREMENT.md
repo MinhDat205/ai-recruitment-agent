@@ -351,7 +351,108 @@ Mock `ChatModel`/`EmbeddingModel` giữ default-answer throw như hiện có (CL
 
 ### 7.2 Kiểm bằng HTTP — Windows PowerShell 5.1
 
-Khối lệnh viết ở đợt cuối theo hàm trợ giúp của H14 mục 7.2 (gửi UTF-8, đọc UTF-8). Nhóm phải khớp:
+Dữ liệu: bộ seed-test (mục 7.4); backend ở `localhost:8080`. Bộ hàm `Get-Token` / `Invoke-Api` / `Test-Call` chép
+**nguyên văn** từ FR-H14 mục 7.2: gửi body dạng byte UTF-8, đọc response theo UTF-8 — câu lỗi và tên có dấu phải đọc
+đúng. Dán cả khối vào **một** cửa sổ PowerShell (không cần lưu file). Nếu chạy từ file `.ps1`
+(`powershell -File …`), file **phải** lưu UTF-8 có BOM: PowerShell 5.1 đọc file không BOM theo bảng mã ANSI, chữ có dấu
+vỡ và làm hỏng cú pháp. Nhóm 5 rút đồng ý của A1 → chạy xong phải reset bộ test (`db/seed/README.md` mục 8.2 rồi 8.1)
+trước khi soát tay 7.4. Đã chạy thật ngày 17/10/2026 (đợt 6a): 7/7 nhóm khớp.
+
+```powershell
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$base = 'http://localhost:8080'
+
+function Get-Token([string]$Email, [string]$Password) {
+    $body = @{ email = $Email; password = $Password } | ConvertTo-Json
+    (Invoke-RestMethod -Method Post -Uri "$base/api/auth/login" -ContentType 'application/json' -Body $body).accessToken
+}
+
+# Gui body dang byte UTF-8 (PowerShell 5.1 ma hoa chuoi Body theo ISO-8859-1 -> vo chu tieng Viet).
+# $Json: $null (khong body) | chuoi (gui nguyen van, dung cho JSON hong) | hashtable (ConvertTo-Json -Depth 8).
+# Tra ve doi tuong @{ Status; Text } - Text doc theo UTF-8 (C07 L13).
+function Invoke-Api([string]$Method, [string]$Path, [string]$Token, $Json) {
+    $headers = @{}
+    if ($Token) { $headers['Authorization'] = "Bearer $Token" }
+    $params = @{ UseBasicParsing = $true; Method = $Method; Uri = "$base$Path"; Headers = $headers }
+    if ($null -ne $Json) {
+        $payload = if ($Json -is [string]) { $Json } else { ConvertTo-Json -InputObject $Json -Depth 8 }
+        $params['ContentType'] = 'application/json; charset=utf-8'
+        $params['Body'] = [Text.Encoding]::UTF8.GetBytes($payload)
+    }
+    try {
+        $r = Invoke-WebRequest @params
+        return @{ Status = [int]$r.StatusCode; Text = [Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray()) }
+    } catch {
+        $resp = $_.Exception.Response
+        if ($null -eq $resp) { return @{ Status = 0; Text = 'KHONG KET NOI DUOC' } }
+        $text = $_.ErrorDetails.Message
+        if (-not $text) {
+            $reader = New-Object System.IO.StreamReader($resp.GetResponseStream(), [Text.Encoding]::UTF8)
+            $text = $reader.ReadToEnd()
+        }
+        return @{ Status = [int]$resp.StatusCode; Text = $text }
+    }
+}
+
+function Test-Call([string]$Method, [string]$Path, [string]$Token, $Json) {
+    $r = Invoke-Api $Method $Path $Token $Json
+    '{0} {1} {2} {3}' -f $r.Status, $Method, $Path, $r.Text
+}
+
+# Bo seed-test (db/seed/seed-test.sql): HR cong ty test, ung vien Quoc Huy; A1 ACTIVE, A7 NOT_GIVEN (REQUIREMENT 7.4).
+$tokenHr = Get-Token 'minhdathr@gmail.com' '12345678'
+$tokenUv = Get-Token 'quochuyuv@gmail.com' '12345678'
+$a1 = 'e8000000-0000-0000-0000-000000000001'   # Quoc Huy -> J1, PENDING, ACTIVE
+$a7 = 'e8000000-0000-0000-0000-000000000007'   # Pham Van Khoa -> J1, REJECTED, NOT_GIVEN
+$nx = '00000000-0000-0000-0000-000000000000'   # khong ton tai
+$suffix = (Get-Date -Format 'HHmmss')           # ten kho rieng moi lan chay
+
+'--- 1. P2 tao 2 kho (mong doi 201 x2); trung ten khac hoa thuong (409); ten 101 ky tu (400)'
+$r1 = Invoke-Api 'POST' '/api/hr/talent-pools' $tokenHr @{ name = "Chăm sóc khách hàng tiềm năng $suffix" }
+$r2 = Invoke-Api 'POST' '/api/hr/talent-pools' $tokenHr @{ name = "Hành chính 2027 $suffix" }
+'{0} {1}' -f $r1.Status, $r1.Text
+'{0} {1}' -f $r2.Status, $r2.Text
+$p1 = ($r1.Text | ConvertFrom-Json).id
+$p2 = ($r2.Text | ConvertFrom-Json).id
+Test-Call 'POST' '/api/hr/talent-pools' $tokenHr @{ name = "CHĂM SÓC KHÁCH HÀNG TIỀM NĂNG $suffix" }
+Test-Call 'POST' '/api/hr/talent-pools' $tokenHr @{ name = ('x' * 101) }
+
+'--- 2. P7 A1 (ACTIVE) vao 2 kho (mong doi 200, consentState ACTIVE, contains True o ca hai); P8 moi kho 1 muc'
+$r = Invoke-Api 'PUT' "/api/hr/applications/$a1/talent-pools" $tokenHr @{ poolIds = @($p1, $p2) }
+$o = $r.Text | ConvertFrom-Json
+'{0} consentState={1} contains p1={2} p2={3}' -f $r.Status, $o.consentState, (($o.pools | Where-Object id -eq $p1).contains), (($o.pools | Where-Object id -eq $p2).contains)
+$e1 = (Invoke-Api 'GET' "/api/hr/talent-pools/$p1/entries" $tokenHr $null).Text | ConvertFrom-Json
+$e2 = (Invoke-Api 'GET' "/api/hr/talent-pools/$p2/entries" $tokenHr $null).Text | ConvertFrom-Json
+'P8 p1: total={0} ten={1} tin={2}' -f $e1.totalElements, $e1.items[0].candidateName, $e1.items[0].jobTitle
+'P8 p2: total={0}' -f $e2.totalElements
+
+'--- 3. P7 A7 (NOT_GIVEN) (mong doi 409 TALENT_POOL_CONSENT_REQUIRED)'
+Test-Call 'PUT' "/api/hr/applications/$a7/talent-pools" $tokenHr @{ poolIds = @($p1) }
+
+'--- 4. P7 A1: id trung (400); id khong ton tai (404); bang khong doi (P6 nhu nhom 2)'
+Test-Call 'PUT' "/api/hr/applications/$a1/talent-pools" $tokenHr @{ poolIds = @($p1, $p1) }
+Test-Call 'PUT' "/api/hr/applications/$a1/talent-pools" $tokenHr @{ poolIds = @($p1, $nx) }
+$o = (Invoke-Api 'GET' "/api/hr/applications/$a1/talent-pools" $tokenHr $null).Text | ConvertFrom-Json
+'P6 sau loi: contains p1={0} p2={1}' -f (($o.pools | Where-Object id -eq $p1).contains), (($o.pools | Where-Object id -eq $p2).contains)
+
+'--- 5. Ung vien rut dong y A1 (F4, mong doi 200 REVOKED) -> P8 hai kho rong, P1 entryCount 0'
+Test-Call 'PATCH' "/api/candidates/applications/$a1/talent-pool-consent/revoke" $tokenUv $null
+$e1 = (Invoke-Api 'GET' "/api/hr/talent-pools/$p1/entries" $tokenHr $null).Text | ConvertFrom-Json
+$e2 = (Invoke-Api 'GET' "/api/hr/talent-pools/$p2/entries" $tokenHr $null).Text | ConvertFrom-Json
+$list = (Invoke-Api 'GET' '/api/hr/talent-pools' $tokenHr $null).Text | ConvertFrom-Json
+'P8 p1 total={0}; p2 total={1}; P1 entryCount p1={2} p2={3}' -f $e1.totalElements, $e2.totalElements, (($list | Where-Object id -eq $p1).entryCount), (($list | Where-Object id -eq $p2).entryCount)
+
+'--- 6. P4 doi ten (200); P5 xoa (204); P3 sau xoa (404 TALENT_POOL_NOT_FOUND)'
+Test-Call 'PATCH' "/api/hr/talent-pools/$p2" $tokenHr @{ name = "Hành chính 2028 $suffix" }
+Test-Call 'DELETE' "/api/hr/talent-pools/$p2" $tokenHr $null
+Test-Call 'GET' "/api/hr/talent-pools/$p2" $tokenHr $null
+
+'--- 7. Token ung vien goi P1 (403); khong token (401 UNAUTHENTICATED)'
+Test-Call 'GET' '/api/hr/talent-pools' $tokenUv $null
+Test-Call 'GET' '/api/hr/talent-pools' $null $null
+```
+
+Nhóm phải khớp:
 
 | Nhóm | Mong đợi |
 |---|---|
