@@ -1014,6 +1014,14 @@ giấy mời đã gửi không đổi khi sửa mẫu.
   (17/10/2026, 6 đợt — phạm vi rút gọn 16/10/2026: không AI, không ghi chú, không thẻ, không bộ lọc/tìm kiếm). HR
   tạo, đổi tên, xoá kho; lưu đơn có đồng ý ACTIVE vào một hoặc nhiều kho và gỡ ra; từ kho mở lại hồ sơ đơn H09;
   tự động gỡ mục khỏi mọi kho khi ứng viên rút đồng ý.
+  Giới hạn đã biết:
+  - Mục lệch (đơn không còn `ACTIVE` mà mục vẫn hiệu lực, chỉ có khi sửa dữ liệu tay) không hiện ở giao diện vì P6/P8
+    lọc đồng ý; chỉ gỡ được qua API P7/P9 (R-M5, R-M6 — chấp nhận 16/10/2026).
+  - `name` dạng số được Jackson ép thành chuỗi theo quy ước chung, không chặn riêng (L5).
+  - `removed_at` của R-C1 dùng `statement_timestamp()` của DB, không trùng từng mili giây với
+    `talent_pool_consent_revoked_at` (L4).
+  - Kho lưu theo đơn: một ứng viên nộp nhiều đơn có thể xuất hiện nhiều lần trong một kho (Q9).
+  Nợ kỹ thuật: không phát sinh.
   Kết quả kiểm (17/10/2026):
   - Full suite 1610/1610 (`./mvnw test`), build + lint sạch.
   - Kiểm tĩnh 7.3 đều 0 dòng.
