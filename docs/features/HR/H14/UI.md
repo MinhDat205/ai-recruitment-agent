@@ -4,6 +4,8 @@
 >
 > Mục 11 của `REQUIREMENT.md` đã chốt (Q1–Q11 và S1–S6); chỉ còn tên method trên `ApplicationOwnerService` và hình dạng
 > chính xác của DTO để Plan Mode chốt.
+>
+> Làm rõ đợt 5 (16/10/2026): 4c sàng lọc liệt kê đủ cột; nền ô gộp dọc 4a.
 
 Tham chiếu: `docs/UI_GUIDE.md` mục 1c (token `m3-*`), 1d (thang chữ), 1h (vùng chạm), 2 (layout HR), 3 (Table, Button,
 Checkbox, Dialog, badge trạng thái), 4 (màn hình xếp hạng, giải thích điểm, nội dung AI, so sánh ứng viên, dữ liệu
@@ -155,6 +157,8 @@ Tên, số và thời điểm trong khung chỉ để minh hoạ, không phải 
 - Khối sàng lọc: mỗi hàng là một câu hỏi theo R-Q; nhãn hàng ghi câu hỏi nguyên văn + loại câu ("Có/Không", "Một lựa
   chọn", "Trả lời ngắn" — đúng nhãn `screeningLabels.ts:8-10`). Đơn `NOT_CAPTURED`/`NO_QUESTIONS`: câu trạng thái R-Q4 ở ô của cột đó, **gộp dọc** qua mọi hàng
   câu hỏi (`rowSpan`), hoặc khi không còn hàng nào (R-Q5) thì là một hàng "Trạng thái" duy nhất.
+- Ô gộp dọc (`rowSpan`) ở nhóm sàng lọc và nhóm giải thích luôn nền `bg-m3-surface`, kể cả khi vắt qua hàng "Khác
+  nhau"; thông tin khác biệt nằm ở chip trong tiêu đề hàng.
 - 2 cột: cùng bố cục, hai cột dữ liệu chia đều.
 
 ### 4b. Desktop — tab "Ứng viên" của `/hr/jobs/:id/edit` (màn hình cũ mở rộng)
@@ -266,6 +270,10 @@ Tên, số và thời điểm trong khung chỉ để minh hoạ, không phải 
 - "TS" là viết tắt chỉ trong khung ASCII; giao diện ghi đủ "Trọng số".
 - Nút trong thẻ ứng viên: hai nút cùng hàng, mỗi nút `flex-1`, cao ≥ 48px (UI_GUIDE 1h); một nút thì `w-full`.
 - Nền `░` của khối "Khác nhau" phủ **cả khối** (mọi ứng viên trong khối), không phủ riêng dòng của một ứng viên.
+- Nhóm sàng lọc: mỗi khối câu hỏi liệt kê **đủ** mọi cột theo thứ tự `columns`, không ẩn cột nào. Ô của cột
+  `NOT_CAPTURED` dùng câu ngắn "Không có câu trả lời được ghi nhận."; ô của cột `NO_QUESTIONS` dùng câu có sẵn "Không có
+  câu hỏi này lúc ứng viên nộp đơn." Khối "Trạng thái" ở đầu nhóm giữ câu đầy đủ của `NOT_CAPTURED`/`NO_QUESTIONS` (R-Q4)
+  cho các cột đó.
 
 ### 4d. Điện thoại (375px) — tab "Ứng viên"
 
@@ -388,7 +396,7 @@ Không có token mới; mọi cặp màu đã đo ở UI_GUIDE mục 1c/6.
 | Kinh nghiệm | "{years} năm ({months} tháng)" · thiếu: "Chưa có dữ liệu" |
 | Dữ liệu thiếu | "Chưa có dữ liệu" (UI_GUIDE mục 4) |
 | Giải thích (giữ câu của `ExplanationReport.tsx`) | Câu lưu ý dưới tiêu đề nhóm (`:86-87`): "Tổng hợp của AI dựa trên các tiêu chí đã chấm — không phải khuyến nghị tuyển dụng, HR tự xem xét từng hồ sơ." · `PENDING` (`:77`): "Báo cáo tổng hợp của AI đang được xử lý." · `FAILED` (`:78`): "Không tạo được báo cáo tổng hợp của AI cho lượt chấm này." · danh sách rỗng (`:14`): "Không có mục nào." · tiêu đề (`:95-96`): "Điểm mạnh" · "Điểm cần cải thiện" · mỗi điểm: "{criterionName} — {point}" (`:19`) |
-| Sàng lọc (giữ câu FR-H10/U09) | "Có" · "Không" · "Ứng viên không trả lời câu này." · `NOT_CAPTURED`: "Đơn này được nộp trước khi hệ thống ghi nhận câu trả lời sàng lọc, nên không có câu trả lời để hiển thị." · `NO_QUESTIONS`: "Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn ({t})." · **mới**: "Không có câu hỏi này lúc ứng viên nộp đơn." · loại câu (giữ `screeningLabels.ts:8-10`): "Có/Không" · "Một lựa chọn" · "Trả lời ngắn" |
+| Sàng lọc (giữ câu FR-H10/U09) | "Có" · "Không" · "Ứng viên không trả lời câu này." · `NOT_CAPTURED`: "Đơn này được nộp trước khi hệ thống ghi nhận câu trả lời sàng lọc, nên không có câu trả lời để hiển thị." · `NO_QUESTIONS`: "Tin tuyển dụng chưa có câu hỏi sàng lọc vào thời điểm ứng viên nộp đơn ({t})." · **mới**: "Không có câu hỏi này lúc ứng viên nộp đơn." · **mới** (ô 4c của cột `NOT_CAPTURED`): "Không có câu trả lời được ghi nhận." · loại câu (giữ `screeningLabels.ts:8-10`): "Có/Không" · "Một lựa chọn" · "Trả lời ngắn" |
 | Lỗi backend (REQUIREMENT R-S8 — đúng từng chữ) | "Danh sách đơn cần so sánh không hợp lệ." · "Mỗi đơn chỉ được chọn một lần." · "Chọn từ 2 đến 3 đơn để so sánh." · "Có đơn không thuộc tin tuyển dụng này." · "Chỉ so sánh được các đơn cùng một chu kỳ tuyển dụng." · "Có đơn chưa có lượt chấm điểm hoàn tất. Chỉ so sánh được các đơn đã chấm xong." |
 | Lỗi frontend / fallback | Tải: "Không tải được dữ liệu so sánh, vui lòng thử lại." · nút "Thử lại" · 403/404: "Không tìm thấy tin tuyển dụng." · liên kết "Về danh sách tin tuyển dụng" · câu phụ 409: "Bạn có thể chấm điểm hồ sơ ở tab Ứng viên rồi so sánh lại." |
 
