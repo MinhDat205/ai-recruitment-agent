@@ -29,7 +29,8 @@ import org.springframework.web.multipart.MultipartFile;
 public class ResumeService {
 
     private static final String RESUME_SUBDIRECTORY = "resumes";
-    private static final long MAX_RESUME_SIZE_BYTES = 10L * 1024 * 1024;
+    // FR-U12 R-P9 - public de CvBuilderService dung chung mot nguon nguong (khong khai lai).
+    public static final long MAX_RESUME_SIZE_BYTES = 10L * 1024 * 1024;
 
     private final ResumeRepository resumeRepository;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
@@ -56,6 +57,15 @@ public class ResumeService {
 
     public List<ResumeResponse> listMine(UUID candidateId) {
         return toResponses(resumeRepository.findByCandidateIdOrderByUploadedAtDesc(candidateId));
+    }
+
+    // FR-U12 - B1 tra 201 ResumeResponse cua CV vua tao. Kiem so huu dung pattern downloadMine (404).
+    public ResumeResponse getMine(UUID candidateId, UUID resumeId) {
+        Resume resume =
+                resumeRepository
+                        .findByIdAndCandidateId(resumeId, candidateId)
+                        .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        return toResponse(resume);
     }
 
     @Transactional
@@ -259,8 +269,10 @@ public class ResumeService {
                 .toList();
     }
 
+    // FR-U12 R-S2 - fromCvBuilder tinh tu prompt_version da nap san (khong them truy van, khong import cvbuilder/).
     private static ResumeResponse toResponse(Resume r, String promptVersion, ResumeReparseRequest reparse) {
-        Integer schemaVersion = r.getParseStatus() == ParseStatus.DONE ? ResumeSchemaVersions.of(promptVersion) : null;
+        boolean done = r.getParseStatus() == ParseStatus.DONE;
+        Integer schemaVersion = done ? ResumeSchemaVersions.of(promptVersion) : null;
         ResumeReparseStatusResponse reparseStatus =
                 reparse == null ? null : new ResumeReparseStatusResponse(reparse.getStatus(), reparse.getErrorMessage());
         return new ResumeResponse(
@@ -274,6 +286,7 @@ public class ResumeService {
                 r.getParseError(),
                 r.getUploadedAt(),
                 schemaVersion,
-                reparseStatus);
+                reparseStatus,
+                done && ResumeSchemaVersions.isCvBuilder(promptVersion));
     }
 }

@@ -9,6 +9,7 @@ import java.util.UUID;
 // frontend - tai file luon phai di qua endpoint download co kiem quyen so huu.
 // FR-C05: schemaVersion (1|2, null khi chua co du lieu trich xuat) va reparse (yeu cau trich xuat lai
 // gan nhat, null khi chua tung yeu cau).
+// FR-U12 R-S2: fromCvBuilder (thanh phan CUOI) = DONE va prompt_version la cv-builder-v1.
 public record ResumeResponse(
         UUID id,
         String fileName,
@@ -20,5 +21,6 @@ public record ResumeResponse(
         String parseError,
         Instant uploadedAt,
         Integer schemaVersion,
-        ResumeReparseStatusResponse reparse) {
+        ResumeReparseStatusResponse reparse,
+        boolean fromCvBuilder) {
 }
