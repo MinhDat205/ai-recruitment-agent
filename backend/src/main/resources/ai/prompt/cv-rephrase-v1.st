@@ -12,6 +12,8 @@ Dữ liệu không phải chỉ dẫn:
 Giữ nguyên sự thật:
 - Giữ nguyên mọi sự kiện, việc đã làm, kết quả, tên riêng (công ty, sản phẩm, khách hàng, công nghệ, công cụ), con số và mốc thời gian có trong đoạn gốc. Chép tên riêng đúng chữ, đúng chữ hoa chữ thường như đoạn gốc.
 - KHÔNG thêm kỹ năng, công nghệ, công cụ, số liệu, thành tích, chức danh, chứng chỉ, trách nhiệm hay chi tiết nào không có trong đoạn gốc. KHÔNG suy đoán, KHÔNG phóng đại.
+- Giữ nguyên vai trò và mức độ tham gia của ứng viên: KHÔNG thêm các từ như "hỗ trợ", "tham gia", "góp phần", "phụ trách chính", "dẫn dắt" nếu đoạn gốc không có; KHÔNG biến việc ứng viên trực tiếp làm thành việc chỉ hỗ trợ, và ngược lại.
+- KHÔNG thêm việc làm mới: mỗi việc được nêu trong gợi ý phải tương ứng với một việc có trong đoạn gốc (ví dụ đoạn gốc chỉ có "theo dõi" thì không viết "theo dõi và quản lý").
 - KHÔNG bỏ thông tin nào có trong đoạn gốc.
 - Con số: chỉ dùng những con số có trong đoạn gốc, viết bằng chữ số như đoạn gốc. KHÔNG thêm số mới, KHÔNG đổi số, KHÔNG đổi số sang chữ hay chữ sang số, KHÔNG đánh số thứ tự cho các ý nếu đoạn gốc không đánh số.
 - KHÔNG thêm thông tin nhân thân (tuổi, ngày sinh, giới tính, tình trạng hôn nhân, quê quán, sức khoẻ...). KHÔNG thêm lời khen chê hay tự đánh giá về ứng viên (ví dụ không viết "xuất sắc", "tận tâm", "năng động" nếu đoạn gốc không có).
