@@ -83,9 +83,8 @@ Sửa `UI_GUIDE.md` mục 7 dòng `/candidate/profile` ở đợt cuối (REQUIR
 │ ┌ Card ── Chứng chỉ ── (mỗi mục: Tên chứng chỉ *, Đơn vị cấp, Thời gian cấp)            ┐ │
 │ ┌ Card ── Tên phiên bản ── [ Ví dụ: Bản CSKH 2026 ]  (không bắt buộc)                  ┐ │
 │                                                                                          │
-│ ┌ thanh thao tác (sticky bottom, nền m3-surface, viền trên outline-variant) ──────────┐ │
-│ │ ⚠ Kinh nghiệm 2: Tên công ty là bắt buộc.              [ Xem trước ]  [ Lưu CV ]     │ │
-│ └───────────────────────────────────────────────────────────────────────────────────────┘ │
+│ thanh thao tác (cuối form, trong luồng trang, KHÔNG fixed/sticky — REQUIREMENT 13.5 L1)  │
+│ ⚠ Kinh nghiệm 2: Tên công ty là bắt buộc.                 [ Xem trước ]  [ Lưu CV ]      │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -146,10 +145,9 @@ Như 4a, khác:
 │ │ …                                  │ │
 │ │ [     ✦ Gợi ý diễn đạt          ]  │ │  (w-full)
 │ └────────────────────────────────────┘ │
-│ ┌ thanh thao tác sticky ────────────┐ │
-│ │ [         Xem trước            ]  │ │
-│ │ [          Lưu CV              ]  │ │
-│ └────────────────────────────────────┘ │
+│ (cuối form, trong luồng trang)        │
+│ [          Xem trước               ]  │
+│ [           Lưu CV                 ]  │
 └───────────────────────────────────────┘
 ```
 
@@ -181,6 +179,7 @@ Như 4a, khác:
 | `frontend/src/pages/CandidateProfilePage.tsx` | Nút "Tạo CV" trong `CardContent` của thẻ "CV của tôi" (mục 3); câu "đã lưu" đọc từ `location.state` (mục 6). Không đổi gì khác |
 | `frontend/src/features/resumes/ResumeList.tsx` | Nút "Sửa CV" (mục 3); câu rỗng `emptyResumeList` |
 | `frontend/src/features/resumes/types.ts` | `Resume.fromCvBuilder: boolean` |
+| `frontend/src/features/candidateProfile/SkillTagInput.tsx` | (REQUIREMENT 13.5 L12) Thêm **2 prop tuỳ chọn**: `inputAriaLabel` (mặc định "Nhập kỹ năng mới") và `removeAriaLabel(item)` (mặc định "Xoá kỹ năng {x}"). Không đổi gì khác — U14 không truyền hai prop này nên hành vi giữ nguyên |
 
 ### 5c. Dùng lại có sẵn
 
@@ -208,7 +207,7 @@ cho cả Kỹ năng và Công nghệ), `useResumesQuery`, `useCatalogsQuery`. D�
 | Khối AI | `rounded-m3-sm border border-m3-outline-variant bg-m3-surface-container-high p-3` | Viền bắt buộc (UI_GUIDE mục 4) |
 | Chữ trong khối AI | **chỉ** `text-m3-on-surface` (nhãn "Do AI tạo", gợi ý, câu nhắc) | `on-surface-variant` không đạt trên nền này |
 | Nút trong khối AI | "Dùng gợi ý" `Button` mặc định; "Bỏ qua" `variant="outline"` | |
-| Thanh thao tác | `sticky bottom-0 border-t border-m3-outline-variant bg-m3-surface p-3` | Lỗi server hiện bên trái (icon `AlertCircle` `m3-error` + chữ `text-m3-on-surface`) |
+| Thanh thao tác | Khối cuối form, trong luồng trang, **không** `fixed`/`sticky` (REQUIREMENT 13.5 L1 — cùng quy ước U08, U09, U10, H09, H10, H11, H12, H14, C06): `flex flex-col gap-3 sm:flex-row sm:items-center` | Trên nền trang. Lỗi server hiện bên trái/trên nút (icon `AlertCircle` `m3-error` + chữ `text-m3-on-surface`, `role="alert"`, `tabIndex={-1}`) |
 | Nút "Lưu CV" / "Lưu thành CV mới" | `Button` mặc định (`m3-primary`) | |
 | Nút "Xem trước" | `variant="outline"` + `Eye` | |
 | Câu "không in lên CV" ở ô ngành | icon `Info` + `text-sm text-m3-on-surface-variant` | |
@@ -227,7 +226,7 @@ cho cả Kỹ năng và Công nghệ), `useResumesQuery`, `useCatalogsQuery`. D�
 | Đang điền sẵn | Nút "Điền sẵn" khoá + "Đang điền…"; lỗi tải → `prefillFailed` dưới `Select` |
 | Điền sẵn xong | Câu `prefillDone` (`role="status"`) trong thẻ Điền sẵn; có mốc bị bỏ → câu `prefillDateNotice` ở đầu thẻ Điền sẵn (giữ tới khi điền sẵn lần khác hoặc rời trang) |
 | Kiểm phía client lỗi | Bấm "Lưu"/"Xem trước": lỗi dưới từng ô sai, focus ô lỗi đầu tiên, không gọi API; form rỗng → câu `CV_BUILDER_EMPTY` ở thanh thao tác |
-| Lỗi từ server (400/409/500) | Câu `message` của backend ở thanh thao tác (`role="alert"`); không xoá dữ liệu form. 409 `CV_BUILDER_CONCURRENT_CREATE` → thêm liên kết "Về Hồ sơ và CV" |
+| Lỗi từ server (400/409/500) | Câu `message` của backend ở thanh thao tác cuối form (`role="alert"`); cuộn tới thanh thao tác (`scrollIntoView({ block: 'center' })`) và focus khối lỗi; không xoá dữ liệu form. 409 `CV_BUILDER_CONCURRENT_CREATE` → thêm liên kết "Về Hồ sơ và CV" |
 | Đang lưu | Hai nút khoá; nút lưu đổi chữ "Đang lưu…"; ô vẫn hiện (không khoá cả trang) |
 | Lưu xong | `navigate('/candidate/profile', { state: { cvBuilderSaved: 'create' \| 'edit' } })`; danh sách CV tải lại (`invalidateQueries` khoá danh sách CV); trang hồ sơ đọc `location.state` và hiện câu `savedCreate`/`savedEdit` (`role="status"`, `text-sm text-m3-on-surface-variant` + icon `Info`) ngay trên `ResumeList` trong thẻ "CV của tôi", rồi `navigate(location.pathname, { replace: true, state: null })` để tải lại trang không hiện lại câu |
 | Đang dựng xem trước | Nút "Xem trước" khoá + "Đang tạo bản xem trước…"; lỗi → câu ở thanh thao tác |
@@ -288,6 +287,10 @@ Tất cả ở `cvBuilderLabels.ts`. `{n}`, `{max}`, `{i}` là số.
 | `emptySkills` | Chưa có kỹ năng nào. |
 | `skillsPlaceholder` | Nhập kỹ năng rồi nhấn Enter |
 | `technologiesPlaceholder` | Nhập công nghệ rồi nhấn Enter |
+| `skillsMaxReached` | Đã đạt tối đa 50 kỹ năng. |
+| `technologiesMaxReached` | Đã đạt tối đa 20 công nghệ. |
+| `technologiesInputLabel` (aria-label) | Nhập công nghệ mới |
+| `technologiesRemove` (aria-label) | Xoá công nghệ {x} |
 | `rephraseButton` | Gợi ý diễn đạt |
 | `rephraseProgress` | Đang tạo gợi ý diễn đạt |
 | `rephraseHint` | AI đang diễn đạt lại đoạn mô tả… |
@@ -362,3 +365,4 @@ Không cuộn ngang toàn trang ở 375px; vùng chạm ≥ 40px (`min-h-10`).
 - Hiện mã lỗi thô thay cho câu tiếng Việt; hiện lại giá trị người dùng gõ trong câu lỗi server.
 - Thêm component vào `components/ui`, thêm thư viện (PDF viewer, rich text editor, date picker).
 - Dùng `input type="month"` (Safari desktop không hỗ trợ — rơi về ô chữ không có định dạng) thay cho `MonthField`.
+- Thanh thao tác `fixed`/`sticky` (REQUIREMENT 13.5 L1).
