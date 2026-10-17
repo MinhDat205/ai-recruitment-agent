@@ -451,7 +451,7 @@ Lỗi chung: 401 `UNAUTHENTICATED`; 403 sai vai trò. `resumeId` không phải U
 | Mã | HTTP | `message` |
 |---|---|---|
 | `INVALID_CV_BUILDER_REQUEST` | 400 | "Dữ liệu CV gửi lên không hợp lệ." |
-| `INVALID_CV_BUILDER_FORM` | 400 | Ghép theo R-F11 từ các mẫu: "{Ô} là bắt buộc." · "{Ô} tối đa {n} ký tự." · "{Khối} tối đa {n} mục." · "{Ô} có ký tự không hỗ trợ trong CV." · "{Ô}: có một từ quá dài, không vừa một dòng của CV. Hãy thêm dấu cách." · "{Ô} phải có dạng MM/YYYY hoặc YYYY, năm từ 1950 đến 2100." · "{Mục}: thời gian bắt đầu phải trước hoặc bằng thời gian kết thúc." · "{Mục}: đang làm thì không nhập thời gian kết thúc." · "GPA phải từ 0 đến 10, tối đa 2 chữ số thập phân." · "Email không đúng định dạng." · "Ngành nghề không có trong danh mục." · "Vui lòng chọn mẫu trình bày." — `{Mục}` = "{Khối} {i}" khi ô trong danh sách |
+| `INVALID_CV_BUILDER_FORM` | 400 | Ghép theo R-F11 từ các mẫu: "{Ô} là bắt buộc." · "{Ô} tối đa {n} ký tự." · "{Khối} tối đa {n} mục." · "{Ô} có ký tự không hỗ trợ trong CV." · "{Ô}: có một từ quá dài, không vừa một dòng của CV. Hãy thêm dấu cách." · "{Ô} phải có dạng MM/YYYY hoặc YYYY, năm từ 1950 đến 2100." · "{Mục}: thời gian bắt đầu phải trước hoặc bằng thời gian kết thúc." · "{Mục}: đang làm thì không nhập thời gian kết thúc." · "{Mục}: GPA phải từ 0 đến 10, tối đa 2 chữ số thập phân." (L19) · "Email không đúng định dạng." · "Ngành nghề không có trong danh mục." · "Vui lòng chọn mẫu trình bày." — `{Mục}` = "{Khối} {i}" khi ô trong danh sách |
 | `CV_BUILDER_EMPTY` | 400 | "CV cần có họ và tên và ít nhất một mục ở học vấn, kinh nghiệm, kỹ năng, chứng chỉ hoặc dự án." |
 | `CV_BUILDER_TOO_LARGE` | 400 | "File CV tạo ra vượt quá 10MB. Vui lòng rút gọn nội dung." |
 | `CV_BUILDER_RENDER_FAILED` | 500 | "Không tạo được file CV, vui lòng thử lại." |
@@ -922,6 +922,13 @@ xuống dòng + `</doan_van>`.
 | L13 | Lỗi B3 về dạng `Blob` | `api.ts` đọc `Blob.text()` → JSON `{error, message}` để hiện câu backend (lỗi glyph/R-F12 chỉ backend báo được) — không dùng câu dự phòng như `downloadApplicationResume.ts:9-10`. Không thêm thư viện | — |
 | L14 | Tin cho 7.4 | `e2000000-0000-0000-0000-000000000002` (13.3). Tài khoản A12 phải qua onboarding trên UI (`RequireCandidateProfileOnboarding`) — 7.4 đã ghi | — |
 | L15 | T7 cần ≥ 2 trang | ≈ 54 dòng/trang ở 13,65 pt → form T7 cần ≥ 60 dòng nội dung: dùng nhiều mục kinh nghiệm (một `description` 2 000 ký tự chỉ ≈ 22 dòng) | — |
+| L16 | Mục 13 chưa có chữ ký `insertBuiltResume` | Chốt theo R-W2: `UUID insertBuiltResume(UUID candidateId, String fileUrl, String fileName, long fileSize, String versionLabel, String rawText, ResumeParsedPayload payload)`; `model`/`prompt_version` lấy hằng `ResumeSchemaVersions` (không qua tham số); `is_primary` (R-W4) tính bên trong. `fileUrl` = khoá giống upload (`resumes/<uuid>.pdf`, không có `/uploads/`); xoá file khi rollback (R-W3) dùng giá trị `store()` trả về — hai giá trị khác nhau, đợt 4 không được dùng lẫn | — |
+| L17 | Factory lỗi cần vị trí ô mà không nhận `String` tự do | Record `CvBuilderField.Path` (lồng trong enum; số thứ tự mục/phần tử 1-based, `subject()` ghép "{Khối} {i}: {Ô} {j}"). Method nhãn tên `displayName()` (không `label()` — tránh S6 khi gọi trong `cvbuilder/`) | 4.2 (lớp phụ của `CvBuilderField`) |
+| L18 | Câu cho ca 4.4 chưa có mẫu riêng | Phần tử `null` → "{Khối} {i} là bắt buộc." ("Học vấn 1 là bắt buộc.", "Kỹ năng 2 là bắt buộc."); phần tử công nghệ → "Dự án {i}: Công nghệ {j} …"; số công nghệ → "Dự án {i}: Công nghệ tối đa 20 mục."; số in không dấu cách nghìn ("2000") | — |
+| L19 | Câu GPA không cho biết mục nào sai | **Đã sửa:** câu GPA có tiền tố mục học vấn — "Học vấn {i}: GPA phải từ 0 đến 10, tối đa 2 chữ số thập phân."; NaN/vô cực cũng báo câu này | 4.4 |
+| L20 | Chữ ký validator | `validate(CvTemplate, CvBuilderForm, String versionLabel)`, đầu vào đã chuẩn hoá (R-F3); kiểm `template == null` trong validator (R-W1) để R-F12 (đợt 3) dùng mẫu mà không đổi chữ ký | — |
+| L21 | Nguồn payload; hằng "Hiện tại" | `CvBuilderStateService.create` nhận form và tự gọi mapper (payload luôn suy từ form). `CvBuilderPayloadMapper.CURRENT_END_DATE = "Hiện tại"` — `CvPdfLabels` (đợt 3) dùng chung hằng này, không khai lại | — |
+| L22 | R-D2 không nêu method repository | Thêm `CvBuilderDocumentRepository.findByResumeId` (dùng ở B2, đợt 4) | — |
 
 ### 13.6 Ước lượng
 

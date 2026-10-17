@@ -66,6 +66,42 @@ public class ResumeParsingStateService {
         resumeParsedDataRepository.save(data);
     }
 
+    // FR-U12 R-W2 - CV dung tu form: ghi thang DONE + CV da trich xuat, KHONG qua scheduler (PENDING se bi LLM trich
+    // xuat). @Transactional mac dinh (REQUIRED) - nhap transaction cua CvBuilderStateService.create de cv_builder_documents
+    // cung commit/rollback. is_primary theo dung luat upload (R-W4): chi CV dau tien cua ung vien. saveAndFlush de vi pham
+    // uq_resume_primary_per_candidate (race CV dau tien - R-W5) noi len ngay tai day. model/prompt_version lay hang
+    // ResumeSchemaVersions, khong nhan tu noi goi (khong co LLM nao - Q-U4). Tra id CV moi.
+    @Transactional
+    public UUID insertBuiltResume(
+            UUID candidateId,
+            String fileUrl,
+            String fileName,
+            long fileSize,
+            String versionLabel,
+            String rawText,
+            ResumeParsedPayload payload) {
+        Resume resume = new Resume();
+        resume.setCandidateId(candidateId);
+        resume.setFileUrl(fileUrl);
+        resume.setFileName(fileName);
+        resume.setFileType(ResumeFileType.PDF);
+        resume.setFileSize(fileSize);
+        resume.setVersionLabel(versionLabel);
+        resume.setPrimary(!resumeRepository.existsByCandidateId(candidateId));
+        resume.setParseStatus(ParseStatus.DONE);
+        UUID resumeId = resumeRepository.saveAndFlush(resume).getId();
+
+        ResumeParsedData data = new ResumeParsedData();
+        data.setResumeId(resumeId);
+        data.setRawText(rawText);
+        enricher.applyExtraction(data, payload);
+        data.setModel(ResumeSchemaVersions.CV_BUILDER_MODEL);
+        data.setPromptVersion(ResumeSchemaVersions.CV_BUILDER_VERSION);
+        data.setTokenUsage(null);
+        resumeParsedDataRepository.save(data);
+        return resumeId;
+    }
+
     @Transactional
     public void markFailed(UUID resumeId, ResumeParsingErrorCode errorCode) {
         Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new ResumeNotFoundException(resumeId));

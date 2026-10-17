@@ -42,7 +42,7 @@ public class ResumeParsingService {
     static final String PROMPT_VERSION = "resume-parse-v2";
 
     // R-C2: AI khong duoc tra OTHER - "khong chac thi null" thay cho "nganh khac".
-    static final String EXCLUDED_INDUSTRY_CODE = "OTHER";
+    public static final String EXCLUDED_INDUSTRY_CODE = "OTHER";
 
     private final ChatClient chatClient;
     private final Resource promptResource;
