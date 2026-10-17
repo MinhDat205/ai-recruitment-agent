@@ -139,6 +139,11 @@ app:
   # nang tran hay han K3 khi chua duyet.
   cv-qa:
     max-output-tokens: 1000
+  # FR-U12 R-A7 - tran token dau ra cua RIENG bean cvRephraseChatClient. Lon nhat hop le: 800 x 1,5 = 1200 ky tu tieng
+  # Viet co dau ~ 480-600 token + vo JSON ~ 30 -> 800 du ~25%. Cong do AI that (7.2 B) quyet dinh giu hay ha - KHONG
+  # nang tran hay han K3 khi chua duyet.
+  cv-rephrase:
+    max-output-tokens: 800
 
   # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
   # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint

@@ -1,12 +1,16 @@
 package com.recruitment.cvbuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.anthropic.models.messages.StopReason;
 import com.recruitment.TestcontainersConfiguration;
 import com.recruitment.cvbuilder.dto.CvBuilderRequest;
 import com.recruitment.resume.LlmTestConfiguration;
@@ -15,14 +19,25 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.ai.anthropic.AnthropicChatOptions;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
+import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +67,7 @@ abstract class CvBuilderIntegrationTestSupport {
 
     static final String RESUMES_PATH = "/api/candidates/cv-builder/resumes";
     static final String PREVIEW_PATH = "/api/candidates/cv-builder/preview";
+    static final String REPHRASE_PATH = "/api/candidates/cv-builder/rephrase";
 
     @Autowired
     MockMvc mockMvc;
@@ -81,6 +97,55 @@ abstract class CvBuilderIntegrationTestSupport {
     void assertNoAiCall() {
         assertThat(Mockito.mockingDetails(chatModel).getInvocations()).as("ChatModel").isEmpty();
         assertThat(Mockito.mockingDetails(embeddingModel).getInvocations()).as("EmbeddingModel").isEmpty();
+    }
+
+    // ---- B4 (dot 5): mock ChatModel khuon CvQaIntegrationTestSupport ----
+
+    // ChatClient doc getOptions/getDefaultOptions khi dung Prompt - chi B4 can (B1-B3 khong cham ChatModel).
+    void stubChatOptions() {
+        doReturn(AnthropicChatOptions.builder().build()).when(chatModel).getOptions();
+        doReturn(AnthropicChatOptions.builder().build()).when(chatModel).getDefaultOptions();
+    }
+
+    static ChatResponse chatResponse(String text) {
+        return ChatResponse.builder()
+                .generations(List.of(new Generation(
+                        new AssistantMessage(text),
+                        ChatGenerationMetadata.builder()
+                                .finishReason(StopReason.END_TURN.toString())
+                                .build())))
+                .metadata(ChatResponseMetadata.builder().model("claude-test").build())
+                .build();
+    }
+
+    static String suggestionJson(String suggestion) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("suggestion", suggestion);
+        return JSON.writeValueAsString(body);
+    }
+
+    // Moi phan tu = mot lan goi ChatModel theo thu tu; lan goi vuot so phan tu lap lai phan tu cuoi (Mockito).
+    void stubOutputs(String first, String... rest) {
+        ChatResponse[] next =
+                Arrays.stream(rest).map(CvBuilderIntegrationTestSupport::chatResponse).toArray(ChatResponse[]::new);
+        doReturn(chatResponse(first), (Object[]) next).when(chatModel).call(any(Prompt.class));
+    }
+
+    List<Prompt> capturedPrompts(int expectedCalls) {
+        ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
+        Mockito.verify(chatModel, Mockito.times(expectedCalls)).call(captor.capture());
+        return captor.getAllValues();
+    }
+
+    void assertNoModelCall() {
+        Mockito.verify(chatModel, never()).call(any(Prompt.class));
+    }
+
+    MvcResult rephrase(String token, String kind, String text) throws Exception {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("kind", kind);
+        body.put("text", text);
+        return postJson(REPHRASE_PATH, token, json(body));
     }
 
     // ---- du lieu form ----

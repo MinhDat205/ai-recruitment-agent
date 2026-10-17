@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.recruitment.ai.cvrephrase.CvRephraseService;
 import com.recruitment.catalog.CatalogEntry;
 import com.recruitment.catalog.CatalogRegistry;
 import com.recruitment.common.exception.CvBuilderTooLargeException;
@@ -66,6 +67,7 @@ class CvBuilderServiceSizeTest {
                 mock(CvBuilderDocumentRepository.class),
                 mock(ResumeRepository.class),
                 resumeService,
+                mock(CvRephraseService.class),
                 maxPdfBytes);
     }
 

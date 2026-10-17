@@ -2,6 +2,8 @@ package com.recruitment.cvbuilder;
 
 import com.recruitment.cvbuilder.dto.CvBuilderDocumentResponse;
 import com.recruitment.cvbuilder.dto.CvBuilderRequest;
+import com.recruitment.cvbuilder.dto.CvRephraseRequest;
+import com.recruitment.cvbuilder.dto.CvRephraseResponse;
 import com.recruitment.resume.dto.ResumeResponse;
 import java.util.UUID;
 import org.springframework.http.CacheControl;
@@ -18,12 +20,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// FR-U12 B1-B3 (muc 4.3). /api/candidates/** da bi SecurityConfig chan hasRole("CANDIDATE") o filter chain; candidateId
+// FR-U12 B1-B4 (muc 4.3). /api/candidates/** da bi SecurityConfig chan hasRole("CANDIDATE") o filter chain; candidateId
 // lay tu JWT. Quyen so huu CV (B2) kiem o CvBuilderService qua findByIdAndCandidateId - CV nguoi khac va CV khong ton
-// tai CUNG 404. Khong PUT/PATCH/DELETE: sua CV = tao CV moi bang B1 (R-W6). B4 (goi y dien dat) them o dot 5.
+// tai CUNG 404. Khong PUT/PATCH/DELETE: sua CV = tao CV moi bang B1 (R-W6). B4 khong doc/ghi du lieu nao cua ung vien
+// (R-A5) nen khong can candidateId; rate limit ai-sync theo userId o RateLimitFilter (R-A8).
 @RestController
-@RequestMapping("/api/candidates/cv-builder")
+@RequestMapping(CvBuilderCandidateController.BASE_PATH)
 public class CvBuilderCandidateController {
+
+    static final String BASE_PATH = "/api/candidates/cv-builder";
+    // B4 - CvBuilderExceptionAdvice so khop DUNG duong dan nay de chon ma loi body hong.
+    static final String REPHRASE_SUBPATH = "/rephrase";
+    static final String REPHRASE_PATH = BASE_PATH + REPHRASE_SUBPATH;
 
     // R-B3 - ten file co dinh cua ban xem truoc.
     static final String PREVIEW_FILE_NAME = "xem-truoc-cv.pdf";
@@ -57,5 +65,11 @@ public class CvBuilderCandidateController {
                 .cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(pdf);
+    }
+
+    // B4 - goi y dien dat mot doan mo ta (K3). Response chi co doan goi y, khong luu gi (R-A5).
+    @PostMapping(REPHRASE_SUBPATH)
+    public CvRephraseResponse rephrase(@RequestBody CvRephraseRequest request) {
+        return cvBuilderService.rephrase(request);
     }
 }

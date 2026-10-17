@@ -1,13 +1,17 @@
 package com.recruitment.cvbuilder;
 
 import com.recruitment.ai.citation.VerbatimQuoteVerifier;
+import com.recruitment.ai.cvrephrase.CvRephraseService;
 import com.recruitment.common.exception.CvBuilderConcurrentCreateException;
 import com.recruitment.common.exception.CvBuilderRenderFailedException;
 import com.recruitment.common.exception.CvBuilderTooLargeException;
 import com.recruitment.common.exception.CvNotFromBuilderException;
+import com.recruitment.common.exception.InvalidCvRephraseRequestException;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.cvbuilder.dto.CvBuilderDocumentResponse;
 import com.recruitment.cvbuilder.dto.CvBuilderRequest;
+import com.recruitment.cvbuilder.dto.CvRephraseRequest;
+import com.recruitment.cvbuilder.dto.CvRephraseResponse;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeExtractionException;
 import com.recruitment.resume.ResumeFileType;
@@ -28,8 +32,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-// FR-U12 facade B1-B3. KHONG mo transaction (CLAUDE.md muc 3c): chuan hoa, kiem, dung PDF, trich van ban va luu file deu
-// nam NGOAI transaction; ghi DB la MOT transaction ngan cua CvBuilderStateService.create (R-W2). Khong goi AI (R-W8).
+// FR-U12 facade B1-B4. KHONG mo transaction (CLAUDE.md muc 3c): chuan hoa, kiem, dung PDF, trich van ban va luu file deu
+// nam NGOAI transaction; ghi DB la MOT transaction ngan cua CvBuilderStateService.create (R-W2). B1-B3 khong goi AI
+// (R-W8); B4 goi AI CHI qua CvRephraseService (K3), khong doc/ghi DB (R-A5).
 // Thu tu B1 (R-W1): chuan hoa (R-F3) -> kiem (R-F4-R-F12) -> dung PDF -> R-P9 -> trich raw_text + K2 luc chay (R-P8) ->
 // luu file -> transaction R-W2. B3 dung o R-P9 (R-B3): khong trich van ban, khong luu file, khong ghi DB.
 @Service
@@ -45,6 +50,9 @@ public class CvBuilderService {
     static final String FILE_NAME_PREFIX = "CV ";
     static final String FILE_NAME_SUFFIX = ".pdf";
     static final int FILE_NAME_MAX_LENGTH = 255;
+    // R-A2 - do dai doan mo ta B4 (String.length() sau R-F3), ca hai dau deu hop le.
+    static final int REPHRASE_MIN_LENGTH = 20;
+    static final int REPHRASE_MAX_LENGTH = 800;
 
     private final CvBuilderFormNormalizer normalizer;
     private final CvBuilderFormValidator validator;
@@ -55,6 +63,7 @@ public class CvBuilderService {
     private final CvBuilderDocumentRepository documentRepository;
     private final ResumeRepository resumeRepository;
     private final ResumeService resumeService;
+    private final CvRephraseService rephraseService;
     // R-P9 - nguong qua constructor: bean Spring dung nguong upload, test don vi truyen nguong nho (T16b).
     private final long maxPdfBytes;
 
@@ -68,9 +77,10 @@ public class CvBuilderService {
             CvBuilderStateService stateService,
             CvBuilderDocumentRepository documentRepository,
             ResumeRepository resumeRepository,
-            ResumeService resumeService) {
+            ResumeService resumeService,
+            CvRephraseService rephraseService) {
         this(normalizer, validator, renderer, textExtractor, storageService, stateService, documentRepository,
-                resumeRepository, resumeService, ResumeService.MAX_RESUME_SIZE_BYTES);
+                resumeRepository, resumeService, rephraseService, ResumeService.MAX_RESUME_SIZE_BYTES);
     }
 
     CvBuilderService(
@@ -83,6 +93,7 @@ public class CvBuilderService {
             CvBuilderDocumentRepository documentRepository,
             ResumeRepository resumeRepository,
             ResumeService resumeService,
+            CvRephraseService rephraseService,
             long maxPdfBytes) {
         this.normalizer = normalizer;
         this.validator = validator;
@@ -93,6 +104,7 @@ public class CvBuilderService {
         this.documentRepository = documentRepository;
         this.resumeRepository = resumeRepository;
         this.resumeService = resumeService;
+        this.rephraseService = rephraseService;
         this.maxPdfBytes = maxPdfBytes;
     }
 
@@ -142,6 +154,28 @@ public class CvBuilderService {
     // B3 - xem truoc: kiem nhu B1 toi het R-P9 (R-B3), tra bytes PDF.
     public byte[] preview(CvBuilderRequest request) {
         return buildChecked(request).pdf();
+    }
+
+    // B4 - R-A2: chuan hoa R-F3 (o nhieu dong) -> rong -> do dai -> ky tu R-F4 (khong kiem glyph: chua dung PDF) ->
+    // kind. Moi loi 400 dung TRUOC khi goi AI. Loi K3 noi len nguyen (502/503/504 - R-A3).
+    public CvRephraseResponse rephrase(CvRephraseRequest request) {
+        String text = normalizer.multiLine(request.text());
+        if (text == null) {
+            throw InvalidCvRephraseRequestException.emptyText();
+        }
+        if (text.length() < REPHRASE_MIN_LENGTH) {
+            throw InvalidCvRephraseRequestException.textTooShort();
+        }
+        if (text.length() > REPHRASE_MAX_LENGTH) {
+            throw InvalidCvRephraseRequestException.textTooLong();
+        }
+        if (CvBuilderFormValidator.hasDisallowedCharacter(text, true)) {
+            throw InvalidCvRephraseRequestException.disallowedCharacter();
+        }
+        if (request.kind() == null) {
+            throw InvalidCvRephraseRequestException.missingKind();
+        }
+        return new CvRephraseResponse(rephraseService.rephrase(request.kind(), text));
     }
 
     // R-F3 -> R-F4-R-F12 -> dung PDF -> R-P9.

@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 
 // FR-U12 T23 (muc 4.5) - B2 dung 5 khoa goc, form 9 khoa R-F1, contact 5 khoa; ResumeResponse dung 12 khoa (11 cu +
-// fromCvBuilder) o B1 va danh sach CV; khong khoa cam o moi cap (duyet de quy). B4 them o dot 5.
+// fromCvBuilder) o B1 va danh sach CV; B4 chi co suggestion; khong khoa cam o moi cap (duyet de quy).
 class CvBuilderResponseKeysIntegrationTest extends CvBuilderIntegrationTestSupport {
 
     private static final List<String> DOCUMENT_KEYS = List.of("resumeId", "template", "versionLabel", "form", "createdAt");
@@ -67,6 +67,23 @@ class CvBuilderResponseKeysIntegrationTest extends CvBuilderIntegrationTestSuppo
         // R-S2: CV tai len (PENDING) -> false; CV dung tu form -> true.
         assertThat(items.valueStream().map(item -> item.get("fromCvBuilder").asBoolean()).toList())
                 .containsExactlyInAnyOrder(true, false);
+    }
+
+    @Test
+    void t23_rephraseResponse_onlySuggestion_noForbiddenKeys() throws Exception {
+        Candidate c = registerCandidate("u12-t23-b4");
+        stubChatOptions();
+        String text = "Xử lý trung bình 40 yêu cầu mỗi ngày qua điện thoại và email.";
+        stubOutputs(suggestionJson(text));
+
+        MvcResult result = rephrase(c.token(), "EXPERIENCE", text);
+
+        assertStatus(result, 200);
+        JsonNode root = body(result);
+        assertThat(root.propertyNames()).containsExactly("suggestion");
+        assertThat(forbiddenKeys(root)).isEmpty();
+        // Doi chung: response that su mang goi y.
+        assertThat(root.get("suggestion").asString()).isEqualTo(text);
     }
 
     private static List<String> forbiddenKeys(JsonNode node) {

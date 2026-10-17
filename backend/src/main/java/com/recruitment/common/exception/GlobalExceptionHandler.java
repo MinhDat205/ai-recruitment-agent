@@ -540,6 +540,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("CV_NOT_FROM_BUILDER", ex.getMessage()));
     }
 
+    // FR-U12 R-A2 - mot ma loi, cau co dinh qua getMessage(). Body JSON hong cua B4 KHONG di qua day ma qua
+    // CvBuilderExceptionAdvice (phan theo duong dan request).
+    @ExceptionHandler(InvalidCvRephraseRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCvRephraseRequest(InvalidCvRephraseRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CV_REPHRASE_REQUEST", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)
