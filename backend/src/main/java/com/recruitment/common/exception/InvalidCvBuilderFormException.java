@@ -3,7 +3,6 @@ package com.recruitment.common.exception;
 // FR-U12 R-F11 - form CV builder khong hop le (400 INVALID_CV_BUILDER_FORM). Khuon InvalidCvQaQuestionException: moi loai
 // loi mot factory, cau ghep tu mau co dinh o muc 4.4 + nhan o lay tu CvBuilderField - KHONG nhan String tu do, nen cau loi
 // khong the chua gia tri nguoi dung da go. Handler o GlobalExceptionHandler (dot 4).
-// Mau "{O}: có một từ quá dài..." (R-F12) them o dot 3 cung kiem glyph.
 public class InvalidCvBuilderFormException extends RuntimeException {
 
     private InvalidCvBuilderFormException(String message) {
@@ -28,9 +27,15 @@ public class InvalidCvBuilderFormException extends RuntimeException {
         return new InvalidCvBuilderFormException(path.subject() + " tối đa " + maxItems + " mục.");
     }
 
-    // R-F4 - ky tu dieu khien/dinh dang (dot 3: ca ky tu khong co glyph).
+    // R-F4 - ky tu dieu khien/dinh dang, hoac ky tu khong co glyph trong font.
     public static InvalidCvBuilderFormException unsupportedCharacter(CvBuilderField.Path path) {
         return new InvalidCvBuilderFormException(path.subject() + " có ký tự không hỗ trợ trong CV.");
+    }
+
+    // R-F12 - mot tu rong hon dong noi dung cua mau.
+    public static InvalidCvBuilderFormException wordTooLong(CvBuilderField.Path path) {
+        return new InvalidCvBuilderFormException(
+                path.subject() + ": có một từ quá dài, không vừa một dòng của CV. Hãy thêm dấu cách.");
     }
 
     // R-F6.

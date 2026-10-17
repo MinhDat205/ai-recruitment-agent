@@ -1,5 +1,6 @@
 package com.recruitment.cvbuilder;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -7,16 +8,21 @@ import com.recruitment.catalog.CatalogEntry;
 import com.recruitment.catalog.CatalogRegistry;
 import com.recruitment.common.exception.CvBuilderEmptyException;
 import com.recruitment.common.exception.InvalidCvBuilderFormException;
+import com.recruitment.common.text.VietnameseLetters;
+import java.io.IOException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.Test;
 
-// FR-U12 T4 (R-F4 phan ky tu dieu khien/dinh dang, R-F5-R-F11, thu tu L5) - test don vi, khong Spring. Ca glyph va tu qua
-// dai (R-F4 glyph, R-F12) o dot 3. Dau vao gia dinh DA chuan hoa (R-F3).
+// FR-U12 T4 (R-F4 phan ky tu dieu khien/dinh dang, R-F5-R-F11, thu tu L5) va T6 (R-F4 glyph, R-F12 - font that trong
+// src/main/resources/fonts) - test don vi, khong Spring. Dau vao gia dinh DA chuan hoa (R-F3).
 class CvBuilderFormValidatorTest {
 
     private static final CatalogRegistry REGISTRY = new CatalogRegistry(
@@ -25,7 +31,7 @@ class CvBuilderFormValidatorTest {
                     new CatalogEntry("OTHER", "Ngành khác", List.of())),
             List.of(new CatalogEntry("HA_NOI", "Hà Nội", List.of())));
 
-    private final CvBuilderFormValidator validator = new CvBuilderFormValidator(REGISTRY);
+    private final CvBuilderFormValidator validator = new CvBuilderFormValidator(REGISTRY, new CvPdfFonts());
 
     // ---- du lieu ----
 
@@ -83,6 +89,12 @@ class CvBuilderFormValidatorTest {
 
     private static <T> List<T> times(int n, T item) {
         return new ArrayList<>(Collections.nCopies(n, item));
+    }
+
+    // Chuoi dung `length` ky tu co dau cach (moi tu ngan - khong cham R-F12), khong ket thuc bang dau cach (R-F3 da strip).
+    private static String spaced(int length) {
+        String s = "abcd ".repeat(length).substring(0, length);
+        return s.endsWith(" ") ? s.substring(0, length - 1) + "x" : s;
     }
 
     private void valid(CvBuilderForm form) {
@@ -163,15 +175,15 @@ class CvBuilderFormValidatorTest {
     @Test
     void fullName_boundary_1_100_101() {
         valid(minimal("a"));
-        valid(minimal("a".repeat(100)));
+        valid(minimal(spaced(100)));
         invalid(minimal("a".repeat(101)), "Họ và tên tối đa 100 ký tự.");
     }
 
     @Test
     void description_boundary_2000_2001() {
-        valid(withExperience(exp("Cty", null, null, null, "d".repeat(2000))));
+        valid(withExperience(exp("Cty", null, null, null, spaced(2000))));
         invalid(withExperience(exp("Cty", null, null, null, "d".repeat(2001))), "Kinh nghiệm 1: Mô tả tối đa 2000 ký tự.");
-        valid(withProjects(new CvBuilderForm.Project("P", "d".repeat(2000), null)));
+        valid(withProjects(new CvBuilderForm.Project("P", spaced(2000), null)));
         invalid(withProjects(new CvBuilderForm.Project("P", "d".repeat(2001), null)), "Dự án 1: Mô tả tối đa 2000 ký tự.");
     }
 
@@ -235,7 +247,9 @@ class CvBuilderFormValidatorTest {
         invalid(form(new CvBuilderForm.Contact("A", null, null, null, "x".repeat(201)), null, null, null, List.of("J"), null, null),
                 "LinkedIn tối đa 200 ký tự.");
         invalid(withEmail("a@" + "b".repeat(253)), "Email tối đa 254 ký tự.");
-        valid(withEmail("a@" + "b".repeat(252)));
+        // 254 ky tu qua kiem do dai; email khong co dau cach nen ca chuoi la mot tu va R-F12 chan (L26).
+        invalid(withEmail("a@" + "b".repeat(252)),
+                "Email: có một từ quá dài, không vừa một dòng của CV. Hãy thêm dấu cách.");
     }
 
     @Test
@@ -302,7 +316,7 @@ class CvBuilderFormValidatorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"3/2019", "13/2019", "00/2019", "1949", "2101", "03-2019", "2019-03", "12/1949",
-            "01/2101", "Hiện tại", "١٩٩٠", "03/19"})
+            "01/2101", "Hiện tại", "03/19"})
     void date_invalidFormats(String date) {
         invalid(withExperience(exp("Cty", date, null, null, null)),
                 "Kinh nghiệm 1: Thời gian bắt đầu phải có dạng MM/YYYY hoặc YYYY, năm từ 1950 đến 2100.");
@@ -444,5 +458,182 @@ class CvBuilderFormValidatorTest {
                     .message()
                     .doesNotContain(secret);
         }
+    }
+
+    // ---- T6: glyph (R-F4) va tu qua dai (R-F12), font that ----
+
+    private static final String WORD_TOO_LONG = ": có một từ quá dài, không vừa một dòng của CV. Hãy thêm dấu cách.";
+
+    // So lan lap toi da cua `unit` con vua mot dong o font/co cho truoc - do bang CHINH ham dung chung cua renderer
+    // (CvPdfRenderer.textWidth, LINE_WIDTH - L3), khong ghi cung so. Kiem lai bien: n vua, n+1 vuot.
+    private static int maxRepeatFitting(boolean bold, float size, String unit) throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            PDFont font = new CvPdfFonts().load(doc).of(bold);
+            int n = (int) (CvPdfRenderer.LINE_WIDTH / CvPdfRenderer.textWidth(font, size, unit));
+            while (CvPdfRenderer.textWidth(font, size, unit.repeat(n + 1)) <= CvPdfRenderer.LINE_WIDTH) {
+                n++;
+            }
+            while (CvPdfRenderer.textWidth(font, size, unit.repeat(n)) > CvPdfRenderer.LINE_WIDTH) {
+                n--;
+            }
+            assertThat(CvPdfRenderer.textWidth(font, size, unit.repeat(n))).isLessThanOrEqualTo(CvPdfRenderer.LINE_WIDTH);
+            assertThat(CvPdfRenderer.textWidth(font, size, unit.repeat(n + 1))).isGreaterThan(CvPdfRenderer.LINE_WIDTH);
+            assertThat(n).isGreaterThan(10);
+            return n;
+        }
+    }
+
+    @Test
+    void glyph_emojiAndHan_rejected() {
+        invalid(withSkills(List.of("😀")), "Kỹ năng 1 có ký tự không hỗ trợ trong CV.");
+        invalid(withSkills(List.of("中")), "Kỹ năng 1 có ký tự không hỗ trợ trong CV.");
+        invalid(withSkills(List.of("Java", "Go 😀")), "Kỹ năng 2 có ký tự không hỗ trợ trong CV.");
+        invalid(minimal("Huy 中"), "Họ và tên có ký tự không hỗ trợ trong CV.");
+        invalid(withExperience(exp("Cty", null, null, null, "Dòng 1\nDòng 😀")),
+                "Kinh nghiệm 1: Mô tả có ký tự không hỗ trợ trong CV.");
+    }
+
+    // Truoc dot 3 ca nay nam o date_invalidFormats; L5: glyph dung truoc dinh dang moc (L25).
+    @Test
+    void glyph_arabicIndicDigits_reportedBeforeDateFormat() {
+        invalid(withExperience(exp("Cty", "١٩٩٠", null, null, null)),
+                "Kinh nghiệm 1: Thời gian bắt đầu có ký tự không hỗ trợ trong CV.");
+    }
+
+    @Test
+    void glyph_allVietnameseLetters_accepted() {
+        assertThat(VietnameseLetters.LOWERCASE.codePointCount(0, VietnameseLetters.LOWERCASE.length())).isEqualTo(67);
+        assertThat(VietnameseLetters.UPPERCASE.codePointCount(0, VietnameseLetters.UPPERCASE.length())).isEqualTo(67);
+        assertThat(VietnameseLetters.ALL).isEqualTo(Normalizer.normalize(VietnameseLetters.ALL, Normalizer.Form.NFC));
+        String lower = String.join(" ", VietnameseLetters.LOWERCASE.split(""));
+        String upper = String.join(" ", VietnameseLetters.UPPERCASE.split(""));
+        // Ca o thuong (Regular) va o in dam (Bold) - glyph phai co trong ca hai font.
+        valid(form(contact(lower.substring(0, 99)), null,
+                List.of(new CvBuilderForm.Education(upper, null, lower, null, null, null)),
+                List.of(new CvBuilderForm.Experience(lower, upper, null, null, null, lower + "\n" + upper)),
+                null, null, null));
+    }
+
+    // Glyph dung SAU do dai (L5).
+    @Test
+    void glyph_afterLength() {
+        invalid(minimal("😀" + "a".repeat(100)), "Họ và tên tối đa 100 ký tự.");
+    }
+
+    @Test
+    void wordTooLong_bodyRegular_exactFit_thenOneMore() throws IOException {
+        int n = maxRepeatFitting(false, CvPdfRenderer.BODY_SIZE, "m");
+        valid(withExperience(exp("Cty", null, null, null, "Mở đầu " + "m".repeat(n) + " kết")));
+        invalid(withExperience(exp("Cty", null, null, null, "Mở đầu " + "m".repeat(n + 1) + " kết")),
+                "Kinh nghiệm 1: Mô tả" + WORD_TOO_LONG);
+        // Tu qua dai o dong thu hai cua description cung bi chan.
+        invalid(withExperience(exp("Cty", null, null, null, "Dòng 1\n" + "m".repeat(n + 1))),
+                "Kinh nghiệm 1: Mô tả" + WORD_TOO_LONG);
+    }
+
+    // L3 - company in dam khi muc khong co title: cung chuoi vua o Regular 10,5 nhung vuot o Bold 10,5.
+    @Test
+    void wordTooLong_companyBoldOnlyWhenNoTitle() throws IOException {
+        int bold = maxRepeatFitting(true, CvPdfRenderer.BODY_SIZE, "m");
+        int regular = maxRepeatFitting(false, CvPdfRenderer.BODY_SIZE, "m");
+        assertThat(regular).isGreaterThan(bold);
+        String company = "m".repeat(bold + 1);
+        valid(withExperience(new CvBuilderForm.Experience(company, "Chuyên viên", null, null, null, null)));
+        invalid(withExperience(new CvBuilderForm.Experience(company, null, null, null, null, null)),
+                "Kinh nghiệm 1: Tên công ty" + WORD_TOO_LONG);
+        invalid(withEducation(new CvBuilderForm.Education(company, null, null, null, null, null)),
+                "Học vấn 1: Trường" + WORD_TOO_LONG);
+    }
+
+    // Cung fullName: vua mot dong o Co dien (Bold 20) nhung vuot o Hien dai (Bold 24) - chi doi template.
+    @Test
+    void wordTooLong_fullName_fitsClassic_butNotModern() throws IOException {
+        int classic = maxRepeatFitting(true, CvPdfRenderer.CLASSIC_NAME_SIZE, "m");
+        int modern = maxRepeatFitting(true, CvPdfRenderer.MODERN_NAME_SIZE, "m");
+        assertThat(classic).isGreaterThan(modern);
+        CvBuilderForm form = minimal("m".repeat(classic));
+        assertThatCode(() -> validator.validate(CvTemplate.CLASSIC, form, null)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> validator.validate(CvTemplate.MODERN, form, null))
+                .isInstanceOf(InvalidCvBuilderFormException.class)
+                .hasMessage("Họ và tên" + WORD_TOO_LONG);
+        assertThatThrownBy(() -> validator.validate(CvTemplate.CLASSIC, minimal("m".repeat(classic + 1)), null))
+                .isInstanceOf(InvalidCvBuilderFormException.class)
+                .hasMessage("Họ và tên" + WORD_TOO_LONG);
+        assertThatCode(() -> validator.validate(CvTemplate.MODERN, minimal("m".repeat(modern)), null))
+                .doesNotThrowAnyException();
+    }
+
+    // Lien he Regular 10; chuc danh hien tai Regular 12 (L3).
+    @Test
+    void wordTooLong_contactAndCurrentTitle_useTheirOwnSize() throws IOException {
+        int contactMax = maxRepeatFitting(false, CvPdfRenderer.CONTACT_SIZE, "m");
+        int titleMax = maxRepeatFitting(false, CvPdfRenderer.CURRENT_TITLE_SIZE, "m");
+        valid(form(new CvBuilderForm.Contact("A", null, null, "m".repeat(contactMax), null), null, null, null,
+                List.of("J"), null, null));
+        invalid(form(new CvBuilderForm.Contact("A", null, null, "m".repeat(contactMax + 1), null), null, null, null,
+                        List.of("J"), null, null),
+                "Địa chỉ" + WORD_TOO_LONG);
+        valid(new CvBuilderForm(contact("A"), "m".repeat(titleMax), null, null, null, null, List.of("J"), null, null));
+        invalid(new CvBuilderForm(contact("A"), "m".repeat(titleMax + 1), null, null, null, null, List.of("J"), null,
+                        null),
+                "Chức danh hiện tại" + WORD_TOO_LONG);
+    }
+
+    // L29 - cong nghe in "a, b": dau phay dinh vao tu. Tim (bang textWidth, khong ghi cung) mot chuoi <= 50 ky tu vua
+    // khit dong khi KHONG co phay nhung vuot khi co ",".
+    private static String fitsOnlyWithoutComma() throws IOException {
+        String[] wide = {"m", "W", "M", "—", "@", "Ш"};
+        String[] narrow = {"i", "l", ".", "r", "t", "a"};
+        try (PDDocument doc = new PDDocument()) {
+            PDFont font = new CvPdfFonts().load(doc).regular();
+            float size = CvPdfRenderer.BODY_SIZE;
+            for (String w : wide) {
+                for (String f : narrow) {
+                    for (int a = 1; a <= 50; a++) {
+                        for (int b = 0; a + b <= 50; b++) {
+                            String s = w.repeat(a) + f.repeat(b);
+                            if (CvPdfRenderer.textWidth(font, size, s) <= CvPdfRenderer.LINE_WIDTH
+                                    && CvPdfRenderer.textWidth(font, size, s + ",") > CvPdfRenderer.LINE_WIDTH) {
+                                return s;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("Khong tim duoc chuoi bien cho L29");
+    }
+
+    @Test
+    void wordTooLong_technologyMeasuredWithFollowingComma() throws IOException {
+        String tech = fitsOnlyWithoutComma();
+        assertThat(tech.length()).isLessThanOrEqualTo(50);
+        // Dung truoc cong nghe khac -> in "tech," -> vuot dong.
+        invalid(withProjects(project("P", List.of(tech, "Go"))), "Dự án 1: Công nghệ 1" + WORD_TOO_LONG);
+        // Cong nghe cuoi khong co phay theo sau -> vua.
+        valid(withProjects(project("P", List.of("Go", tech))));
+        valid(withProjects(project("P", List.of(tech))));
+    }
+
+    @Test
+    void linkedinUrl60CharsWithoutSpace_accepted() {
+        String url = "https://www.linkedin.com/in/nguyen-quoc-huy-0123456789abcdef";
+        assertThat(url).hasSize(60).doesNotContain(" ");
+        valid(form(new CvBuilderForm.Contact("A", null, null, null, url), null, null, null, List.of("J"), null, null));
+    }
+
+    // R-F12 dung SAU dinh dang (L5): email khong co "@" va qua dai -> cau dinh dang.
+    @Test
+    void wordTooLong_afterFormatCheck() {
+        invalid(withEmail("b".repeat(250)), "Email không đúng định dạng.");
+    }
+
+    // O khong in (versionLabel) khong kiem glyph/R-F12.
+    @Test
+    void notPrintedFields_skipGlyphAndWordChecks() {
+        assertThatCode(() -> validator.validate(CvTemplate.MODERN, minimal("A"), "m".repeat(100)))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> validator.validate(CvTemplate.MODERN, minimal("A"), "Bản 😀"))
+                .doesNotThrowAnyException();
     }
 }
