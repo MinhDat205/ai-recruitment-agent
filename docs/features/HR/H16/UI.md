@@ -75,7 +75,8 @@ Job (nhãn đổi ngay khi HR chuyển tab).
 │ ☐ │ Trần Bảo Ngọc      │ … │ [Xem CV gốc]        [Xem hồ sơ] │
 ```
 
-- Nguồn câu thông tin: `blindReviewEnabled` của Job (query sẵn có của trang sửa Job).
+- Nguồn câu thông tin: `blindReviewEnabled` của Job (query sẵn có của trang sửa Job; `ApplicationsTab` chỉ nhận `jobId` —
+  `ApplicationsTab.tsx:344` — nên tab tự gọi hook query Job sẵn có, không thêm prop).
 - Dòng `identityMasked = true`: "Xem CV gốc" `disabled` + `title`/`aria-describedby` câu lý do (mục 7), theo đúng cơ chế
   `resumeDisabledReason` hiện có (`ApplicationsTab.tsx:173`, `:258-259`; hàm `resumeDownloadDisabledReason` thêm nhánh
   `identityMasked`).
@@ -157,11 +158,11 @@ CV đã trích xuất
 |---|---|
 | `frontend/src/pages/HrJobEditPage.tsx` | Gắn `BlindReviewCard` dưới form trong `JobInfoTab` |
 | `frontend/src/features/jobs/ownerTypes.ts` (`JobOwnerResponse`, `:3`) | `blindReviewEnabled: boolean` |
-| `frontend/src/features/scoring/ApplicationsTab.tsx` + kiểu dòng | `identityMasked`; khối thông tin 4b; lý do khoá "Xem CV gốc" |
-| `frontend/src/features/applicationDetail/ApplicationDetailHeader.tsx` + kiểu E1 | `identityMasked`; badge; khoá "Lưu vào kho" |
+| `frontend/src/features/scoring/ApplicationsTab.tsx` + kiểu dòng (`features/scoring/types.ts`, `ApplicationHrListItem`, `:72`) | `identityMasked`; khối thông tin 4b; lý do khoá "Xem CV gốc" |
+| `frontend/src/features/applicationDetail/ApplicationDetailHeader.tsx` + kiểu E1 (`features/applicationDetail/types.ts`, `ApplicationHrDetail`, `:8`) | `identityMasked`; badge; khoá "Lưu vào kho" |
 | `frontend/src/features/applicationDetail/CvAndScoreTab.tsx` | Khối 4d |
 | `frontend/src/features/resumes/ResumeParsedDataView.tsx` | Prop `contactMasked` |
-| `frontend/src/features/messages/MessageBubble.tsx` + kiểu tin | `fileName: string \| null`; chip 4e |
+| `frontend/src/features/messages/MessageBubble.tsx` + kiểu tin (`features/messages/types.ts`, `MessageAttachment`, `:12`) | `fileName: string \| null`; chip 4e |
 | `frontend/src/features/interviewinvitation/InterviewInvitationDialog.tsx` | Khối thông tin 4f; hiện lỗi 400 mới |
 
 Người code đối chiếu tên file kiểu ở Plan Mode; không đổi file nào khác.

@@ -1,6 +1,9 @@
 # FR-H16 — Chế độ ẩn danh
 
 > Trạng thái: ĐÃ DUYỆT 18/10/2026
+>
+> Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
+> 7.3) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR bật/tắt chế độ ẩn danh cho từng Job. Khi một đơn của Job đó đang ẩn danh, **backend** không trả họ tên,
@@ -27,27 +30,27 @@
 | a2 | Field danh tính khác trả cho HR | E1 `resumeFileName`, `coverLetter`; E2 `data.contact` (`fullName`, `email`, `phone`, `address`, `linkedin`); tin nhắn `attachment.fileName` | `ApplicationHrDetailResponse.java:22`, `:25`; `ResumeParsedPayload.java:54`; `MessageResponse.java:17` |
 | a3 | Không HR DTO nào trả avatar, ngày sinh, email/SĐT tài khoản ứng viên | Đúng. `users.phone`, `users.avatar_url`, `candidate_profiles.date_of_birth` chỉ có ở schema và phía chủ tài khoản | `V1__init_schema.sql:14-38`; grep DTO dưới `backend/src/main/java` |
 | a4 | Tải CV gốc phía HR | `GET /api/hr/applications/{id}/resume/download`, tên tệp ở `Content-Disposition` | `ResumeHrController.java:32-42` |
-| a5 | Tên tệp CV builder chứa họ tên | `"CV " + fullName + ".pdf"` | `CvBuilderService.java:49-50`, `:287` |
+| a5 | Tên tệp CV builder chứa họ tên | `"CV " + fullName + ".pdf"` | `CvBuilderService.java:49` (comment), `:50-51` (hằng `FILE_NAME_PREFIX`/`SUFFIX`), `:287-290` (`fileName(..)`), gọi ở `:128` |
 | a6 | Placeholder giấy mời | `{{candidateName}}`, `{{jobTitle}}`, `{{companyName}}`; preview render họ tên thật; gửi lưu **nguyên văn** subject/content HR gửi lên, không render lại | `InterviewInvitationService.java:58-60`, `:97-121`, `:124-145`, `:367-371`; `InterviewInvitationSendRequest.java` (`@Size(max = 255)` subject, `10000` content) |
 | a7 | Gửi giấy mời đổi trạng thái qua đúng một đường | `sendInvitation` → `ApplicationStatusService.changeStatus(…, INTERVIEW_INVITED)` → ghi `application_status_history` trong cùng transaction | `InterviewInvitationService.java:139`; `ApplicationStatusService.java:83` |
-| a8 | Tiền lệ "đơn đã từng được mời" | `EXISTS (… application_status_history … to_status = 'INTERVIEW_INVITED')` | `JobRepository.java:348`; `JobApplicationRepository.java:129` |
+| a8 | Tiền lệ "đơn đã từng được mời" | Có dòng `application_status_history` với `to_status = 'INTERVIEW_INVITED'`: `JobRepository` dùng `LEFT JOIN LATERAL (SELECT 1 … LIMIT 1)`, `JobApplicationRepository` dùng `EXISTS` | `JobRepository.java:346-349`; `JobApplicationRepository.java:127-129` |
 | a9 | Ghi chú lịch sử trạng thái | Đúng **3** lời gọi `ApplicationStatusRecorder.record(…)`, cả 3 truyền `note = null`; không đường nào cho HR nhập note | `ApplicationService.java:115`, `:143`; `ApplicationStatusService.java:83`; `ApplicationStatusRecorder.java:25-35` |
 | a10 | Thông báo gửi HR ghép họ tên ứng viên lúc phát sinh sự kiện, lưu cứng vào `notifications.body` | 4 loại: nộp đơn, rút đơn, tin nhắn mới (kèm đoạn trích), ứng viên chọn khung giờ | `NotificationContentBuilder.java:52-63`, `:76-93`, `:116-129`; `NotificationEventListener.java:89-138`, `:161-185` |
 | a11 | Email gửi HR = `body` (hoặc `email_body`) của thông báo | Đúng | `NotificationMailOrchestrator.java:62-70` |
-| a12 | Đoạn trích tin nhắn cắt ở Java từ thân tin đầy đủ | `MessageExcerpt.of(body)` ở hộp thư (`:147`, `:166`) và ở sự kiện gửi (`:249`); sự kiện chỉ mang đoạn trích đã cắt | `MessageService.java:147`, `:166`, `:249`; `MessageSentEvent.java:7-9` |
-| a13 | Bong bóng tin nhắn phía HR không hiện họ tên | Nhãn "Ứng viên" | `MessageBubble.tsx:5-10`, `:38` |
-| a14 | C07: K1 nạp họ tên ứng viên, prompt bảo AI gọi theo họ tên | `ConversationContext.candidateName` ← `candidate.getFullName()`; prompt dòng 4, 34, 35 | `ConversationContext.java` (record); `ConversationContextAssembler.java:91-98`; `MessageDraftService.java:31`, `:100`; `message-draft-v1.st:4`, `:34-35` |
+| a12 | Đoạn trích tin nhắn cắt ở Java từ thân tin đầy đủ | `MessageExcerpt.of(body)` ở hộp thư (`:147`, `:166`) và ở sự kiện gửi (`:249`); sự kiện mang đoạn trích đã cắt (không có thân đầy đủ) và cờ `hasAttachment`; `excerpt = null` khi tin chỉ có tệp | `MessageService.java:147`, `:166`, `:249`; `MessageSentEvent.java:8-9` |
+| a13 | Bong bóng tin nhắn phía HR không hiện họ tên | Nhãn "Ứng viên" | `MessageBubble.tsx:9-11` (`counterpartLabel`), `:42` |
+| a14 | C07: K1 nạp họ tên ứng viên, prompt bảo AI gọi theo họ tên | `ConversationContext.candidateName` ← `candidate.getFullName()`; prompt dòng 4, 34, 35 | `ConversationContext.java` (record); `ConversationContextAssembler.java:90-98` (họ tên `:92`); `MessageDraftService.java:31`, `:100`; `message-draft-v1.st:4`, `:34-35` |
 | a15 | C08: K1 không chứa họ tên; câu trả lời và trích dẫn có thể chứa họ tên vì lấy từ `raw_text` | Đúng | `CvQaContext.java` (comment đầu record); `CvQaResponse.java:13-21` |
 | a16 | D2 chấm trên `raw_text` nguyên văn | `criterionScoringService.score(criterion, rawText)` | `ScoringRunOrchestrator.java:69-94` |
 | a17 | D4 chỉ đọc `criterion_scores` (tên tiêu chí, trọng số, điểm, `reasoning`) | Không đọc `raw_text`/`data` | `ScoreExplanationOrchestrator.java:66-95` |
-| a18 | Danh sách `/hr/candidates` không có lọc/sắp theo tên | Tham số: `jobId`, `status`, khoảng điểm, tiêu chí, trang | `ApplicationSearchController.java:31-38` |
+| a18 | Danh sách `/hr/candidates` không có lọc/sắp theo tên | Controller map `/api/hr/candidates`; tham số: `jobId`, `status`, khoảng điểm, tiêu chí, `page`, `size` (mặc định 10, tối đa 50) | `ApplicationSearchController.java:31-38` |
 | a19 | Màn hình CV đã trích xuất khi `contact` null | Hiện "Không trích xuất được thông tin liên hệ" — sai nghĩa khi ẩn danh | `ResumeParsedDataView.tsx:34-36` |
 | a20 | Trang sửa Job | 5 tab, tab "Thông tin tin tuyển dụng" là form `PUT /hr/jobs/{id}` (`JobRequest`) | `HrJobEditPage.tsx:54`, `:99`, `:500-504`; `JobOwnerController.java:59`, `:66` |
 | a21 | `components/ui` không có Switch | Có `checkbox`, `dialog`, `button`, `card`… | `frontend/src/components/ui/` |
 | a22 | Migration lớn nhất | `V18__cv_builder_documents.sql` ⇒ file mới **`V19__blind_review.sql`** | `ls … \| sort -V` ngày 18/10/2026 |
-| a23 | Seed test có đơn đã mời kèm lịch sử `INTERVIEW_INVITED` | A2, A4, A9 có dòng lịch sử | `seed-test.sql:410-434` |
+| a23 | Seed test có đơn đã mời kèm lịch sử `INTERVIEW_INVITED` | A2, A4, A9 có dòng lịch sử | `db/seed/seed-test.sql:412` (A4), `:429` (A9), `:434` (A2) |
 | a24 | E2 phía HR: hình dạng response | Không có `rawText`/`model`/`promptVersion`. Ngoài `data` còn hai chuỗi văn bản CV là **bản sao** của payload: `currentTitle` ← `payload.currentTitle()`, `locationText` ← `payload.locationText()`; `industry`/`location` là mã + nhãn danh mục. Mapper dùng chung hai phía | `ResumeParsedDataResponse.java:9-23`; `ResumeParsedDataResponseMapper.java:21-33`; `ResumeHrService.java:93-98` |
-| a25 | Endpoint dùng ở 7.2 nhóm 6, 7, 9 | Gửi tin hai phía: `POST`, `@RequestParam` `body` (+ `file`), không khai `consumes` — nhận `application/x-www-form-urlencoded`, trả 201 `MessageResponse`. Đọc tin hai phía: `GET` → `MessageThreadResponse(canSend, olderMessagesHidden, unreadCount, messages)`, `messages` cũ trước mới sau. Hộp thư HR: `PageResponse` (`items`), `size` mặc định 20, tối đa 50. Thông báo: `NotificationPageResponse(page, unreadCount)`, `page.items` mới trước. Gửi giấy mời: `POST …/interview-invitation`, JSON `@Valid InterviewInvitationSendRequest(slots[{scheduledAt, location}], subject, content)`, 201. Danh sách giấy mời: `InterviewInvitationListResponse(applicationId, maxSlots, invitations)` | `MessageHrController.java:34-50`; `MessageCandidateController.java:35-50`; `MessageThreadResponse.java:6-10`; `MessageService.java:54-55`, `:185-187`, `:195-199`; `ConversationHrController.java:24-30`; `NotificationController.java:27-34`; `NotificationPageResponse.java:8`; `NotificationRepository.java:14`; `InterviewInvitationController.java:44-52`, `:66-70`; `InterviewInvitationSendRequest.java`; `InterviewInvitationListResponse.java:8-9`; `PageResponse.java:7` |
+| a25 | Endpoint dùng ở 7.2 nhóm 6, 7, 9 | Gửi tin hai phía: `POST`, `@RequestParam` `body` (+ `file`), không khai `consumes` — nhận `application/x-www-form-urlencoded`, trả 201 `MessageResponse`. Đọc tin hai phía: `GET` → `MessageThreadResponse(canSend, olderMessagesHidden, unreadCount, messages)`, `messages` cũ trước mới sau. Hộp thư HR: `PageResponse` (`items`), `size` mặc định 20, tối đa 50 (hằng ở `MessageService.java:54-55`, không ở controller). Thông báo: `NotificationPageResponse(page, unreadCount)`, `page.items` mới trước. Gửi giấy mời: `POST …/interview-invitation`, JSON `@Valid InterviewInvitationSendRequest(slots[{scheduledAt, location}], subject, content)`, 201. Danh sách giấy mời: `InterviewInvitationListResponse(applicationId, maxSlots, invitations)` | `MessageHrController.java:34-50`; `MessageCandidateController.java:35-50`; `MessageThreadResponse.java:6-10`; `MessageService.java:54-55`, `:185-187`, `:193-206` (`buildThread`); `ConversationHrController.java:24-30`; `NotificationController.java:27-34`; `NotificationPageResponse.java:8`; `NotificationRepository.java:14`; `InterviewInvitationController.java:44-52`, `:66-70`; `InterviewInvitationSendRequest.java`; `InterviewInvitationListResponse.java:8-9`; `PageResponse.java:7` |
 
 ### (b) Quyết định
 
@@ -109,7 +112,9 @@ không thấy họ tên, liên hệ, CV gốc và thư giới thiệu của ứn
   nội dung lưu trong `criterion_scores`, `score_explanations`, `resume_parsed_data` (`docs/SRS.md:193`).
 - **R-A3** Bộ che chạy **sau** mọi kiểm K2 (FR-H04, FR-C08) và chỉ trên dữ liệu trả cho HR; không bao giờ ghi kết quả đã
   che xuống DB.
-- **R-A4** Không dùng AI để nhận diện danh tính (`docs/SRS.md:194`). Package `ai/` không import `blindreview/`.
+- **R-A4** Không dùng AI để nhận diện danh tính (`docs/SRS.md:194`). Package `ai/` và `scoring/` không import
+  `blindreview/`; audit chấm điểm (trong `scoring/`) che qua interface `scoring/ScoringAuditTextFilter` do `blindreview/`
+  cài đặt (L4).
 - **R-A5** Không thêm cột/field tên `verdict`, `label`, `isQualified`, `passed`, `recommendation` (CLAUDE.md §7).
 
 ### 3.2 Công tắc của Job (R-B)
@@ -118,7 +123,8 @@ không thấy họ tên, liên hệ, CV gốc và thư giới thiệu của ứn
   trong DTO công khai hay phía ứng viên.
 - **R-B2** Chỉ đổi qua B1 (mục 4.3). HR sở hữu công ty của Job; Job chưa xoá mềm; mọi `JobStatus`. `PUT /api/hr/jobs/{id}`
   (`JobRequest`) và tạo Job không đụng cột này (entity map `insertable = false, updatable = false`).
-- **R-B3** Thứ tự: `JobOwnerService.loadOwned` có sẵn (`JobOwnerService.java:200-209`: không tồn tại → 404
+- **R-B3** Thứ tự: `JobOwnerService.loadOwned` có sẵn, mở từ `private` sang `public`, không đổi thân hàm (L3)
+  (`JobOwnerService.java:200-209`: không tồn tại → 404
   `JOB_NOT_FOUND`, công ty khác → 403; hàm này **không** lọc `deleted_at`) → Job có `deleted_at` → 404 `JOB_NOT_FOUND`
   (kiểm tường minh, không suy từ số dòng của câu dưới) → đổi bằng một câu `UPDATE jobs SET blind_review_enabled = :enabled WHERE id = :id AND deleted_at IS NULL AND
   blind_review_enabled <> :enabled` (`@Modifying(clearAutomatically = true)`); 1 dòng → cùng transaction ghi một dòng
@@ -215,9 +221,11 @@ không thấy họ tên, liên hệ, CV gốc và thư giới thiệu của ứn
 ### 3.12 Thông báo và email gửi HR (R-O)
 
 - **R-O1** Khi tạo thông báo `APPLICATION_SUBMITTED`, `APPLICATION_WITHDRAWN`, `NEW_MESSAGE` (ứng viên gửi) mà đơn đang
-  ẩn danh tại thời điểm listener chạy: họ tên → nhãn.
+  ẩn danh tại thời điểm listener chạy: họ tên → nhãn. Nhãn thay **cả cụm** `Ứng viên {họ tên}` — builder nhận nhãn đầy
+  đủ (`"Ứng viên " + họ tên` hoặc `CandidateAlias.of(id)`), không tự ghép tiền tố "Ứng viên " (L1).
 - **R-O2** `NEW_MESSAGE` cho HR của đơn đang ẩn danh: **không có đoạn trích**: "Ứng viên #X đã gửi tin nhắn về đơn ứng
-  tuyển vị trí "…"" `[Q7]`. Email dùng cùng `body` (a11).
+  tuyển vị trí "…"" `[Q7]`. Tin chỉ có tệp (`excerpt = null`): giữ câu tệp đính kèm như hiện có, chỉ thay nhãn —
+  "Ứng viên #X đã gửi một tệp đính kèm về đơn ứng tuyển vị trí "…"" (L2). Email dùng cùng `body` (a11).
 - **R-O3** Thông báo đã tạo không bị sửa khi bật/tắt; tắt ẩn danh không viết lại thông báo đã dùng nhãn.
 - **R-O4** `INTERVIEW_SLOT_CONFIRMED`, `SCORING_FINISHED`: không đổi (c3; không có tên).
 
@@ -267,8 +275,11 @@ Package mới `blindreview/` (thêm vào CLAUDE.md §3 ở đợt cuối):
 | `BlindReviewService.java`, `BlindReviewController.java` | B1 |
 | `dto/BlindReviewRequest.java`, `dto/BlindReviewResponse.java` | Mục 4.4 |
 
+Thêm (L4): `scoring/ScoringAuditTextFilter.java` (interface, một method `UnaryOperator<String> forApplication(UUID
+applicationId)`), `blindreview/BlindReviewScoringAuditFilter.java` (cài đặt bằng resolver + bộ che).
+
 Sửa file có sẵn (điểm che — người code đối chiếu lại ở Plan Mode): `Job.java`, `JobRepository.java`,
-`JobOwnerResponse.java` (+ nơi dựng); `ApplicationOwnerService`, `ApplicationHrDetailService`, `ApplicationSearchService`,
+`JobOwnerResponse.java` (+ nơi dựng), `JobOwnerService` (mở `loadOwned` — L3); `ApplicationOwnerService`, `ApplicationHrDetailService`, `ApplicationSearchService`,
 `ScoringRunAuditService`, `ApplicationComparisonService` (điểm che duy nhất của H14, H14 R-B1), `ResumeHrService`,
 `ApplicationScreeningHrService` (hoặc service tương ứng), `MessageService`, `TalentPoolOwnerService`,
 `ApplicationTalentPoolService`, `InterviewInvitationService`, `ConversationContextAssembler`, `MessageDraftFacade`
@@ -532,11 +543,15 @@ Path, method, Content-Type, tên field body và hình dạng response của nhó
 ```bash
 MSYS_NO_PATHCONV=1 rg -n "ChatClient|ChatModel|EmbeddingModel" backend/src/main/java/com/recruitment/blindreview
 MSYS_NO_PATHCONV=1 rg -n "blindreview" backend/src/main/java/com/recruitment/ai backend/src/main/java/com/recruitment/scoring
+MSYS_NO_PATHCONV=1 rg -n "implements ScoringAuditTextFilter" backend/src/main/java -g '!**/blindreview/**'
 MSYS_NO_PATHCONV=1 rg -n -i "verdict|isQualified|passed|recommendation" backend/src/main/java/com/recruitment/blindreview backend/src/main/resources/db/migration/V19__blind_review.sql
 MSYS_NO_PATHCONV=1 rg -n "DELETE FROM" backend/src/main/java/com/recruitment/blindreview
 MSYS_NO_PATHCONV=1 rg -n "message-draft-v1" backend/src
 MSYS_NO_PATHCONV=1 rg -n "Ứng viên #[0-9A-F]|\[đã ẩn\]" frontend/src -g '!**/blindReview/blindReviewLabels.ts'
 ```
+
+Dòng 2–3 (L4): `scoring/` chỉ biết interface `ScoringAuditTextFilter`, không import `blindreview/`; cài đặt duy nhất
+nằm trong `blindreview/`.
 
 Dòng cuối: frontend không tự che hay tự dựng nhãn — nhãn thật ("Ứng viên #" + hex) và "[đã ẩn]" chỉ đến từ API. Chuỗi
 mô tả có "Ứng viên #…" và "(đã ẩn tên)" trong `blindReviewLabels.ts` (`UI.md` mục 7) bị loại trừ và không khớp mẫu. Đã
@@ -604,15 +619,18 @@ Dữ liệu: bộ test, nạp theo `db/seed/README.md` mục 8.1; HR `minhdathr@
 
 ## 9. Kế hoạch đợt code
 
-Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duyệt → một commit.
+Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duyệt → một commit. Backend chỉ chạy lớp test của đợt (`-Dtest`);
+full `./mvnw test` chỉ ở đợt 6. Lập lại sau Plan Mode 19/10/2026 (tách 3a/3b, 4a/4b).
 
-| Đợt | Nội dung | Kiểm |
+| Đợt | Nội dung | Test (`-Dtest`) |
 |---|---|---|
-| 1 | Plan Mode: đối chiếu lại mục 0, danh sách điểm che ở 4.2, hình dạng response dùng ở 7.2; chốt file | — |
-| 2 | `V19`, `Job` + repository, `blindreview/` (resolver, alias, masker, nguồn giá trị), B1 + lưu vết, `JobOwnerResponse`; reset scripts; T1–T4 | `-Dtest` lớp mới |
-| 3 | Điểm che đọc: danh sách theo Job, `/hr/candidates`, audit, E1–E4, tải CV, sàng lọc, so sánh, kho P7/P8; T5–T10, T16 | `-Dtest` lớp liên quan + test cũ của các lớp đó |
-| 4 | Trao đổi + hộp thư + thông báo, giấy mời, C07 (prompt v2), C08; T11–T15, T17 | như trên |
-| 5 | Frontend: khối bật/tắt ở trang sửa Job; tab Ứng viên; trang hồ sơ đơn (header, CV & điểm, Trao đổi, hộp thoại giấy mời, Lưu vào kho) | build + lint; 7.3 |
+| 1 | Plan Mode: đối chiếu mục 0, điểm che 4.2, 7.2; L1–L4 (mục 11) | — |
+| 2 | `V19`; `Job` + `JobRepository` (UPDATE có điều kiện); `blindreview/` (`BlindReviewResolver` bản một đơn + bản theo tập id một câu SQL, `CandidateAlias`, `IdentityMasker`, `IdentityMaskSource`, lưu vết, `BlindReviewService`/`BlindReviewController` B1, DTO, exception + advice); `JobOwnerResponse.blindReviewEnabled`; `JobOwnerService.loadOwned` public (L3); `GlobalExceptionHandler` (`IDENTITY_MASKED`); reset scripts | T1–T4: `CandidateAliasTest`, `IdentityMaskerTest`, `BlindReviewResolverIntegrationTest`, `BlindReviewControllerIntegrationTest`; test cũ của `JobOwnerService`/`JobOwnerController` |
+| 3a | Danh sách theo Job (`ApplicationOwnerService`, che sau rank), E1/E3/E4 (`ApplicationHrDetailService`), E2 + tải CV (`ResumeHrService`), sàng lọc (`ApplicationScreeningHrService`); `identityMasked` ở hai DTO | T5–T7: `BlindReviewApplicationListIntegrationTest`, `BlindReviewApplicationDetailIntegrationTest` + test cũ các lớp đó |
+| 3b | `/hr/candidates` (`ApplicationSearchService`), audit qua `ScoringAuditTextFilter` (L4), so sánh (`ApplicationComparisonService`), kho P7/P8 | T8–T10, T16: `BlindReviewSearchAuditIntegrationTest`, `BlindReviewComparisonIntegrationTest`, `BlindReviewTalentPoolIntegrationTest`, `BlindReviewScoringInvarianceIntegrationTest` + test cũ các lớp đó |
+| 4a | Tin nhắn + tải tệp + hộp thư (`MessageService`), thông báo (`NotificationEventListener`, `NotificationContentBuilder` — L1, L2) | T11, T12: `BlindReviewMessagingIntegrationTest`, `BlindReviewNotificationIntegrationTest` + test cũ `Message*`, `Notification*` |
+| 4b | Giấy mời (`InterviewInvitationService`, `INVITATION_RENDERED_TOO_LONG`), C07 (`ConversationContextAssembler`, prompt v2, `MessageDraftFacade`; xoá v1, sửa `MessageDraftPromptIntegrationTest:238`), C08 (`CvQaFacade`) | T13–T15, T17: `BlindReviewInvitationIntegrationTest`, `BlindReviewMessageDraftIntegrationTest`, `BlindReviewCvQaIntegrationTest`, `BlindReviewCandidateSideIntegrationTest` + test cũ `InterviewInvitation*`, `MessageDraft*`, `ConversationContext*`, `CvQa*` |
+| 5 | Frontend: khối bật/tắt ở trang sửa Job; tab Ứng viên; trang hồ sơ đơn (header, CV & điểm, Trao đổi, hộp thoại giấy mời, Lưu vào kho) | `npm run build` + `npm run lint`; 7.3 dòng cuối |
 | 6 | Đợt cuối: full `./mvnw test`, 7.2, 7.3, 7.4, `srs-guard`, `walkthrough`, trạng thái `ĐÃ HOÀN THÀNH`, mục 10, tick ROADMAP | full test; build + lint |
 
 ## 10. Tài liệu dùng chung sẽ sửa (ở đợt cuối, không sửa trong commit đặc tả)
@@ -625,3 +643,24 @@ Mỗi đợt: code xong → kiểm → dừng → báo cáo diff → chờ duy�
 | D4 | `docs/features/README.md` mục 19 | Ghi phạm vi thực tế: thêm `/hr/candidates`, `/hr/messages`, kho, thông báo; tắt chủ động = tắt công tắc Job; thư giới thiệu ẩn toàn bộ |
 | D5 | `CLAUDE.md` §3, §3d | Thêm `blindreview/` (FR-H16); K1 ghi: FR-H16 đặt `ConversationContext.candidateName = null` cho HR khi đơn ẩn danh |
 | D6 | `docs/features/HR/H09/REQUIREMENT.md`, `CHUNG/C07/REQUIREMENT.md` | Một dòng tham chiếu ghi đè R-V1/R-L (H09); prompt v2 (C07) |
+
+## 11. Làm rõ sau Plan Mode (duyệt 19/10/2026)
+
+Đối chiếu lại trên `feat/fr-h16-blind` tại `cfff5e9`. Mục 0 đã sửa số dòng/mô tả ở a5, a8, a12, a13, a14, a18, a23,
+a25 (kết luận không đổi). Lệnh 7.2 khớp controller/DTO thật, không dòng nào phải sửa. Mục này thắng chỗ viết cũ ở các mục
+được dẫn nếu lệch.
+
+- **L1 (R-O1, R-O2, 7.2 nhóm 7) — tiền tố lặp trong thông báo.** `NotificationContentBuilder.java:55`, `:62`, `:78` ghép
+  `"Ứng viên " + tên`; truyền nhãn R-N1 vào sẽ thành "Ứng viên Ứng viên #00000001 …". Chốt: `forApplicationSubmitted`,
+  `forApplicationWithdrawn`, `forNewMessage` (nhánh gửi HR) nhận `candidateLabel` đầy đủ — thường `"Ứng viên " +
+  fullName`, ẩn danh `CandidateAlias.of(applicationId)`; listener dựng nhãn, builder bỏ tiền tố. Chữ ký vẫn là `String`;
+  nội dung thông báo khi Job tắt giữ nguyên từng chữ.
+- **L2 (R-O2) — tin chỉ có tệp.** Ứng viên gửi tin không có chữ (`excerpt = null`, a12) cho đơn ẩn danh: giữ câu "… đã
+  gửi một tệp đính kèm …" như hiện có (`NotificationContentBuilder.java:82`), chỉ thay nhãn — câu không chứa danh tính.
+- **L3 (R-B3, mục 4.2) — `loadOwned` đang `private`.** `JobOwnerService.java:200` không gọi được từ `blindreview/`.
+  Chốt: đổi sang `public`, không đổi thân hàm (vẫn không lọc `deleted_at`; B1 tự kiểm như R-B3).
+- **L4 (R-A4, mục 4.2, 7.3) — audit nằm trong `scoring/`.** `ScoringRunAuditService.java:48-77`, `:101-109` phải che
+  (R-M4, T8) nhưng 7.3 cấm `blindreview` trong `scoring/`. Chốt: interface `scoring/ScoringAuditTextFilter`
+  (`UnaryOperator<String> forApplication(UUID applicationId)`; trả `UnaryOperator.identity()` khi đơn không ẩn danh),
+  cài đặt `blindreview/BlindReviewScoringAuditFilter` (resolver + bộ che). `scoring/` không import `blindreview/`; 7.3
+  thêm lệnh kiểm cài đặt duy nhất nằm trong `blindreview/`.
