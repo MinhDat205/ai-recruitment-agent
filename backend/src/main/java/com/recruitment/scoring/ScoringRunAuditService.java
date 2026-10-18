@@ -14,6 +14,7 @@ import com.recruitment.scoring.dto.ScoringRunAuditItemResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class ScoringRunAuditService {
     private final ScoringRunRepository scoringRunRepository;
     private final CriterionScoreRepository criterionScoreRepository;
     private final ScoreExplanationRepository scoreExplanationRepository;
+    private final ScoringAuditTextFilter scoringAuditTextFilter;
 
     public ScoringRunAuditService(
             JobApplicationRepository jobApplicationRepository,
@@ -36,13 +38,15 @@ public class ScoringRunAuditService {
             CompanyRepository companyRepository,
             ScoringRunRepository scoringRunRepository,
             CriterionScoreRepository criterionScoreRepository,
-            ScoreExplanationRepository scoreExplanationRepository) {
+            ScoreExplanationRepository scoreExplanationRepository,
+            ScoringAuditTextFilter scoringAuditTextFilter) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.scoringRunRepository = scoringRunRepository;
         this.criterionScoreRepository = criterionScoreRepository;
         this.scoreExplanationRepository = scoreExplanationRepository;
+        this.scoringAuditTextFilter = scoringAuditTextFilter;
     }
 
     public List<ScoringRunAuditItemResponse> listAudit(UUID ownerId, UUID applicationId) {
@@ -68,16 +72,23 @@ public class ScoringRunAuditService {
                 .stream()
                 .collect(Collectors.toMap(ScoreExplanation::getScoringRunId, e -> e));
 
+        // FR-H16 R-M4, L4 - mot lan cho ca don (moi luot cua cung mot don). Chi doi chuoi trong response, criterion_scores
+        // giu nguyen van (R-A3).
+        UnaryOperator<String> textFilter = scoringAuditTextFilter.forApplication(applicationId);
         return runs.stream()
                 .map(run -> toResponse(
                         run,
                         criterionScoresByRunId.getOrDefault(run.getId(), List.of()),
-                        explanationByRunId.get(run.getId())))
+                        explanationByRunId.get(run.getId()),
+                        textFilter))
                 .toList();
     }
 
     private ScoringRunAuditItemResponse toResponse(
-            ScoringRun run, List<CriterionScore> criterionScores, ScoreExplanation explanation) {
+            ScoringRun run,
+            List<CriterionScore> criterionScores,
+            ScoreExplanation explanation,
+            UnaryOperator<String> textFilter) {
         return new ScoringRunAuditItemResponse(
                 run.getId(),
                 run.getStatus(),
@@ -88,7 +99,7 @@ public class ScoringRunAuditService {
                 run.getStartedAt(),
                 run.getFinishedAt(),
                 run.getCreatedAt(),
-                criterionScores.stream().map(ScoringRunAuditService::toCriterionScoreItem).toList(),
+                criterionScores.stream().map(c -> toCriterionScoreItem(c, textFilter)).toList(),
                 explanation == null
                         ? null
                         : new ScoringRunAuditItemResponse.ExplanationMeta(
@@ -98,14 +109,20 @@ public class ScoringRunAuditService {
     // criterion_scores KHONG co cot model/prompt_version (chi scoring_runs va score_explanations
     // co) - CriterionScoreItem tai su dung tu D3/D4 khong co hai truong do, dung nguyen khong can
     // bien doi gi them.
-    private static ApplicationHrListItemResponse.CriterionScoreItem toCriterionScoreItem(CriterionScore c) {
+    private static ApplicationHrListItemResponse.CriterionScoreItem toCriterionScoreItem(
+            CriterionScore c, UnaryOperator<String> textFilter) {
+        List<EvidenceEntry> evidence = c.getEvidence() == null
+                ? null
+                : c.getEvidence().stream()
+                        .map(e -> new EvidenceEntry(textFilter.apply(e.quote()), e.section()))
+                        .toList();
         return new ApplicationHrListItemResponse.CriterionScoreItem(
                 c.getCriterionNameSnapshot(),
                 c.getScore(),
                 c.getMaxScoreSnapshot(),
                 c.getWeightSnapshot(),
-                c.getReasoning(),
-                c.getEvidence());
+                textFilter.apply(c.getReasoning()),
+                evidence);
     }
 
     // KHAC ApplicationStatusService.loadOwnedApplication/ApplicationOwnerService.loadOwnedJob (ca

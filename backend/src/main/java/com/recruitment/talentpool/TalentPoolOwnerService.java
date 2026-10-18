@@ -1,5 +1,7 @@
 package com.recruitment.talentpool;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
 import com.recruitment.common.dto.PageResponse;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InvalidTalentPoolNameException;
@@ -14,7 +16,9 @@ import com.recruitment.talentpool.dto.TalentPoolNameRequest;
 import com.recruitment.talentpool.dto.TalentPoolResponse;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -33,14 +37,17 @@ public class TalentPoolOwnerService {
     private final CompanyRepository companyRepository;
     private final TalentPoolRepository talentPoolRepository;
     private final TalentPoolEntryRepository talentPoolEntryRepository;
+    private final BlindReviewResolver blindReviewResolver;
 
     public TalentPoolOwnerService(
             CompanyRepository companyRepository,
             TalentPoolRepository talentPoolRepository,
-            TalentPoolEntryRepository talentPoolEntryRepository) {
+            TalentPoolEntryRepository talentPoolEntryRepository,
+            BlindReviewResolver blindReviewResolver) {
         this.companyRepository = companyRepository;
         this.talentPoolRepository = talentPoolRepository;
         this.talentPoolEntryRepository = talentPoolEntryRepository;
+        this.blindReviewResolver = blindReviewResolver;
     }
 
     // P1 - khong phan trang, khong gioi han so kho (R-K6, R-K7).
@@ -100,9 +107,12 @@ public class TalentPoolOwnerService {
     @Transactional(readOnly = true)
     public PageResponse<TalentPoolEntryResponse> listEntries(UUID ownerId, UUID poolId, Integer page, Integer size) {
         loadOwned(ownerId, poolId);
-        return PageResponse.from(
-                talentPoolEntryRepository.findReadableByPoolId(poolId, PageRequest.of(safePage(page), safeSize(size))),
-                TalentPoolOwnerService::toEntryResponse);
+        Page<TalentPoolEntryRow> rows =
+                talentPoolEntryRepository.findReadableByPoolId(poolId, PageRequest.of(safePage(page), safeSize(size)));
+        // FR-H16 R-K1 [Q5] - nhan theo TUNG DONG (moi don xet theo Job cua no). Mot cau cho ca trang (khong N+1).
+        Set<UUID> maskedIds = blindReviewResolver.maskedAmong(
+                rows.getContent().stream().map(TalentPoolEntryRow::getApplicationId).toList());
+        return PageResponse.from(rows, row -> toEntryResponse(row, maskedIds.contains(row.getApplicationId())));
     }
 
     // P9 - KHONG loc dong y (R-M5): go duoc ca muc lech. 0 dong -> 404.
@@ -149,10 +159,10 @@ public class TalentPoolOwnerService {
                 row.getId(), row.getName(), row.getEntryCount() == null ? 0 : row.getEntryCount(), row.getCreatedAt());
     }
 
-    private static TalentPoolEntryResponse toEntryResponse(TalentPoolEntryRow row) {
+    private static TalentPoolEntryResponse toEntryResponse(TalentPoolEntryRow row, boolean identityMasked) {
         return new TalentPoolEntryResponse(
                 row.getApplicationId(),
-                row.getCandidateName(),
+                identityMasked ? CandidateAlias.of(row.getApplicationId()) : row.getCandidateName(),
                 row.getJobId(),
                 row.getJobTitle(),
                 Boolean.TRUE.equals(row.getJobDeleted()),

@@ -1,6 +1,8 @@
 package com.recruitment.talentpool;
 
+import com.recruitment.blindreview.BlindReviewResolver;
 import com.recruitment.common.exception.ApplicationNotFoundException;
+import com.recruitment.common.exception.IdentityMaskedException;
 import com.recruitment.common.exception.InvalidTalentPoolSelectionException;
 import com.recruitment.common.exception.TalentPoolConsentRequiredException;
 import com.recruitment.common.exception.TalentPoolNotFoundException;
@@ -32,16 +34,19 @@ public class ApplicationTalentPoolService {
     private final JobApplicationRepository jobApplicationRepository;
     private final TalentPoolRepository talentPoolRepository;
     private final TalentPoolEntryRepository talentPoolEntryRepository;
+    private final BlindReviewResolver blindReviewResolver;
 
     public ApplicationTalentPoolService(
             HrApplicationAccess hrApplicationAccess,
             JobApplicationRepository jobApplicationRepository,
             TalentPoolRepository talentPoolRepository,
-            TalentPoolEntryRepository talentPoolEntryRepository) {
+            TalentPoolEntryRepository talentPoolEntryRepository,
+            BlindReviewResolver blindReviewResolver) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.jobApplicationRepository = jobApplicationRepository;
         this.talentPoolRepository = talentPoolRepository;
         this.talentPoolEntryRepository = talentPoolEntryRepository;
+        this.blindReviewResolver = blindReviewResolver;
     }
 
     // P6 - consentState suy tu entity (doc, khong khoa); contains loc dong y (R-M6).
@@ -75,6 +80,12 @@ public class ApplicationTalentPoolService {
         toAdd.removeAll(current);
         Set<UUID> toRemove = new HashSet<>(current);
         toRemove.removeAll(requested);
+
+        // FR-H16 R-K2 - buoc 6b (sau kiem kho, truoc kiem dong y): THEM vao kho khi don dang an danh -> 409; go van duoc.
+        // README: "Luu vao kho chi mo sau khi bo an danh" - chot o backend, khong dua vao nut da khoa o UI.
+        if (!toAdd.isEmpty() && blindReviewResolver.isMasked(applicationId)) {
+            throw new IdentityMaskedException();
+        }
 
         // Buoc 7 - chi chan THEM (R-M3); go luon duoc.
         TalentPoolConsentState state = TalentPoolConsentState.of(

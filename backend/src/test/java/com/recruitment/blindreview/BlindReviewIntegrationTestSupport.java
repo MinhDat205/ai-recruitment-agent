@@ -210,7 +210,10 @@ abstract class BlindReviewIntegrationTestSupport {
         resume.setFileName(fileName);
         resume.setFileType(ResumeFileType.PDF);
         resume.setFileSize(1024L);
-        resume.setPrimary(true);
+        // uq_resume_primary_per_candidate: chi CV dau tien cua ung vien la CV chinh (ung vien nop nhieu Job - T8).
+        Integer primaryCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM resumes WHERE candidate_id = ? AND is_primary", Integer.class, candidate.id());
+        resume.setPrimary(primaryCount == 0);
         resume.setParseStatus(ParseStatus.DONE);
         resume = resumeRepository.saveAndFlush(resume);
         UUID id = UUID.randomUUID();
@@ -258,9 +261,11 @@ abstract class BlindReviewIntegrationTestSupport {
     }
 
     protected UUID doneRun(UUID applicationId, BigDecimal totalScore, List<Criterion> criteria) {
+        // criterionId co dinh theo ten: bang so sanh (H14 R-C1) ghep hang giua cac don theo criterionId.
         List<RubricSnapshot.CriterionSnapshot> snapshot = criteria.stream()
-                .map(c -> new RubricSnapshot.CriterionSnapshot(UUID.randomUUID(), c.name(), "Mo ta", c.weight(), 10,
-                        List.of()))
+                .map(c -> new RubricSnapshot.CriterionSnapshot(
+                        UUID.nameUUIDFromBytes(c.name().getBytes(StandardCharsets.UTF_8)), c.name(), "Mo ta",
+                        c.weight(), 10, List.of()))
                 .toList();
         ScoringRun run = new ScoringRun();
         run.setApplicationId(applicationId);
