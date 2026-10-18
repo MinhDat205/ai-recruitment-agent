@@ -30,6 +30,8 @@ export interface CvQaSession {
   // Goi khi cau hoi da qua kiem phia client (CvQaPanel).
   ask: (question: string) => void
   retry: () => void
+  // FR-H16 L11 - bo moi luot/loi dang hien; ket qua cua request dang treo bi bo (the he moi).
+  reset: () => void
 }
 
 interface AskVariables {
@@ -108,6 +110,10 @@ export function useCvQaSession(side: CvQaSide, key: string): CvQaSession {
     void send(current.retryQuestion)
   }
 
+  function reset() {
+    setState((prev) => emptyState(key, prev.epoch + 1))
+  }
+
   return {
     key: current.key,
     turns: current.turns,
@@ -116,5 +122,6 @@ export function useCvQaSession(side: CvQaSide, key: string): CvQaSession {
     pending: current.pending,
     ask,
     retry,
+    reset,
   }
 }

@@ -12,8 +12,11 @@ import {
 } from './api'
 import type { InterviewInvitationSendRequest } from './types'
 
+// Export (FR-H16 L11) - B1 lam moi ca tien to (preview giu {{candidateName}} khi don dang an danh).
+export const INTERVIEW_INVITATION_PREVIEW_KEY_PREFIX = 'interview-invitation-preview'
+
 function interviewInvitationPreviewKey(applicationId: string | undefined) {
-  return ['interview-invitation-preview', applicationId]
+  return [INTERVIEW_INVITATION_PREVIEW_KEY_PREFIX, applicationId]
 }
 
 // FR-H12 I1 - khoa theo applicationId; applicationDetailInvalidateKeys (trang ho so don) cung lam moi khoa nay.

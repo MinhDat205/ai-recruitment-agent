@@ -47,8 +47,11 @@ export function useCriteriaNamesQuery() {
   })
 }
 
+// Export (FR-H16 L11) - B1 lam moi ca tien to (bang chung/giai thich da che).
+export const SCORING_RUN_AUDIT_KEY_PREFIX = 'scoring-run-audit'
+
 function scoringRunAuditKey(applicationId: string | undefined) {
-  return ['scoring-run-audit', applicationId]
+  return [SCORING_RUN_AUDIT_KEY_PREFIX, applicationId]
 }
 
 export function useScoringRunAuditQuery(applicationId: string | undefined) {

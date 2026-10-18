@@ -58,8 +58,11 @@ export function useReorderScreeningQuestionsMutation(jobId: string) {
   })
 }
 
+// Export (FR-H16 L11) - B1 lam moi ca tien to (cau tra loi da che).
+export const APPLICATION_SCREENING_KEY_PREFIX = 'hr-application-screening'
+
 export function applicationScreeningKey(applicationId: string | undefined) {
-  return ['hr-application-screening', applicationId]
+  return [APPLICATION_SCREENING_KEY_PREFIX, applicationId]
 }
 
 // S6 - ban chup bat bien (R-S2) nen khong can lam moi theo thao tac nao o trang ho so don.

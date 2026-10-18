@@ -13,6 +13,7 @@ import { HistoryTab } from '../features/applicationDetail/HistoryTab'
 import { InterviewInvitationTab } from '../features/applicationDetail/InterviewInvitationTab'
 import { ScreeningTab } from '../features/applicationDetail/ScreeningTab'
 import { applicationDetailKey, useApplicationHrDetailQuery } from '../features/applicationDetail/queries'
+import { useIdentityMaskChangeSync } from '../features/blindReview/queries'
 import { CvQaPanel } from '../features/cvQa/CvQaPanel'
 import { CvQaUnavailable } from '../features/cvQa/CvQaUnavailable'
 import { useCvQaSession } from '../features/cvQa/useCvQaSession'
@@ -106,6 +107,8 @@ function ApplicationDetailContent({
   // FR-C08 - phien hoi dap CV o cap trang (doi tab khong mat luot, a25), khoa = applicationId (R-N3). Goi TRUOC moi
   // return som ben duoi (luat hook React, L6).
   const cvQaSession = useCvQaSession('hr', applicationId)
+  // FR-H16 L11 - E1 doi identityMasked so voi lan truoc: tai lai cac tab khac cua trang va bo phien hoi dap CV dang hien.
+  useIdentityMaskChangeSync(detailQuery.data, cvQaSession.reset)
 
   if (detailQuery.isLoading) {
     return (

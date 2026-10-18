@@ -20,7 +20,8 @@ const CONVERSATIONS_POLL_INTERVAL_MS = 30_000
 // R-A2 - tu dung sau 20 phut lien tuc (cung nguong voi chuong thong bao).
 const MAX_CONTINUOUS_POLL_MS = 20 * 60 * 1000
 
-const MESSAGE_THREAD_KEY_PREFIX = 'message-thread'
+// Export (FR-H16 L11) - B1 lam moi moi luong tin phia HR qua [tien to, 'hr'].
+export const MESSAGE_THREAD_KEY_PREFIX = 'message-thread'
 
 // Khoa hop thu (M5) - gui tin / danh dau da doc lam moi moi trang hop thu qua tien to nay (R-A3, R-A4).
 export const MESSAGE_CONVERSATIONS_KEY_PREFIX = 'message-conversations'
