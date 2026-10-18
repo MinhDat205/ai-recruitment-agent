@@ -22,5 +22,8 @@ public record ApplicationHrDetailResponse(
         String coverLetter,
         ParseStatus resumeParseStatus,
         String resumeParseError,
-        String resumeFileName) {
+        String resumeFileName,
+        // FR-H16 R-N3 [Q12] - don dang an danh: candidateName la nhan, coverLetter = null (R-V3), resumeFileName = null
+        // (R-V2).
+        boolean identityMasked) {
 }
