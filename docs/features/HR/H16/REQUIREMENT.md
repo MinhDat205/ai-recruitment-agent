@@ -3,7 +3,7 @@
 > Trạng thái: ĐÃ DUYỆT 18/10/2026
 >
 > Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
-> 7.3) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
+> 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR bật/tắt chế độ ẩn danh cho từng Job. Khi một đơn của Job đó đang ẩn danh, **backend** không trả họ tên,
@@ -129,6 +129,7 @@ không thấy họ tên, liên hệ, CV gốc và thư giới thiệu của ứn
   (kiểm tường minh, không suy từ số dòng của câu dưới) → đổi bằng một câu `UPDATE jobs SET blind_review_enabled = :enabled WHERE id = :id AND deleted_at IS NULL AND
   blind_review_enabled <> :enabled` (`@Modifying(clearAutomatically = true)`); 1 dòng → cùng transaction ghi một dòng
   `job_blind_review_changes (job_id, enabled, changed_by, changed_at)`; 0 dòng (đã đúng giá trị) → 200, không ghi.
+  Câu UPDATE đổi giá trị làm `jobs.updated_at` đổi theo trigger `set_updated_at` — chấp nhận (L5).
 - **R-B4** Bật lại sau khi tắt được phép, không giới hạn số lần `[Q9]`.
 - **R-B5** Lưu vết chỉ ghi, không có endpoint đọc (mục 6).
 
@@ -664,3 +665,12 @@ a25 (kết luận không đổi). Lệnh 7.2 khớp controller/DTO thật, khôn
   (`UnaryOperator<String> forApplication(UUID applicationId)`; trả `UnaryOperator.identity()` khi đơn không ẩn danh),
   cài đặt `blindreview/BlindReviewScoringAuditFilter` (resolver + bộ che). `scoring/` không import `blindreview/`; 7.3
   thêm lệnh kiểm cài đặt duy nhất nằm trong `blindreview/`.
+
+### 11.1 Làm rõ trong đợt 2 (duyệt 19/10/2026)
+
+- **L5 (R-B3) — `jobs.updated_at` đổi khi bật/tắt.** Bảng `jobs` có trigger `set_updated_at`
+  (`V1__init_schema.sql:369-378`), nên câu UPDATE của B1 (khi đổi giá trị) làm `updated_at` đổi. Đã soát mọi chỗ đọc: duy
+  nhất `JobOwnerService.java:309` trả `JobOwnerResponse.updatedAt`; frontend khai field (`features/jobs/ownerTypes.ts:26`)
+  nhưng không hiển thị; không truy vấn, sắp xếp, scheduler embedding (`job/JobEmbedding*`), dashboard, tìm việc hay gợi ý
+  việc làm nào đọc `jobs.updated_at`. Chốt: chấp nhận, không sửa trigger. Thứ tự kiểm của B1: body (`enabled` null →
+  400) trước quyền sở hữu (403/404), theo khuôn H15 R-P2 — HR công ty khác gửi `{}` nhận 400.
