@@ -1,5 +1,7 @@
 package com.recruitment.interviewinvitation;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InterviewInvitationConflictException;
@@ -7,6 +9,7 @@ import com.recruitment.common.exception.InterviewInvitationNotFoundException;
 import com.recruitment.common.exception.InterviewSlotAlreadyConfirmedException;
 import com.recruitment.common.exception.InterviewSlotPassedException;
 import com.recruitment.common.exception.InterviewTemplateNotFoundException;
+import com.recruitment.common.exception.InvitationRenderedTooLongException;
 import com.recruitment.common.exception.InvitationResendNotAllowedException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.SlotSelectionNotAllowedException;
@@ -58,6 +61,10 @@ public class InterviewInvitationService {
     private static final String PLACEHOLDER_CANDIDATE_NAME = "{{candidateName}}";
     private static final String PLACEHOLDER_JOB_TITLE = "{{jobTitle}}";
     private static final String PLACEHOLDER_COMPANY_NAME = "{{companyName}}";
+    // FR-H16 R-I3 - cung gioi han @Size cua InterviewInvitationSendRequest (subject 255, content 10000), kiem lai SAU khi
+    // thay ho ten (String.length(), cung cach dem cua @Size).
+    static final int MAX_SUBJECT_LENGTH = 255;
+    static final int MAX_CONTENT_LENGTH = 10000;
 
     private final JobApplicationRepository jobApplicationRepository;
     private final JobRepository jobRepository;
@@ -69,6 +76,7 @@ public class InterviewInvitationService {
     private final ApplicationStatusService applicationStatusService;
     private final HrApplicationAccess hrApplicationAccess;
     private final ApplicationEventPublisher eventPublisher;
+    private final BlindReviewResolver blindReviewResolver;
 
     public InterviewInvitationService(
             JobApplicationRepository jobApplicationRepository,
@@ -80,7 +88,8 @@ public class InterviewInvitationService {
             InterviewInvitationSlotRepository slotRepository,
             ApplicationStatusService applicationStatusService,
             HrApplicationAccess hrApplicationAccess,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            BlindReviewResolver blindReviewResolver) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
@@ -91,6 +100,7 @@ public class InterviewInvitationService {
         this.applicationStatusService = applicationStatusService;
         this.hrApplicationAccess = hrApplicationAccess;
         this.eventPublisher = eventPublisher;
+        this.blindReviewResolver = blindReviewResolver;
     }
 
     // Chi doc, khong @Transactional - mau ApplicationOwnerService/ScoringRunService.listScoringRuns.
@@ -103,17 +113,22 @@ public class InterviewInvitationService {
                 .findById(application.getCandidateId())
                 .orElseThrow(() -> new IllegalStateException("Khong tim thay ung vien cua don: " + applicationId));
 
+        // FR-H16 R-I1 [Q6] - don dang an danh: GIU NGUYEN chu {{candidateName}} (backend thay luc gui - R-I2),
+        // candidateName = nhan. HR khong thay ho ten truoc khi bam gui.
+        boolean masked = blindReviewResolver.isMasked(applicationId);
+        String nameForRender = masked ? PLACEHOLDER_CANDIDATE_NAME : candidate.getFullName();
+
         // Render bang company_name DA DONG BANG trong template (luc tao job) - KHONG dung ten cong
         // ty hien tai cua Company, du hai gia tri co the da lech nhau (xem canh bao ben duoi).
-        String subject = render(template.getSubject(), candidate.getFullName(), job.getTitle(), template.getCompanyName());
-        String content = render(template.getBody(), candidate.getFullName(), job.getTitle(), template.getCompanyName());
+        String subject = render(template.getSubject(), nameForRender, job.getTitle(), template.getCompanyName());
+        String content = render(template.getBody(), nameForRender, job.getTitle(), template.getCompanyName());
 
         boolean mismatch = !template.getCompanyName().equals(company.getName());
 
         return new InterviewInvitationPreviewResponse(
                 subject,
                 content,
-                candidate.getFullName(),
+                masked ? CandidateAlias.of(applicationId) : candidate.getFullName(),
                 mismatch,
                 template.getCompanyName(),
                 company.getName(),
@@ -132,6 +147,13 @@ public class InterviewInvitationService {
         // FR-H12 R-F1 - kiem khung (R-S8) TRUOC khi doi trang thai: dau vao sai thi khong ghi gi.
         List<ValidSlot> slots = InterviewSlotValidator.validate(request.slots(), Instant.now());
 
+        // FR-H16 R-I2, R-I3 - don dang an danh TAI LUC GUI (doc trong CHINH transaction nay, TRUOC buoc doi trang thai -
+        // sau buoc do da co dong lich su INTERVIEW_INVITED nen don het an danh): thay {{candidateName}} bang ho ten that
+        // roi kiem lai do dai; vuot -> 400, chua ghi gi. Don khong an danh: luu nguyen van nhu H12 (khong thay).
+        InterviewInvitationSendRequest toSave = blindReviewResolver.isMasked(applicationId)
+                ? withCandidateName(request, application)
+                : request;
+
         // Tai dung nguyen ven logic doi trang thai Dot 1: tu kiem don dang PENDING (khong thi 400
         // InvalidApplicationStatusTransitionException), tu ghi 1 dong application_status_history.
         // Method nay KHONG render/kiem tra gi ve noi dung loi moi - subject/content la nguyen van
@@ -140,7 +162,22 @@ public class InterviewInvitationService {
 
         // FR-H12 R-F2 - gui lan dau KHONG phat them thong bao nao (thong bao doi trang thai do buoc doi trang thai ngay tren phat).
         Instant sentAt = Instant.now();
-        return createInvitation(applicationId, ownerId, request, slots, sentAt).response();
+        return createInvitation(applicationId, ownerId, toSave, slots, sentAt).response();
+    }
+
+    // FR-H16 R-I2, R-I3 - ban sao request voi {{candidateName}} da thay bang users.full_name; kiem do dai SAU khi thay.
+    private InterviewInvitationSendRequest withCandidateName(
+            InterviewInvitationSendRequest request, JobApplication application) {
+        String fullName = userRepository
+                .findById(application.getCandidateId())
+                .map(User::getFullName)
+                .orElseThrow(() -> new IllegalStateException("Khong tim thay ung vien cua don: " + application.getId()));
+        String subject = request.subject().replace(PLACEHOLDER_CANDIDATE_NAME, fullName);
+        String content = request.content().replace(PLACEHOLDER_CANDIDATE_NAME, fullName);
+        if (subject.length() > MAX_SUBJECT_LENGTH || content.length() > MAX_CONTENT_LENGTH) {
+            throw new InvitationRenderedTooLongException();
+        }
+        return new InterviewInvitationSendRequest(request.slots(), subject, content);
     }
 
     // FR-H12 I3 (R-G1..R-G6) - gui lai giay moi. MOT transaction ngan, DUNG thu tu R-G3 (bat buoc):

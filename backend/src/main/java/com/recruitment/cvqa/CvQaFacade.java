@@ -4,6 +4,9 @@ import com.recruitment.ai.cvqa.CvQaAnswer;
 import com.recruitment.ai.cvqa.CvQaRefusalReason;
 import com.recruitment.ai.cvqa.CvQaService;
 import com.recruitment.aicontext.ContextViewer;
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.IdentityMaskSource;
+import com.recruitment.blindreview.IdentityMasker;
 import com.recruitment.aicontext.CvQaContext;
 import com.recruitment.aicontext.CvQaContextAssembler;
 import com.recruitment.common.exception.InvalidCvQaQuestionException;
@@ -42,18 +45,24 @@ public class CvQaFacade {
     private final CvQaQuestionGuard questionGuard;
     private final CvQaContextAssembler contextAssembler;
     private final CvQaService cvQaService;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
 
     public CvQaFacade(
             HrApplicationAccess hrApplicationAccess,
             ResumeRepository resumeRepository,
             CvQaQuestionGuard questionGuard,
             CvQaContextAssembler contextAssembler,
-            CvQaService cvQaService) {
+            CvQaService cvQaService,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.resumeRepository = resumeRepository;
         this.questionGuard = questionGuard;
         this.contextAssembler = contextAssembler;
         this.cvQaService = cvQaService;
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
     }
 
     // Q1 - phia HR. Don moi trang thai, ke ca WITHDRAWN; tin xoa mem/dong van hoi duoc (R-Q1, loadOwned khong loc).
@@ -66,7 +75,18 @@ public class CvQaFacade {
             return CvQaResponse.from(CvQaAnswer.refused(refusal.get()));
         }
         CvQaContext context = contextAssembler.forHrApplication(applicationId);
-        return CvQaResponse.from(cvQaService.answer(context, question));
+        CvQaResponse response = CvQaResponse.from(cvQaService.answer(context, question));
+        // FR-H16 R-Q1, R-A3 - K2 da kiem trich dan tren cau tra loi THO trong CvQaService; che SAU do, chi o response HR.
+        if (!blindReviewResolver.isMasked(applicationId)) {
+            return response;
+        }
+        IdentityMasker masker = identityMaskSource.load(applicationId);
+        return new CvQaResponse(
+                response.outcome(),
+                masker.mask(response.answer()),
+                response.citations().stream().map(c -> new CvQaResponse.Citation(masker.mask(c.quote()))).toList(),
+                response.refusalReason(),
+                response.cvTruncated());
     }
 
     // Q2 - phia ung vien. Moi CV cua minh co van ban trich xuat, dung trong don hay khong; khong chon JD (R-Q2, Q9).

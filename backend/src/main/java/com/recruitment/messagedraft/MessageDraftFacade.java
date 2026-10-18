@@ -1,6 +1,8 @@
 package com.recruitment.messagedraft;
 
 import com.recruitment.ai.messagedraft.DraftScenario;
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.IdentityMaskSource;
 import com.recruitment.ai.messagedraft.MessageDraftService;
 import com.recruitment.aicontext.ContextViewer;
 import com.recruitment.aicontext.ConversationContext;
@@ -44,18 +46,24 @@ public class MessageDraftFacade {
     private final InterviewInvitationRepository interviewInvitationRepository;
     private final ConversationContextAssembler contextAssembler;
     private final MessageDraftService messageDraftService;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
 
     public MessageDraftFacade(
             HrApplicationAccess hrApplicationAccess,
             JobApplicationRepository jobApplicationRepository,
             InterviewInvitationRepository interviewInvitationRepository,
             ConversationContextAssembler contextAssembler,
-            MessageDraftService messageDraftService) {
+            MessageDraftService messageDraftService,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.jobApplicationRepository = jobApplicationRepository;
         this.interviewInvitationRepository = interviewInvitationRepository;
         this.contextAssembler = contextAssembler;
         this.messageDraftService = messageDraftService;
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
     }
 
     // ---- A1 ----
@@ -103,6 +111,11 @@ public class MessageDraftFacade {
 
         ConversationContext context = contextAssembler.forConversation(side, application.getId());
         String draft = messageDraftService.draft(context, scenario, request.tone(), customPurpose);
+        // FR-H16 R-C3 - ban nhap tra HR cua don dang an danh qua bo che (AI co the chep ten tu tin gan day). Phia ung vien
+        // khong doi.
+        if (side == ContextViewer.HR && blindReviewResolver.isMasked(application.getId())) {
+            draft = identityMaskSource.load(application.getId()).mask(draft);
+        }
         return new MessageDraftResponse(draft);
     }
 

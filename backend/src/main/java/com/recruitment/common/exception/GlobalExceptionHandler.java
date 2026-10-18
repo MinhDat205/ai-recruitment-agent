@@ -333,6 +333,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("IDENTITY_MASKED", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvitationRenderedTooLongException.class)
+    public ResponseEntity<ErrorResponse> handleInvitationRenderedTooLong(InvitationRenderedTooLongException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVITATION_RENDERED_TOO_LONG", ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidBlindReviewRequestException.class)
     public ResponseEntity<ErrorResponse> handleInvalidBlindReviewRequest(InvalidBlindReviewRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
