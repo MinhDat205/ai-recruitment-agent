@@ -252,6 +252,9 @@ khối `m3-surface-container-high`, và chỉ có hiệu lực sau khi người 
 Bỏ qua). Không có luồng tự gửi.
 Nội dung AI chỉ để đọc, không có hiệu lực nào (câu trả lời hỏi đáp CV — FR-C08) thì không cần nút
 Dùng/Lưu/Bỏ qua; vẫn có nhãn và khối AI.
+Cách hệ thống hiểu câu tìm việc (FR-U13) chỉ quyết định danh sách đang xem — không gửi, không đăng, không lưu, không đổi
+dữ liệu nào; bấm "Tìm" là xác nhận. Vẫn có nhãn và khối AI, luôn hiện lại các điều kiện đã hiểu và sửa được bằng bộ lọc
+thường; không cần nút Dùng/Bỏ qua.
 - Khối AI = `bg-m3-surface-container-high` + viền `border border-m3-outline-variant` (bắt buộc: nền
   này so với nền trắng chỉ 1.12:1, thiếu viền thì không thấy khối).
 - Chữ trong khối chỉ dùng `text-m3-on-surface` (13.06:1). KHÔNG dùng màu chữ phụ
@@ -337,7 +340,7 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
+| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả — chế độ Tìm bằng mô tả, chỉ khi đăng nhập), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
 | `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
 | `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV), FR-U12 (nút Tạo CV, Sửa CV) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |

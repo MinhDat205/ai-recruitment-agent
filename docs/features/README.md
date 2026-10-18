@@ -97,7 +97,7 @@ Làm tuần tự từ trên xuống. Mỗi FR chỉ bắt đầu khi mọi mục
 | # | Mã | Tên | Nhánh | Phụ thuộc |
 |---|---|---|---|---|
 | 17 | FR-U12 | Tạo CV (CV builder) | `feat/fr-u12-cv-builder` | FR-U01, FR-C04 |
-| 18 | FR-U13 | Tìm kiếm việc làm bằng ngôn ngữ tự nhiên | `feat/fr-u13-nl-search` | FR-U07, FR-U15, FR-C05 |
+| 18 | FR-U13 | Tìm kiếm việc làm bằng ngôn ngữ tự nhiên | `feat/fr-u13-nl-search` | FR-U07, FR-U15, FR-C05, FR-C07 (sửa theo FR-U13 đã duyệt) |
 | 19 | FR-H16 | Chế độ ẩn danh khi duyệt hồ sơ | `feat/fr-h16-blind` | FR-H09, FR-H14, FR-C08 |
 
 **Xong phase khi:** Bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu ứng viên nhập.
@@ -772,7 +772,7 @@ Tạo và sửa CV tạo từ form; chưa hỗ trợ sửa trực tiếp file PD
 
 - **Phase:** 2.6 · **Nhánh:** `feat/fr-u13-nl-search` · **Phía sử dụng:** Ứng viên
 - **Đặc tả chi tiết:** `docs/features/UV/U13/REQUIREMENT.md`, `UI.md`
-- **Phụ thuộc:** FR-U07, FR-U15, FR-C05
+- **Phụ thuộc:** FR-U07, FR-U15, FR-C05, FR-C07 (sửa theo FR-U13 đã duyệt)
 - **Màn hình (UI_GUIDE mục 7):** Ô tìm kiếm chế độ "Tìm bằng mô tả" ở `/candidate`.
 
 **Mục đích**
@@ -786,7 +786,7 @@ Trên trang Việc làm, chuyển ô tìm kiếm sang chế độ Tìm bằng m�
 **Hệ thống**
 
 - Gọi AI một lần mỗi lượt tìm (K3) để tách điều kiện cứng (khu vực, ngành nghề, lương, hình thức làm việc, ánh xạ theo C05) và phần mô tả còn lại.
-- Áp điều kiện cứng bằng đúng truy vấn của U07; phần mô tả còn lại được embedding bằng model của FR-U04 rồi xếp hạng bằng cùng bộ máy "điều kiện cứng + xếp theo embedding" của U15.
+- Áp điều kiện cứng bằng đúng truy vấn của U07; phần mô tả còn lại được embedding bằng model của FR-U04 rồi xếp hạng bằng cùng bộ máy "điều kiện cứng + xếp theo embedding" của U15 (sửa theo FR-U13 đã duyệt): không loại việc đã nộp; việc chưa có embedding xếp cuối theo mới nhất, ghi rõ trên giao diện; phần mô tả là chữ nguyên văn còn lại của câu.
 - Với mỗi kết quả, hiển thị các điều kiện đã khớp theo cách xác định, không gọi AI giải thích từng kết quả. Sửa một thẻ điều kiện sẽ chuyển sang bộ lọc U07.
 - Chỉ dùng được khi đã đăng nhập; có giới hạn số lượt tìm.
 

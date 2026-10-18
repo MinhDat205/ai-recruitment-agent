@@ -52,7 +52,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Ứng viên | Đã hoàn thành | [features/UV/U09/REQUIREMENT.md](features/UV/U09/REQUIREMENT.md) |
 | FR-U10 | Chọn khung giờ phỏng vấn | Ứng viên | Đã hoàn thành | [features/UV/U10/REQUIREMENT.md](features/UV/U10/REQUIREMENT.md) |
 | FR-U12 | Tạo CV (CV builder) | Ứng viên | Đã hoàn thành | [features/UV/U12/REQUIREMENT.md](features/UV/U12/REQUIREMENT.md) |
-| FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Ứng viên | Chưa đặc tả | [features/UV/U13/REQUIREMENT.md](features/UV/U13/REQUIREMENT.md) |
+| FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Ứng viên | Đã hoàn thành | [features/UV/U13/REQUIREMENT.md](features/UV/U13/REQUIREMENT.md) |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Ứng viên | Đã hoàn thành | [features/UV/U14/REQUIREMENT.md](features/UV/U14/REQUIREMENT.md) |
 | FR-U15 | Gợi ý việc làm theo hồ sơ | Ứng viên | Đã hoàn thành | [features/UV/U15/REQUIREMENT.md](features/UV/U15/REQUIREMENT.md) |
 
@@ -131,7 +131,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-U09 | Trả lời sàng lọc và đồng ý lưu hồ sơ | Khi nộp đơn: trả lời câu hỏi sàng lọc; tuỳ chọn cho công ty lưu hồ sơ (mặc định không); rút đồng ý ở trang chi tiết đơn | Ứng viên | FR-U02, FR-H10 |
 | FR-U10 | Chọn khung giờ phỏng vấn | Ứng viên chọn một khung giờ trong giấy mời; HR được thông báo | Ứng viên | FR-H12, FR-U08 |
 | FR-U12 | Tạo CV (CV builder) | Tạo CV từ form, xuất PDF, dùng như CV upload; AI chỉ gợi ý diễn đạt, không thêm nội dung | Ứng viên | FR-U01, FR-C04, FR-C05, FR-C07 |
-| FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Mô tả việc mong muốn bằng lời; hệ thống tách điều kiện lọc và xếp theo độ liên quan | Ứng viên | FR-U07, FR-U15, FR-C05 |
+| FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Mô tả việc mong muốn bằng lời; hệ thống tách điều kiện lọc và xếp theo độ liên quan | Ứng viên | FR-U07, FR-U15, FR-C05, FR-C07 |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Sau đăng ký hoặc ở trang hồ sơ: khai chức danh, ngành, khu vực, lương, kỹ năng mong muốn; điền nhanh từ CV | Ứng viên | FR-U01, FR-C05, FR-U04 |
 | FR-U15 | Gợi ý việc làm theo hồ sơ | Khối "Gợi ý cho bạn" trên trang Việc làm, dựa trên mong muốn + CV (hoặc hồ sơ nếu chưa có CV); mở rộng FR-U04 | Ứng viên | FR-U14, FR-U07, FR-C05, FR-U04 |
 
@@ -180,6 +180,7 @@ tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
 | FR-H01 | FR-C06 | Nhận dạng loại tệp logo chuyển sang bộ dùng chung; hành vi không đổi |
 | FR-U01 | FR-U12 | Tạo CV bằng form, sửa thành phiên bản mới |
 | FR-C04 | FR-U12 | Nguồn CV đã trích xuất thứ hai (`cv-builder-v1`, không qua AI) |
+| FR-U07 | FR-U13 | Trang Việc làm có thêm chế độ tìm bằng mô tả (chỉ khi đăng nhập ứng viên) |
 
 # 5. Ngoài phạm vi
 
@@ -190,4 +191,4 @@ Các nội dung dưới đây đã được chủ động loại bỏ khỏi ph�
 - Chatbot hỏi trên nhiều CV cùng lúc: mỗi lần hỏi chỉ trên 1 CV.
 - Chat thời gian thực (WebSocket): giao diện tự tải lại định kỳ.
 - Che thông tin nhân thân trong đầu vào chấm điểm AI: chế độ ẩn danh chỉ che khi hiển thị.
-- Dùng AI để nhận diện thông tin nhân thân.
+- Dùng AI để nhận diện thông tin nhân thân nhằm che khi hiển thị (chế độ ẩn danh FR-H16). Ngoại lệ đã duyệt: FR-U13 — bộ tách điều kiện chỉ ra đoạn nhân thân trong câu tìm việc ứng viên tự gõ để **bỏ qua** (không thành điều kiện lọc, không vào phần mô tả), không lưu, không gắn vào hồ sơ nào.

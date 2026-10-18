@@ -1,6 +1,6 @@
 # FR-U13 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT 18/10/2026. Đi cùng `REQUIREMENT.md` (cùng trạng thái). Quy tắc nghiệp vụ, mã lỗi, DTO:
+> Trạng thái: ĐÃ HOÀN THÀNH (18/10/2026). Duyệt: 18/10/2026. Đi cùng `REQUIREMENT.md` (cùng trạng thái). Quy tắc nghiệp vụ, mã lỗi, DTO:
 > `REQUIREMENT.md`; file này chỉ nói về màn hình.
 
 Nguồn: `docs/UI_GUIDE.md` (token mục 1, component mục 3 — Search bar, assist chip trung tính, Linear progress; ràng buộc mục 4
@@ -9,7 +9,7 @@ mở rộng màn hình "Việc làm" có sẵn.
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 18/10/2026.
+> Trạng thái: ĐÃ HOÀN THÀNH (18/10/2026). Duyệt: 18/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 
