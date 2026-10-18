@@ -966,3 +966,13 @@ Mọi ký tự đặc biệt viết bằng escape `\uXXXX` trong mã nguồn tes
 | L15 | Kiểu trung gian (điều kiện đã nhận, đoạn cần cắt) không có trong 4.2 | Record lồng trong `JobSearchConditionResolver`, không thêm file |
 | L16 | `JobSearchChatClientConfig` (đợt 3) cần khoá `app.job-search.max-output-tokens` | Khoá chuyển lên đợt 3 (mục 9) |
 | L17 | S10 cấm `%` trong `features/jobSearch` | Không dùng `%` ở đâu trong thư mục đó, kể cả class Tailwind kiểu `w-[50%]` |
+
+### 13.10 Điểm phát sinh khi code (từ L18)
+
+| # | Đợt | Điểm | Xử lý |
+|---|---|---|---|
+| L18 | 2 | T4 cần khẳng định đúng tập/đúng thứ tự (`containsExactly`), nhưng Testcontainers dùng chung còn job OPEN rò rỉ từ lớp khác (lý do U15 phải soft-delete toàn bộ job OPEN trước mỗi test) | `JobRankedForSearchTest` gắn nhãn riêng vào `title` của từng test và truyền `titlePattern = "%nhãn%"` (điều kiện có sẵn của `PUBLIC_JOB_FILTER_WHERE`, SQL đang kiểm không đổi; production truyền `null` — R-Q3); `@AfterEach` chỉ soft-delete job của chính test. Vector đặt trên trục 2–3 nên độ tương đồng với vector trục 0 của `JobEmbeddingRepositoryTest`/U15 là 0 — job sót lại không lọt ngưỡng của các lớp đó |
+| L19 | 2 | `SyncAiCallerTransactionIntegrationTest` không có `@ActiveProfiles("test")` → thực tế đọc `application.yml` (15000), dù comment ghi đọc `application-test.yml`. Không sửa (N11/T18) | T2 (`SyncEmbeddingCallerTransactionIntegrationTest`) khai `@ActiveProfiles("test")`, khẳng định khoá = 2000 và lần gọi chờ latch hết hạn trong [1900, 4900) ms — tức bean dùng 2000, không phải 5000 |
+| L20 | 2 | Thứ tự `uuid` của Postgres là so sánh byte không dấu; `UUID.compareTo` của Java so sánh `long` có dấu → kỳ vọng tie-break `j.id` dựng bằng Java có thể lệch | T4 dựng kỳ vọng bằng so sánh chuỗi hex chuẩn (`UUID::toString`) — trùng thứ tự Postgres |
+| L21 | 2 | Hệ quả của guard NaN chỉ áp cho hàng có embedding (13.2): việc có embedding suy biến (vector 0 — dữ liệu cũ) bị loại hẳn khỏi nhánh `DESCRIPTION`, không rơi xuống nhóm "chưa có embedding"; nhánh `NEWEST` vẫn có nó | Đúng SQL đã duyệt; T4 có ca riêng khoá hành vi này. Ghi ROADMAP ở D2 (cùng mục với L13) |
+| L22 | 2 | T1 thêm ca ngoài danh sách 7.1: biên 1535/1537 chiều, `RuntimeException` thường (thông điệp lỗi không lộ nguyên nhân), luồng gọi bị ngắt khi đang chờ (`AI_UNAVAILABLE`, giữ cờ ngắt); ca log gắn appender cho cả `SyncEmbeddingCaller` và `EmbeddingService`, có đối chứng dương (2 dòng warn `ma=AI_UNAVAILABLE`) | Không đổi hành vi; chỉ thêm ca |

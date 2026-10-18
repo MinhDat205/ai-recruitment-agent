@@ -42,6 +42,9 @@ app:
   ai-sync:
     attempt-timeout-ms: 2000
     max-concurrent-calls: 8
+    # FR-U13 R-E3 - han embedding dong bo NHO hon production (2 s thay vi 5 s), cung ly do L6 cua C07 o tren. T1 (unit)
+    # truyen han qua constructor SyncEmbeddingCaller, khong doc khoa nay; T2 khang dinh bean doc dung gia tri nay.
+    embedding-timeout-ms: 2000
   # FR-C07 muc 5 - cung khoa, cung gia tri voi production: test khong goi model that, khai de bean dung duoc va T16b
   # khang dinh duoc maxTokens da dat vao options cua loi goi.
   message-draft:

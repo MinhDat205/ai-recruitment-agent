@@ -126,6 +126,9 @@ app:
   ai-sync:
     attempt-timeout-ms: 15000
     max-concurrent-calls: 8
+    # FR-U13 R-E3/O4 - han cho moi lan goi embedding dong bo (SyncEmbeddingCaller), executor rieng cung max-concurrent-calls
+    # luong; het han -> 504 AI_TIMEOUT, khong thu lai.
+    embedding-timeout-ms: 5000
   # FR-C07 muc 5 / R-K3-9 - tran token dau ra cua RIENG bean messageDraftChatClient (khong dat cho AnthropicChatModel
   # dung chung). 800 ~ ban nhap <= 1200 ky tu tieng Viet + vo JSON, du 30%; 800 token sinh trong 10-13 s < han 15 s.
   message-draft:

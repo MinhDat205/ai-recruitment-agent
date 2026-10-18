@@ -54,6 +54,11 @@ public interface JobEmbeddingRepository extends JpaRepository<JobEmbedding, UUID
     // khong anh huong SELECT/DELETE). Dung cho muc B (sinh lai embedding khi HR sua title/description).
     int deleteByJobId(UUID jobId);
 
+    // FR-U13 R-K4 - tap job_id (trong danh sach dau vao) da co embedding, de danh dau rankedByDescription. Khong ORDER BY:
+    // ket qua dung nhu tap hop. Caller KHONG goi voi danh sach rong (Postgres khong nhan "IN ()").
+    @Query(value = "SELECT je.job_id FROM job_embeddings je WHERE je.job_id IN :jobIds", nativeQuery = true)
+    List<UUID> findJobIdsWithEmbeddingIn(@Param("jobIds") List<UUID> jobIds);
+
     // Truy van similarity chinh - hai buoc theo dung ban da duyet o Plan Mode muc D (sau review):
     // vector CV duoc GOI TU BEN NGOAI nhu mot THAM SO CO DINH (queryVector, da la text dang
     // "[0.1,0.2,...]" - xem ResumeParsedDataRepository.findEmbeddingTextByResumeId), KHONG lay bang

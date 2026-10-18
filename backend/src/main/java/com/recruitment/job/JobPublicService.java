@@ -33,10 +33,9 @@ public class JobPublicService {
     private static final int MAX_SIZE = 50;
 
     // FR-U07 R-W1 - cung tap gia tri voi JobRequest.workMode (JobRequest.java:17,
-    // @Pattern(regexp = "ONSITE|HYBRID|REMOTE")) va chk constraint work_mode cua V1. Khong co enum
-    // dung chung san co trong du an (Job.workMode la String thuong) nen khai lai hang so o day thay
-    // vi them mot kieu moi chi vi mot FR.
-    private static final Set<String> VALID_WORK_MODES = Set.of("ONSITE", "HYBRID", "REMOTE");
+    // @Pattern(regexp = "ONSITE|HYBRID|REMOTE")) va chk constraint work_mode cua V1. FR-U13 O3 - doc
+    // tu hang so dung chung WorkModes.CODES (cung 3 gia tri), hanh vi khong doi.
+    private static final Set<String> VALID_WORK_MODES = WorkModes.CODES;
 
     private static final String UNSET_WORK_MODE_SENTINEL = "__NONE__";
 

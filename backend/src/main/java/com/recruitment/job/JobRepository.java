@@ -230,6 +230,50 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             @Param("candidateId") UUID candidateId,
             @Param("limit") int limit);
 
+    // FR-U13 R-Q1 - truy van rieng cua tim viec bang mo ta (nhanh DESCRIPTION, R-K1): tai dung
+    // PUBLIC_JOB_FILTER_WHERE (khong chep lai dieu kien cung), 13 tham so loc cung ten/cung thu tu
+    // findRankedMatchesByVector. Khac U15 co chu dich: LEFT JOIN (viec chua co embedding VAN co,
+    // xep cuoi - R-K4/N1), KHONG NOT EXISTS don ung tuyen (viec da nop khong bi loai - R-K5, giong
+    // U07), KHONG nguong tuong dong. Guard NaN chi ap cho hang co embedding (ly do o
+    // JobEmbeddingRepository.findTopMatchingJobs).
+    //
+    // ORDER BY: khoa 1 dua hang co embedding len truoc. Hang co embedding: khoa 3-4 la NULL hang so
+    // -> thuc chat "khoang cach ASC, j.id ASC" (tie-break U15). Hang khong embedding: khoa 2 la NULL
+    // hang so -> thuc chat "COALESCE(published_at, created_at) DESC, j.id DESC" (tie-break U07
+    // NEWEST); j.id ASC cuoi cung chi la khoa duy nhat cho nhom co embedding. Khong dung duoc index
+    // HNSW (LEFT JOIN + ORDER BY nhieu khoa) - quet theo dieu kien loc, xep chinh xac (O5).
+    @Query(
+            value =
+                    "SELECT j.* FROM jobs j LEFT JOIN job_embeddings je ON je.job_id = j.id "
+                            + PUBLIC_JOB_FILTER_WHERE
+                            + """
+                            AND (je.job_id IS NULL
+                                 OR (1 - (je.embedding <=> CAST(:queryVector AS vector))) < 'Infinity'::float8)
+                            ORDER BY (je.job_id IS NULL) ASC,
+                                     je.embedding <=> CAST(:queryVector AS vector) ASC,
+                                     CASE WHEN je.job_id IS NULL THEN COALESCE(j.published_at, j.created_at) END DESC,
+                                     CASE WHEN je.job_id IS NULL THEN j.id END DESC,
+                                     j.id ASC
+                            LIMIT :limit
+                            """,
+            nativeQuery = true)
+    List<Job> findRankedForSearch(
+            @Param("titlePattern") String titlePattern,
+            @Param("locationPattern") String locationPattern,
+            @Param("categoryPattern") String categoryPattern,
+            @Param("categoryCodesPresent") boolean categoryCodesPresent,
+            @Param("categoryCodeParams") List<String> categoryCodeParams,
+            @Param("locationCodesPresent") boolean locationCodesPresent,
+            @Param("locationCodeParams") List<String> locationCodeParams,
+            @Param("salaryMinVnd") BigDecimal salaryMinVnd,
+            @Param("salaryMaxVnd") BigDecimal salaryMaxVnd,
+            @Param("hideUnlisted") boolean hideUnlisted,
+            @Param("workModesPresent") boolean workModesPresent,
+            @Param("workModeParams") List<String> workModeParams,
+            @Param("sinceTimestamp") Instant sinceTimestamp,
+            @Param("queryVector") String queryVector,
+            @Param("limit") int limit);
+
     @Query(
             value =
                     """
