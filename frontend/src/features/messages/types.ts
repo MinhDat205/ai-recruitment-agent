@@ -10,7 +10,8 @@ export type MessageSenderRole = 'HR' | 'CANDIDATE'
 export type MessageAttachmentType = 'PDF' | 'DOCX' | 'PNG' | 'JPEG' | 'WEBP'
 
 export interface MessageAttachment {
-  fileName: string
+  // FR-H16 R-T2 - null: HR xem tep UNG VIEN gui cua don dang an danh (backend an ten, tai tra 409).
+  fileName: string | null
   fileType: MessageAttachmentType
   fileSize: number
 }

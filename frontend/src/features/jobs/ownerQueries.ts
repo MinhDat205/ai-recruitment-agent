@@ -17,13 +17,14 @@ import type {
   JobStatus,
 } from './ownerTypes'
 
-const HR_JOBS_KEY = ['hr-jobs']
+// Export cho FR-H16 (blindReview/queries.ts) - dung lai khoa, khong khai lai.
+export const HR_JOBS_KEY = ['hr-jobs']
 
 function hrJobsListKey(params: HrJobListParams) {
   return [...HR_JOBS_KEY, 'list', params]
 }
 
-function hrJobDetailKey(id: string | undefined) {
+export function hrJobDetailKey(id: string | undefined) {
   return [...HR_JOBS_KEY, 'detail', id]
 }
 

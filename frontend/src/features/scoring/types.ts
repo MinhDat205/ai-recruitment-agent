@@ -89,6 +89,9 @@ export interface ApplicationHrListItem {
   // FR-H14 [Q7] - chu ky tuyen dung cua don (job_applications.recruitment_cycle), de tab "Ung vien" khoa o chon cua
   // don khac chu ky voi don chon dau. Backend van chan khac chu ky (R-S4).
   recruitmentCycle: number
+  // FR-H16 R-N3 - don dang an danh (backend tinh). candidateName da la nhan, chuoi cham diem da che o backend; co nay chi
+  // de khoa nut/doi cau, KHONG suy nguoc tu chuoi nhan.
+  identityMasked: boolean
 }
 
 // Khop ApplicationSortOption (backend) - gia tri gui qua tham so ?sort= cua GET .../applications.

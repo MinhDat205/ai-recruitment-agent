@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle, Download, FileText, RotateCw } from 'lucide-react'
+import { AlertCircle, Download, FileText, Info, RotateCw } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
+import { BLIND_REVIEW_TEXT, downloadErrorMessage } from '../blindReview/blindReviewLabels'
+import { useHrJobQuery } from '../jobs/ownerQueries'
 import { MAX_COMPARE, MIN_COMPARE } from '../comparison/compareLimits'
 import { COMPARE_SELECTION_TEXT } from '../comparison/comparisonLabels'
 import { extractErrorMessage } from '../../lib/httpError'
@@ -47,6 +49,10 @@ function formatRank(rank: number | null): string {
 // khi thuc su goi API, vd file mat tren dia - xem ResumeHrService) - xu ly bang thong bao loi hien
 // SAU KHI bam (xem handleDownloadResume/downloadError), khong phai disable tinh o day.
 function resumeDownloadDisabledReason(application: ApplicationHrListItem): string | undefined {
+  // FR-H16 R-V1 - backend tra 409 khi tai CV goc cua don dang an danh; khoa nut cho ro ly do (backend van la chot chan).
+  if (application.identityMasked) {
+    return BLIND_REVIEW_TEXT.downloadBlocked
+  }
   if (application.resumeParseStatus !== 'DONE') {
     return 'CV của ứng viên chưa được AI trích xuất xong, vui lòng chờ xử lý xong rồi thử lại.'
   }
@@ -135,6 +141,11 @@ function selectionBlockReason(
 // lap cau o tung dong (UI.md 4b).
 const LIMIT_NOTE_ID = 'compare-selection-limit-note'
 
+// FR-H16 UI.md muc 9 - nut khoa dung disabled + aria-describedby tro cau ly do (khong chi title).
+function resumeReasonId(applicationId: string): string {
+  return `resume-download-reason-${applicationId}`
+}
+
 function selectionReasonId(applicationId: string): string {
   return `compare-selection-reason-${applicationId}`
 }
@@ -180,7 +191,7 @@ function ApplicationRow({
     try {
       await downloadApplicationResume(application.id)
     } catch (err) {
-      setResumeDownloadError(extractErrorMessage(err, 'Tải CV gốc thất bại, vui lòng thử lại.'))
+      setResumeDownloadError(downloadErrorMessage(err, 'Tải CV gốc thất bại, vui lòng thử lại.'))
     } finally {
       setDownloadingResume(false)
     }
@@ -257,11 +268,17 @@ function ApplicationRow({
               size="sm"
               disabled={Boolean(resumeDisabledReason) || isDownloadingResume}
               title={resumeDisabledReason}
+              aria-describedby={resumeDisabledReason ? resumeReasonId(application.id) : undefined}
               onClick={handleDownloadResume}
             >
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Xem CV gốc
             </Button>
+            {resumeDisabledReason && (
+              <span id={resumeReasonId(application.id)} className="sr-only">
+                {resumeDisabledReason}
+              </span>
+            )}
             {/* FR-H09 R-E1, R-P3 - lien ket toi trang ho so don (diem, giai thich, lich su va nut quyet
                 dinh FR-H07 chi con o trang do). Giu vi tri, icon va kieu cua nut "Xem ho so" cu; khong
                 khoa theo ket qua cham (CLAUDE.md muc 7: khong rang buoc "chi moi phong van khi da cham"). */}
@@ -357,6 +374,8 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
     resumePolling: resumeListPolling,
   } = useHrApplicationsQuery(jobId, sort)
   const createScoringRunMutation = useCreateScoringRunMutation(jobId)
+  // FR-H16 UI.md 4b - nguon cau thong tin la co cua Job (query san co cua trang sua Job, cung khoa nen khong goi them).
+  const { data: job } = useHrJobQuery(jobId)
 
   if (isLoading) {
     return <p className="p-6 text-sm text-m3-on-surface-variant">Đang tải...</p>
@@ -386,6 +405,12 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
 
   return (
     <div className="flex flex-col gap-4 p-6">
+      {job?.blindReviewEnabled && (
+        <div className="flex items-start gap-2 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface-container px-4 py-3 text-sm text-m3-on-surface">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-m3-on-surface-variant" aria-hidden="true" />
+          <p className="min-w-0 break-words">{BLIND_REVIEW_TEXT.applicationsTabNotice}</p>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <Label htmlFor="applications-sort" className="text-sm text-m3-on-surface-variant">
           Sắp xếp theo

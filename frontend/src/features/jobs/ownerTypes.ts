@@ -26,6 +26,8 @@ export interface JobOwnerResponse {
   updatedAt: string
   rubricId: string | null
   interviewTemplateId: string | null
+  // FR-H16 R-B1 - cong tac an danh; chi doi qua B1 (features/blindReview), khong gui qua PUT.
+  blindReviewEnabled: boolean
 }
 
 // Khop JobRequest o backend - dung cho ca PUT /hr/jobs/{id} lan phan "job" cua JobCreateRequest.

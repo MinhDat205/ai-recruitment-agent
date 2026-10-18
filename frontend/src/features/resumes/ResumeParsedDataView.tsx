@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BLIND_REVIEW_TEXT } from '../blindReview/blindReviewLabels'
 import { CareerOverviewSection } from './CareerOverviewSection'
 import type {
   ResumeParsedCertification,
@@ -31,7 +32,12 @@ function formatDateRange(startDate: string | null, endDate: string | null): stri
   return startDate ?? endDate ?? null
 }
 
-function ContactSection({ contact }: { contact: ResumeParsedContact | null }) {
+// FR-H16 UI.md 4d - contactMasked: lien he bi AN (backend tra contact = null, R-V4) khac voi "khong trich xuat duoc" -
+// dung cau rieng. Phia ung vien khong truyen -> hanh vi khong doi.
+function ContactSection({ contact, contactMasked }: { contact: ResumeParsedContact | null; contactMasked: boolean }) {
+  if (contactMasked) {
+    return <EmptyState message={BLIND_REVIEW_TEXT.contactMasked} />
+  }
   if (!contact) {
     return <EmptyState message="Không trích xuất được thông tin liên hệ" />
   }
@@ -178,12 +184,18 @@ export function ResumeParsedDataSkeleton() {
 // FR-H09 R-C5 - phan than hien thi CV da trich xuat, tach NGUYEN VAN tu ResumeParsedDataDialog
 // (FR-C04/C05) va nhan data tu ngoai: hop thoai phia ung vien truyen tu useResumeParsedDataQuery,
 // trang ho so don phia HR truyen tu hook goi E2. Component KHONG tu goi API. Giao dien giu nguyen.
-export function ResumeParsedDataView({ data }: { data: ResumeParsedDataResponse }) {
+export function ResumeParsedDataView({
+  data,
+  contactMasked = false,
+}: {
+  data: ResumeParsedDataResponse
+  contactMasked?: boolean
+}) {
   return (
     <div className="flex flex-col gap-4">
       <CareerOverviewSection data={data} />
       <Section title="Thông tin liên hệ">
-        <ContactSection contact={data.data.contact} />
+        <ContactSection contact={data.data.contact} contactMasked={contactMasked} />
       </Section>
       <Section title="Học vấn">
         <EducationSection education={data.data.education} />
