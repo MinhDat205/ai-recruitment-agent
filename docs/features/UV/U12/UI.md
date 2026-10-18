@@ -94,7 +94,7 @@ Sửa `UI_GUIDE.md` mục 7 dòng `/candidate/profile` ở đợt cuối (REQUIR
   `aria-label`. Xoá mục không hỏi xác nhận (khôi phục bằng cách nhập lại — form chưa lưu).
 - Khối danh sách rỗng hiện câu rỗng của khối (mục 7) + nút "Thêm …".
 
-### 4b. Hộp thoại xem trước (≥ `md`)
+### 4b. Hộp thoại xem trước (≥ 600px — mục 8)
 
 ```
 ┌ Dialog (max-w-4xl, cao 85vh) ─────────────────────────────────────────────┐

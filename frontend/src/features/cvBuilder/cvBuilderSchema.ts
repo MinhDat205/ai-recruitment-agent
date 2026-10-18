@@ -7,7 +7,7 @@ import {
   EXCLUDED_INDUSTRY_CODE,
   type CvBuilderBlock,
 } from './cvBuilderLabels'
-import type { CvBuilderForm, CvBuilderRequest } from './types'
+import type { CvBuilderDocumentResponse, CvBuilderForm, CvBuilderRequest } from './types'
 
 // FR-U12 - gia tri form tren trinh duyet: moi o chu la string ('' = trong), GPA la chuoi go vao, "Dang lam" la boolean.
 // Chuan hoa R-F3; NFC chi dung khi dem do dai (L56), du lieu gui di khong NFC (backend chuan hoa). Kiem R-F5-R-F10 voi DUNG cau loi backend (REQUIREMENT 4.4, R-F11). KHONG
@@ -111,6 +111,54 @@ export const EMPTY_CONTENT: CvBuilderContentValues = {
 
 // UI.md muc 6 "Rong" - mau CLASSIC chon san.
 export const EMPTY_FORM_VALUES: CvBuilderFormValues = { template: 'CLASSIC', versionLabel: '', ...EMPTY_CONTENT }
+
+// L59 - che do sua (UI.md muc 4c): form khoi tao bang form + template + versionLabel cua B2. Form da luu da qua kiem B1
+// nen chep nguyen van; null -> '' (o trong), GPA so -> chuoi, "Dang lam" null -> false.
+export function formValuesFromDocument(document: CvBuilderDocumentResponse): CvBuilderFormValues {
+  const { form } = document
+  const contact = form.contact
+  return {
+    template: document.template,
+    versionLabel: document.versionLabel ?? '',
+    contact: {
+      fullName: contact?.fullName ?? '',
+      email: contact?.email ?? '',
+      phone: contact?.phone ?? '',
+      address: contact?.address ?? '',
+      linkedin: contact?.linkedin ?? '',
+    },
+    currentTitle: form.currentTitle ?? '',
+    locationText: form.locationText ?? '',
+    industryCode: form.industryCode ?? '',
+    education: (form.education ?? []).map((e) => ({
+      school: e.school ?? '',
+      degree: e.degree ?? '',
+      major: e.major ?? '',
+      startDate: e.startDate ?? '',
+      endDate: e.endDate ?? '',
+      gpa: e.gpa != null ? String(e.gpa) : '',
+    })),
+    experience: (form.experience ?? []).map((e) => ({
+      company: e.company ?? '',
+      title: e.title ?? '',
+      startDate: e.startDate ?? '',
+      endDate: e.endDate ?? '',
+      current: e.current ?? false,
+      description: e.description ?? '',
+    })),
+    skills: [...(form.skills ?? [])],
+    certifications: (form.certifications ?? []).map((c) => ({
+      name: c.name ?? '',
+      issuer: c.issuer ?? '',
+      issueDate: c.issueDate ?? '',
+    })),
+    projects: (form.projects ?? []).map((p) => ({
+      name: p.name ?? '',
+      description: p.description ?? '',
+      technologies: [...(p.technologies ?? [])],
+    })),
+  }
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // R-F3 (tru buoc 1 NFC). Buoc 5 strip theo String.strip() cua Java (Character.isWhitespace) - sau buoc 3 moi khoang

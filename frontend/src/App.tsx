@@ -82,6 +82,8 @@ function App() {
             <Route path="/candidate/notifications" element={<CandidateNotificationsPage />} />
             {/* FR-U12 - tao CV; dat TRUOC cac route /candidate/resumes/:id/... (UI.md muc 2, 5b). */}
             <Route path="/candidate/resumes/new" element={<CvBuilderPage />} />
+            {/* FR-U12 - sua CV dung bang cong cu (luu thanh CV moi - R-W6). */}
+            <Route path="/candidate/resumes/:id/edit" element={<CvBuilderPage />} />
             <Route
               path="/candidate/resumes/:id/improvement-suggestions"
               element={<CvImprovementSuggestionsPage />}

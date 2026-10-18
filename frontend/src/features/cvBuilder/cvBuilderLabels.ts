@@ -177,6 +177,8 @@ export const CV_BUILDER_TEXT = {
   previewDownload: 'Tải bản xem trước',
   previewClose: 'Đóng',
   previewOpenCompact: 'Bản xem trước đã được tải về máy.',
+  // L57 - loi B3 khong co {error, message} (mat mang, than loi khong phai JSON).
+  previewFailedFallback: 'Chưa tạo được bản xem trước, vui lòng thử lại.',
   saveCreate: 'Lưu CV',
   saveEdit: 'Lưu thành CV mới',
   saving: 'Đang lưu…',
@@ -184,6 +186,8 @@ export const CV_BUILDER_TEXT = {
   savedEdit: 'Đã lưu thành một CV mới. CV cũ vẫn được giữ nguyên.',
   saveFailedFallback: 'Chưa lưu được CV, vui lòng thử lại.',
   resumeNotFound: 'Không tìm thấy CV này.',
+  // L58 - B2 loi ngoai 400/403/404/409 (mat mang, 5xx).
+  editLoadFailed: 'Không tải được CV này, vui lòng thử lại.',
 } as const
 
 // Khoa itemCounter: "{n}/{max} mục".

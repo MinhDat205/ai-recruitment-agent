@@ -46,6 +46,22 @@ export async function previewBuilderResume(request: CvBuilderRequest): Promise<B
   }
 }
 
+// R-B3 - ten file cua ban xem truoc (cung Content-Disposition cua backend).
+const PREVIEW_FILE_NAME = 'xem-truoc-cv.pdf'
+
+// L60 - tai ban xem truoc ve may (nut "Tải bản xem trước" cua PreviewDialog va nhanh compact < 600px - UI.md muc 8).
+// Khuon tai file co san (ResumeList.handleDownload): URL tam, bam <a download>, thu hoi ngay.
+export function downloadPreviewPdf(blob: Blob): void {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = PREVIEW_FILE_NAME
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 // B4 - goi y dien dat mot doan (K3). Response chi co doan goi y, backend khong luu gi (R-A5).
 export async function rephraseDescription(request: CvRephraseRequest): Promise<CvRephraseResponse> {
   const response = await http.post<CvRephraseResponse>('/candidates/cv-builder/rephrase', request, {

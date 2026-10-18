@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
-import { AlertCircle, Info } from 'lucide-react'
+import { AlertCircle, Eye, Info } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   Controller,
@@ -35,6 +35,7 @@ import { useCatalogsQuery } from '../catalog/queries'
 import type { CatalogItem } from '../catalog/types'
 import { getParsedResumeRequest } from '../resumes/api'
 import { useResumesQuery } from '../resumes/queries'
+import { downloadPreviewPdf, previewBuilderResume } from './api'
 import {
   CV_BUILDER_FIELD_LABELS,
   CV_BUILDER_LIMITS,
@@ -57,9 +58,11 @@ import {
 import { ListSection } from './ListSection'
 import { MonthField } from './MonthField'
 import { prefillFromParsed } from './prefillFromParsed'
+import { PreviewDialog } from './PreviewDialog'
 import { RephraseAssist, type RephraseLock } from './RephraseAssist'
 import { TemplatePicker } from './TemplatePicker'
 import type { CvBuilderRequest } from './types'
+import { useLeaveGuard } from './useLeaveGuard'
 
 export type CvBuilderMode = 'create' | 'edit'
 
@@ -68,6 +71,8 @@ const PROFILE_PATH = '/candidate/profile'
 const CONCURRENT_CREATE_ERROR = 'CV_BUILDER_CONCURRENT_CREATE'
 // Lua chon "Khong chon nganh" cua Select (Radix Select khong cho SelectItem value rong).
 const NO_INDUSTRY = '__none__'
+// UI.md muc 8 - tu 600px (medium tro len) moi mo hop thoai xem truoc; compact tai file ve may.
+const PREVIEW_DIALOG_QUERY = '(min-width: 600px)'
 
 const F = CV_BUILDER_FIELD_LABELS
 const L = CV_BUILDER_LIMITS
@@ -579,6 +584,12 @@ export function CvBuilderFormView({ mode, initial, onSave }: CvBuilderFormViewPr
   const certifications = useFieldArray({ control, name: 'certifications' })
 
   const [saving, setSaving] = useState(false)
+  // Luu thanh cong -> go canh bao roi trang truoc khi trang dieu huong di (UI.md muc 5a useLeaveGuard).
+  const [saved, setSaved] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null)
+  // Cau previewOpenCompact sau khi tai ban xem truoc ve may (< 600px).
+  const [previewDownloaded, setPreviewDownloaded] = useState(false)
   const [actionError, setActionError] = useState<ActionError | null>(null)
   // Tang moi lan can cuon toi + focus khoi loi cua thanh thao tac (sau lan render hien loi).
   const [actionFocusSeq, setActionFocusSeq] = useState(0)
@@ -601,19 +612,44 @@ export function CvBuilderFormView({ mode, initial, onSave }: CvBuilderFormViewPr
     block?.focus()
   }, [actionFocusSeq])
 
+  // L55 - form vua dien san (reset keepDefaultValues) tinh la da sua.
+  useLeaveGuard(formState.isDirty && !saved)
+
+  function showActionError(err: unknown, fallback: string) {
+    // Loi server (400/409/500): cau message cua backend, khong xoa du lieu form (UI.md muc 6).
+    setActionError({ message: extractErrorMessage(err, fallback), code: extractErrorCode(err) })
+    setActionFocusSeq((seq) => seq + 1)
+  }
+
   async function onValid(request: CvBuilderRequest) {
     setSaving(true)
     try {
       await onSave(request)
+      setSaved(true)
     } catch (err) {
-      // Loi server (400/409/500): cau message cua backend, khong xoa du lieu form (UI.md muc 6).
-      setActionError({
-        message: extractErrorMessage(err, CV_BUILDER_TEXT.saveFailedFallback),
-        code: extractErrorCode(err),
-      })
-      setActionFocusSeq((seq) => seq + 1)
+      showActionError(err, CV_BUILDER_TEXT.saveFailedFallback)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // R-B3 - chi goi B3 khi nguoi dung bam "Xem trước" (khong tu goi khi go). Loi B3: api.ts doc Blob ra {error, message}
+  // (L13) -> hien o thanh thao tac nhu loi luu.
+  async function onPreviewValid(request: CvBuilderRequest) {
+    setPreviewing(true)
+    try {
+      const blob = await previewBuilderResume(request)
+      // Trinh duyet dien thoai thuong khong hien PDF trong iframe -> tai file ve may (UI.md muc 8).
+      if (window.matchMedia(PREVIEW_DIALOG_QUERY).matches) {
+        setPreviewBlob(blob)
+      } else {
+        downloadPreviewPdf(blob)
+        setPreviewDownloaded(true)
+      }
+    } catch (err) {
+      showActionError(err, CV_BUILDER_TEXT.previewFailedFallback)
+    } finally {
+      setPreviewing(false)
     }
   }
 
@@ -627,7 +663,18 @@ export function CvBuilderFormView({ mode, initial, onSave }: CvBuilderFormViewPr
 
   function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
     setActionError(null)
+    setPreviewDownloaded(false)
     void handleSubmit(onValid, onInvalid)(event)
+  }
+
+  // Cung schema nhu "Lưu": sai -> loi duoi o, focus o loi dau tien, khong goi API (UI.md muc 6, 7).
+  function handlePreview() {
+    if (previewing || saving) {
+      return
+    }
+    setActionError(null)
+    setPreviewDownloaded(false)
+    void handleSubmit(onPreviewValid, onInvalid)()
   }
 
   // R-E4 - mau va ten phien ban giu nhu dang chon; keepDefaultValues de form dien san van tinh la "da sua".
@@ -885,13 +932,30 @@ export function CvBuilderFormView({ mode, initial, onSave }: CvBuilderFormViewPr
               )}
             </div>
           )}
+          {!actionMessage && previewDownloaded && (
+            <p role="status" className="flex flex-1 items-start gap-1.5 text-sm text-m3-on-surface">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-m3-on-surface-variant" aria-hidden="true" />
+              {CV_BUILDER_TEXT.previewOpenCompact}
+            </p>
+          )}
           <div className="flex flex-col gap-3 sm:ml-auto sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10 w-full sm:w-auto"
+              disabled={previewing || saving}
+              onClick={handlePreview}
+            >
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              {previewing ? CV_BUILDER_TEXT.previewRunning : CV_BUILDER_TEXT.previewButton}
+            </Button>
             <Button type="submit" className="min-h-10 w-full sm:w-auto" disabled={saving}>
               {saving ? CV_BUILDER_TEXT.saving : mode === 'create' ? CV_BUILDER_TEXT.saveCreate : CV_BUILDER_TEXT.saveEdit}
             </Button>
           </div>
         </div>
       </form>
+      <PreviewDialog blob={previewBlob} onClose={() => setPreviewBlob(null)} />
     </FormProvider>
   )
 }
