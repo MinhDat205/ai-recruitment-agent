@@ -3,7 +3,8 @@
 > Trạng thái: ĐÃ DUYỆT 18/10/2026
 >
 > Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
-> 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
+> 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3). Làm rõ trong
+> đợt 3a (19/10/2026): L6 (mục 4.2) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR bật/tắt chế độ ẩn danh cho từng Job. Khi một đơn của Job đó đang ẩn danh, **backend** không trả họ tên,
@@ -277,7 +278,9 @@ Package mới `blindreview/` (thêm vào CLAUDE.md §3 ở đợt cuối):
 | `dto/BlindReviewRequest.java`, `dto/BlindReviewResponse.java` | Mục 4.4 |
 
 Thêm (L4): `scoring/ScoringAuditTextFilter.java` (interface, một method `UnaryOperator<String> forApplication(UUID
-applicationId)`), `blindreview/BlindReviewScoringAuditFilter.java` (cài đặt bằng resolver + bộ che).
+applicationId)`), `blindreview/BlindReviewScoringAuditFilter.java` (cài đặt bằng resolver + bộ che). Thêm (L6):
+`jobapplication/ScoreTextMasking.java` (bản sao đã che của `CriterionScoreItem`/`Explanation`, dùng chung cho danh sách
+theo Job, E3/E4).
 
 Sửa file có sẵn (điểm che — người code đối chiếu lại ở Plan Mode): `Job.java`, `JobRepository.java`,
 `JobOwnerResponse.java` (+ nơi dựng), `JobOwnerService` (mở `loadOwned` — L3); `ApplicationOwnerService`, `ApplicationHrDetailService`, `ApplicationSearchService`,
@@ -674,3 +677,10 @@ a25 (kết luận không đổi). Lệnh 7.2 khớp controller/DTO thật, khôn
   nhưng không hiển thị; không truy vấn, sắp xếp, scheduler embedding (`job/JobEmbedding*`), dashboard, tìm việc hay gợi ý
   việc làm nào đọc `jobs.updated_at`. Chốt: chấp nhận, không sửa trigger. Thứ tự kiểm của B1: body (`enabled` null →
   400) trước quyền sở hữu (403/404), theo khuôn H15 R-P2 — HR công ty khác gửi `{}` nhận 400.
+
+### 11.2 Làm rõ trong đợt 3a (duyệt 19/10/2026)
+
+- **L6 (mục 4.2) — helper che kết quả chấm.** Thêm `jobapplication/ScoreTextMasking.java`: dựng bản sao đã che của
+  `ApplicationHrListItemResponse.CriterionScoreItem` (`reasoning`, `evidence[].quote`) và `Explanation` (`summary`,
+  `strengths[].point`, `weaknesses[].point`); tên tiêu chí, `section`, `metCriteria`/`missingCriteria` giữ nguyên
+  (R-M6). Dùng chung cho danh sách theo Job và E3/E4; điểm che khác dùng lại nếu cùng kiểu dữ liệu, không nhân bản logic.
