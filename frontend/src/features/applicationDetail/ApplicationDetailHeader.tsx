@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { formatDateTimeVi } from '../../lib/date'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
+import { BLIND_REVIEW_TEXT } from '../blindReview/blindReviewLabels'
 import { SaveToTalentPoolDialog } from '../talentPools/SaveToTalentPoolDialog'
 import { TALENT_POOL_TEXT } from '../talentPools/talentPoolLabels'
 import { ApplicationActionBar } from './ApplicationActionBar'
@@ -17,6 +18,10 @@ import type { ApplicationHrDetail } from './types'
 // FR-H15 UI.md 4d - nut "Luu vao kho" (Outlined) o cum ben phai, SAU thanh thao tac H07, cach bang gap-2, KHONG nam
 // trong ApplicationActionBar (khong doi thu tu/kieu nut H07). Nut luon hien; hop thoai tu giai thich khi don khong co
 // dong y. Luu xong: cau "Da cap nhat kho ung vien." canh nut (aria-live), focus ve nut.
+// FR-H16 UI.md 4c - don dang an danh: badge trung tinh "An danh" canh badge trang thai; "Luu vao kho" khoa (disabled +
+// aria-describedby cau ly do), khong mo hop thoai. Backend van chan (R-K2) - nut khoa chi de ro ly do.
+const SAVE_TO_POOL_REASON_ID = 'save-to-pool-blocked-reason'
+
 export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetail }) {
   // UI.md muc 9 - doi trang thai thanh cong thi dat focus ve badge: nut da mo hop thoai co the bien mat
   // khi trang thai doi, Radix khong tra focus ve dau duoc. Bo qua lan render dau.
@@ -50,6 +55,11 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
             <span ref={badgeRef} tabIndex={-1} className="rounded-(--radius-badge) outline-none focus-visible:ring-2 focus-visible:ring-m3-primary">
               <ApplicationStatusBadge status={detail.status} />
             </span>
+            {detail.identityMasked && (
+              <span className="inline-flex items-center rounded-(--radius-badge) border border-m3-outline-variant bg-m3-surface-container px-2 py-1 text-xs font-medium text-m3-on-surface-variant">
+                {BLIND_REVIEW_TEXT.badge}
+              </span>
+            )}
             <span className="text-sm text-m3-on-surface-variant">Nộp ngày {formatDateTimeVi(detail.appliedAt)}</span>
           </div>
         </div>
@@ -61,6 +71,8 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
               type="button"
               variant="outline"
               className="w-full sm:w-auto"
+              disabled={detail.identityMasked}
+              aria-describedby={detail.identityMasked ? SAVE_TO_POOL_REASON_ID : undefined}
               onClick={() => {
                 setSaved(false)
                 setSaveOpen(true)
@@ -69,6 +81,11 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
               <Archive aria-hidden="true" />
               {TALENT_POOL_TEXT.saveToPool}
             </Button>
+            {detail.identityMasked && (
+              <p id={SAVE_TO_POOL_REASON_ID} className="max-w-xs text-sm text-m3-on-surface-variant">
+                {BLIND_REVIEW_TEXT.saveToPoolBlocked}
+              </p>
+            )}
             {/* Vung aria-live luon co trong DOM de trinh doc man hinh doc duoc khi noi dung xuat hien. */}
             <p aria-live="polite" className="text-sm text-m3-on-surface-variant">
               {saved ? TALENT_POOL_TEXT.saved : ''}

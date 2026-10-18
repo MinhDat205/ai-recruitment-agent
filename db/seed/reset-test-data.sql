@@ -114,6 +114,8 @@ DELETE FROM resume_parsed_data         WHERE resume_id IN (SELECT id FROM t_resu
 DELETE FROM resumes                    WHERE id IN (SELECT id FROM t_resumes);
 
 -- 5. Tin tuyen dung cua cong ty test va con cua no
+-- FR-H16 (V19): luu vet bat/tat an danh. changed_by ON DELETE RESTRICT chan xoa user o buoc 6 neu con dong.
+DELETE FROM job_blind_review_changes WHERE job_id IN (SELECT id FROM t_jobs);
 DELETE FROM job_embeddings      WHERE job_id IN (SELECT id FROM t_jobs);
 DELETE FROM interview_templates WHERE job_id IN (SELECT id FROM t_jobs);
 DELETE FROM rubric_criteria     WHERE rubric_id IN (SELECT id FROM rubrics WHERE job_id IN (SELECT id FROM t_jobs));

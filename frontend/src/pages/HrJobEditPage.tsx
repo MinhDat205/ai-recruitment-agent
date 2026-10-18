@@ -27,6 +27,7 @@ import {
   useUpdateHrJobMutation,
   useUpdateInterviewTemplateMutation,
 } from '../features/jobs/ownerQueries'
+import { BlindReviewCard } from '../features/blindReview/BlindReviewCard'
 import type { InterviewTemplateOwnerRequest, JobOwnerRequest } from '../features/jobs/ownerTypes'
 
 const SAVE_SUCCESS_TIMEOUT_MS = 4000
@@ -174,6 +175,7 @@ function JobInfoTab({ jobId }: { jobId: string }) {
   }
 
   return (
+    <>
     <form onSubmit={onSubmit} noValidate>
       <CardContent className="flex flex-col gap-4 pt-4">
         {/* FR-C05 UI.md 4b / R-J6: tin dang mo nhung chua thoa R-J3 (du lieu cu truoc danh muc). Tinh tu
@@ -340,6 +342,9 @@ function JobInfoTab({ jobId }: { jobId: string }) {
         )}
       </CardFooter>
     </form>
+    {/* FR-H16 UI.md 4a - khoi rieng NGOAI <form>: khong submit form tin, khong lam form "dirty". */}
+    <BlindReviewCard jobId={jobId} enabled={job.blindReviewEnabled} />
+    </>
   )
 }
 

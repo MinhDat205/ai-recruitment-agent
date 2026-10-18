@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { AlertCircle, Download, FileText } from 'lucide-react'
+import { AlertCircle, Download, FileText, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { extractErrorMessage } from '../../lib/httpError'
+import { BLIND_REVIEW_TEXT, downloadErrorMessage } from '../blindReview/blindReviewLabels'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
 import { ResumeParsedDataSkeleton, ResumeParsedDataView } from '../resumes/ResumeParsedDataView'
 import { downloadApplicationResume } from '../scoring/downloadApplicationResume'
@@ -23,7 +23,7 @@ function SubmittedResumeSection({ detail }: { detail: ApplicationHrDetail }) {
     try {
       await downloadApplicationResume(detail.id)
     } catch (err) {
-      setDownloadError(extractErrorMessage(err, 'Tải CV gốc thất bại, vui lòng thử lại.'))
+      setDownloadError(downloadErrorMessage(err, 'Tải CV gốc thất bại, vui lòng thử lại.'))
     } finally {
       setDownloading(false)
     }
@@ -31,6 +31,23 @@ function SubmittedResumeSection({ detail }: { detail: ApplicationHrDetail }) {
 
   // R-T3b - null hoac rong thi KHONG hien tieu de "Thư giới thiệu". Khong trim (R-D8).
   const hasCoverLetter = detail.coverLetter !== null && detail.coverLetter !== ''
+
+  // FR-H16 UI.md 4d - don dang an danh: khoi thong tin trung tinh; khong nut "Xem CV goc", khong ten tep, khong thu gioi
+  // thieu (backend da tra null - R-V2, R-V3; tai CV tra 409 - R-V1).
+  if (detail.identityMasked) {
+    return (
+      <section className="flex flex-col gap-3">
+        <h2 className="text-m3-title-md text-m3-on-surface">Hồ sơ đã nộp</h2>
+        <div className="flex items-start gap-2 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface-container px-4 py-3 text-sm text-m3-on-surface">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-m3-on-surface-variant" aria-hidden="true" />
+          <p className="min-w-0 break-words">{BLIND_REVIEW_TEXT.submittedResumeNotice}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ParseStatusBadge status={detail.resumeParseStatus} />
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="flex flex-col gap-3">
@@ -87,7 +104,7 @@ function ParsedResumeSection({ detail }: { detail: ApplicationHrDetail }) {
   } else if (!parsedQuery.data) {
     content = <TabLoadError onRetry={() => parsedQuery.refetch()} />
   } else {
-    content = <ResumeParsedDataView data={parsedQuery.data} />
+    content = <ResumeParsedDataView data={parsedQuery.data} contactMasked={detail.identityMasked} />
   }
 
   return (

@@ -1,5 +1,9 @@
 package com.recruitment.comparison;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
+import com.recruitment.blindreview.IdentityMaskSource;
+import com.recruitment.blindreview.IdentityMasker;
 import com.recruitment.common.exception.CompareApplicationNotScoredException;
 import com.recruitment.common.exception.InvalidCompareSelectionException;
 import com.recruitment.comparison.dto.ApplicationComparisonResponse;
@@ -20,6 +24,7 @@ import com.recruitment.comparison.dto.ApplicationComparisonResponse.ScreeningRow
 import com.recruitment.job.Job;
 import com.recruitment.jobapplication.ApplicationComparisonSource;
 import com.recruitment.jobapplication.ApplicationOwnerService;
+import com.recruitment.jobapplication.ScoreTextMasking;
 import com.recruitment.jobapplication.dto.ApplicationHrListItemResponse;
 import com.recruitment.resume.ExperienceCalculator;
 import com.recruitment.resume.ResumeParsedData;
@@ -41,9 +46,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.springframework.stereotype.Service;
 
 // FR-H14 C1 - DIEM DUNG DTO DUY NHAT cua bang so sanh (R-B1): FR-H16 che thong tin nhan than tai CHINH method compare.
@@ -57,14 +64,20 @@ public class ApplicationComparisonService {
     private final ApplicationOwnerService applicationOwnerService;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
     private final ApplicationScreeningReader applicationScreeningReader;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
 
     public ApplicationComparisonService(
             ApplicationOwnerService applicationOwnerService,
             ResumeParsedDataRepository resumeParsedDataRepository,
-            ApplicationScreeningReader applicationScreeningReader) {
+            ApplicationScreeningReader applicationScreeningReader,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource) {
         this.applicationOwnerService = applicationOwnerService;
         this.resumeParsedDataRepository = resumeParsedDataRepository;
         this.applicationScreeningReader = applicationScreeningReader;
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
     }
 
     public ApplicationComparisonResponse compare(UUID ownerId, UUID jobId, String idsParam) {
@@ -77,13 +90,25 @@ public class ApplicationComparisonService {
         if (sourceById.size() != ids.size()) {
             throw InvalidCompareSelectionException.notInJob();
         }
-        List<ApplicationComparisonSource> sources = ids.stream().map(sourceById::get).toList();   // R-O1
-        if (sources.stream().map(ApplicationComparisonSource::recruitmentCycle).distinct().count() > 1) {
+        List<ApplicationComparisonSource> unmaskedSources = ids.stream().map(sourceById::get).toList();   // R-O1
+        if (unmaskedSources.stream().map(ApplicationComparisonSource::recruitmentCycle).distinct().count() > 1) {
             throw InvalidCompareSelectionException.differentCycles();                               // R-S4
         }
-        if (sources.stream().anyMatch(source -> source.scoringRunId() == null)) {
+        if (unmaskedSources.stream().anyMatch(source -> source.scoringRunId() == null)) {
             throw new CompareApplicationNotScoredException();                                       // R-S5
         }
+
+        // FR-H16 (H14 R-B1 - diem che duy nhat cua bang so sanh): moi COT xet theo don cua no (R-S1). Mot cau co an danh +
+        // hai cau gia tri danh tinh cho ca nhom (khong N+1). Che SAU khi da co tong diem/hang (R-A2): ten -> nhan, chuoi
+        // cham diem qua ScoreTextMasking (cung kieu voi danh sach theo Job, L6); ho so tu CV va o sang loc SHORT_TEXT che
+        // theo cot ben duoi. maskers.get(id) == null <=> cot khong an danh.
+        Set<UUID> maskedIds = blindReviewResolver.maskedAmong(ids);
+        Map<UUID, IdentityMasker> maskers = identityMaskSource.load(maskedIds);
+        List<IdentityMasker> maskerPerColumn =
+                unmaskedSources.stream().map(source -> maskers.get(source.applicationId())).toList();
+        List<ApplicationComparisonSource> sources = unmaskedSources.stream()
+                .map(source -> masked(source, maskers.get(source.applicationId())))
+                .toList();
 
         Map<UUID, ResumeParsedData> parsedByResumeId = resumeParsedDataRepository
                 .findByResumeIdIn(sources.stream().map(ApplicationComparisonSource::resumeId).distinct().toList())
@@ -114,9 +139,40 @@ public class ApplicationComparisonService {
                 new IntRow(ranks, valuesDiffer(ranks)),
                 criteria,
                 new ExperienceRow(experiences, valuesDiffer(experiences.stream().map(Experience::months).toList())),
-                parsedPerColumn.stream().map(ApplicationComparisonService::toProfile).toList(),
+                IntStream.range(0, sources.size())
+                        .mapToObj(column -> toProfile(parsedPerColumn.get(column), maskerPerColumn.get(column)))
+                        .toList(),
                 sources.stream().map(ApplicationComparisonService::toExplanation).toList(),
-                buildScreening(screeningPerColumn));
+                buildScreening(screeningPerColumn, maskerPerColumn));
+    }
+
+    // FR-H16 - ban sao cua nguon mot cot khi don dang an danh; diem, hang, trang thai giu nguyen.
+    private static ApplicationComparisonSource masked(ApplicationComparisonSource source, IdentityMasker masker) {
+        if (masker == null) {
+            return source;
+        }
+        return new ApplicationComparisonSource(
+                source.applicationId(),
+                CandidateAlias.of(source.applicationId()),
+                source.status(),
+                source.appliedAt(),
+                source.resumeId(),
+                source.recruitmentCycle(),
+                source.screeningCapturedAt(),
+                source.scoringRunId(),
+                source.scoredAt(),
+                source.totalScore(),
+                source.rank(),
+                source.latestRunStatus(),
+                ScoreTextMasking.criterionScores(source.criterionScores(), masker),
+                source.rubricCriteria(),
+                source.explanationStatus(),
+                ScoreTextMasking.explanation(source.explanation(), masker));
+    }
+
+    // Cot khong an danh (masker null) giu nguyen van.
+    private static String mask(IdentityMasker masker, String text) {
+        return masker == null ? text : masker.mask(text);
     }
 
     private static Column toColumn(ApplicationComparisonSource source) {
@@ -196,17 +252,23 @@ public class ApplicationComparisonService {
         return new Experience(months, ExperienceCalculator.toYears(months));
     }
 
-    // R-D6, R-D7, R-D11: chuoi nguyen van CV, dung thu tu; hoc van khong co diem trung binh [Q10].
-    private static ProfileCell toProfile(ResumeParsedData parsed) {
+    // R-D6, R-D7, R-D11: chuoi nguyen van CV, dung thu tu; hoc van khong co diem trung binh [Q10]. FR-H16 R-M4: cot dang
+    // an danh -> moi chuoi ky nang/hoc van qua bo che.
+    private static ProfileCell toProfile(ResumeParsedData parsed, IdentityMasker masker) {
         if (parsed == null || parsed.getData() == null) {
             return new ProfileCell(false, List.of(), List.of());
         }
         ResumeParsedPayload data = parsed.getData();
         List<EducationItem> education = data.education().stream()
                 .map(item -> new EducationItem(
-                        item.degree(), item.major(), item.school(), item.startDate(), item.endDate()))
+                        mask(masker, item.degree()),
+                        mask(masker, item.major()),
+                        mask(masker, item.school()),
+                        mask(masker, item.startDate()),
+                        mask(masker, item.endDate())))
                 .toList();
-        return new ProfileCell(true, data.skills(), education);
+        List<String> skills = masker == null ? data.skills() : data.skills().stream().map(masker::mask).toList();
+        return new ProfileCell(true, skills, education);
     }
 
     // R-D8, R-W4: chi tom tat + diem manh/yeu cua CHINH luot DONE; khong hai danh sach tieu chi dat/thieu.
@@ -224,7 +286,7 @@ public class ApplicationComparisonService {
     // Mot hang = mot cau hoi GIONG HET nhau giua cac don: cung questionId (khac null) VA cung loai, cau chu, phuong an
     // (R-Q1; required khac nhau khong tach hang). Khac noi dung hoac questionId null -> hang rieng (R-Q2). Khong ghep
     // theo display_order. Thu tu hang: display_order cot 1, hang chi co o cot sau them vao cuoi (R-Q3).
-    private static Screening buildScreening(List<ScreeningBundle> bundles) {
+    private static Screening buildScreening(List<ScreeningBundle> bundles, List<IdentityMasker> maskerPerColumn) {
         int columnCount = bundles.size();
         Map<Object, ScreeningRowBuilder> rowsByKey = new LinkedHashMap<>();
         for (int column = 0; column < columnCount; column++) {
@@ -246,7 +308,8 @@ public class ApplicationComparisonService {
         for (ScreeningRowBuilder builder : rowsByKey.values()) {
             List<ScreeningCell> cells = new ArrayList<>(columnCount);
             for (int column = 0; column < columnCount; column++) {
-                cells.add(toScreeningCell(bundles.get(column).state(), builder.answers[column]));
+                cells.add(toScreeningCell(
+                        bundles.get(column).state(), builder.answers[column], maskerPerColumn.get(column)));
             }
             // R-W2: SHORT_TEXT (hang van ban) luon false; YES_NO/SINGLE_CHOICE so cau tra loi, moi trang thai khac
             // ANSWERED la mot gia tri rieng.
@@ -263,7 +326,10 @@ public class ApplicationComparisonService {
 
     // R-Q4: NOT_CAPTURED/NO_QUESTIONS theo trang thai don; CAPTURED khong co hang do -> NOT_ASKED; co hang, khong tra loi
     // -> NOT_ANSWERED; co tra loi -> nguyen van answer_text / answer_yes_no.
-    private static ScreeningCell toScreeningCell(ScreeningCaptureState state, ScreeningAnswerSnapshot answer) {
+    // FR-H16 R-M4: cot dang an danh -> answer_text cua cau SHORT_TEXT qua bo che; SINGLE_CHOICE (phuong an do HR dat) va
+    // YES_NO giu nguyen (H14 R-B3).
+    private static ScreeningCell toScreeningCell(
+            ScreeningCaptureState state, ScreeningAnswerSnapshot answer, IdentityMasker masker) {
         if (state == ScreeningCaptureState.NOT_CAPTURED) {
             return new ScreeningCell(ScreeningCellState.NOT_CAPTURED, null, null);
         }
@@ -276,7 +342,10 @@ public class ApplicationComparisonService {
         if (answer.answerText() == null && answer.answerYesNo() == null) {
             return new ScreeningCell(ScreeningCellState.NOT_ANSWERED, null, null);
         }
-        return new ScreeningCell(ScreeningCellState.ANSWERED, answer.answerText(), answer.answerYesNo());
+        String answerText = answer.questionType() == ScreeningQuestionType.SHORT_TEXT
+                ? mask(masker, answer.answerText())
+                : answer.answerText();
+        return new ScreeningCell(ScreeningCellState.ANSWERED, answerText, answer.answerYesNo());
     }
 
     private static Object screeningValue(ScreeningCell cell) {

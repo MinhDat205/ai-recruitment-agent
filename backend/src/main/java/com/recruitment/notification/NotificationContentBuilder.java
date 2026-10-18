@@ -49,17 +49,21 @@ final class NotificationContentBuilder {
     // applicationId vao entity_id) nen link tro thang trang ho so don /hr/applications/{id}. Thong
     // bao da co trong DB truoc FR-H09 giu nguyen link cu /hr/jobs (R-N2, khong migration). Chi doi
     // link - tieu de, noi dung giu nguyen (R-N3).
-    static Content forApplicationSubmitted(Job job, String candidateName, UUID applicationId) {
+    //
+    // FR-H16 L1 - candidateLabel la CA CUM chi ung vien do listener dung: "Ung vien " + ho ten (khong an danh) hoac nhan
+    // CandidateAlias "Ung vien #XXXXXXXX" (an danh). Builder KHONG tu ghep tien to "Ung vien " nua - noi dung khi khong an
+    // danh giu nguyen tung chu.
+    static Content forApplicationSubmitted(Job job, String candidateLabel, UUID applicationId) {
         return new Content(
                 "Có đơn ứng tuyển mới",
-                "Ứng viên " + candidateName + " vừa ứng tuyển vị trí \"" + job.getTitle() + "\"",
+                candidateLabel + " vừa ứng tuyển vị trí \"" + job.getTitle() + "\"",
                 hrApplicationLink(applicationId));
     }
 
-    static Content forApplicationWithdrawn(Job job, String candidateName, UUID applicationId) {
+    static Content forApplicationWithdrawn(Job job, String candidateLabel, UUID applicationId) {
         return new Content(
                 "Ứng viên đã rút đơn",
-                "Ứng viên " + candidateName + " đã rút đơn ứng tuyển vị trí \"" + job.getTitle() + "\"",
+                candidateLabel + " đã rút đơn ứng tuyển vị trí \"" + job.getTitle() + "\"",
                 hrApplicationLink(applicationId));
     }
 
@@ -70,12 +74,13 @@ final class NotificationContentBuilder {
                 hrApplicationLink(applicationId));
     }
 
-    // FR-C06 R-N3 - tin nhan moi. recipientIsCandidate: nguoi nhan la ung vien (senderName = TEN CONG TY, khong
-    // phai ho ten HR - R-I2) hay HR (senderName = ho ten ung vien). excerpt null (tin chi co tep) -> cau "da gui
-    // mot tep dinh kem", khong co doan trich. Link mo thang tab "Trao doi" (?tab=messages).
+    // FR-C06 R-N3 - tin nhan moi. recipientIsCandidate: nguoi nhan la ung vien (senderLabel = TEN CONG TY, khong
+    // phai ho ten HR - R-I2) hay HR (senderLabel = ca cum "Ung vien ..." do listener dung - FR-H16 L1). excerpt null
+    // (tin chi co tep) -> cau "da gui mot tep dinh kem", khong co doan trich (FR-H16 L2: giu cau nay ca khi an danh, chi
+    // doi nhan). Link mo thang tab "Trao doi" (?tab=messages).
     static Content forNewMessage(
-            Job job, String senderName, boolean recipientIsCandidate, String excerpt, UUID applicationId) {
-        String subject = recipientIsCandidate ? senderName : "Ứng viên " + senderName;
+            Job job, String senderLabel, boolean recipientIsCandidate, String excerpt, UUID applicationId) {
+        String subject = senderLabel;
         String position = "về đơn ứng tuyển vị trí \"" + job.getTitle() + "\"";
         String body = excerpt != null
                 ? subject + " đã gửi tin nhắn " + position + ": " + excerpt
@@ -89,6 +94,15 @@ final class NotificationContentBuilder {
                         "Tin nhắn mới từ ứng viên",
                         body,
                         hrApplicationLink(applicationId) + MESSAGES_TAB_QUERY);
+    }
+
+    // FR-H16 R-O2 [Q7] - tin co chu cua ung vien gui HR khi don dang an danh: KHONG co doan trich (doan trich da cat san
+    // trong su kien - che chuoi tren do co the lot nua ten, a12). Email dung cung body (a11).
+    static Content forNewMessageWithoutExcerpt(Job job, String candidateLabel, UUID applicationId) {
+        return new Content(
+                "Tin nhắn mới từ ứng viên",
+                candidateLabel + " đã gửi tin nhắn về đơn ứng tuyển vị trí \"" + job.getTitle() + "\"",
+                hrApplicationLink(applicationId) + MESSAGES_TAB_QUERY);
     }
 
     // FR-H12 R-N2, R-N3 - HR gui lai giay moi. body MOT dong, khong chua khung gio (web); emailBody = body + danh sach

@@ -1,5 +1,7 @@
 package com.recruitment.notification;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
@@ -37,6 +39,7 @@ public class NotificationEventListener {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final BlindReviewResolver blindReviewResolver;
     private final String frontendBaseUrl;
 
     public NotificationEventListener(
@@ -44,7 +47,9 @@ public class NotificationEventListener {
             CompanyRepository companyRepository,
             UserRepository userRepository,
             NotificationRepository notificationRepository,
+            BlindReviewResolver blindReviewResolver,
             @Value("${app.frontend-base-url}") String frontendBaseUrl) {
+        this.blindReviewResolver = blindReviewResolver;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
@@ -90,9 +95,8 @@ public class NotificationEventListener {
         try {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
             Company company = companyRepository.findById(job.getCompanyId()).orElseThrow();
-            User candidate = userRepository.findById(event.candidateId()).orElseThrow();
             Content content = NotificationContentBuilder.forApplicationSubmitted(
-                    job, candidate.getFullName(), event.applicationId());
+                    job, candidateLabel(event.applicationId(), event.candidateId()), event.applicationId());
             save(company.getOwnerId(), NotificationType.APPLICATION_SUBMITTED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao don moi: applicationId={}", event.applicationId(), e);
@@ -105,9 +109,8 @@ public class NotificationEventListener {
         try {
             Job job = jobRepository.findById(event.jobId()).orElseThrow();
             Company company = companyRepository.findById(job.getCompanyId()).orElseThrow();
-            User candidate = userRepository.findById(event.candidateId()).orElseThrow();
             Content content = NotificationContentBuilder.forApplicationWithdrawn(
-                    job, candidate.getFullName(), event.applicationId());
+                    job, candidateLabel(event.applicationId(), event.candidateId()), event.applicationId());
             save(company.getOwnerId(), NotificationType.APPLICATION_WITHDRAWN, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao rut don: applicationId={}", event.applicationId(), e);
@@ -169,10 +172,16 @@ public class NotificationEventListener {
                 content = NotificationContentBuilder.forNewMessage(
                         job, company.getName(), true, event.excerpt(), event.applicationId());
             } else {
-                User candidate = userRepository.findById(event.candidateId()).orElseThrow();
                 recipientId = company.getOwnerId();
-                content = NotificationContentBuilder.forNewMessage(
-                        job, candidate.getFullName(), false, event.excerpt(), event.applicationId());
+                // FR-H16 R-O1, R-O2 - co an danh xet TAI LUC listener chay (sau commit cua tin). An danh + tin co chu ->
+                // bo doan trich; tin chi co tep -> cau tep dinh kem nhu cu (L2), chi doi nhan.
+                boolean masked = blindReviewResolver.isMasked(event.applicationId());
+                String label = masked
+                        ? CandidateAlias.of(event.applicationId())
+                        : "Ứng viên " + userRepository.findById(event.candidateId()).orElseThrow().getFullName();
+                content = masked && event.excerpt() != null
+                        ? NotificationContentBuilder.forNewMessageWithoutExcerpt(job, label, event.applicationId())
+                        : NotificationContentBuilder.forNewMessage(job, label, false, event.excerpt(), event.applicationId());
             }
             if (notificationRepository.existsByUserIdAndTypeAndEntityIdAndReadFalse(
                     recipientId, NotificationType.NEW_MESSAGE, event.applicationId())) {
@@ -191,6 +200,15 @@ public class NotificationEventListener {
     public void onConversationRead(ConversationReadEvent event) {
         notificationRepository.markReadByUserAndTypeAndEntity(
                 event.userId(), NotificationType.NEW_MESSAGE.name(), event.applicationId());
+    }
+
+    // FR-H16 R-O1, L1 - ca cum chi ung vien trong thong bao gui HR. Co an danh xet TAI LUC listener chay; thong bao da tao
+    // khong bao gio bi sua lai khi bat/tat (R-O3).
+    private String candidateLabel(UUID applicationId, UUID candidateId) {
+        if (blindReviewResolver.isMasked(applicationId)) {
+            return CandidateAlias.of(applicationId);
+        }
+        return "Ứng viên " + userRepository.findById(candidateId).orElseThrow().getFullName();
     }
 
     private void save(UUID userId, NotificationType type, Content content, UUID applicationId) {

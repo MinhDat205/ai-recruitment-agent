@@ -235,7 +235,7 @@ class MessageDraftPromptIntegrationTest extends MessageDraftIntegrationTestSuppo
         // R-I2 - system message BANG DUNG file prompt sau khi dien {format}, khong chua chuoi seed nao. So sau khi chuan hoa
         // xuong dong: trinh render ST cua Spring AI ghi xuong dong bang System.lineSeparator() (CRLF tren Windows), va
         // getFormat() cua BeanOutputConverter cung dung System.lineSeparator() - noi dung khong doi.
-        String template = new ClassPathResource("ai/prompt/message-draft-v1.st").getContentAsString(StandardCharsets.UTF_8);
+        String template = new ClassPathResource("ai/prompt/message-draft-v2.st").getContentAsString(StandardCharsets.UTF_8);
         String expectedSystem =
                 template.replace("{format}", new BeanOutputConverter<>(MessageDraftPayload.class).getFormat());
         String system = systemText(prompt);

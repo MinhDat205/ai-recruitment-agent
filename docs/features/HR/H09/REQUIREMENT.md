@@ -9,6 +9,8 @@
   Phase 2.1b (`refactor/ui-md3-legacy`) đã tick (`docs/ROADMAP.md`).
 - Nhánh: `feat/fr-h09-application-detail`
 - Mở rộng: FR-H07 (chuyển nút quyết định từ Sheet sang trang này), FR-C03 (link thông báo HR).
+- Bị ghi đè bởi FR-H16 (19/10/2026): khi đơn đang ẩn danh, R-V1 (tải CV gốc → 409 `IDENTITY_MASKED`) và R-L (thư giới
+  thiệu không trả) — xem `docs/features/HR/H16/REQUIREMENT.md` mục 3.6 (R-V).
 
 ## 0. Đã đối chiếu code trước khi viết (CLAUDE.md §6)
 

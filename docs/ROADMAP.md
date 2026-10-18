@@ -363,7 +363,7 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       xử lý ở Đợt 6 (`chore/hardening`)**: căn phải các cột số ở cả hai bảng.
   - Phát sinh khi làm F2 (FR-U05, `feat/fr-u05-cv-improve`):
     - `ApplicationHistoryEntryResponse.note` trả cho ứng viên (F3, endpoint `GET
-      /api/candidates/applications/{id}/history`) — hiện an toàn vì cả 4 điểm ghi trong toàn bộ
+      /api/candidates/applications/{id}/history`) — hiện an toàn vì cả 3 điểm ghi trong toàn bộ
       codebase đều truyền `null`, chưa có đường nào cho HR nhập `note` tự do. Khi cho HR nhập note
       phải bỏ field này khỏi DTO hoặc tách DTO riêng cho ứng viên. Chưa có integration test HTTP
       phủ endpoint này. Phát hiện khi khảo sát Plan Mode của F2, không phải lỗi do F2 gây ra.
@@ -1095,7 +1095,39 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   - R-D1 so khớp theo từng `sourceText`: đoạn lồng nhau giữa điều kiện nhận và điều kiện bỏ có thể cắt chữ trong đoạn bị
     bỏ (L28).
   - Việc tài liệu: `docs/features/UV/U15/UI.md:18` vẫn chưa sửa (D7 FR-U12, FR-U13).
-- [ ] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh
+- [x] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh — **HOÀN THÀNH**
+  (19/10/2026, 6 đợt, đợt 3 và 4 tách đôi — xem `docs/walkthrough/fr-h16-blind.md`). HR bật/tắt ẩn danh cho từng Job
+  (B1 `PATCH /api/hr/jobs/{id}/blind-review`, khối riêng ở tab "Thông tin tin tuyển dụng"). Đơn của Job đang bật mà
+  chưa từng `INTERVIEW_INVITED` thì ẩn danh — trạng thái tính lúc đọc bằng một câu SQL (`BlindReviewResolver`), không lưu
+  cờ theo đơn; gửi giấy mời là tự bỏ ẩn danh. Khi ẩn danh, backend trả nhãn "Ứng viên #XXXXXXXX" thay họ tên, không trả
+  liên hệ, tên tệp, thư giới thiệu; chặn tải CV gốc, tải tệp ứng viên gửi, thêm vào kho (409 `IDENTITY_MASKED`); các
+  văn bản (evidence, giải thích, CV đã trích xuất, sàng lọc `SHORT_TEXT`, tin nhắn, hộp thư, trả lời C08, bản nháp C07)
+  được thay đúng các giá trị danh tính đã biết bằng "[đã ẩn]" (`IdentityMasker`). Áp lên danh sách theo Job, hồ sơ đơn
+  E1–E4, `/hr/candidates`, audit (qua interface `scoring/ScoringAuditTextFilter` — L4), so sánh, kho, tin nhắn, thông
+  báo/email gửi HR, preview giấy mời (giữ `{{candidateName}}`, thay lúc gửi), C07 (prompt `message-draft-v2`), C08 (che
+  sau K2). Không gọi AI mới; đầu vào chấm điểm, điểm và hạng không đổi (T16); phía ứng viên không đổi (T17). Migration
+  V19 (`jobs.blind_review_enabled`, bảng lưu vết `job_blind_review_changes`). Full suite 2080/2080 (`./mvnw test`), H16
+  thêm 125 test; build + lint sạch; kiểm tĩnh 7.3 đạt (7 lệnh 0 dòng, cài đặt `ScoringAuditTextFilter` duy nhất ở
+  `blindreview/`); khối HTTP 7.2 khớp 10/10 nhóm; soát tay 7.4 đạt toàn bộ (19/10/2026; so sánh không soát tay được vì
+  J1 chưa có đơn chấm xong — phủ bằng T9); `srs-guard` sạch. Làm rõ L1–L11. Giới hạn đã biết:
+  - Bộ che chỉ thay **đúng** giá trị nguồn (họ tên/email/SĐT tài khoản, `contact` của CV): không bắt tên không dấu, chỉ
+    họ hoặc chỉ tên, tên đảo thứ tự, SĐT viết khác dạng, email/liên kết khác, tên người thân, danh tính suy ra từ nội dung.
+    Giá trị dưới 3 ký tự không che. `contact` trích xuất sai (C04) thì che sai hoặc thiếu.
+  - C07: AI có thể viết tên lấy từ tin nhắn dưới dạng khác giá trị nguồn — bộ che không bắt được.
+  - Thông báo tạo trước khi bật còn họ tên; thông báo tạo lúc ẩn danh giữ nhãn sau khi bỏ ẩn danh (R-O3).
+  - Nhãn lấy 8 hex cuối của id đơn, không bảo đảm duy nhất tuyệt đối (Q8).
+  - Tắt rồi bật lại không xoá được những gì HR đã thấy; chỉ có lưu vết, không có màn xem lưu vết (Q9, L8).
+  - `jobs.updated_at` đổi khi bật/tắt (trigger sẵn có; không nơi nào đọc — L5).
+  - Lỗi tải dạng Blob không đọc được câu backend: câu "Không tải được trong chế độ ẩn danh." lấy theo mã 409 (L9).
+  - Bật/tắt ở tab trình duyệt khác: tab đang mở không tự cập nhật khi focus lại (`refetchOnWindowFocus: false` chung);
+    dữ liệu cũ còn tới khi query hết `staleTime` hoặc E1 tải lại (L11). Trong cùng tab, B1 `resetQueries` mọi query phụ
+    thuộc ẩn danh nên không hiện dữ liệu cũ (chấp nhận skeleton một nhịp).
+  Nợ kỹ thuật:
+  - `InterviewInvitationDialog` vẫn làm mới trang hồ sơ đơn bằng `applicationDetailKey(id).slice(0, 2)` (L10) dù L11 đã
+    export `APPLICATION_DETAIL_KEY_PREFIX` — nên đổi sang hằng ở lần sửa sau, hành vi không đổi.
+  - Danh sách khoá phụ thuộc ẩn danh (`identityDependentKeys` ở `blindReview/queries.ts`) phải tự cập nhật khi một FR
+    sau thêm màn HR có danh tính ứng viên; không có kiểm tự động nào bắt việc quên.
+  - Frontend không có test tự động (giống các FR trước).
 
 > FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-U11 không dùng lại; các mã khác giữ nguyên.
@@ -1105,9 +1137,12 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 >   `candidateName` cho mọi Job), hộp thư `/hr/messages` (C06), tab Sàng lọc (H10 — câu trả lời tự do);
 >   cần soát thêm nội dung thông báo/email gửi HR.
 >   Phụ thuộc thực tế ngoài H09/H14/C08: FR-C06, FR-H15.
+>   — **Đã đóng ở FR-H16** (19/10/2026): cả bốn bề mặt đều che (T8, T11, T6, T12); phụ thuộc ghi ở SRS mục 2.
 > - FR-H16 phải ghi đè R-V1 của FR-H09 (`/hr/applications/:id` cho tải CV gốc ở mọi trạng thái trích
 >   xuất): ở chế độ ẩn danh không tải được CV gốc; đồng thời che thư giới thiệu (R-L của FR-H09) — FR-H09
 >   hiện thư nguyên văn và đã ghi việc che vào "Ngoài phạm vi".
+>   — **Đã đóng ở FR-H16** (19/10/2026): tải CV gốc → 409 `IDENTITY_MASKED`, thư giới thiệu không trả (R-V1–R-V3, T6,
+>   T7); H09 REQUIREMENT có dòng tham chiếu.
 
 **Xong khi:** bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu
 ứng viên nhập.

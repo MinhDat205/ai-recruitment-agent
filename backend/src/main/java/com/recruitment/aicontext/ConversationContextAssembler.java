@@ -2,6 +2,7 @@ package com.recruitment.aicontext;
 
 import com.recruitment.aicontext.ConversationContext.InterviewSchedule;
 import com.recruitment.aicontext.ConversationContext.RecentMessage;
+import com.recruitment.blindreview.BlindReviewResolver;
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
@@ -43,6 +44,7 @@ public class ConversationContextAssembler {
     private final InterviewInvitationRepository interviewInvitationRepository;
     private final InterviewInvitationSlotRepository interviewInvitationSlotRepository;
     private final ApplicationMessageRepository messageRepository;
+    private final BlindReviewResolver blindReviewResolver;
 
     public ConversationContextAssembler(
             JobApplicationRepository jobApplicationRepository,
@@ -51,7 +53,8 @@ public class ConversationContextAssembler {
             UserRepository userRepository,
             InterviewInvitationRepository interviewInvitationRepository,
             InterviewInvitationSlotRepository interviewInvitationSlotRepository,
-            ApplicationMessageRepository messageRepository) {
+            ApplicationMessageRepository messageRepository,
+            BlindReviewResolver blindReviewResolver) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
@@ -59,6 +62,7 @@ public class ConversationContextAssembler {
         this.interviewInvitationRepository = interviewInvitationRepository;
         this.interviewInvitationSlotRepository = interviewInvitationSlotRepository;
         this.messageRepository = messageRepository;
+        this.blindReviewResolver = blindReviewResolver;
     }
 
     @Transactional(readOnly = true)
@@ -88,9 +92,12 @@ public class ConversationContextAssembler {
                 .map(slot -> new InterviewSchedule(slot.getScheduledAt(), slot.getLocation()))
                 .orElse(null);
 
+        // FR-H16 R-C1 - phia HR va don dang an danh: KHONG dua ho ten vao ngu canh AI (hinh dang record giu nguyen).
+        // Phia ung vien khong doi.
+        boolean hideName = viewer == ContextViewer.HR && blindReviewResolver.isMasked(applicationId);
         return new ConversationContext(
                 viewer,
-                candidate.getFullName(),
+                hideName ? null : candidate.getFullName(),
                 job.getTitle(),
                 company.getName(),
                 application.getStatus(),

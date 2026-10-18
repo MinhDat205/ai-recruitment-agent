@@ -1,8 +1,13 @@
 package com.recruitment.messaging;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
+import com.recruitment.blindreview.IdentityMaskSource;
+import com.recruitment.blindreview.IdentityMasker;
 import com.recruitment.common.dto.PageResponse;
 import com.recruitment.common.exception.ApplicationNotFoundException;
 import com.recruitment.common.exception.CompanyNotFoundException;
+import com.recruitment.common.exception.IdentityMaskedException;
 import com.recruitment.common.exception.ConversationReadOnlyException;
 import com.recruitment.common.exception.InvalidMessageAttachmentException;
 import com.recruitment.common.exception.MessageAttachmentNotFoundException;
@@ -29,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
@@ -60,6 +67,8 @@ public class MessageService {
     private final ApplicationMessageRepository messageRepository;
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
 
     public MessageService(
             HrApplicationAccess hrApplicationAccess,
@@ -67,25 +76,34 @@ public class MessageService {
             CompanyRepository companyRepository,
             ApplicationMessageRepository messageRepository,
             StorageService storageService,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.jobApplicationRepository = jobApplicationRepository;
         this.companyRepository = companyRepository;
         this.messageRepository = messageRepository;
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
     }
 
     // ---- M1 ----
 
     @Transactional(readOnly = true)
     public MessageThreadResponse getThreadAsHr(UUID ownerId, UUID applicationId) {
-        return buildThread(loadForHr(ownerId, applicationId), MessageSenderRole.HR);
+        JobApplication application = loadForHr(ownerId, applicationId);
+        // FR-H16 R-T1, R-T2 - don dang an danh: che body cua MOI tin (ca tin HR), an ten tep ung vien gui.
+        IdentityMasker masker =
+                blindReviewResolver.isMasked(applicationId) ? identityMaskSource.load(applicationId) : null;
+        return buildThread(application, MessageSenderRole.HR, masker);
     }
 
+    // Phia ung vien KHONG doi (R-U1): khong xet an danh.
     @Transactional(readOnly = true)
     public MessageThreadResponse getThreadAsCandidate(UUID candidateId, UUID applicationId) {
-        return buildThread(loadForCandidate(candidateId, applicationId), MessageSenderRole.CANDIDATE);
+        return buildThread(loadForCandidate(candidateId, applicationId), MessageSenderRole.CANDIDATE, null);
     }
 
     // ---- M2 ----
@@ -117,12 +135,12 @@ public class MessageService {
 
     @Transactional(readOnly = true)
     public AttachmentDownload downloadAttachmentAsHr(UUID ownerId, UUID applicationId, UUID messageId) {
-        return downloadAttachment(loadForHr(ownerId, applicationId), messageId);
+        return downloadAttachment(loadForHr(ownerId, applicationId), messageId, true);
     }
 
     @Transactional(readOnly = true)
     public AttachmentDownload downloadAttachmentAsCandidate(UUID candidateId, UUID applicationId, UUID messageId) {
-        return downloadAttachment(loadForCandidate(candidateId, applicationId), messageId);
+        return downloadAttachment(loadForCandidate(candidateId, applicationId), messageId, false);
     }
 
     // ---- M5 ----
@@ -134,20 +152,29 @@ public class MessageService {
         Company company = companyRepository
                 .findByOwnerId(ownerId)
                 .orElseThrow(() -> new CompanyNotFoundException("HR chưa tạo hồ sơ công ty"));
+        var rows = messageRepository.findHrConversations(
+                company.getId(), MessageSenderRole.CANDIDATE.name(), inboxPage(page, size));
+        // FR-H16 R-T3, R-M5 - theo TUNG DONG (Job cua chinh don, Q4): mot cau co an danh + hai cau gia tri danh tinh cho
+        // ca trang (khong N+1). Doan trich tinh SAU khi che THAN TIN DAY DU - che sau khi cat co the lot nua ten.
+        Set<UUID> maskedIds = blindReviewResolver.maskedAmong(
+                rows.getContent().stream().map(row -> row.getApplicationId()).toList());
+        Map<UUID, IdentityMasker> maskers = identityMaskSource.load(maskedIds);
         return PageResponse.from(
-                messageRepository.findHrConversations(
-                        company.getId(), MessageSenderRole.CANDIDATE.name(), inboxPage(page, size)),
-                row -> new ConversationHrResponse(
+                rows,
+                row -> {
+                    IdentityMasker masker = maskers.get(row.getApplicationId());
+                    return new ConversationHrResponse(
                         row.getApplicationId(),
                         row.getJobId(),
                         row.getJobTitle(),
-                        row.getCounterpartName(),
+                        masker == null ? row.getCounterpartName() : CandidateAlias.of(row.getApplicationId()),
                         ApplicationStatus.valueOf(row.getApplicationStatus()),
                         row.getLastMessageAt(),
-                        MessageExcerpt.of(row.getLastBody()),
+                        MessageExcerpt.of(masker == null ? row.getLastBody() : masker.mask(row.getLastBody())),
                         MessageSenderRole.HR.name().equals(row.getLastSenderRole()),
                         Boolean.TRUE.equals(row.getLastHasAttachment()),
-                        row.getUnreadCount().intValue()));
+                        row.getUnreadCount().intValue());
+                });
     }
 
     @Transactional(readOnly = true)
@@ -190,7 +217,9 @@ public class MessageService {
 
     // R-M7 - lay THREAD_LIMIT + 1 tin moi nhat de biet con tin cu hon hay khong, tra toi da THREAD_LIMIT
     // tin theo thu tu tang dan. unreadCount dem tren TOAN BO tin cua don (khong chi THREAD_LIMIT tin).
-    private MessageThreadResponse buildThread(JobApplication application, MessageSenderRole callerRole) {
+    // masker != null <=> HR xem don dang an danh (FR-H16).
+    private MessageThreadResponse buildThread(
+            JobApplication application, MessageSenderRole callerRole, IdentityMasker masker) {
         List<ApplicationMessage> latest =
                 messageRepository.findLatest(application.getId(), PageRequest.of(0, THREAD_LIMIT + 1));
         boolean olderMessagesHidden = latest.size() > THREAD_LIMIT;
@@ -201,7 +230,7 @@ public class MessageService {
         long unread = messageRepository.countByApplicationIdAndSenderRoleAndReadAtIsNull(
                 application.getId(), callerRole.other());
         List<MessageResponse> messages =
-                shown.stream().map(m -> toResponse(m, callerRole)).toList();
+                shown.stream().map(m -> toResponse(m, callerRole, masker)).toList();
         return new MessageThreadResponse(canSend(application), olderMessagesHidden, (int) unread, messages);
     }
 
@@ -248,7 +277,8 @@ public class MessageService {
                 senderRole == MessageSenderRole.HR,
                 MessageExcerpt.of(saved.getBody()),
                 saved.getAttachmentKey() != null));
-        return toResponse(saved, senderRole);
+        // Response cua M2 la tin VUA GUI cua chinh nguoi goi (HR thay dung chu minh go) - khong che.
+        return toResponse(saved, senderRole, null);
     }
 
     // R-F2-R-F6, R-F9, muc 12 L4 - thu tu kiem: 0 byte -> qua 5MB -> sai loai. Loai CHI theo magic bytes, khong
@@ -317,12 +347,19 @@ public class MessageService {
         return base + suffix;
     }
 
-    private AttachmentDownload downloadAttachment(JobApplication application, UUID messageId) {
+    private AttachmentDownload downloadAttachment(JobApplication application, UUID messageId, boolean asHr) {
         ApplicationMessage message = messageRepository
                 .findByIdAndApplicationId(messageId, application.getId())
                 .orElseThrow(MessageNotFoundException::new);
         if (message.getAttachmentKey() == null) {
             throw new MessageAttachmentNotFoundException();
+        }
+        // FR-H16 R-T2 [Q3] - HR tai tep UNG VIEN gui khi don dang an danh -> 409, khong doc tep (tep co the chinh la CV).
+        // Tep HR gui: khong doi.
+        if (asHr
+                && message.getSenderRole() == MessageSenderRole.CANDIDATE
+                && blindReviewResolver.isMasked(application.getId())) {
+            throw new IdentityMaskedException();
         }
         Resource resource = storageService
                 .load(message.getAttachmentKey())
@@ -352,16 +389,22 @@ public class MessageService {
         return body.replace("\r\n", "\n").replace('\r', '\n');
     }
 
-    private static MessageResponse toResponse(ApplicationMessage message, MessageSenderRole callerRole) {
+    // masker != null: HR xem don dang an danh (FR-H16 R-T1, R-T2) - body qua bo che, tep UNG VIEN gui mat ten (loai,
+    // dung luong giu); tep HR gui giu ten.
+    private static MessageResponse toResponse(
+            ApplicationMessage message, MessageSenderRole callerRole, IdentityMasker masker) {
+        boolean hideFileName = masker != null && message.getSenderRole() == MessageSenderRole.CANDIDATE;
         MessageResponse.Attachment attachment = message.getAttachmentKey() == null
                 ? null
                 : new MessageResponse.Attachment(
-                        message.getAttachmentName(), message.getAttachmentType(), message.getAttachmentSize());
+                        hideFileName ? null : message.getAttachmentName(),
+                        message.getAttachmentType(),
+                        message.getAttachmentSize());
         return new MessageResponse(
                 message.getId(),
                 message.getSenderRole(),
                 message.getSenderRole() == callerRole,
-                message.getBody(),
+                masker == null ? message.getBody() : masker.mask(message.getBody()),
                 attachment,
                 message.getCreatedAt());
     }

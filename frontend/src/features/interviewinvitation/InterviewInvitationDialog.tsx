@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { QueryKey } from '@tanstack/react-query'
+import { useQueryClient, type QueryKey } from '@tanstack/react-query'
 import { AlertTriangle, Info } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -10,6 +10,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { extractErrorMessage } from '../../lib/httpError'
+import { applicationDetailKey } from '../applicationDetail/queries'
+import { BLIND_REVIEW_TEXT, CANDIDATE_NAME_PLACEHOLDER } from '../blindReview/blindReviewLabels'
+import { MESSAGE_CONVERSATIONS_KEY_PREFIX, messageThreadKey } from '../messages/queries'
 import { InterviewSlotFields, type InvitationFormValues } from './InterviewSlotFields'
 import { formatSlotTime, INVITATION_TEXT, SLOT_FORM_ERRORS, SLOT_LOCATION_MAX } from './invitationLabels'
 import {
@@ -116,6 +119,7 @@ export function InterviewInvitationDialog({
   const sendMutation = useSendInterviewInvitationMutation(jobId, invalidateQueryKeys)
   const resendMutation = useResendInterviewInvitationMutation(invalidateQueryKeys)
   const mutation = isResend ? resendMutation : sendMutation
+  const queryClient = useQueryClient()
 
   const {
     control,
@@ -158,6 +162,14 @@ export function InterviewInvitationDialog({
   const onSubmit = handleSubmit(async (values) => {
     if (!application) return
     await mutation.mutateAsync({ applicationId: application.id, payload: toPayload(values) })
+    if (!isResend) {
+      // FR-H16 UI.md 4f - gui lan dau bo an danh (R-I4): lam moi moi query cua trang ho so don (E1-E5, CV da trich xuat -
+      // tien to chung cua applicationDetailKey), cuoc trao doi va hop thu HR de ten that hien ngay, bat ke hop thoai mo
+      // tu dau (ho so don, tab Ung vien, trang so sanh). Danh sach theo Job da lam moi trong sendMutation.
+      queryClient.invalidateQueries({ queryKey: applicationDetailKey(application.id).slice(0, 2) })
+      queryClient.invalidateQueries({ queryKey: messageThreadKey('hr', application.id) })
+      queryClient.invalidateQueries({ queryKey: [MESSAGE_CONVERSATIONS_KEY_PREFIX] })
+    }
     onOpenChange(false)
     if (isResend) {
       onResent?.()
@@ -168,6 +180,15 @@ export function InterviewInvitationDialog({
   const formReady = isResend ? Boolean(activeInvitation && maxSlots) : Boolean(previewQuery.data)
   const confirmedSlot = activeInvitation?.slots.find((slot) => slot.id === activeInvitation.confirmedSlotId)
   const candidateName = application?.candidateName ?? ''
+  // FR-H16 UI.md 4f - MOT dieu kien cho ca ba diem mo (ho so don, tab Ung vien, so sanh): preview con nguyen chu
+  // placeholder (backend giu khi don dang an danh - R-I1). Khong chan HR xoa cho nay.
+  const showsBlindNotice =
+    !isResend &&
+    Boolean(
+      previewQuery.data &&
+        (previewQuery.data.subject.includes(CANDIDATE_NAME_PLACEHOLDER) ||
+          previewQuery.data.content.includes(CANDIDATE_NAME_PLACEHOLDER)),
+    )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,6 +214,16 @@ export function InterviewInvitationDialog({
             </DialogDescription>
           )}
         </DialogHeader>
+
+        {showsBlindNotice && (
+          <div
+            role="note"
+            className="flex items-start gap-3 rounded-m3-sm border border-m3-outline-variant bg-m3-surface-container px-4 py-3 text-sm text-m3-on-surface"
+          >
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-m3-on-surface" aria-hidden="true" />
+            <p className="min-w-0 break-words">{BLIND_REVIEW_TEXT.invitationNotice}</p>
+          </div>
+        )}
 
         {!isResend && previewQuery.isLoading && (
           <p className="text-sm text-m3-on-surface-variant">Đang tải nội dung mẫu...</p>

@@ -844,6 +844,16 @@ Hồ sơ ứng viên chỉ còn thông tin chuyên môn trong giai đoạn sàng
 
 Bật theo Job; chưa ẩn danh trong email/tin nhắn gửi ứng viên; không dùng AI nhận diện thông tin nhân thân.
 
+**Phạm vi thực tế (hoàn thành 19/10/2026, `docs/features/HR/H16/REQUIREMENT.md`)**
+
+- Ngoài các màn ở trên, che cả `/hr/candidates` (và audit lượt chấm), hộp thư `/hr/messages`, tab Trao đổi (thân tin,
+  tên tệp ứng viên gửi), trang mục kho `/hr/talent-pools/:id`, thông báo và email gửi HR, preview giấy mời, tab Sàng lọc
+  (câu trả lời tự do).
+- "Tắt chủ động" = HR tắt công tắc của Job (áp cho mọi đơn của Job), không có nút bỏ ẩn danh cho từng đơn. Lưu vết ghi
+  người và thời điểm mỗi lần đổi; không có màn xem lưu vết.
+- Thư giới thiệu ẩn toàn bộ (không che từng chuỗi), không tải được CV gốc và tệp ứng viên gửi; nút Lưu vào kho khoá.
+- Phụ thuộc thực tế: thêm FR-C06, FR-C07, FR-H12, FR-H15 (SRS mục 2).
+
 ## 5. Ngoài phạm vi (đã chủ động loại, không làm lại)
 
 | Nội dung | Lý do / thay thế |

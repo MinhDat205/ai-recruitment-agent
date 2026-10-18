@@ -44,7 +44,10 @@ public record ApplicationHrListItemResponse(
         ApplicationStatus status,
         // FR-H14 [Q7] - chu ky tuyen dung cua don (job_applications.recruitment_cycle), de tab "Ung vien" khoa o
         // chon cua don khac chu ky voi don chon dau. Doc tu JobApplication da nap, khong query them.
-        int recruitmentCycle) {
+        int recruitmentCycle,
+        // FR-H16 R-N3 [Q12] - don dang an danh (BlindReviewResolver): candidateName la nhan "Ung vien #...", reasoning/
+        // evidence/giai thich da qua bo che. Frontend dua vao co nay de khoa nut, KHONG suy nguoc tu chuoi nhan.
+        boolean identityMasked) {
 
     public ApplicationHrListItemResponse {
         criterionScores = criterionScores == null ? List.of() : criterionScores;

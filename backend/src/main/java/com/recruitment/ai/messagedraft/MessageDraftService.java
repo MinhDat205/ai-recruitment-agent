@@ -27,8 +27,12 @@ public class MessageDraftService {
 
     private static final Logger log = LoggerFactory.getLogger(MessageDraftService.class);
 
-    // Gan lien ten file prompt (message-draft-v1.st) - khai MOT CHO DUY NHAT.
-    static final String PROMPT_VERSION = "message-draft-v1";
+    // Gan lien ten file prompt (message-draft-v2.st) - khai MOT CHO DUY NHAT. v2 (FR-H16 R-C2): ho ten ung vien co the
+    // la "(khong cung cap)".
+    static final String PROMPT_VERSION = "message-draft-v2";
+    // FR-H16 R-C2 - ghi khi K1 khong cung cap ho ten (phia HR, don dang an danh). Kiem TRUOC sanitize: sanitize(null)
+    // tra "".
+    static final String NAME_NOT_PROVIDED = "(không cung cấp)";
 
     // R-D6 - khop gioi han tin cua FR-C06 (R-M3).
     static final int MAX_DRAFT_LENGTH = 4000;
@@ -97,7 +101,9 @@ public class MessageDraftService {
         message.append("<ngu_canh>\n");
         message.append("Người soạn: ").append(hrWrites ? HR_LABEL : CANDIDATE_LABEL).append('\n');
         message.append("Người nhận: ").append(hrWrites ? CANDIDATE_LABEL : HR_LABEL).append('\n');
-        message.append("Họ tên ứng viên: ").append(sanitize(context.candidateName())).append('\n');
+        message.append("Họ tên ứng viên: ")
+                .append(context.candidateName() == null ? NAME_NOT_PROVIDED : sanitize(context.candidateName()))
+                .append('\n');
         message.append("Vị trí ứng tuyển: ").append(sanitize(context.jobTitle())).append('\n');
         message.append("Công ty: ").append(sanitize(context.companyName())).append('\n');
         message.append("Trạng thái đơn: ").append(context.applicationStatus().labelVi()).append('\n');

@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, FileText } from 'lucide-react'
 import { formatDateTimeVi } from '../../lib/date'
+import { formatFileSize } from '../../lib/fileSize'
+import { BLIND_REVIEW_TEXT, downloadErrorMessage } from '../blindReview/blindReviewLabels'
 import { AttachmentChip } from './AttachmentChip'
 import { downloadMessageAttachmentRequest } from './api'
 import type { Message, MessageSide } from './types'
@@ -38,15 +40,15 @@ export function MessageBubble({
   side: MessageSide
   applicationId: string
 }) {
-  const [downloadFailed, setDownloadFailed] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
   const label = message.mine ? 'Bạn' : counterpartLabel(side)
 
   async function handleDownload() {
-    setDownloadFailed(false)
+    setDownloadError(null)
     try {
       await saveAttachment(side, applicationId, message)
-    } catch {
-      setDownloadFailed(true)
+    } catch (err) {
+      setDownloadError(downloadErrorMessage(err, 'Tải tệp thất bại, vui lòng thử lại.'))
     }
   }
 
@@ -71,19 +73,36 @@ export function MessageBubble({
         {message.body !== null && (
           <p className="text-m3-body-md break-words whitespace-pre-wrap">{message.body}</p>
         )}
-        {message.attachment && (
+        {message.attachment && message.attachment.fileName !== null && (
           <AttachmentChip
             fileName={message.attachment.fileName}
             fileSize={message.attachment.fileSize}
             onDownload={handleDownload}
           />
         )}
+        {/* FR-H16 UI.md 4e - tep ung vien gui cua don dang an danh: backend tra fileName = null. Chip "da an ten" + loai +
+            dung luong, KHONG co hanh dong tai (backend van chan 409 - R-T2). Cung khung voi AttachmentChip. */}
+        {message.attachment && message.attachment.fileName === null && (
+          <div
+            title={BLIND_REVIEW_TEXT.downloadBlocked}
+            className="flex max-w-full min-w-0 items-center gap-2 rounded-m3-sm border border-m3-outline bg-m3-surface px-2 py-1.5 text-m3-on-surface"
+          >
+            <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <div className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-1">
+              <span className="text-sm">{BLIND_REVIEW_TEXT.hiddenFileName}</span>
+              <span className="text-xs text-m3-on-surface-variant sm:text-sm">
+                {message.attachment.fileType} · {formatFileSize(message.attachment.fileSize)}
+              </span>
+              <span className="sr-only">{BLIND_REVIEW_TEXT.downloadBlocked}</span>
+            </div>
+          </div>
+        )}
       </div>
       {/* Cau loi tai tep NGOAI bong bong, tren nen the trang (UI.md muc 5d, 6) - khong can cap mau moi. */}
-      {downloadFailed && (
+      {downloadError && (
         <p role="alert" className="flex items-start gap-1.5 text-sm text-m3-on-surface">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-m3-error" aria-hidden="true" />
-          Tải tệp thất bại, vui lòng thử lại.
+          {downloadError}
         </p>
       )}
     </article>

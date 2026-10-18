@@ -15,7 +15,9 @@ export interface ApplicationHrDetail {
   coverLetter: string | null
   resumeParseStatus: ParseStatus
   resumeParseError: string | null
-  resumeFileName: string
+  // FR-H16 R-V2, R-V3 - null khi don dang an danh (backend an); candidateName khi do la nhan tu API.
+  resumeFileName: string | null
+  identityMasked: boolean
 }
 
 // Khop ApplicationScoresResponse (backend, E3). Moi field null, criterionScores rong khi don chua co

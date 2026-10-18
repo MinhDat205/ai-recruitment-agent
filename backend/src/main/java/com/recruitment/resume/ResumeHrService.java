@@ -1,6 +1,10 @@
 package com.recruitment.resume;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.IdentityMaskSource;
+import com.recruitment.blindreview.IdentityMasker;
 import com.recruitment.common.exception.ApplicationNotFoundException;
+import com.recruitment.common.exception.IdentityMaskedException;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.common.exception.ResumeNotFoundException;
@@ -38,6 +42,8 @@ public class ResumeHrService {
     private final StorageService storageService;
     private final ResumeParsedDataRepository resumeParsedDataRepository;
     private final ResumeParsedDataResponseMapper resumeParsedDataResponseMapper;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
 
     public ResumeHrService(
             JobApplicationRepository jobApplicationRepository,
@@ -46,7 +52,11 @@ public class ResumeHrService {
             ResumeRepository resumeRepository,
             StorageService storageService,
             ResumeParsedDataRepository resumeParsedDataRepository,
-            ResumeParsedDataResponseMapper resumeParsedDataResponseMapper) {
+            ResumeParsedDataResponseMapper resumeParsedDataResponseMapper,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource) {
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
@@ -58,6 +68,10 @@ public class ResumeHrService {
 
     public ResumeDownload downloadForApplication(UUID ownerId, UUID applicationId) {
         JobApplication application = loadOwnedApplication(applicationId, ownerId);
+        // FR-H16 R-V1 - ghi de FR-H09 R-V1: don dang an danh -> 409, KHONG doc tep (kiem sau quyen so huu).
+        if (blindReviewResolver.isMasked(applicationId)) {
+            throw new IdentityMaskedException();
+        }
 
         // resumeId luon ton tai tren JobApplication (cot NOT NULL, khong bao gio null) nhung ban
         // than dong resumes co the da bi mat (ve ly thuyet - resumes KHONG co deleted_at, khong co
@@ -95,7 +109,58 @@ public class ResumeHrService {
         ResumeParsedData data = resumeParsedDataRepository
                 .findByResumeId(application.getResumeId())
                 .orElseThrow(() -> new ResumeParsedDataNotFoundException(application.getResumeId()));
-        return resumeParsedDataResponseMapper.toResponse(data);
+        ResumeParsedDataResponse response = resumeParsedDataResponseMapper.toResponse(data);
+        if (!blindReviewResolver.isMasked(applicationId)) {
+            return response;
+        }
+        return masked(response, identityMaskSource.load(applicationId));
+    }
+
+    // FR-H16 R-V4, R-M4 - BAN SAO da che cua E2 khi don dang an danh; KHONG sua ResumeParsedDataResponseMapper (dung chung
+    // voi phia ung vien, R-U1) va khong ghi gi xuong DB (R-A3). contact = null; moi chuoi cua education/experience/skills/
+    // certifications/projects/currentTitle/locationText (trong data) va hai ban sao currentTitle/locationText ngoai data
+    // qua bo che. industryCode (ma danh muc), resumeId, parsedAt, schemaVersion, industry/location (ma + nhan C05),
+    // experience (so thang/nam) giu nguyen.
+    private static ResumeParsedDataResponse masked(ResumeParsedDataResponse response, IdentityMasker m) {
+        ResumeParsedPayload p = response.data();
+        ResumeParsedPayload maskedPayload = p == null
+                ? null
+                : new ResumeParsedPayload(
+                        null,
+                        p.education().stream()
+                                .map(e -> new ResumeParsedPayload.Education(
+                                        m.mask(e.school()), m.mask(e.degree()), m.mask(e.major()),
+                                        m.mask(e.startDate()), m.mask(e.endDate()), e.gpa()))
+                                .toList(),
+                        p.experience().stream()
+                                .map(e -> new ResumeParsedPayload.Experience(
+                                        m.mask(e.company()), m.mask(e.title()), m.mask(e.startDate()),
+                                        m.mask(e.endDate()), m.mask(e.description())))
+                                .toList(),
+                        p.skills().stream().map(m::mask).toList(),
+                        p.certifications().stream()
+                                .map(c -> new ResumeParsedPayload.Certification(
+                                        m.mask(c.name()), m.mask(c.issuer()), m.mask(c.issueDate())))
+                                .toList(),
+                        p.projects().stream()
+                                .map(pr -> new ResumeParsedPayload.Project(
+                                        m.mask(pr.name()),
+                                        m.mask(pr.description()),
+                                        pr.technologies().stream().map(m::mask).toList()))
+                                .toList(),
+                        m.mask(p.currentTitle()),
+                        p.industryCode(),
+                        m.mask(p.locationText()));
+        return new ResumeParsedDataResponse(
+                response.resumeId(),
+                maskedPayload,
+                response.parsedAt(),
+                response.schemaVersion(),
+                m.mask(response.currentTitle()),
+                response.industry(),
+                response.location(),
+                m.mask(response.locationText()),
+                response.experience());
     }
 
     // Mau y HET ScoringRunService.loadOwnedApplication (khong trich xuat dung chung - dung tien le

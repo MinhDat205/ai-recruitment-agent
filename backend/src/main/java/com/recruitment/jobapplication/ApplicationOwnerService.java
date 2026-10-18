@@ -1,5 +1,9 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
+import com.recruitment.blindreview.IdentityMaskSource;
+import com.recruitment.blindreview.IdentityMasker;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
@@ -55,6 +59,8 @@ public class ApplicationOwnerService {
     private final CriterionScoreRepository criterionScoreRepository;
     private final ScoreExplanationRepository scoreExplanationRepository;
     private final ScoreExplanationAttemptRepository scoreExplanationAttemptRepository;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
     private final int explanationMaxAttempts;
 
     public ApplicationOwnerService(
@@ -67,6 +73,8 @@ public class ApplicationOwnerService {
             CriterionScoreRepository criterionScoreRepository,
             ScoreExplanationRepository scoreExplanationRepository,
             ScoreExplanationAttemptRepository scoreExplanationAttemptRepository,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource,
             @Value("${app.explanation.max-attempts:3}") int explanationMaxAttempts) {
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
@@ -77,6 +85,8 @@ public class ApplicationOwnerService {
         this.criterionScoreRepository = criterionScoreRepository;
         this.scoreExplanationRepository = scoreExplanationRepository;
         this.scoreExplanationAttemptRepository = scoreExplanationAttemptRepository;
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
         this.explanationMaxAttempts = explanationMaxAttempts;
     }
 
@@ -86,8 +96,15 @@ public class ApplicationOwnerService {
         List<RankableRow> ordered =
                 sort == ApplicationSortOption.APPLIED_AT_DESC ? ranked.rows() : sortByRank(ranked.rows());
 
+        // FR-H16 R-S2, R-M4 - che SAU khi da xep hang (diem/hang khong doi, R-A2). Ban theo tap id: mot cau cho co an
+        // danh + hai cau nap gia tri danh tinh cua cac don dang an danh - khong N+1. Job tat cong tac -> tap rong, khong
+        // chay cau nap gia tri nao.
+        Set<UUID> maskedIds = blindReviewResolver.maskedAmong(
+                ordered.stream().map(RankableRow::applicationId).toList());
+        Map<UUID, IdentityMasker> maskers = identityMaskSource.load(maskedIds);
         return ordered.stream()
-                .map(row -> row.toResponse(ranked.rankByApplicationId().get(row.applicationId())))
+                .map(row -> row.toResponse(
+                        ranked.rankByApplicationId().get(row.applicationId()), maskers.get(row.applicationId())))
                 .toList();
     }
 
@@ -413,10 +430,12 @@ public class ApplicationOwnerService {
             Instant screeningCapturedAt,
             List<RubricSnapshot.CriterionSnapshot> rubricCriteria) {
 
-        ApplicationHrListItemResponse toResponse(Integer rank) {
+        // masker != null <=> don dang an danh (FR-H16): nhan thay ten, che chuoi cham diem; diem/hang giu nguyen.
+        ApplicationHrListItemResponse toResponse(Integer rank, IdentityMasker masker) {
+            boolean masked = masker != null;
             return new ApplicationHrListItemResponse(
                     applicationId,
-                    candidateName,
+                    masked ? CandidateAlias.of(applicationId) : candidateName,
                     resumeParseStatus,
                     appliedAt,
                     latestScoringRunId,
@@ -424,11 +443,12 @@ public class ApplicationOwnerService {
                     latestScoringRunFinishedAt,
                     totalScore,
                     rank,
-                    criterionScores,
+                    masked ? ScoreTextMasking.criterionScores(criterionScores, masker) : criterionScores,
                     explanationStatus,
-                    explanation,
+                    masked ? ScoreTextMasking.explanation(explanation, masker) : explanation,
                     status,
-                    recruitmentCycle);
+                    recruitmentCycle,
+                    masked);
         }
 
         ApplicationComparisonSource toComparisonSource(Integer rank) {

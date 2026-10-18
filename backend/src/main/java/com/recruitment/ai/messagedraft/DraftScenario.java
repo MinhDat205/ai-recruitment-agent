@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 // FR-C07 R-S1 - tinh huong co dinh theo phia. Thu tu khai bao = thu tu bang R-S1 = thu tu A1 tra ve. Mo ta tung ma
-// cho AI nam trong prompt message-draft-v1.st, khong o day.
+// cho AI nam trong prompt message-draft-v2.st, khong o day.
 //
 // Dat o ai/messagedraft/ (L11) de MessageDraftService dung duoc ma khong import messagedraft/ - phu thuoc MOT CHIEU
 // messagedraft/ -> ai/messagedraft/. Dieu kien dung duoc theo trang thai don (R-S3) nam o MessageDraftFacade vi tra

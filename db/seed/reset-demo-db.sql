@@ -98,6 +98,8 @@ TRUNCATE TABLE
     application_messages,
     -- Kho ung vien (FR-H15, V17) - CASCADE van xoa theo neu thieu ten; liet ke cho tuong minh
     talent_pools, talent_pool_entries,
+    -- Luu vet bat/tat che do an danh (FR-H16, V19) - CASCADE van xoa theo neu thieu ten; liet ke cho tuong minh
+    job_blind_review_changes,
     -- Cham diem AI
     scoring_runs, criterion_scores, score_explanations, score_explanation_attempts,
     -- Goi y viec lam (F1/FR-U04, da go bo dem o FR-U15 dot 4 - khong con bang

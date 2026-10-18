@@ -11,8 +11,8 @@ import {
   getApplicationScoresRequest,
 } from './api'
 
-// Khoa query cua trang ho so don (FR-H09), tat ca theo applicationId.
-const APPLICATION_DETAIL_KEY_PREFIX = 'hr-application-detail'
+// Khoa query cua trang ho so don (FR-H09), tat ca theo applicationId. Export (FR-H16 L11) - B1 lam moi ca tien to.
+export const APPLICATION_DETAIL_KEY_PREFIX = 'hr-application-detail'
 
 export function applicationDetailKey(applicationId: string) {
   return [APPLICATION_DETAIL_KEY_PREFIX, applicationId, 'detail']

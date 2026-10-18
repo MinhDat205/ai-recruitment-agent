@@ -1,5 +1,7 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
 import com.recruitment.common.dto.PageResponse;
 import com.recruitment.common.exception.CompanyNotFoundException;
 import com.recruitment.common.exception.InvalidCandidateSearchFilterException;
@@ -15,6 +17,7 @@ import com.recruitment.user.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -35,16 +38,19 @@ public class ApplicationSearchService {
     private final JobApplicationRepository jobApplicationRepository;
     private final UserRepository userRepository;
     private final ResumeRepository resumeRepository;
+    private final BlindReviewResolver blindReviewResolver;
 
     public ApplicationSearchService(
             CompanyRepository companyRepository,
             JobApplicationRepository jobApplicationRepository,
             UserRepository userRepository,
-            ResumeRepository resumeRepository) {
+            ResumeRepository resumeRepository,
+            BlindReviewResolver blindReviewResolver) {
         this.companyRepository = companyRepository;
         this.jobApplicationRepository = jobApplicationRepository;
         this.userRepository = userRepository;
         this.resumeRepository = resumeRepository;
+        this.blindReviewResolver = blindReviewResolver;
     }
 
     public PageResponse<ApplicationSearchItemResponse> search(
@@ -89,8 +95,12 @@ public class ApplicationSearchService {
                 .findAllById(content.stream().map(CandidateSearchRow::getResumeId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(Resume::getId, Resume::getParseStatus));
+        // FR-H16 R-S1, R-N2 [Q4] - che THEO TUNG DONG: moi don xet theo Job cua chinh no. Mot cau cho ca trang (khong
+        // N+1). Danh sach chi co ten (khong chuoi van ban nao khac), nen khong nap gia tri danh tinh.
+        Set<UUID> maskedIds = blindReviewResolver.maskedAmong(content.stream().map(CandidateSearchRow::getId).toList());
 
-        return PageResponse.from(rows, row -> toResponse(row, candidateNameById, parseStatusByResumeId));
+        return PageResponse.from(
+                rows, row -> toResponse(row, candidateNameById, parseStatusByResumeId, maskedIds.contains(row.getId())));
     }
 
     public List<String> listCriterionNames(UUID ownerId) {
@@ -113,12 +123,15 @@ public class ApplicationSearchService {
     }
 
     private ApplicationSearchItemResponse toResponse(
-            CandidateSearchRow row, Map<UUID, String> candidateNameById, Map<UUID, ParseStatus> parseStatusByResumeId) {
+            CandidateSearchRow row,
+            Map<UUID, String> candidateNameById,
+            Map<UUID, ParseStatus> parseStatusByResumeId,
+            boolean identityMasked) {
         return new ApplicationSearchItemResponse(
                 row.getId(),
                 row.getJobId(),
                 row.getJobTitle(),
-                candidateNameById.get(row.getCandidateId()),
+                identityMasked ? CandidateAlias.of(row.getId()) : candidateNameById.get(row.getCandidateId()),
                 parseStatusByResumeId.get(row.getResumeId()),
                 row.getAppliedAt(),
                 // getStatus() la String (khong phai ApplicationStatus) - xem comment trong

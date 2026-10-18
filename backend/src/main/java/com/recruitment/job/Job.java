@@ -86,6 +86,11 @@ public class Job {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    // FR-H16 R-B1, R-B2 - chi doc. Chi doi qua JobRepository.updateBlindReview (B1); insertable/updatable = false de
+    // tao Job (DEFAULT FALSE) va PUT /api/hr/jobs/{id} khong bao gio ghi de cot nay qua entity.
+    @Column(name = "blind_review_enabled", insertable = false, updatable = false)
+    private boolean blindReviewEnabled;
+
     @Generated(event = EventType.INSERT)
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;

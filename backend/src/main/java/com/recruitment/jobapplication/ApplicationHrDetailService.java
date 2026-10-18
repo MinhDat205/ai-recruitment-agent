@@ -1,5 +1,9 @@
 package com.recruitment.jobapplication;
 
+import com.recruitment.blindreview.BlindReviewResolver;
+import com.recruitment.blindreview.CandidateAlias;
+import com.recruitment.blindreview.IdentityMaskSource;
+import com.recruitment.blindreview.IdentityMasker;
 import com.recruitment.common.exception.ResumeNotFoundException;
 import com.recruitment.jobapplication.HrApplicationAccess.OwnedApplication;
 import com.recruitment.jobapplication.dto.ApplicationExplanationResponse;
@@ -26,18 +30,24 @@ public class ApplicationHrDetailService {
     private final UserRepository userRepository;
     private final ApplicationStatusHistoryRepository statusHistoryRepository;
     private final ApplicationOwnerService applicationOwnerService;
+    private final BlindReviewResolver blindReviewResolver;
+    private final IdentityMaskSource identityMaskSource;
 
     public ApplicationHrDetailService(
             HrApplicationAccess hrApplicationAccess,
             ResumeRepository resumeRepository,
             UserRepository userRepository,
             ApplicationStatusHistoryRepository statusHistoryRepository,
-            ApplicationOwnerService applicationOwnerService) {
+            ApplicationOwnerService applicationOwnerService,
+            BlindReviewResolver blindReviewResolver,
+            IdentityMaskSource identityMaskSource) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.applicationOwnerService = applicationOwnerService;
+        this.blindReviewResolver = blindReviewResolver;
+        this.identityMaskSource = identityMaskSource;
     }
 
     // E1 (R-D1). resumeId luon suy ra o server tu don (khong nhan tu client) - CV cua DUNG don nay,
@@ -49,10 +59,15 @@ public class ApplicationHrDetailService {
         Resume resume = resumeRepository
                 .findById(application.getResumeId())
                 .orElseThrow(() -> new ResumeNotFoundException(application.getResumeId()));
-        String candidateName = userRepository
-                .findById(application.getCandidateId())
-                .map(User::getFullName)
-                .orElse(null);
+        // FR-H16 R-N2, R-V2, R-V3 - don dang an danh: nhan thay ten; an toan bo thu gioi thieu va ten tep CV (khong thay
+        // chuoi); khong doc ho ten tu users.
+        boolean masked = blindReviewResolver.isMasked(applicationId);
+        String candidateName = masked
+                ? CandidateAlias.of(applicationId)
+                : userRepository
+                        .findById(application.getCandidateId())
+                        .map(User::getFullName)
+                        .orElse(null);
         return new ApplicationHrDetailResponse(
                 application.getId(),
                 owned.job().getId(),
@@ -60,10 +75,11 @@ public class ApplicationHrDetailService {
                 candidateName,
                 application.getStatus(),
                 application.getAppliedAt(),
-                application.getCoverLetter(),
+                masked ? null : application.getCoverLetter(),
                 resume.getParseStatus(),
                 resume.getParseError(),
-                resume.getFileName());
+                masked ? null : resume.getFileName(),
+                masked);
     }
 
     // E3 (R-D3..R-D5) - diem cua lot DONE moi nhat + hang, tinh bang dung code FR-H05 cua danh sach
@@ -72,12 +88,16 @@ public class ApplicationHrDetailService {
     public ApplicationScoresResponse getScores(UUID ownerId, UUID applicationId) {
         OwnedApplication owned = hrApplicationAccess.loadOwned(ownerId, applicationId);
         ApplicationEvaluation evaluation = applicationOwnerService.evaluateApplication(owned.job(), applicationId);
+        // FR-H16 R-M4 - che sau khi tinh diem/hang (R-A2).
+        IdentityMasker masker = maskerIfMasked(applicationId);
         return new ApplicationScoresResponse(
                 evaluation.scoringRunId(),
                 evaluation.scoredAt(),
                 evaluation.totalScore(),
                 evaluation.rank(),
-                evaluation.criterionScores());
+                masker == null
+                        ? evaluation.criterionScores()
+                        : ScoreTextMasking.criterionScores(evaluation.criterionScores(), masker));
     }
 
     // E4 (R-D6) - giai thich cua CUNG lot DONE voi E3 (cung evaluateApplication -> cung scoringRunId va
@@ -86,11 +106,19 @@ public class ApplicationHrDetailService {
     public ApplicationExplanationResponse getExplanation(UUID ownerId, UUID applicationId) {
         OwnedApplication owned = hrApplicationAccess.loadOwned(ownerId, applicationId);
         ApplicationEvaluation evaluation = applicationOwnerService.evaluateApplication(owned.job(), applicationId);
+        IdentityMasker masker = maskerIfMasked(applicationId);
         return new ApplicationExplanationResponse(
                 evaluation.scoringRunId(),
                 evaluation.scoredAt(),
                 evaluation.explanationStatus(),
-                evaluation.explanation());
+                masker == null
+                        ? evaluation.explanation()
+                        : ScoreTextMasking.explanation(evaluation.explanation(), masker));
+    }
+
+    // FR-H16 - null khi don khong an danh (khong chay cau nap gia tri danh tinh nao).
+    private IdentityMasker maskerIfMasked(UUID applicationId) {
+        return blindReviewResolver.isMasked(applicationId) ? identityMaskSource.load(applicationId) : null;
     }
 
     // E5 (R-D7) - dung lai DTO + cach map cua lich su phia ung vien (khong co changed_by).
