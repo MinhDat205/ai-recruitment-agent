@@ -197,7 +197,8 @@ public class JobOwnerService {
                 .orElseThrow(() -> new CompanyNotFoundException("HR chưa tạo hồ sơ công ty"));
     }
 
-    private Job loadOwned(UUID jobId, UUID ownerId) {
+    // FR-H16 L3 - public de BlindReviewService (B1) dung lai dung thu tu 404/403. KHONG loc deleted_at: noi goi tu kiem.
+    public Job loadOwned(UUID jobId, UUID ownerId) {
         Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
         Company company = requireOwnCompany(ownerId);
         if (!job.getCompanyId().equals(company.getId())) {
@@ -307,6 +308,7 @@ public class JobOwnerService {
                 j.getCreatedAt(),
                 j.getUpdatedAt(),
                 rubricId,
-                interviewTemplateId);
+                interviewTemplateId,
+                j.isBlindReviewEnabled());
     }
 }

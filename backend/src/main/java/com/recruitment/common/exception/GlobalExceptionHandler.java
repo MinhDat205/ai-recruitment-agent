@@ -327,6 +327,18 @@ public class GlobalExceptionHandler {
 
     // FR-H14 R-S8 - danh sach don cua bang so sanh sai (dinh dang, trung, so luong, khong thuoc tin, khac chu ky). Mot
     // ma loi chung, thong diep co dinh qua getMessage() (khuon InvalidJobFilterException o tren).
+    // FR-H16 (REQUIREMENT muc 4.3) - cau tieng Viet co dinh nam trong tung exception.
+    @ExceptionHandler(IdentityMaskedException.class)
+    public ResponseEntity<ErrorResponse> handleIdentityMasked(IdentityMaskedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("IDENTITY_MASKED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidBlindReviewRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBlindReviewRequest(InvalidBlindReviewRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_BLIND_REVIEW_REQUEST", ex.getMessage()));
+    }
+
     // FR-H15 (REQUIREMENT muc 4.3) - sau ma loi, cau tieng Viet co dinh nam trong tung exception.
     @ExceptionHandler(InvalidTalentPoolNameException.class)
     public ResponseEntity<ErrorResponse> handleInvalidTalentPoolName(InvalidTalentPoolNameException ex) {

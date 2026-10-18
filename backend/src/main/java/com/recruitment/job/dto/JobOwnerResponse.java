@@ -31,5 +31,7 @@ public record JobOwnerResponse(
         Instant createdAt,
         Instant updatedAt,
         UUID rubricId,
-        UUID interviewTemplateId) {
+        UUID interviewTemplateId,
+        // FR-H16 R-B1 - chi co o DTO cua chu Job, khong co o DTO cong khai hay phia ung vien.
+        boolean blindReviewEnabled) {
 }

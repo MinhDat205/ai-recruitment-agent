@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -357,4 +358,16 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
                     """,
             nativeQuery = true)
     List<JobPerformanceView> findJobPerformanceForCompany(@Param("companyId") UUID companyId);
+
+    // FR-H16 R-B3 - doi cong tac an danh bang MOT cau UPDATE co dieu kien: tra 1 = da doi gia tri (service ghi luu vet
+    // trong cung transaction), 0 = da dung gia tri (hoac Job da xoa mem - service da kiem truoc, khong suy tu so dong).
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+            value =
+                    """
+                    UPDATE jobs SET blind_review_enabled = :enabled
+                    WHERE id = :id AND deleted_at IS NULL AND blind_review_enabled <> :enabled
+                    """,
+            nativeQuery = true)
+    int updateBlindReview(@Param("id") UUID id, @Param("enabled") boolean enabled);
 }
