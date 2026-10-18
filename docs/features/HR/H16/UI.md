@@ -9,7 +9,7 @@ tính), 5 (rỗng/tải/lỗi), 6 (khả năng tiếp cận). Mã `R-…`, `B1`,
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT 18/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH 19/10/2026. Duyệt: 18/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

@@ -14,6 +14,8 @@
 - Nhánh: `feat/fr-c07-ai-draft` (đang đứng, HEAD `ca1fb86` = commit đặc tả cuối của FR-C06).
 - Xây lần đầu: **K1** (chỉ phần ngữ cảnh cuộc trao đổi — mục 3.5) và **K3** (mục 3.6) — `CLAUDE.md` §3d.
 - Mở rộng: FR-C06 (thêm nút vào khung soạn, **không** đổi hành vi gửi/đọc tin); `RateLimitFilter` (thêm một nhóm).
+- FR-H16 (19/10/2026) đổi prompt sang `message-draft-v2` (xoá v1): phía HR, đơn ẩn danh gửi `Họ tên ứng viên: (không
+  cung cấp)` và bản nháp đi qua bộ che — xem `docs/features/HR/H16/REQUIREMENT.md` mục 3.9 (R-C).
 
 ## 0. Đã đối chiếu code trước khi viết (CLAUDE.md §6)
 

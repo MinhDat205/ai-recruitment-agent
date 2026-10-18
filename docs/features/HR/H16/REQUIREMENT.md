@@ -1,6 +1,6 @@
 # FR-H16 — Chế độ ẩn danh
 
-> Trạng thái: ĐÃ DUYỆT 18/10/2026
+> Trạng thái: ĐÃ HOÀN THÀNH 19/10/2026. Duyệt: 18/10/2026.
 >
 > Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
 > 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3). Làm rõ trong
