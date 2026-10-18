@@ -4,17 +4,28 @@ package com.recruitment.resume;
 // cot rieng). Chuoi phien ban MOI NHAT khai o ResumeParsingService.PROMPT_VERSION (mot cho, gan ten
 // file .st); o day chi giu ten phien ban CU can so sanh (dieu kien trich xuat lai, R-R2) va phep quy
 // doi chuoi -> so cho API (schemaVersion 1|2).
+// FR-U12 R-S1: CV dung tu form ghi model/prompt_version rieng (khong co LLM nao), du lieu theo schema 2.
 public final class ResumeSchemaVersions {
 
     static final String V1_PROMPT_VERSION = "resume-parse-v1";
+
+    public static final String CV_BUILDER_MODEL = "cv-builder";
+
+    public static final String CV_BUILDER_VERSION = "cv-builder-v1";
+
+    private static final int CV_BUILDER_SCHEMA_VERSION = 2;
 
     private static final String PROMPT_VERSION_PREFIX = "resume-parse-v";
 
     private ResumeSchemaVersions() {
     }
 
-    // "resume-parse-v1" -> 1, "resume-parse-v2" -> 2; null hoac chuoi khong dung dang -> null.
+    // "resume-parse-v1" -> 1, "resume-parse-v2" -> 2, "cv-builder-v1" -> 2; null hoac chuoi khong dung
+    // dang (gom "cv-builder-v2") -> null.
     public static Integer of(String promptVersion) {
+        if (isCvBuilder(promptVersion)) {
+            return CV_BUILDER_SCHEMA_VERSION;
+        }
         if (promptVersion == null || !promptVersion.startsWith(PROMPT_VERSION_PREFIX)) {
             return null;
         }
@@ -27,5 +38,9 @@ public final class ResumeSchemaVersions {
 
     static boolean isV1(String promptVersion) {
         return V1_PROMPT_VERSION.equals(promptVersion);
+    }
+
+    public static boolean isCvBuilder(String promptVersion) {
+        return CV_BUILDER_VERSION.equals(promptVersion);
     }
 }

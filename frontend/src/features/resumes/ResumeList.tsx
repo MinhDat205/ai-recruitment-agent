@@ -1,11 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { Download, FileSearch, FileText, MessageSquareText, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
+import { Download, FileSearch, FileText, MessageSquareText, PencilLine, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatFileSize } from '../../lib/fileSize'
+import { CV_BUILDER_TEXT } from '../cvBuilder/cvBuilderLabels'
 import { downloadResumeRequest } from './api'
 import { ParseStatusBadge } from './ParseStatusBadge'
 import {
@@ -133,7 +134,7 @@ export function ResumeList() {
   }
 
   if (!resumes || resumes.length === 0) {
-    return <p className="text-sm text-m3-on-surface-variant">Chưa có CV nào. Tải lên CV đầu tiên của bạn ở trên.</p>
+    return <p className="text-sm text-m3-on-surface-variant">{CV_BUILDER_TEXT.emptyResumeList}</p>
   }
 
   return (
@@ -230,6 +231,18 @@ export function ResumeList() {
                         : resume.reparse?.status === 'FAILED'
                           ? REPARSE_TEXT.buttonRetry
                           : REPARSE_TEXT.button}
+                    </Button>
+                  )}
+                  {/* FR-U12 - chi CV dung bang cong cu (UI.md muc 3); dat truoc "Xem dữ liệu đã trích xuất". */}
+                  {resume.fromCvBuilder && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/candidate/resumes/${resume.id}/edit`)}
+                    >
+                      <PencilLine className="h-4 w-4" aria-hidden="true" />
+                      {CV_BUILDER_TEXT.editButton}
                     </Button>
                   )}
                   {resume.parseStatus === 'DONE' && (

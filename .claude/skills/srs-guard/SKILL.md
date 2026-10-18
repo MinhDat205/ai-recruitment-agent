@@ -43,6 +43,26 @@ trích từ JSON sẽ là lời của LLM chứ không phải lời trong CV g�
 chứng được — CLAUDE.md mục 2). Kiểm chứng evidence cũng luôn dùng `raw_text` đầy đủ, không phải
 bản đã cắt hay CV JSON.
 
+**Mở rộng cho FR-U12 (CV dựng từ form)** — CV này là nguồn `raw_text` thứ hai, nên cùng thuộc nguyên tắc này:
+
+```bash
+rg -n "ChatModel|ChatClient|EmbeddingModel|SyncAiCaller" backend/src/main/java/com/recruitment/cvbuilder
+rg -n "insertBuiltResume|CV_BUILDER_VERSION|ParseStatus\.DONE" backend/src/main/java/com/recruitment/resume/ResumeParsingStateService.java
+rg -n "extract\(|VerbatimQuoteVerifier" backend/src/main/java/com/recruitment/cvbuilder
+rg -in "photo|avatar|birth|gender|marital" backend/src/main/java/com/recruitment/cvbuilder frontend/src/features/cvBuilder
+rg -n "Repository|@Entity|save\(" backend/src/main/java/com/recruitment/ai/cvrephrase
+```
+
+Vi phạm nếu:
+- CV dựng từ form đi qua LLM trích xuất: `cvbuilder/` gọi `ChatModel`/`ChatClient`/`EmbeddingModel` (chỉ được gọi
+  `CvRephraseService` cho gợi ý diễn đạt), hoặc `insertBuiltResume` không ghi `parse_status = DONE` ngay mà để `PENDING`
+  cho scheduler, hoặc `prompt_version` khác `cv-builder-v1` (`ResumeSchemaVersions.CV_BUILDER_VERSION`).
+- `raw_text` không phải văn bản trích lại từ chính file PDF đã lưu (vd ghép chuỗi từ form), hoặc bỏ bước kiểm mọi trường
+  form có trong `raw_text` qua K2 trước khi ghi (R-P8).
+- Form/DTO của CV builder có trường nhân thân (ảnh, ngày sinh, tuổi, giới tính, hôn nhân…).
+- Gợi ý diễn đạt (`ai/cvrephrase/`) được lưu xuống DB (repository, entity, `save`) hay ghi K4 — gợi ý chỉ trả về trong
+  response, chỉ có hiệu lực khi ứng viên bấm dùng.
+
 ## 4. Không có ngưỡng phân loại ỨNG VIÊN (FR-H05)
 
 ```bash
@@ -200,9 +220,11 @@ Lệnh 1 tìm field nhân thân trong code (kỳ vọng ra `CandidateProfile.dat
 `jobrecommendation/`, hay logic lọc/tìm kiếm). Lệnh 2 soát riêng prompt gửi LLM — **kỳ vọng 0 kết
 quả**, ngoài đúng các dòng trong ngoại lệ đích danh dưới đây; không có "trường hợp cho phép" chung nào.
 
-Ngoại lệ đã duyệt (L59 FR-C08): `backend/src/main/resources/ai/prompt/cv-qa-v1.st` — dòng định nghĩa mã
+Ngoại lệ đã duyệt (L59 FR-C08, L70 FR-U12): `backend/src/main/resources/ai/prompt/cv-qa-v1.st` — dòng định nghĩa mã
 `PERSONAL_INFO` (liệt kê thuộc tính để AI TỪ CHỐI) và dòng ví dụ phía ứng viên 'CV của tôi có ghi ngày sinh
-không?' (cho phép ứng viên kiểm CV của chính mình, R-G5). Mọi kết quả khác vẫn là vi phạm. Thêm file/dòng vào
+không?' (cho phép ứng viên kiểm CV của chính mình, R-G5).
+`backend/src/main/resources/ai/prompt/cv-rephrase-v1.st` — dòng 'KHÔNG thêm thông tin nhân thân (tuổi, ngày sinh, …)'
+(lệnh CẤM AI thêm thuộc tính nhân thân vào gợi ý — L70 FR-U12). Mọi kết quả khác vẫn là vi phạm. Thêm file/dòng vào
 ngoại lệ này phải có quyết định duyệt của FR tương ứng.
 
 Vi phạm nếu: lệnh 2 ra kết quả ngoài ngoại lệ trên, hoặc field từ lệnh 1 bị dùng làm điều kiện lọc/bị hỏi ở form sàng

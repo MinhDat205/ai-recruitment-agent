@@ -27,6 +27,9 @@ Gặp mâu thuẫn thì báo ra, không tự chọn bên nào.
   trong CV, và cả nguyên tắc evidence sụp từ gốc.
   Câu này áp cho trích xuất (D1). Ở hỏi đáp CV (FR-C08), phần trả lời được là lời của LLM khi mọi
   khẳng định có trích dẫn nguyên văn đã qua K2.
+  Ở gợi ý diễn đạt của CV builder (FR-U12), AI viết lại đoạn mô tả ứng viên **đang gõ**, trước khi
+  CV tồn tại, chỉ có hiệu lực khi ứng viên bấm dùng; `raw_text` của CV lấy từ file PDF cuối cùng nên
+  evidence vẫn là nguyên văn file.
 - Ứng viên phải tick consent trước khi CV được AI phân tích (FR-U02).
 - Rút đơn = đổi trạng thái (soft state), KHÔNG hard delete (FR-U06).
 - Vòng đời đơn ứng tuyển đúng 5 trạng thái: `PENDING` → `INTERVIEW_INVITED` → `HIRED` | `REJECTED`;
@@ -57,7 +60,8 @@ Monorepo: `backend/` (Spring Boot) + `frontend/` (React) + 1 PostgreSQL. Không 
 - Migration: Flyway (`backend/src/main/resources/db/migration`) — Flyway là nguồn sự thật của schema,
   `ddl-auto: validate`
 - AI: Spring AI 2.0.0 — `ChatClient` (Anthropic), `EmbeddingModel` (OpenAI), `PgVectorStore`
-- Đọc CV: Apache PDFBox 3.0.3 (PDF) + Apache POI 5.4.0 (DOCX)
+- Đọc CV: Apache PDFBox 3.0.3 (PDF) + Apache POI 5.4.0 (DOCX). Sinh CV: PDFBox 3.0.3 + font Noto Sans
+  nhúng (OFL, `resources/fonts/`)
 - Database: PostgreSQL 17 + pgvector, index HNSW cosine, `vector(1536)`
 - Frontend: Vite + React 19 + TypeScript, TanStack Query, React Hook Form + Zod, Tailwind + shadcn/ui
 - Job nền: bảng trạng thái + `@Scheduled` poller. Không Redis, không MQ.
@@ -70,7 +74,7 @@ Chia package theo TÍNH NĂNG, không theo tầng: `auth/`, `user/`, `company/`,
 `ai/embedding/`, `aicontext/` (K1), `ai/sync/` (K3), `ai/messagedraft/`, `messagedraft/` (FR-C07),
 `screening/` (FR-H10), `aigeneration/` (K4), `ai/jobdraft/`, `jobdraft/` (FR-H11),
 `ai/citation/` (K2), `ai/cvqa/`, `cvqa/` (FR-C08),
-`comparison/` (FR-H14), `talentpool/` (FR-H15).
+`comparison/` (FR-H14), `talentpool/` (FR-H15), `cvbuilder/`, `ai/cvrephrase/` (FR-U12).
 Mỗi mã FR nằm gọn trong một package; package mới chỉ tạo khi FR thật sự cần.
 
 ## 3b. Bẫy đã trả giá — đọc trước khi động vào Spring AI
@@ -124,7 +128,7 @@ trong `ResumeParsingStateService.java`/`ScoringRunStateService.java`.
 | Mã | Trách nhiệm | Xây lần đầu ở | Dùng bởi |
 |---|---|---|---|
 | K1 | Bộ gom ngữ cảnh theo vai trò (`aicontext/`): gom dữ liệu đơn, CV đã trích xuất, JD, rubric, kết quả chấm thành ngữ cảnh gửi AI, lọc theo vai trò người gọi. Phía ứng viên không bao giờ nhận điểm, rubric, giải thích AI hay ghi chú HR; chặn bằng **kiểu dữ liệu** (record chỉ có thành phần cho phép), không bằng lời dặn trong prompt. **Đã có:** phần ngữ cảnh cuộc trao đổi (`ConversationContext` + `ConversationContextAssembler`, FR-C07); phần ngữ cảnh hỏi đáp CV (`CvQaContext` + `CvQaContextAssembler`, FR-C08). **Chưa có:** phần CV/JD/rubric/điểm — hiện chưa FR nào cần (FR-H15 rút gọn 16/10/2026, không dùng AI); FR sau cần thì tự thêm record riêng (dữ liệu chỉ cho HR nằm ở record dựng bằng method nhận `ContextViewer.HR` cố định), không thêm field vào `ConversationContext`. FR-H12 đổi nguồn `InterviewSchedule` sang khung đã chốt của giấy mời hiệu lực (`superseded_at IS NULL`; chưa chốt → `null`), hình dạng record giữ nguyên | FR-C07 | C07, C08, H12 |
-| K2 | Bộ kiểm tra trích dẫn nguyên văn: tách từ phần kiểm evidence trong `CriterionScoringService` (FR-H04) thành thành phần dùng chung; FR-H04 chuyển sang dùng nó, hành vi không đổi, toàn bộ test cũ vẫn pass. **Đã có** (`ai/citation/VerbatimQuoteVerifier`, hành vi = H04); điều kiện riêng của từng FR (vd độ dài trích dẫn của C08) đặt ở FR đó, không thêm vào K2 | FR-C08 | FR-H04, C08 |
+| K2 | Bộ kiểm tra trích dẫn nguyên văn: tách từ phần kiểm evidence trong `CriterionScoringService` (FR-H04) thành thành phần dùng chung; FR-H04 chuyển sang dùng nó, hành vi không đổi, toàn bộ test cũ vẫn pass. **Đã có** (`ai/citation/VerbatimQuoteVerifier`, hành vi = H04); điều kiện riêng của từng FR (vd độ dài trích dẫn của C08) đặt ở FR đó, không thêm vào K2 | FR-C08 | FR-H04, C08, U12 (kiểm `raw_text` của CV dựng từ form — R-P8) |
 | K3 | Gọi AI đồng bộ có giới hạn (xem ngoại lệ ở §7) | FR-C07 | C07, C08, H11, U12, U13 |
 | K4 | Siêu dữ liệu kết quả AI được lưu: model, phiên bản prompt, thời điểm sinh. **Đã có** (`aigeneration/`): `AiGenerationStamp` (record `@Embeddable`, nhúng 3 cột `ai_model`/`ai_prompt_version`/`ai_generated_at` vào bảng của FR) + `AiGenerationTokenCodec` (token ký lúc sinh, kiểm lúc lưu ở request khác; khoá dẫn xuất HMAC từ `JWT_SECRET` với nhãn riêng của K4, hạn 7 ngày, `purpose` do FR tự đặt). FR-H11 lưu ở bảng `job_ai_generations`. FR sinh và lưu trong cùng một request thì dùng thẳng `new AiGenerationStamp(...)`, không cần token | FR-H11 | H11 |
 
@@ -159,7 +163,7 @@ Không cài lại riêng trong từng FR. FR cần thành phần mà thành ph�
   primitive nhận `0` khi field vắng mặt, xoá mất khác biệt giữa "không tìm thấy" và "bằng 0".
   Field `List` chuẩn hoá `null` → `List.of()` trong compact constructor.
 - Soft delete bằng `deleted_at` xuyên suốt, không `DELETE FROM`.
-- File nhị phân dùng làm fixture test phải khai `binary -text` trong `.gitattributes`
+- File nhị phân dùng làm fixture test, và font `.ttf`, phải khai `binary -text` trong `.gitattributes`
   (quy tắc `* text=auto eol=lf` sẽ làm hỏng chúng khi commit từ Windows).
 - Không commit `.env`, không commit `uploads/`, không log nội dung CV ra console.
 

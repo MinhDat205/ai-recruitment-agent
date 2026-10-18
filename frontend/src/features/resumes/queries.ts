@@ -11,7 +11,7 @@ import {
 } from './api'
 import type { CvImprovementStatus, CvImprovementSuggestion, Resume, ResumeParsedDataResponse } from './types'
 
-const RESUMES_QUERY_KEY = ['resumes', 'mine']
+export const RESUMES_QUERY_KEY = ['resumes', 'mine']
 
 // PENDING/PROCESSING la trang thai tam - poller backend chay moi 5s (app.resume-parsing.poll-
 // interval-ms), nen refetch phia FE cung o quanh chu ky do de nguoi dung thay chuyen sang DONE/

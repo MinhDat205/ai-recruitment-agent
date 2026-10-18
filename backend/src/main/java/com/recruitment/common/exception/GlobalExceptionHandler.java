@@ -500,6 +500,54 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("CV_TEXT_NOT_AVAILABLE", ex.getMessage()));
     }
 
+    // FR-U12 muc 4.4 - cau co dinh nam trong tung exception. Body JSON hong (R-W1) KHONG di qua day ma qua
+    // CvBuilderExceptionAdvice (chi ap cho controller CV builder). uq_resume_primary_per_candidate KHONG dich o handler
+    // DataIntegrityViolationException ben duoi: CvBuilderService tu bat (R-W5), hanh vi upload giu nguyen (M7).
+    @ExceptionHandler(InvalidCvBuilderFormException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCvBuilderForm(InvalidCvBuilderFormException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CV_BUILDER_FORM", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CvBuilderEmptyException.class)
+    public ResponseEntity<ErrorResponse> handleCvBuilderEmpty(CvBuilderEmptyException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("CV_BUILDER_EMPTY", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CvBuilderTooLargeException.class)
+    public ResponseEntity<ErrorResponse> handleCvBuilderTooLarge(CvBuilderTooLargeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("CV_BUILDER_TOO_LARGE", ex.getMessage()));
+    }
+
+    // L7 - 500 co ma rieng; nguyen nhan goc chi o cause (CvBuilderService ghi log), khong vao body.
+    @ExceptionHandler(CvBuilderRenderFailedException.class)
+    public ResponseEntity<ErrorResponse> handleCvBuilderRenderFailed(CvBuilderRenderFailedException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("CV_BUILDER_RENDER_FAILED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CvBuilderConcurrentCreateException.class)
+    public ResponseEntity<ErrorResponse> handleCvBuilderConcurrentCreate(CvBuilderConcurrentCreateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CV_BUILDER_CONCURRENT_CREATE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CvNotFromBuilderException.class)
+    public ResponseEntity<ErrorResponse> handleCvNotFromBuilder(CvNotFromBuilderException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CV_NOT_FROM_BUILDER", ex.getMessage()));
+    }
+
+    // FR-U12 R-A2 - mot ma loi, cau co dinh qua getMessage(). Body JSON hong cua B4 KHONG di qua day ma qua
+    // CvBuilderExceptionAdvice (phan theo duong dan request).
+    @ExceptionHandler(InvalidCvRephraseRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCvRephraseRequest(InvalidCvRephraseRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_CV_REPHRASE_REQUEST", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)

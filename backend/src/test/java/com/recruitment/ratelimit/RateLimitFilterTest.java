@@ -615,4 +615,104 @@ class RateLimitFilterTest {
             }
         }
     }
+
+    // ---- FR-U12 T22 - goi y dien dat (POST /api/candidates/cv-builder/rephrase) thuoc nhom "ai-sync" (R-A8) ----
+
+    private static final String CV_REPHRASE_PATH = "/api/candidates/cv-builder/rephrase";
+    private static final String CV_BUILDER_RESUMES_PATH = "/api/candidates/cv-builder/resumes";
+    private static final String CV_BUILDER_PREVIEW_PATH = "/api/candidates/cv-builder/preview";
+
+    @Test
+    void doFilter_cvRephrase_5thPasses_6thRejected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 5, 2);
+        authenticateAs("fc111111-1111-1111-1111-111111111111");
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), response);
+            assertThat(response.getStatus()).as("request thu %d phai qua duoc", i + 1).isEqualTo(200);
+        }
+
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), rejected);
+        assertThat(rejected.getStatus()).isEqualTo(429);
+        assertThat(rejected.getHeader("Retry-After")).isNotNull();
+        assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+    }
+
+    // Khoa ai-sync:{userId} chung bucket voi hoi dap CV phia ung vien (C08): het luot do rephrase thi cv-qa cung 429, va
+    // nguoc lai; nhom message/llm-action van qua.
+    @Test
+    void doFilter_cvRephraseSharesAiSyncBucketWithCvQa_otherGroupsUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 2, 2);
+        authenticateAs("fc222222-2222-2222-2222-222222222222");
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_CV_QA_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), second);
+        assertThat(second.getStatus()).as("luot 2 cua bucket").isEqualTo(200);
+
+        MockHttpServletResponse rephraseExhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), rephraseExhausted);
+        assertThat(rephraseExhausted.getStatus()).as("rephrase luot 3").isEqualTo(429);
+        MockHttpServletResponse cvQa = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_CV_QA_PATH), cvQa);
+        assertThat(cvQa.getStatus()).as("cv-qa sau khi bucket het").isEqualTo(429);
+
+        MockHttpServletResponse message = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), message);
+        assertThat(message.getStatus()).as("nhom message").isEqualTo(200);
+        MockHttpServletResponse llmAction = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", "/api/candidates/resumes"), llmAction);
+        assertThat(llmAction.getStatus()).as("nhom llm-action").isEqualTo(200);
+    }
+
+    // Theo userId: ung vien khac khong bi anh huong.
+    @Test
+    void doFilter_cvRephrase_isLimitedPerUser() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        authenticateAs("fc333333-3333-3333-3333-333333333333");
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        SecurityContextHolder.clearContext();
+        authenticateAs("fc444444-4444-4444-4444-444444444444");
+        MockHttpServletResponse otherUser = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), otherUser);
+        assertThat(otherUser.getStatus()).isEqualTo(200);
+    }
+
+    // So khop CHINH XAC: GET cung duong dan va POST ".../rephrase/x" khong bi tinh; B1, B3 khong thuoc nhom nao (O4) -
+    // ke ca khi MOI bucket (ai-sync, llm-action, message) chi co 1 luot va ai-sync da het.
+    @Test
+    void doFilter_cvRephraseGetSubPath_andCvBuilderCreatePreview_areNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 1, 1, 1, 1);
+        authenticateAs("fc555555-5555-5555-5555-555555555555");
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        for (int i = 0; i < 5; i++) {
+            for (MockHttpServletRequest request : List.of(
+                    new MockHttpServletRequest("GET", CV_REPHRASE_PATH),
+                    new MockHttpServletRequest("POST", CV_REPHRASE_PATH + "/x"),
+                    new MockHttpServletRequest("POST", CV_BUILDER_RESUMES_PATH),
+                    new MockHttpServletRequest("POST", CV_BUILDER_PREVIEW_PATH))) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, request, response);
+                assertThat(response.getStatus()).as("%s %s", request.getMethod(), request.getRequestURI()).isEqualTo(200);
+            }
+        }
+    }
+
+    @Test
+    void doFilter_cvRephraseWithoutAuthentication_passesThroughUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), response);
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+    }
 }

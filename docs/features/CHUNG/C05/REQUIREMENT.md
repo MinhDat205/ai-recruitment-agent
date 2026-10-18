@@ -353,6 +353,8 @@ H13, H14, H15:
   `currentTitle`, `industry {code,label}|null`, `location {code,label}|null`, `locationText`,
   `experience {months, years, countedEntries, skippedEntries, referenceMonth}|null` (null khi chưa
   tính; `months` null khi không có mục nào đọc được).
+  > Sửa bởi FR-U12 (18/10/2026): `schemaVersion` (1|2) suy ra từ `prompt_version` dạng `resume-parse-v*`, nay có thêm
+  > `cv-builder-v1` → 2 (CV dựng từ form — `ResumeSchemaVersions`, R-S1 của `docs/features/UV/U12/REQUIREMENT.md`).
 - `GET /api/candidates/resumes`: mỗi CV thêm `schemaVersion` (null khi chưa DONE) và `reparse
   {status, errorMessage}|null` (yêu cầu gần nhất).
 - `POST /api/candidates/resumes/{id}/reparse` — CANDIDATE, R-R1–R3; trả 202 + CV.

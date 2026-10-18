@@ -13,6 +13,7 @@ import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
 import { CandidateOnboardingPage } from './pages/CandidateOnboardingPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
+import { CvBuilderPage } from './pages/CvBuilderPage'
 import { CvImprovementSuggestionsPage } from './pages/CvImprovementSuggestionsPage'
 import { HrApplicationDetailPage } from './pages/HrApplicationDetailPage'
 import { HrCandidatesPage } from './pages/HrCandidatesPage'
@@ -79,6 +80,10 @@ function App() {
             <Route path="/candidate/applications/:id" element={<CandidateApplicationDetailPage />} />
             <Route path="/candidate/messages" element={<CandidateMessagesPage />} />
             <Route path="/candidate/notifications" element={<CandidateNotificationsPage />} />
+            {/* FR-U12 - tao CV; dat TRUOC cac route /candidate/resumes/:id/... (UI.md muc 2, 5b). */}
+            <Route path="/candidate/resumes/new" element={<CvBuilderPage />} />
+            {/* FR-U12 - sua CV dung bang cong cu (luu thanh CV moi - R-W6). */}
+            <Route path="/candidate/resumes/:id/edit" element={<CvBuilderPage />} />
             <Route
               path="/candidate/resumes/:id/improvement-suggestions"
               element={<CvImprovementSuggestionsPage />}
