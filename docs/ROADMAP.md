@@ -1045,7 +1045,27 @@ giấy mời đã gửi không đổi khi sửa mẫu.
 vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 
 **Phase 2.6 — Tiện ích ứng viên & ẩn danh**
-- [ ] `feat/fr-u12-cv-builder` — FR-U12 · Tạo CV (CV builder)
+- [x] `feat/fr-u12-cv-builder` — FR-U12 · Tạo CV (CV builder) — **HOÀN THÀNH**
+  (18/10/2026, 7 đợt, đợt 6 và 7 tách đôi — xem `docs/walkthrough/fr-u12-cv-builder.md`). Ứng viên điền form 7 khối
+  (không có trường nhân thân), chọn 1 trong 2 mẫu một cột, xem trước, lưu (`/candidate/resumes/new`); sửa ở
+  `/candidate/resumes/:id/edit` luôn lưu thành CV mới (CV cũ và đơn đã nộp không đổi; chỉ CV đầu tiên tự thành CV chính).
+  Backend dựng PDF bằng PDFBox 3.0.3 + Noto Sans nhúng, lưu như CV tải lên và ghi thẳng CV đã trích xuất
+  (`parse_status = DONE`, `model = cv-builder`, `prompt_version = cv-builder-v1` → schema 2) — không gọi AI trích xuất;
+  `raw_text` trích lại từ chính file PDF, mọi trường form phải qua K2 trước khi ghi (R-P8). V18 `cv_builder_documents`
+  lưu form + mẫu. Gợi ý diễn đạt một đoạn mô tả kinh nghiệm/dự án gọi đồng bộ qua K3 (bean `cvRephraseChatClient` trần
+  800 token, nhóm `ai-sync`), validator số/độ dài/ngôn ngữ, không lưu, chỉ có hiệu lực khi bấm "Dùng gợi ý". Full suite
+  1816 (L67); build + lint sạch; kiểm tĩnh 7.1, 7.3 đạt (S6, S9 đổi đối chứng — L69); 7.2 phần A 12/12 (L38); cổng AI
+  7.2 phần B hai lần — lần 1 thấy AI hạ vai trò và thêm việc làm, siết prompt (L47), lần 2 đạt (L48); soát tay 7.4 15/15
+  (L68); `srs-guard` sạch (ngoại lệ đích danh L59, L70). Làm rõ L1–L70. Giới hạn đã biết:
+  - Validator gợi ý diễn đạt không bắt được kỹ năng/công nghệ thêm bằng chữ; kiểm ngôn ngữ là heuristic (R-A6).
+  - Nhãn mục trong PDF chỉ tiếng Việt, kể cả CV viết tiếng Anh (O5).
+  - Bucket `ai-sync` dùng chung với C07/H11/C08: sửa nhiều đoạn làm hết lượt của chức năng kia (Q-U11).
+  - Tạo CV (B1) và xem trước (B3) không rate limit (O4).
+  - Race CV chính của upload (FR-U01) vẫn 500; chỉ U12 dịch sang 409 (M7).
+  - 7.2 A12 để lại tài khoản `u12-*@example.com` và file PDF trên DB/đĩa dev (L39).
+  - Gợi ý diễn đạt thận trọng sau khi siết prompt: ít diễn đạt lại hơn, có đoạn trả nguyên văn (L48).
+  - Việc tài liệu: `docs/features/UV/U15/UI.md:18` cột FR còn ghi FR-U11 (đã loại 16/10/2026) — không thuộc U12, sửa ở
+    nhánh docs/ riêng (D7 FR-U12).
 - [ ] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên
 - [ ] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh
 
@@ -1053,8 +1073,6 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 > Mã FR-U11 không dùng lại; các mã khác giữ nguyên.
 
 > Lưu ý khi viết đặc tả (soát 05/10/2026):
-> - FR-U12 ghi thẳng "CV đã trích xuất" từ form nên phải theo schema v2 của FR-C05 (mã ngành nghề/khu
->   vực, số tháng kinh nghiệm do backend tính) — thêm FR-C05 vào phụ thuộc; gợi ý diễn đạt cần FR-C07 (K3).
 > - FR-H16: danh sách bề mặt phải che còn thiếu `/hr/candidates` (`CandidatesTable` đang hiện
 >   `candidateName` cho mọi Job), hộp thư `/hr/messages` (C06), tab Sàng lọc (H10 — câu trả lời tự do);
 >   cần soát thêm nội dung thông báo/email gửi HR.

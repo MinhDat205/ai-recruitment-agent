@@ -205,7 +205,8 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
   để hiện "điều kiện đã khớp" (U13, U15).
 - **Tabs** (primary tabs) cho trang có tab (H09, U08, trang sửa Job); **Segmented button** cho lựa
   chọn 2–3 giá trị (giọng văn ở C07); **Dialog**; **Sheet**; **Snackbar** (toast) để xác nhận thao
-  tác; **Linear progress** cho thao tác AI đồng bộ; **Search bar** (U13); **List** cho hộp thư
+  tác (dự án chưa có Snackbar; FR-U12 dùng câu tại chỗ `role="status"` như FR-C05 —
+  `docs/features/CHUNG/C05/UI.md:240-242`); **Linear progress** cho thao tác AI đồng bộ; **Search bar** (U13); **List** cho hộp thư
   (C06); **Badge số** cho mục chưa đọc.
 - **Badge trạng thái đơn**: màn hình mới dùng lại `ApplicationStatusBadge` hiện có, KHÔNG tạo bộ
   màu mới. Bảng trung tính (chốt 05/10/2026, phân biệt bằng mức nhấn mạnh, không dùng cặp xanh/đỏ):
@@ -338,7 +339,7 @@ thêm lúc code.
 |---|---|---|---|
 | `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
 | `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
-| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV) |
+| `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV), FR-U12 (nút Tạo CV, Sửa CV) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
 | ★`/candidate/resumes/:id/qa` | Hỏi đáp CV | ★Mới | FR-C08 |

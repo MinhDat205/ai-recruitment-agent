@@ -1,6 +1,6 @@
 # FR-U12 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT (17/10/2026). Đi cùng `REQUIREMENT.md` (cùng trạng thái). Quy tắc nghiệp vụ, mã lỗi, DTO:
+> Trạng thái: ĐÃ HOÀN THÀNH (18/10/2026). Duyệt: 17/10/2026. Đi cùng `REQUIREMENT.md` (cùng trạng thái). Quy tắc nghiệp vụ, mã lỗi, DTO:
 > `REQUIREMENT.md`; file này chỉ nói về màn hình.
 
 Nguồn: `docs/UI_GUIDE.md` (token mục 1, component mục 3, ràng buộc mục 4 "Nội dung do AI tạo", trạng thái mục 5, tiếp cận mục
@@ -8,7 +8,7 @@ Nguồn: `docs/UI_GUIDE.md` (token mục 1, component mục 3, ràng buộc mụ
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT (17/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (18/10/2026). Duyệt: 17/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 
@@ -180,6 +180,7 @@ Như 4a, khác:
 | `frontend/src/features/resumes/ResumeList.tsx` | Nút "Sửa CV" (mục 3); câu rỗng `emptyResumeList` |
 | `frontend/src/features/resumes/types.ts` | `Resume.fromCvBuilder: boolean` |
 | `frontend/src/features/candidateProfile/SkillTagInput.tsx` | (REQUIREMENT 13.5 L12) Thêm **2 prop tuỳ chọn**: `inputAriaLabel` (mặc định "Nhập kỹ năng mới") và `removeAriaLabel(item)` (mặc định "Xoá kỹ năng {x}"). Không đổi gì khác — U14 không truyền hai prop này nên hành vi giữ nguyên |
+| `frontend/src/features/resumes/queries.ts` | (REQUIREMENT 13.5 L51) export `RESUMES_QUERY_KEY` (`const` → `export const`) để `CvBuilderPage` invalidate đúng khoá danh sách CV sau khi lưu. Không đổi hành vi |
 
 ### 5c. Dùng lại có sẵn
 
@@ -253,6 +254,7 @@ Tất cả ở `cvBuilderLabels.ts`. `{n}`, `{max}`, `{i}` là số.
 | `prefillSelectPlaceholder` | Chọn CV |
 | `prefillButton` | Điền sẵn |
 | `prefillRunning` | Đang điền… |
+| `prefillLoading` (REQUIREMENT 13.5 L50) | Đang tải danh sách CV… |
 | `prefillNone` | Bạn chưa có CV nào đã xử lý xong để điền sẵn. |
 | `prefillConfirm` | Thay toàn bộ nội dung đang nhập bằng dữ liệu từ CV đã chọn? |
 | `prefillConfirmOk` | Thay nội dung |
@@ -272,8 +274,11 @@ Tất cả ở `cvBuilderLabels.ts`. `{n}`, `{max}`, `{i}` là số.
 | `sectionCertifications` | Chứng chỉ |
 | `sectionVersion` | Tên phiên bản |
 | `industryHint` | Dùng để gợi ý việc làm, không in lên CV. |
+| `industryPlaceholder` (L50) | Chọn ngành |
+| `industryNone` (L50 — lựa chọn bỏ chọn ngành; `Select` không có `OTHER`) | Không chọn ngành |
 | `locationHint` | Ví dụ: Hà Nội, TP. Hồ Chí Minh. |
 | `dateHint` | MM/YYYY hoặc YYYY |
+| `CV_BUILDER_DATE_PLACEHOLDER` (L50 — hằng export riêng, placeholder ô mốc của `MonthField`) | MM/YYYY |
 | `currentLabel` | Đang làm ở đây |
 | `versionPlaceholder` | Ví dụ: Bản CSKH 2026 |
 | `addExperience` / `addEducation` / `addProject` / `addCertification` | Thêm kinh nghiệm / Thêm học vấn / Thêm dự án / Thêm chứng chỉ |
@@ -313,6 +318,7 @@ Tất cả ở `cvBuilderLabels.ts`. `{n}`, `{max}`, `{i}` là số.
 | `previewDownload` | Tải bản xem trước |
 | `previewClose` | Đóng |
 | `previewOpenCompact` | Bản xem trước đã được tải về máy. |
+| `previewFailedFallback` (L57 — B3 lỗi không có `{error, message}`) | Chưa tạo được bản xem trước, vui lòng thử lại. |
 | `saveCreate` | Lưu CV |
 | `saveEdit` | Lưu thành CV mới |
 | `saving` | Đang lưu… |
@@ -321,6 +327,7 @@ Tất cả ở `cvBuilderLabels.ts`. `{n}`, `{max}`, `{i}` là số.
 | `saveFailedFallback` | Chưa lưu được CV, vui lòng thử lại. |
 | `leaveWarning` | (trình duyệt tự hiện câu của nó cho `beforeunload` — không đặt chuỗi riêng) |
 | `resumeNotFound` | Không tìm thấy CV này. |
+| `editLoadFailed` (L58 — B2 mất mạng/5xx; 400, 403 dùng `resumeNotFound`) | Không tải được CV này, vui lòng thử lại. |
 | Nhãn ô | Đúng bảng nhãn ô của REQUIREMENT 4.4 ("Họ và tên", "Email", "Điện thoại", "Địa chỉ", "LinkedIn", "Chức danh hiện tại", "Khu vực", "Ngành nghề", "Trường", "Bằng cấp", "Chuyên ngành", "Thời gian bắt đầu", "Thời gian kết thúc", "GPA", "Tên công ty", "Chức danh", "Mô tả", "Kỹ năng", "Tên chứng chỉ", "Đơn vị cấp", "Thời gian cấp", "Tên dự án", "Công nghệ", "Tên phiên bản") |
 | Câu lỗi kiểm form | Đúng mẫu câu `INVALID_CV_BUILDER_FORM` / `CV_BUILDER_EMPTY` của REQUIREMENT 4.4 (frontend và backend cùng câu) |
 

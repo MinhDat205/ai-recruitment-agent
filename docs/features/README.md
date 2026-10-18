@@ -734,7 +734,7 @@ Chỉ gồm đơn đã nộp vào công ty và có đồng ý lưu hồ sơ; kh�
 
 - **Phase:** 2.6 · **Nhánh:** `feat/fr-u12-cv-builder` · **Phía sử dụng:** Ứng viên
 - **Đặc tả chi tiết:** `docs/features/UV/U12/REQUIREMENT.md`, `UI.md`
-- **Phụ thuộc:** FR-U01, FR-C04
+- **Phụ thuộc:** FR-U01, FR-C04, FR-C05, FR-C07 (sửa theo FR-U12 đã duyệt)
 - **Màn hình (UI_GUIDE mục 7):** ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit`.
 
 **Mục đích**
@@ -743,13 +743,13 @@ Cho ứng viên chưa có CV, hoặc CV chưa chỉn chu, một công cụ tạo
 
 **Người dùng thao tác**
 
-- CV của tôi → Tạo CV → điền form theo khối (liên hệ, học vấn, kinh nghiệm, kỹ năng, chứng chỉ, dự án); tuỳ chọn điền sẵn từ một CV đã trích xuất → tuỳ chọn bấm Gợi ý diễn đạt cho từng đoạn → chọn mẫu trình bày → Xem trước → Lưu.
+- CV của tôi → Tạo CV → điền form theo khối (liên hệ, học vấn, kinh nghiệm, kỹ năng, chứng chỉ, dự án); tuỳ chọn điền sẵn từ một CV đã trích xuất (chỉ chép mốc thời gian đúng dạng, mốc khác để trống kèm câu báo — sửa theo FR-U12 đã duyệt) → tuỳ chọn bấm Gợi ý diễn đạt cho từng đoạn → chọn mẫu trình bày → Xem trước → Lưu.
 - Sửa CV đã tạo: mở lại form, chỉnh sửa, lưu thành một phiên bản CV mới.
 
 **Hệ thống**
 
 - Form theo đúng cấu trúc CV đã trích xuất của FR-C04. Backend sinh file PDF và lưu như một CV bình thường (FR-U01), dùng chung lưu trữ và giới hạn.
-- Ghi thẳng CV đã trích xuất từ dữ liệu form, bỏ bước AI trích xuất; lưu dữ liệu form để sửa lại sau. Gợi ý việc làm (FR-U04), gợi ý cải thiện (FR-U05) và chấm điểm chạy như CV upload.
+- Ghi thẳng CV đã trích xuất từ dữ liệu form, bỏ bước AI trích xuất (`model = cv-builder`, `prompt_version = cv-builder-v1` — sửa theo FR-U12 đã duyệt); lưu dữ liệu form để sửa lại sau. Gợi ý việc làm (FR-U04), gợi ý cải thiện (FR-U05) và chấm điểm chạy như CV upload.
 - Sửa CV tạo phiên bản mới, không ghi đè file cũ, nên đơn đã nộp luôn giữ đúng CV đã nộp.
 
 **AI**
