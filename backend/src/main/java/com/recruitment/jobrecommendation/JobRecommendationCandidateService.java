@@ -4,6 +4,7 @@ import com.recruitment.catalog.CatalogRegistry;
 import com.recruitment.job.Job;
 import com.recruitment.job.JobPublicService;
 import com.recruitment.job.JobRepository;
+import com.recruitment.job.WorkModes;
 import com.recruitment.job.dto.JobSummaryResponse;
 import com.recruitment.resume.ParseStatus;
 import com.recruitment.resume.Resume;
@@ -40,15 +41,6 @@ public class JobRecommendationCandidateService {
     // Sentinel cho danh sach rong khi khong loc theo ma - Postgres khong nhan "IN ()" rong, cung
     // ky thuat voi JobPublicService.UNSET_CODE_SENTINEL/UNSET_WORK_MODE_SENTINEL.
     private static final String UNSET_CODE_SENTINEL = "__NONE__";
-
-    // FR-U15 - nhan hinh thuc lam viec (dung cho matchedConditions, R-M2). Backend CHUA co bang
-    // nhan tuong duong truoc FR-U15 (da kiem: grep toan bo backend/src/main/java khong ra ket qua
-    // nao ngoai frontend) - sao y CHINH XAC 3 chuoi tu frontend/src/features/jobs/jobLabels.ts:
-    // 39-43 (WORK_MODE_LABELS), KHONG bia chuoi moi. De xuat cho FR sau: rut thanh hang so chung o
-    // backend (vi du package catalog/) khi co FR thu hai can dung - chua lam vi ngoai pham vi FR
-    // nay (chi mot noi dung toi).
-    private static final Map<String, String> WORK_MODE_LABELS =
-            Map.of("ONSITE", "Tại văn phòng", "HYBRID", "Kết hợp", "REMOTE", "Từ xa");
 
     private static final String SALARY_MATCH_LABEL = "Lương đạt mong muốn";
 
@@ -254,7 +246,7 @@ public class JobRecommendationCandidateService {
             }
         }
         if (job.getWorkMode() != null && contains(profile.getDesiredWorkModes(), job.getWorkMode())) {
-            String label = WORK_MODE_LABELS.get(job.getWorkMode());
+            String label = WorkModes.LABELS.get(job.getWorkMode());
             if (label != null) {
                 conditions.add(label);
             }

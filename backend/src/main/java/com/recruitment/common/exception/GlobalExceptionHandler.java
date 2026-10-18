@@ -548,6 +548,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("INVALID_CV_REPHRASE_REQUEST", ex.getMessage()));
     }
 
+    // FR-U13 R-I3 - mot ma loi, cau co dinh qua getMessage() (khong chua chu nguoi dung da go). Body JSON hong cua S1
+    // KHONG di qua day ma qua JobSearchExceptionAdvice.
+    @ExceptionHandler(InvalidJobSearchRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobSearchRequest(InvalidJobSearchRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_JOB_SEARCH_REQUEST", ex.getMessage()));
+    }
+
     // Chi bat vi pham cu the cua tung UNIQUE constraint da biet. Vi pham nao khac phai roi ve 500
     // mac dinh, khong duoc nuot va tra nham 409.
     @ExceptionHandler(DataIntegrityViolationException.class)

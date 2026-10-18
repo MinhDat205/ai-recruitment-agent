@@ -715,4 +715,99 @@ class RateLimitFilterTest {
             assertThat(response.getStatus()).isEqualTo(200);
         }
     }
+
+    // ---- FR-U13 T19 - tim viec bang mo ta (POST /api/candidates/job-search) thuoc nhom "ai-sync" (R-I4) ----
+
+    private static final String JOB_SEARCH_PATH = "/api/candidates/job-search";
+
+    @Test
+    void doFilter_jobSearch_5thPasses_6thRejected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 5, 2);
+        authenticateAs("fd111111-1111-1111-1111-111111111111");
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), response);
+            assertThat(response.getStatus()).as("request thu %d phai qua duoc", i + 1).isEqualTo(200);
+        }
+
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), rejected);
+        assertThat(rejected.getStatus()).isEqualTo(429);
+        assertThat(rejected.getHeader("Retry-After")).isNotNull();
+        assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+    }
+
+    // Khoa ai-sync:{userId} chung bucket voi goi y dien dat (U12): het luot do rephrase thi job-search cung 429, va
+    // nguoc lai; nhom message/llm-action van qua.
+    @Test
+    void doFilter_jobSearchSharesAiSyncBucketWithCvRephrase_otherGroupsUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 2, 2);
+        authenticateAs("fd222222-2222-2222-2222-222222222222");
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), second);
+        assertThat(second.getStatus()).as("luot 2 cua bucket").isEqualTo(200);
+
+        MockHttpServletResponse jobSearchExhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), jobSearchExhausted);
+        assertThat(jobSearchExhausted.getStatus()).as("job-search luot 3").isEqualTo(429);
+        MockHttpServletResponse rephrase = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CV_REPHRASE_PATH), rephrase);
+        assertThat(rephrase.getStatus()).as("rephrase sau khi bucket het").isEqualTo(429);
+
+        MockHttpServletResponse message = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", CANDIDATE_MESSAGES_PATH), message);
+        assertThat(message.getStatus()).as("nhom message").isEqualTo(200);
+        MockHttpServletResponse llmAction = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", "/api/candidates/resumes"), llmAction);
+        assertThat(llmAction.getStatus()).as("nhom llm-action").isEqualTo(200);
+    }
+
+    // Theo userId: ung vien khac khong bi anh huong.
+    @Test
+    void doFilter_jobSearch_isLimitedPerUser() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        authenticateAs("fd333333-3333-3333-3333-333333333333");
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        SecurityContextHolder.clearContext();
+        authenticateAs("fd444444-4444-4444-4444-444444444444");
+        MockHttpServletResponse otherUser = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), otherUser);
+        assertThat(otherUser.getStatus()).isEqualTo(200);
+    }
+
+    // So khop CHINH XAC: GET cung duong dan va POST ".../job-search/x" khong bi tinh, ke ca khi ai-sync da het.
+    @Test
+    void doFilter_jobSearchGetAndSubPath_areNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 1, 1, 1, 1);
+        authenticateAs("fd555555-5555-5555-5555-555555555555");
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse exhausted = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), exhausted);
+        assertThat(exhausted.getStatus()).isEqualTo(429);
+
+        for (int i = 0; i < 5; i++) {
+            for (MockHttpServletRequest request : List.of(
+                    new MockHttpServletRequest("GET", JOB_SEARCH_PATH),
+                    new MockHttpServletRequest("POST", JOB_SEARCH_PATH + "/x"))) {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                doFilter(filter, request, response);
+                assertThat(response.getStatus()).as("%s %s", request.getMethod(), request.getRequestURI()).isEqualTo(200);
+            }
+        }
+    }
+
+    @Test
+    void doFilter_jobSearchWithoutAuthentication_passesThroughUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 20, 20, 20, 20, 1, 1);
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", JOB_SEARCH_PATH), response);
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+    }
 }

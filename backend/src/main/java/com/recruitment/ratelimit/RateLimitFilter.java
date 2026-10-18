@@ -73,6 +73,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     // JOB_AI_DRAFT_PATH): ".../rephrase/x" khong khop; B1 ".../resumes", B3 ".../preview" khong goi AI, khong thuoc nhom nao
     // (O4).
     private static final String CV_REPHRASE_PATH = "/api/candidates/cv-builder/rephrase";
+    // FR-U13 R-I4 - tim viec bang mo ta (S1, @PostMapping khong them path tren @RequestMapping("/api/candidates/job-search")
+    // cua JobSearchCandidateController): cung nhom ai-sync, moi POST (ke ca 400) tieu MOT luot - mot luot gom ca loi goi
+    // LLM lan loi goi embedding (khong co bucket thu hai). So khop CHINH XAC (khuon CV_REPHRASE_PATH): ".../job-search/x"
+    // khong khop.
+    private static final String JOB_SEARCH_PATH = "/api/candidates/job-search";
 
     private final RateLimitBucketStore bucketStore;
     private final long authCapacity;
@@ -171,8 +176,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     // Chi ap dung cho DUNG cac endpoint da duyet (POST): auth, llm-action, 2 mau gui tin nhan (FR-C06), 2 mau soan
-    // nhap bang AI (FR-C07), sinh ban nhap tin (FR-H11), 2 mau hoi dap CV (FR-C08) va goi y dien dat (FR-U12) - bon nhom
-    // sau la nhom ai-sync.
+    // nhap bang AI (FR-C07), sinh ban nhap tin (FR-H11), 2 mau hoi dap CV (FR-C08), goi y dien dat (FR-U12) va tim viec
+    // bang mo ta (FR-U13) - nam nhom sau la nhom ai-sync.
     // Moi request khac (bao gom GET toi cung duong dan, hoac POST toi duong dan khac) tra null - khong bi rate limit.
     private RateLimitTarget classify(HttpServletRequest request) {
         if (!"POST".equals(request.getMethod())) {
@@ -214,7 +219,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 || JOB_AI_DRAFT_PATH.equals(path)
                 || PATH_MATCHER.match(HR_CV_QA_PATTERN, path)
                 || PATH_MATCHER.match(CANDIDATE_CV_QA_PATTERN, path)
-                || CV_REPHRASE_PATH.equals(path)) {
+                || CV_REPHRASE_PATH.equals(path)
+                || JOB_SEARCH_PATH.equals(path)) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
                 // Cung ly do nhom llm-action o tren: de chain phia sau tu tra 401/403.

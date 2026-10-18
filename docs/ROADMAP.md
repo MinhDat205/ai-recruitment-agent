@@ -1066,7 +1066,35 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   - Gợi ý diễn đạt thận trọng sau khi siết prompt: ít diễn đạt lại hơn, có đoạn trả nguyên văn (L48).
   - Việc tài liệu: `docs/features/UV/U15/UI.md:18` cột FR còn ghi FR-U11 (đã loại 16/10/2026) — không thuộc U12, sửa ở
     nhánh docs/ riêng (D7 FR-U12).
-- [ ] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên
+- [x] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên — **HOÀN THÀNH**
+  (18/10/2026, 6 đợt — xem `docs/walkthrough/fr-u13-nl-search.md`). Ở `/candidate` (trang `/` không đổi) có chế độ "Tìm
+  bằng mô tả": ứng viên gõ một câu 2–300 ký tự; AI (K3, bean `jobSearchChatClient`, prompt `job-search-parse-v1`) chỉ trỏ
+  ra đoạn chữ nguyên văn cho 4 loại điều kiện (khu vực, ngành, lương triệu VND, hình thức) và đoạn nhân thân; backend tự
+  kiểm mã theo danh mục C05, cắt đoạn, phần chữ nguyên văn còn lại được embedding đồng bộ qua `SyncEmbeddingCaller` (K3 mở
+  rộng, hạn 5 s, không thử lại) rồi xếp bằng `findRankedForSearch` ghép từ `PUBLIC_JOB_FILTER_WHERE` của U07 (SQL U15
+  giữ nguyên). Tối đa 50 việc, frontend chia 10/trang; việc chưa có embedding xếp cuối sau câu ngăn cách; "Khớp điều
+  kiện" tính xác định; sửa/xoá thẻ chuyển sang bộ lọc U07. Không lưu câu/kết quả, không đưa câu lên URL, một lượt
+  `ai-sync` mỗi lần tìm. Full suite 1955 (L51); build + lint sạch; kiểm tĩnh 7.1, 7.3 đạt; 7.2 phần A 9/9 (L39); cổng AI
+  7.2 phần B 16/16 lượt 200, đạt mọi tiêu chí (L50); soát tay 7.4 đạt toàn bộ (L52); `srs-guard` sạch (ngoại lệ đích danh
+  dòng nhân thân của `job-search-parse-v1.st` — N10). Làm rõ L1–L55. Giới hạn đã biết:
+  - AI có thể bỏ sót hoặc đánh dấu nhầm thông tin nhân thân (R-D5); AI có thể không tách điều kiện lương (cổng 7.2 B: câu
+    "lương trên 15 triệu" ở lại phần mô tả cả hai vòng — L50).
+  - Câu có sẵn ký tự `‹`/`›` → 502 (R-P2).
+  - Truy vấn U13 không dùng index HNSW — chậm dần khi số tin OPEN lớn (N12).
+  - Hai mệnh đề `ORDER BY` và guard NaN nằm ở hai method (`findRankedMatchesByVector` của U15, `findRankedForSearch` của
+    U13) — đổi một chỗ phải đổi cả hai (Q-T2).
+  - Tối đa 50 kết quả, không phân trang server, không xem được việc thứ 51 (Q-T3).
+  - Bucket `ai-sync` dùng chung với C07/H11/C08/U12: tìm nhiều làm hết lượt của chức năng kia (Q-T8).
+  - Không có dấu "đã ứng tuyển" trên thẻ kết quả (R-K5).
+  - Hết hạn embedding 5 s: `cancel(true)` không cắt request OpenAI đang đọc socket → luồng bị giữ tới 30 s; tải dồn →
+    `AI_UNAVAILABLE` (L13).
+  - `SyncAiCallerTransactionIntegrationTest` (K3 cũ) không có `@ActiveProfiles("test")` nên thực tế đọc hạn của
+    `application.yml`, dù comment ghi profile test — không sửa vì T18 cấm đụng test K3 cũ (L19).
+  - Việc có embedding suy biến (vector 0, dữ liệu cũ) bị loại khỏi nhánh `DESCRIPTION`, không rơi xuống nhóm "chưa có
+    embedding" (L21).
+  - R-D1 so khớp theo từng `sourceText`: đoạn lồng nhau giữa điều kiện nhận và điều kiện bỏ có thể cắt chữ trong đoạn bị
+    bỏ (L28).
+  - Việc tài liệu: `docs/features/UV/U15/UI.md:18` vẫn chưa sửa (D7 FR-U12, FR-U13).
 - [ ] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh
 
 > FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.

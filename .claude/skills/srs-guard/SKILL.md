@@ -74,10 +74,13 @@ Vi phạm nếu: có ngưỡng chia ỨNG VIÊN thành nhóm (đạt/cần xem x
 Đúng: thanh tiến trình đơn sắc, số điểm không đổi màu.
 
 **Không vi phạm — ngưỡng lọc VIỆC LÀM khác ngưỡng phân loại ỨNG VIÊN**: hằng số
-`JobRecommendationCacheService.MIN_SIMILARITY_SCORE` lọc **việc làm** cho FR-U04, không phải điểm
+`JobRecommendationCandidateService.MIN_SIMILARITY_SCORE` (sửa theo FR-U13 đã duyệt — N5: tên lớp cũ
+`JobRecommendationCacheService` không còn) lọc **việc làm** cho gợi ý việc làm, không phải điểm
 một ứng viên, nên không vi phạm. Nhánh CV của FR-U15 giữ đúng ngưỡng này — không vi phạm. Nhánh
 **hồ sơ** của FR-U15 (ứng viên CHƯA có CV) KHÔNG áp ngưỡng tương đồng theo đặc tả — code nhánh này
 có ngưỡng tương đồng là **lệch đặc tả**, đưa vào "Cần xem lại", không tự kết luận vi phạm.
+FR-U13 (tìm việc bằng mô tả) KHÔNG áp ngưỡng tương đồng (README §18, U13 mục 8): `jobsearch/` dùng
+`MIN_SIMILARITY_SCORE` hay cắt kết quả theo độ tương đồng là **lệch đặc tả**, đưa vào "Cần xem lại".
 
 **Soát frontend cụ thể hơn** (chỗ vi phạm khó thấy nhất, vì trông như thiết kế đẹp): tìm mọi
 component badge/màu liên quan tới điểm hoặc tiến độ chấm, đọc trực tiếp biểu thức **chọn màu**
@@ -204,6 +207,14 @@ xác nhận FR chứa nó có trong danh sách ngoại lệ K3 ở CLAUDE.md §7
 FR-U12, FR-U13), và có đủ: timeout, thử lại tối đa 1 lần, rate limit theo `userId`,
 không `@Transactional` bao quanh lời gọi.
 
+Embedding đồng bộ (sửa theo FR-U13 đã duyệt): đường duy nhất là `ai/sync/SyncEmbeddingCaller` (K3 — hạn
+`app.ai-sync.embedding-timeout-ms`, chặn khi có transaction, **không** thử lại). Code trên đường request gọi
+`EmbeddingService`/`EmbeddingModel` thẳng (không qua `SyncEmbeddingCaller`) là vi phạm, kể cả ở FR trong danh sách K3:
+
+```bash
+rg -n "EmbeddingService|EmbeddingModel|SyncEmbeddingCaller" backend/src/main/java/com/recruitment/jobsearch
+```
+
 Vi phạm nếu: một service/controller gọi `ChatClient`/`ChatModel`/`EmbeddingModel` trực tiếp trong
 luồng request mà FR đó KHÔNG thuộc danh sách K3, hoặc thuộc danh sách nhưng thiếu một trong 4 điều
 kiện trên.
@@ -224,8 +235,12 @@ Ngoại lệ đã duyệt (L59 FR-C08, L70 FR-U12): `backend/src/main/resources/
 `PERSONAL_INFO` (liệt kê thuộc tính để AI TỪ CHỐI) và dòng ví dụ phía ứng viên 'CV của tôi có ghi ngày sinh
 không?' (cho phép ứng viên kiểm CV của chính mình, R-G5).
 `backend/src/main/resources/ai/prompt/cv-rephrase-v1.st` — dòng 'KHÔNG thêm thông tin nhân thân (tuổi, ngày sinh, …)'
-(lệnh CẤM AI thêm thuộc tính nhân thân vào gợi ý — L70 FR-U12). Mọi kết quả khác vẫn là vi phạm. Thêm file/dòng vào
-ngoại lệ này phải có quyết định duyệt của FR tương ứng.
+(lệnh CẤM AI thêm thuộc tính nhân thân vào gợi ý — L70 FR-U12).
+`backend/src/main/resources/ai/prompt/job-search-parse-v1.st` — dòng 'Nếu câu có đoạn nói về thông tin nhân thân của ứng
+viên hoặc người được tuyển (tuổi, năm sinh, giới tính, …), chép NGUYÊN VĂN từng đoạn đó vào personalInfoTexts. KHÔNG tạo
+điều kiện nào từ các đoạn này.' (sửa theo FR-U13 đã duyệt — N10, O1: AI chỉ ra đoạn nhân thân trong câu ứng viên tự gõ để
+backend **bỏ qua**, không thành điều kiện lọc, không vào phần mô tả gửi embedding, không lưu; SRS mục 5 ghi ngoại lệ này).
+Mọi kết quả khác vẫn là vi phạm. Thêm file/dòng vào ngoại lệ này phải có quyết định duyệt của FR tương ứng.
 
 Vi phạm nếu: lệnh 2 ra kết quả ngoài ngoại lệ trên, hoặc field từ lệnh 1 bị dùng làm điều kiện lọc/bị hỏi ở form sàng
 lọc (H10). Dương tính giả đã gặp: `tuoi` khớp cả comment không dấu viết "TƯƠI" (mới, không phải
@@ -252,7 +267,10 @@ Vi phạm nếu: hiển thị % phù hợp, nhãn "phù hợp"/"không phù hợ
 ý/tìm kiếm, hoặc đánh dấu người thắng trong màn hình so sánh ứng viên. Nội dung do AI tạo (bản
 nháp, câu hỏi...) phải có nhãn "Do AI tạo" kèm icon — thiếu nhãn này cũng là vi phạm
 (UI_GUIDE mục 4).
-Chưa có code frontend cho ba FR này → đánh dấu "chưa có gì để soát".
+FR-U13 đã có code frontend (`frontend/src/features/jobSearch/` — sửa theo FR-U13 đã duyệt) → luôn soát: khối "Hệ thống
+hiểu yêu cầu của bạn" có nhãn "Do AI tạo" + `Sparkles`; chip điều kiện một kiểu trung tính; dòng "Khớp điều kiện" không
+%/màu/dấu ✓; không ẩn việc chưa phân tích nội dung (phải có câu ngăn cách). FR nào chưa có code frontend → đánh dấu "chưa
+có gì để soát".
 
 ---
 
