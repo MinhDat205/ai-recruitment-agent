@@ -4,7 +4,7 @@
 >
 > Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
 > 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3). Làm rõ trong
-> đợt 3a (19/10/2026): L6 (mục 4.2) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
+> đợt 3a (19/10/2026): L6 (mục 4.2). Làm rõ trong đợt 4a (19/10/2026): L7 (R-T1) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR bật/tắt chế độ ẩn danh cho từng Job. Khi một đơn của Job đó đang ẩn danh, **backend** không trả họ tên,
@@ -182,7 +182,8 @@ không thấy họ tên, liên hệ, CV gốc và thư giới thiệu của ứn
 
 ### 3.7 Trao đổi (R-T)
 
-- **R-T1** Tin nhắn: R-M4. Nhãn người gửi của bong bóng giữ nguyên (a13).
+- **R-T1** Tin nhắn: R-M4. Nhãn người gửi của bong bóng giữ nguyên (a13). Response 201 của M2 phía HR (tin HR vừa
+  gửi) trả nguyên văn; mọi lần đọc lại qua `GET` thì đã che (L7).
 - **R-T2** Tệp do **ứng viên** gửi: `attachment.fileName` = null (`fileType`, `fileSize` giữ); tải → 409
   `IDENTITY_MASKED`. Tệp HR gửi: không đổi `[Q3]`.
 - **R-T3** Hộp thư `/api/hr/messages/conversations`: `candidateName` nhãn theo từng dòng; `lastMessageExcerpt` theo R-M5.
@@ -684,3 +685,10 @@ a25 (kết luận không đổi). Lệnh 7.2 khớp controller/DTO thật, khôn
   `ApplicationHrListItemResponse.CriterionScoreItem` (`reasoning`, `evidence[].quote`) và `Explanation` (`summary`,
   `strengths[].point`, `weaknesses[].point`); tên tiêu chí, `section`, `metCriteria`/`missingCriteria` giữ nguyên
   (R-M6). Dùng chung cho danh sách theo Job và E3/E4; điểm che khác dùng lại nếu cùng kiểu dữ liệu, không nhân bản logic.
+
+### 11.3 Làm rõ trong đợt 4a (duyệt 19/10/2026)
+
+- **L7 (R-T1) — response của M2 phía HR.** `POST /api/hr/applications/{id}/messages` trả 201 `MessageResponse` của chính
+  tin HR vừa gửi (`MessageService.send` → `toResponse`). Chốt: trả nguyên văn, không che — đó là chữ HR tự gõ, không lộ
+  thêm thông tin; tên tệp HR gửi vốn giữ nguyên (R-T2). Mọi lần đọc lại qua `GET /api/hr/applications/{id}/messages` đi
+  qua bộ che (R-M4).
