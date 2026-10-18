@@ -5,7 +5,8 @@
 > Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
 > 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3). Làm rõ trong
 > đợt 3a (19/10/2026): L6 (mục 4.2). Làm rõ trong đợt 4a (19/10/2026): L7 (R-T1). Làm rõ trong
-> đợt 5 (19/10/2026): L8–L10 (`UI.md` mục 4a, 5b, 5d, 6, 7) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
+> đợt 5 (19/10/2026): L8–L10 (`UI.md` mục 4a, 5b, 5d, 6, 7). Soát tay 7.4 (19/10/2026): L11
+> — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR bật/tắt chế độ ẩn danh cho từng Job. Khi một đơn của Job đó đang ẩn danh, **backend** không trả họ tên,
@@ -361,6 +362,10 @@ K3/K4 mới; K1 đổi giá trị một thành phần (R-C1), không đổi hìn
 - Nhãn không bảo đảm duy nhất tuyệt đối (Q8).
 - Tắt rồi bật lại không xoá được những gì HR đã thấy; chỉ có lưu vết (Q9).
 - C07: AI có thể vẫn viết tên lấy từ tin nhắn dưới dạng khác giá trị nguồn — bộ che không bắt được.
+- Bật/tắt ở **tab trình duyệt khác** (L11): mỗi tab giữ cache riêng, và `refetchOnWindowFocus: false` là cấu hình chung
+  (`lib/queryClient.ts:8`), nên tab đang mở không tự cập nhật khi focus lại. Dữ liệu cũ còn hiện tới khi query hết 60 giây
+  `staleTime` và tải lại, hoặc E1 tải lại vì thao tác trên trang. Khi đó `useIdentityMaskChangeSync` làm mới các tab còn
+  lại và bỏ phiên Hỏi đáp CV. Backend vẫn che đúng ở mọi request mới.
 
 ## 7. Xong khi
 
@@ -707,3 +712,32 @@ a25 (kết luận không đổi). Lệnh 7.2 khớp controller/DTO thật, khôn
 - **L10 (`UI.md` mục 5b) — giữ trong phạm vi file của 5b.** Hộp thoại giấy mời invalidate tiền tố chung các query trang hồ
   sơ đơn bằng `applicationDetailKey(id).slice(0, 2)` (tiền tố chưa export), cộng luồng tin HR và hộp thư. Chip tệp đã ẩn
   tên dựng markup riêng trong `MessageBubble`, không sửa `AttachmentChip`.
+
+### 11.5 Làm rõ khi soát tay 7.4 (duyệt 19/10/2026)
+
+- **L11 (frontend) — dữ liệu cũ trong cache sau khi bật/tắt.** Lỗi gặp khi soát tay: bật/tắt ở tab "Thông tin
+  tin tuyển dụng" rồi mở nhanh "Xem hồ sơ", trang `/hr/applications/:id` lúc hiện trạng thái cũ, lúc hiện trạng thái mới
+  (đầu trang còn họ tên thật, không có badge, trong khi câu trả lời Hỏi đáp CV đã che).
+  - **Nguyên nhân (đã xác nhận trong code):** `onSuccess` của B1 chỉ invalidate `hrJobDetailKey`, `HR_JOBS_KEY`,
+    `hrApplicationsKeyPrefix(jobId)`. Các query khác có dữ liệu đổi theo trạng thái ẩn danh dùng `staleTime` chung 60 giây
+    (`lib/queryClient.ts:6`) nên trong 60 giây vẫn lấy từ cache: E1, E2, E3 (`['hr-application-detail', id, …]`),
+    sàng lọc, `/hr/candidates`, audit, so sánh, mục kho, preview giấy mời. E4 tự tải lại mỗi lần mở tab
+    (`refetchOnMount: 'always'`). Luồng tin và hộp thư tải lại theo chu kỳ (10 giây / 30 giây) nhưng vẫn hiện bản cũ trước
+    lần tải đầu. Hỏi đáp CV là mutation, luôn gọi mới, nên che đúng — hai nửa trang lệch nhau.
+  - **Cách sửa:** B1 thành công thì **`resetQueries`** theo tiền tố mọi query trên (`blindReview/queries.ts`, hàm
+    `identityDependentKeys`): xoá cache nên không bao giờ hiện dữ liệu của trạng thái trước, chấp nhận skeleton một nhịp;
+    query đang mount tải lại ngay. Hai khoá Job (`hrJobDetailKey`, `HR_JOBS_KEY`, hàm `jobKeys`) chỉ mang
+    `blindReviewEnabled`, không có danh tính, nên vẫn **invalidate**: reset chúng sẽ đưa trang sửa tin đang mở về
+    "Đang tải..." (`HrJobEditPage.tsx:170`), gỡ form và card ẩn danh. Các hằng tiền tố có sẵn được export, không khai lại chuỗi: `APPLICATION_DETAIL_KEY_PREFIX`,
+    `APPLICATION_SCREENING_KEY_PREFIX`, `SCORING_RUN_AUDIT_KEY_PREFIX`, `MESSAGE_THREAD_KEY_PREFIX`,
+    `INTERVIEW_INVITATION_PREVIEW_KEY_PREFIX`, `applicationComparisonKeyPrefix(jobId)`; dùng thêm `candidatesKeyPrefix()`,
+    `TALENT_POOLS_KEY`, `MESSAGE_CONVERSATIONS_KEY_PREFIX`. Không thêm riêng lượt chấm, kịch bản soạn nháp, P6, giấy mời I1,
+    thông báo (không chứa danh tính, hoặc lưu nguyên lúc phát sinh); lịch sử E5 bị làm mới kèm vì chung tiền tố. Không đổi `staleTime` chung, không sửa
+    backend.
+  - **Trang hồ sơ đơn:** hook `useIdentityMaskChangeSync` ghi nhớ `identityMasked` của E1. Khi giá trị đổi so với lần trước
+    (cùng đơn), hook invalidate (không reset) lại khoá Job và các query trên (trừ E1 vừa tải) và gọi `reset` mới của phiên Hỏi đáp CV
+    (`useCvQaSession`): bỏ các lượt đang hiện và bỏ kết quả của request còn treo.
+  - **Ngoài 5b:** sửa thêm `applicationDetail/queries.ts`, `screening/queries.ts`, `candidates/queries.ts`,
+    `messages/queries.ts`, `comparison/queries.ts`, `interviewinvitation/queries.ts` (chỉ export), `cvQa/useCvQaSession.ts`
+    (thêm `reset`), `pages/HrApplicationDetailPage.tsx` (gọi hook).
+  - **Không bật `refetchOnWindowFocus` cho E1.** Trường hợp bật/tắt ở tab trình duyệt khác ghi vào 6b.
