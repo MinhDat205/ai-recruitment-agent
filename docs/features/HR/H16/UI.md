@@ -44,7 +44,8 @@ submit form tin, không làm form "dirty".
 │                                                       [Bật ẩn danh]      │  Outlined
 └──────────────────────────────────────────────────────────────────────────┘
 
-Khi đang bật: câu đầu "Đang bật." + câu "Đã đổi lúc {thời điểm}" (nếu có changedAt) + nút [Tắt ẩn danh].
+Khi đang bật: câu đầu "Đang bật." + nút [Tắt ẩn danh]. Không hiện thời điểm bật/tắt (L8 của REQUIREMENT): lưu vết vẫn
+ghi ở DB, không có màn xem.
 ```
 
 Bấm nút → Dialog xác nhận:
@@ -150,7 +151,7 @@ CV đã trích xuất
 |---|---|
 | `frontend/src/features/blindReview/BlindReviewCard.tsx` | Khối 4a + hộp thoại xác nhận |
 | `frontend/src/features/blindReview/api.ts`, `queries.ts` | B1; mutation invalidate `hrJobDetailKey(id)`, `HR_JOBS_KEY` (`features/jobs/ownerQueries.ts:20`, `:26` — hiện không export: export hai khoá này, không khai lại) và `hrApplicationsKeyPrefix(jobId)` (`features/scoring/queries.ts:186`) |
-| `frontend/src/features/blindReview/blindReviewLabels.ts` | Chuỗi mục 7 (mẫu `talentPoolLabels.ts`) |
+| `frontend/src/features/blindReview/blindReviewLabels.ts` | Chuỗi mục 7 (mẫu `talentPoolLabels.ts`); hằng `{{candidateName}}` (4f); hàm `downloadErrorMessage` (mục 6, L9) |
 
 ### 5b. File có sẵn bị sửa
 
@@ -162,10 +163,10 @@ CV đã trích xuất
 | `frontend/src/features/applicationDetail/ApplicationDetailHeader.tsx` + kiểu E1 (`features/applicationDetail/types.ts`, `ApplicationHrDetail`, `:8`) | `identityMasked`; badge; khoá "Lưu vào kho" |
 | `frontend/src/features/applicationDetail/CvAndScoreTab.tsx` | Khối 4d |
 | `frontend/src/features/resumes/ResumeParsedDataView.tsx` | Prop `contactMasked` |
-| `frontend/src/features/messages/MessageBubble.tsx` + kiểu tin (`features/messages/types.ts`, `MessageAttachment`, `:12`) | `fileName: string \| null`; chip 4e |
-| `frontend/src/features/interviewinvitation/InterviewInvitationDialog.tsx` | Khối thông tin 4f; hiện lỗi 400 mới |
+| `frontend/src/features/messages/MessageBubble.tsx` + kiểu tin (`features/messages/types.ts`, `MessageAttachment`, `:12`) | `fileName: string \| null`; chip 4e dựng markup riêng trong `MessageBubble`, không sửa `AttachmentChip` (chip đó luôn cần tên tệp và nút tải — L10) |
+| `frontend/src/features/interviewinvitation/InterviewInvitationDialog.tsx` | Khối thông tin 4f; hiện lỗi 400 mới; gửi lần đầu thành công → invalidate tiền tố chung các query trang hồ sơ đơn `applicationDetailKey(id).slice(0, 2)` (tiền tố chưa export — L10), luồng tin HR, hộp thư |
 
-Người code đối chiếu tên file kiểu ở Plan Mode; không đổi file nào khác.
+Người code đối chiếu tên file kiểu ở Plan Mode; không đổi file nào khác (ngoài export hai khoá ở `features/jobs/ownerQueries.ts`, mục 5a).
 
 ### 5c. Dùng lại có sẵn
 
@@ -179,14 +180,14 @@ Người code đối chiếu tên file kiểu ở Plan Mode; không đổi file 
 | Card 4a | nền `m3-surface`, viền `m3-outline-variant` |
 | Khối thông tin (4b, 4d, 4f) | nền `m3-surface-container`, viền `m3-outline-variant`, chữ `m3-on-surface` — trung tính |
 | Badge "Ẩn danh" | Bảng trung tính của badge trạng thái — không đỏ/vàng/xanh |
-| Chữ phụ ("Đã đổi lúc…", chip tệp) | `text-sm text-m3-on-surface-variant` |
+| Chữ phụ (chip tệp) | `text-sm text-m3-on-surface-variant` |
 
 ## 6. Trạng thái hiển thị
 
 | Màn | Đang tải | Lỗi | Thiếu dữ liệu |
 |---|---|---|---|
-| Khối 4a | Theo trạng thái tải của Job (khối chưa vẽ khi Job chưa có) | B1 lỗi: câu backend dưới nút, hộp thoại không đóng; nút đang gửi khoá, nhãn "Đang lưu…" | `changedAt = null` → không hiện câu "Đã đổi lúc" |
-| Hồ sơ đơn | Không đổi | Tải CV/tệp trả 409 (dữ liệu đổi giữa chừng): hiện câu `IDENTITY_MASKED` tại chỗ như lỗi tải hiện có | Liên hệ bị ẩn ≠ không trích xuất được: dùng câu riêng (4d) |
+| Khối 4a | Theo trạng thái tải của Job (khối chưa vẽ khi Job chưa có) | B1 lỗi: câu backend trong hộp thoại, hộp thoại không đóng; nút đang gửi khoá, nhãn "Đang lưu…" | — (không hiện thời điểm đổi — L8) |
+| Hồ sơ đơn | Không đổi | Tải CV/tệp trả 409 (dữ liệu đổi giữa chừng): hiện câu "Không tải được trong chế độ ẩn danh." tại chỗ như lỗi tải hiện có — lấy theo **mã 409** vì lỗi tải dạng Blob không đọc được câu backend; 409 ở hai endpoint tải chỉ là `IDENTITY_MASKED` (L9) | Liên hệ bị ẩn ≠ không trích xuất được: dùng câu riêng (4d) |
 | Hộp thoại giấy mời | Không đổi | 400 mới: câu backend | — |
 
 ## 7. Nội dung chữ (tiếng Việt có dấu)
@@ -196,7 +197,6 @@ Người code đối chiếu tên file kiểu ở Plan Mode; không đổi file 
 | Tiêu đề khối | "Chế độ ẩn danh" |
 | Trạng thái | "Đang tắt." / "Đang bật." |
 | Mô tả khối | "Khi bật: hồ sơ hiện dạng “Ứng viên #…”, không tải được CV gốc, thư giới thiệu và thông tin liên hệ được ẩn. Hồ sơ tự hiện danh tính khi bạn gửi giấy mời phỏng vấn." |
-| Đã đổi | "Đã đổi lúc {thời điểm}" |
 | Nút | "Bật ẩn danh", "Tắt ẩn danh", "Huỷ" |
 | Xác nhận bật | "Bật chế độ ẩn danh cho tin này?" / "Áp dụng ngay cho mọi hồ sơ chưa được mời phỏng vấn. Thông báo đã nhận trước đó không thay đổi." |
 | Xác nhận tắt | "Tắt chế độ ẩn danh cho tin này?" / "Họ tên và thông tin liên hệ của mọi hồ sơ sẽ hiện lại. Việc bật/tắt được ghi lại." |

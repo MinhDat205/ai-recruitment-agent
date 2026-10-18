@@ -4,7 +4,8 @@
 >
 > Làm rõ sau Plan Mode 19/10/2026: L1–L4 (L1: R-O1, R-O2, 7.2 nhóm 7; L2: R-O2; L3: R-B3, mục 4.2; L4: R-A4, mục 4.2,
 > 7.3). Làm rõ trong đợt 2 (19/10/2026): L5 (R-B3). Làm rõ trong
-> đợt 3a (19/10/2026): L6 (mục 4.2). Làm rõ trong đợt 4a (19/10/2026): L7 (R-T1) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
+> đợt 3a (19/10/2026): L6 (mục 4.2). Làm rõ trong đợt 4a (19/10/2026): L7 (R-T1). Làm rõ trong
+> đợt 5 (19/10/2026): L8–L10 (`UI.md` mục 4a, 5b, 5d, 6, 7) — chi tiết ở mục 11. Mục 11 thắng chỗ viết cũ nếu lệch.
 
 - Nhóm: HR
 - Tóm tắt: HR bật/tắt chế độ ẩn danh cho từng Job. Khi một đơn của Job đó đang ẩn danh, **backend** không trả họ tên,
@@ -692,3 +693,17 @@ a25 (kết luận không đổi). Lệnh 7.2 khớp controller/DTO thật, khôn
   tin HR vừa gửi (`MessageService.send` → `toResponse`). Chốt: trả nguyên văn, không che — đó là chữ HR tự gõ, không lộ
   thêm thông tin; tên tệp HR gửi vốn giữ nguyên (R-T2). Mọi lần đọc lại qua `GET /api/hr/applications/{id}/messages` đi
   qua bộ che (R-M4).
+
+### 11.4 Làm rõ trong đợt 5 (duyệt 19/10/2026)
+
+- **L8 (`UI.md` mục 4a, 5d, 6, 7) — bỏ câu "Đã đổi lúc …".** `GET /api/hr/jobs/{id}` (`JobOwnerResponse`) không trả
+  thời điểm đổi; chỉ response B1 có `changedAt`, nên câu chỉ hiện sau khi bấm trong phiên rồi mất khi tải lại — trông như
+  lỗi. Chốt: khối 4a **không** hiện thời điểm bật/tắt; không sửa backend. Lưu vết vẫn ghi `job_blind_review_changes`
+  (R-B3), `BlindReviewResponse.changedAt` giữ nguyên (4.4); không có màn xem (R-B5).
+- **L9 (`UI.md` mục 6) — câu lỗi khi tải trả 409.** Lỗi tải CV gốc / tệp tin nhắn về dạng Blob nên không đọc được câu
+  backend (giới hạn sẵn có, `downloadApplicationResume.ts`). 409 ở hai endpoint tải này chỉ là `IDENTITY_MASKED` (R-V1,
+  R-T2), nên frontend hiện "Không tải được trong chế độ ẩn danh." theo **mã trạng thái** (`downloadErrorMessage` trong
+  `blindReviewLabels.ts`); mã khác giữ câu dự phòng cũ.
+- **L10 (`UI.md` mục 5b) — giữ trong phạm vi file của 5b.** Hộp thoại giấy mời invalidate tiền tố chung các query trang hồ
+  sơ đơn bằng `applicationDetailKey(id).slice(0, 2)` (tiền tố chưa export), cộng luồng tin HR và hộp thư. Chip tệp đã ẩn
+  tên dựng markup riêng trong `MessageBubble`, không sửa `AttachmentChip`.
