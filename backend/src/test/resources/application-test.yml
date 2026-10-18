@@ -58,6 +58,9 @@ app:
   # FR-U12 R-A7 - cung khoa, cung gia tri voi production (T17 khang dinh maxTokens = 800 trong options cua loi goi).
   cv-rephrase:
     max-output-tokens: 800
+  # FR-U13 R-A3 (L16) - cung khoa, cung gia tri voi production (khang dinh maxTokens = 500 trong options cua loi goi).
+  job-search:
+    max-output-tokens: 500
   # Dot 4 (chore/hardening) - gia tri NHO de test nhanh (khong phai 30s/2 phut that cua production).
   # max-attempts giu nguyen 3 (giong production) vi test can kiem dung nguong nghiep vu that (vd
   # "dung 3 lan thi FAILED"). backoff-ms nho (50ms/100ms, khong phai 30000/120000) va

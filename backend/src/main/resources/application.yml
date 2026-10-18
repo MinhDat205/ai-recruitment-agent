@@ -147,6 +147,11 @@ app:
   # nang tran hay han K3 khi chua duyet.
   cv-rephrase:
     max-output-tokens: 800
+  # FR-U13 R-A3 - tran token dau ra cua RIENG bean jobSearchChatClient. Lon nhat hop le: cau 300 ky tu cho <= 8 doan ngan
+  # ~ 150-250 token + vo JSON -> 500 du ~2 lan. Cong do AI that (7.2 B) quyet dinh giu hay ha - KHONG nang tran hay han
+  # K3 khi chua duyet.
+  job-search:
+    max-output-tokens: 500
 
   # Dot 5 (chore/hardening) - rate limit (RateLimitFilter, dat sau JwtAuthenticationFilter trong
   # SecurityConfig). Nhom (a) theo IP cho auth (login/register); nhom (b) theo userId cho 3 endpoint
