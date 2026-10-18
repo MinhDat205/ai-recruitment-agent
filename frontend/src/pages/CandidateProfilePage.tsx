@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, FilePlus2, Info } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { CandidateLayout } from '../components/layout/CandidateLayout'
@@ -15,6 +17,7 @@ import {
 } from '../features/candidateProfile/CareerPreferencesFields'
 import { useAutofillFromResumeMutation, useMyProfileQuery, useSaveProfileMutation } from '../features/candidateProfile/queries'
 import type { CandidateProfileRequest } from '../features/candidateProfile/types'
+import { CV_BUILDER_TEXT } from '../features/cvBuilder/cvBuilderLabels'
 import { useResumesQuery } from '../features/resumes/queries'
 import { ResumeList } from '../features/resumes/ResumeList'
 import { ResumeUploadDropzone } from '../features/resumes/ResumeUploadDropzone'
@@ -76,6 +79,21 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback
 }
 
+// FR-U12 UI.md muc 6 "Lưu xong" - CvBuilderPage dieu huong ve day kem state { cvBuilderSaved }.
+function cvBuilderSavedNotice(state: unknown): string | null {
+  if (!state || typeof state !== 'object' || !('cvBuilderSaved' in state)) {
+    return null
+  }
+  const saved = (state as { cvBuilderSaved?: unknown }).cvBuilderSaved
+  if (saved === 'create') {
+    return CV_BUILDER_TEXT.savedCreate
+  }
+  if (saved === 'edit') {
+    return CV_BUILDER_TEXT.savedEdit
+  }
+  return null
+}
+
 function toPayload(values: ProfileFormValues): CandidateProfileRequest {
   const trimmed = (value?: string) => (value && value.trim() !== '' ? value.trim() : undefined)
   const years = trimmed(values.yearsExperience)
@@ -103,6 +121,16 @@ export function CandidateProfilePage() {
   const autofillMutation = useAutofillFromResumeMutation()
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
   const [generalError, setGeneralError] = useState<string | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Doc MOT lan luc vao trang roi xoa state khoi lich su - tai lai trang khong hien lai cau (UI.md muc 6).
+  const [cvBuilderNotice] = useState(() => cvBuilderSavedNotice(location.state))
+
+  useEffect(() => {
+    if (cvBuilderSavedNotice(location.state) !== null) {
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.pathname, location.state, navigate])
 
   const {
     register,
@@ -392,7 +420,22 @@ export function CandidateProfilePage() {
             <CardTitle>CV của tôi</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
+            {/* FR-U12 UI.md muc 3 - hang dau the, tren vung tai len. */}
+            <div className="flex">
+              <Button asChild variant="default" size="sm">
+                <Link to="/candidate/resumes/new">
+                  <FilePlus2 aria-hidden="true" />
+                  {CV_BUILDER_TEXT.createButton}
+                </Link>
+              </Button>
+            </div>
             <ResumeUploadDropzone />
+            {cvBuilderNotice && (
+              <p role="status" className="flex items-start gap-1.5 text-sm text-m3-on-surface-variant">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                {cvBuilderNotice}
+              </p>
+            )}
             <ResumeList />
           </CardContent>
         </Card>

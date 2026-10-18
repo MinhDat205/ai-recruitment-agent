@@ -10,9 +10,16 @@ interface SkillTagInputProps {
   placeholder: string
   maxReachedPlaceholder: string
   describedBy?: string
+  // FR-U12 L12 - nhan cho o "Công nghệ"; khong truyen thi giu nguyen chuoi cua U14.
+  inputAriaLabel?: string
+  removeAriaLabel?: (item: string) => string
 }
 
 const MAX_SKILL_LENGTH = 50
+
+function defaultRemoveAriaLabel(skill: string): string {
+  return `Xoá kỹ năng ${skill}`
+}
 
 // O nhap ky nang dang the (FR-U14 UI.md muc 4c, 9; REQUIREMENT R-K). Enter/dau phay them the,
 // Backspace khi rong bo the cuoi, khu trung khong phan biet hoa/thuong nhung giu cach viet lan nhap
@@ -25,6 +32,8 @@ export function SkillTagInput({
   placeholder,
   maxReachedPlaceholder,
   describedBy,
+  inputAriaLabel = 'Nhập kỹ năng mới',
+  removeAriaLabel = defaultRemoveAriaLabel,
 }: SkillTagInputProps) {
   const [draft, setDraft] = useState('')
   const [announcement, setAnnouncement] = useState('')
@@ -76,7 +85,7 @@ export function SkillTagInput({
             <button
               type="button"
               onClick={() => removeSkill(skill)}
-              aria-label={`Xoá kỹ năng ${skill}`}
+              aria-label={removeAriaLabel(skill)}
               className="relative flex h-5 w-5 items-center justify-center rounded-full after:absolute after:-inset-3.5 after:content-['']"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -92,7 +101,7 @@ export function SkillTagInput({
           disabled={atMax}
           maxLength={MAX_SKILL_LENGTH}
           placeholder={atMax ? maxReachedPlaceholder : placeholder}
-          aria-label="Nhập kỹ năng mới"
+          aria-label={inputAriaLabel}
           aria-describedby={describedBy}
           className="h-8 min-w-[12ch] flex-1 bg-transparent text-m3-body-md text-m3-on-surface outline-none placeholder:text-m3-on-surface-variant disabled:cursor-not-allowed"
         />

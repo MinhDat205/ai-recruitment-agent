@@ -22,6 +22,8 @@ export interface Resume {
   // FR-C05: phien ban schema du lieu trich xuat (1|2), null khi chua DONE.
   schemaVersion: number | null
   reparse: ResumeReparse | null
+  // FR-U12 R-S2 - CV dung tu form cua cong cu tao CV (co hang cv_builder_documents).
+  fromCvBuilder: boolean
 }
 
 // Khop dung 6 khoi trong backend ResumeParsedPayload.java (com.recruitment.resume). Ten field giu

@@ -160,7 +160,7 @@ Như 4a, khác:
 | `frontend/src/features/cvBuilder/types.ts` | `CvTemplate`, `CvBuilderForm` (khớp REQUIREMENT R-F1), `CvBuilderRequest`, `CvBuilderDocumentResponse`, `CvRephraseKind`, `CvRephraseRequest`, `CvRephraseResponse` |
 | `frontend/src/features/cvBuilder/api.ts` | `createBuilderResume(req)` (B1), `getBuilderDocument(resumeId)` (B2), `previewBuilderResume(req)` → `Blob` (B3, `responseType: 'blob'`), `rephraseDescription(req)` (B4) |
 | `frontend/src/features/cvBuilder/cvBuilderLabels.ts` | Mọi chuỗi mục 7 + bảng nhãn ô (trùng nguyên văn REQUIREMENT 4.4) + hằng giới hạn R-F5 (một chỗ) |
-| `frontend/src/features/cvBuilder/cvBuilderSchema.ts` | Zod: chuẩn hoá R-F3 (trừ NFC — làm ở backend) và kiểm R-F5–R-F10 với **đúng** câu lỗi backend; không kiểm glyph/từ quá dài (chỉ backend — lỗi trả về hiện ở thanh thao tác) |
+| `frontend/src/features/cvBuilder/cvBuilderSchema.ts` | Zod: chuẩn hoá R-F3; NFC chỉ dùng khi đếm độ dài (để khớp backend), dữ liệu gửi đi giữ nguyên — backend chuẩn hoá; và kiểm R-F5–R-F10 với **đúng** câu lỗi backend; không kiểm glyph/từ quá dài (chỉ backend — lỗi trả về hiện ở thanh thao tác) |
 | `frontend/src/features/cvBuilder/prefillFromParsed.ts` | Ánh xạ `ResumeParsedPayload` → form theo R-E2–R-E4; trả `{ form, droppedDates: number }` |
 | `frontend/src/features/cvBuilder/CvBuilderFormView.tsx` | Toàn bộ form (React Hook Form + `useFieldArray`), nhận `mode`, `initial` |
 | `frontend/src/features/cvBuilder/TemplatePicker.tsx` | `fieldset` + hai `input type="radio"` thuần (dự án chưa có `RadioGroup` trong `components/ui`), mỗi lựa chọn là một khung bấm được có viền `m3-outline`, lựa chọn đang chọn viền `m3-primary` 2px + chữ |
