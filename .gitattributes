@@ -7,3 +7,7 @@
 *.docx binary -text
 *.ttf binary -text
 *.png binary -text
+
+# Tang 2b seed demo (chore/seed-final L42): raw_text cua CV builder chua CRLF that (PDFBox tren Windows) nam
+# TRONG chuoi du lieu - giu nguyen byte, khong de text=auto eol=lf doi thanh LF. Chi dung duong dan nay.
+db/seed/seed-demo-ai-output-2b.sql -text
