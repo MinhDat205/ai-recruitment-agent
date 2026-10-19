@@ -264,7 +264,11 @@ function JobInfoTab({ jobId }: { jobId: string }) {
               control={control}
               name="employmentType"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                // fix/hr-job-edit-select - cung cach FR-H11 o HrJobCreatePage: gia tri tu job tai xong
+                // duoc RHF dong bo ("values") SAU khi Select da mount, <select> an cua Radix chua co
+                // <option> tuong ung nen phat onValueChange('') -> bo qua chuoi rong, khong xoa gia tri
+                // (neu khong, PUT thieu field va backend ghi de null). Danh sach khong co lua chon rong.
+                <Select value={field.value} onValueChange={(value) => { if (value) field.onChange(value) }}>
                   <SelectTrigger id="edit-employment-type" className="w-full">
                     <SelectValue placeholder="Chọn loại hình" />
                   </SelectTrigger>
@@ -285,7 +289,8 @@ function JobInfoTab({ jobId }: { jobId: string }) {
               control={control}
               name="workMode"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                // fix/hr-job-edit-select - cung ly do o "Loai hinh" ben tren.
+                <Select value={field.value} onValueChange={(value) => { if (value) field.onChange(value) }}>
                   <SelectTrigger id="edit-work-mode" className="w-full">
                     <SelectValue placeholder="Chọn hình thức" />
                   </SelectTrigger>

@@ -781,7 +781,7 @@ chỉ dùng làm màu nền badge với chữ trắng" (chữ trắng trên `#FF
     `onValueChange` của 2 Select (`if (v) field.onChange(v)` — hai danh sách không có lựa chọn rỗng); áp cùng
     cách cho `HrJobCreatePage.tsx:305,326` (FR-H11 điền form bằng code sẽ gặp đúng lỗi này); thêm bước soát tay
     "mở form sửa J1 thấy đủ hai ô, lưu không đổi gì thì DB giữ nguyên". — **Trang tạo tin đã sửa ở FR-H11
-    (13/10/2026); trang sửa tin vẫn còn.**
+    (13/10/2026); trang sửa tin vẫn còn.** — **Đã xử lý ở `fix/hr-job-edit-select` (19/10/2026).**
   - `NotificationList` (trang "Xem tất cả" thông báo, `NotificationList.tsx:60-67`) không điều hướng theo
     `link`, chỉ đánh dấu đã đọc; chỉ chuông có điều hướng. Ảnh hưởng cả HR. Email thông báo không có link.
   - Cảnh báo Vite "Some chunks are larger than 500 kB" ở `npm run build` (bundle ~1,18 MB, có từ trước) —
@@ -906,6 +906,7 @@ UI); có test chứng minh ngữ cảnh gửi AI soạn nháp không chứa đi�
   - Mỗi request J1 chiếm tới 3/8 luồng executor K3; nhiều HR bấm cùng lúc thì phần không có luồng nhận `AI_UNAVAILABLE`.
   - Token K4 còn hạn (7 ngày) gửi kèm được hai lần lưu của cùng HR — chỉ lặp, không giả mạo được (R-K4-5).
   - Lỗi `Select` đã sửa ở trang tạo tin; trang sửa tin `HrJobEditPage` vẫn còn (mục nợ FR-H02 ở Phase 2.2).
+    — **Đã xử lý ở `fix/hr-job-edit-select` (19/10/2026).**
   - Body JSON hỏng ở endpoint không có advice riêng (vd `POST /api/hr/jobs`) trên server thật trả 401 thay vì 400:
     trang lỗi `/error` không mở cho request chưa xác thực. Có từ trước, phát hiện khi chạy 7.2 của FR-H11.
   - Frontend chế độ AI chưa có test tự động.
@@ -1128,6 +1129,16 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   - Danh sách khoá phụ thuộc ẩn danh (`identityDependentKeys` ở `blindReview/queries.ts`) phải tự cập nhật khi một FR
     sau thêm màn HR có danh tính ứng viên; không có kiểm tự động nào bắt việc quên.
   - Frontend không có test tự động (giống các FR trước).
+- [x] `fix/hr-job-edit-select` — sửa lỗi mất dữ liệu ở form sửa tin `HrJobEditPage` (19/10/2026, không gắn mã FR):
+  giá trị Loại hình/Hình thức từ job tải xong được RHF đồng bộ (`values`) SAU khi Select đã mount, `<select>` ẩn của
+  Radix (`@radix-ui/react-select` 2.3.7, `SelectBubbleInput`) chưa có `<option>` tương ứng nên phát
+  `onValueChange('')`, xoá giá trị form → PUT thiếu hai field → `JobOwnerService` ghi đè `null`. Sửa đúng cách FR-H11
+  ở trang tạo tin: `onValueChange` bỏ qua chuỗi rỗng (hai danh sách không có lựa chọn rỗng). Áp cùng cách cho ô
+  Ngành của CV builder (`CvBuilderFormView`, điền sẵn gọi `reset()` sau khi mount; "không chọn ngành" đi qua
+  `NO_INDUSTRY` nên không mất thao tác). Không sửa backend. Kèm căn lề `BlindReviewCard` theo `--card-spacing` của Card
+  (thẳng cột với `CardFooter`). Soát tay đạt (19/10/2026): form sửa tin J1 hiện đủ hai ô; đổi lương tối thiểu rồi lưu
+  thì DB cập nhật `salary_min` và `updated_at`, `employment_type`/`work_mode` vẫn `FULL_TIME`/`ONSITE`; CV builder
+  "Điền sẵn" giữ đúng ngành.
 
 > FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-U11 không dùng lại; các mã khác giữ nguyên.
