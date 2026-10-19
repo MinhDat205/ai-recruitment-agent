@@ -1,6 +1,7 @@
 # Walkthrough: chore/seed-final — Bộ dữ liệu cuối cho soát tay và demo
 
-> Trạng thái: **Kế hoạch (đợt 1)**. Các mục sau "Kế hoạch" sẽ viết ở đợt cuối, chỉ ghi lại việc đã xảy ra.
+> Trạng thái: **Đợt 1–6 xong, chờ soát tay**. Mục "Kết quả" chỉ ghi lại việc đã xảy ra; mục "Soát tay" để người
+> duyệt điền.
 
 ## Kế hoạch
 
@@ -115,7 +116,7 @@ Ký hiệu đơn demo tầng 2 (UUID đầy đủ ở `seed-demo-ai-output.sql`)
 | H16 | **Trước** ở test | Test · e (giữ nguyên) | J1 chưa bật (H16 7.4 "Bật ẩn danh J1 trước") |
 | H16 | **Sau** ở test | Test · f2 | Tin `f2000000-0004-…-01` bật ẩn danh + lịch sử `0018`; đơn `-01` ẩn danh, đơn `-02` đã mời |
 | U12 | CV dựng bằng công cụ, có phiên bản sửa | Demo · 2b (P4) | Bùi Ngọc Mai: 2 CV builder (CLASSIC, rồi "Lưu thành CV mới" MODERN), không phải CV chính; `resumes` + `resume_parsed_data` (`cv-builder-v1`) + `cv_builder_documents` + 2 PDF commit vào `db/seed/resumes/` |
-| U15/U04 | Embedding tin công ty 2 + 4 hồ sơ demo đủ dữ liệu | Demo · 2b | `job_embeddings` 6 dòng mới; `UPDATE candidate_profiles SET embedding, embedding_model` cho `d6…02`, `…06`, `…07`, `…10` |
+| U15/U04 | Embedding tin công ty 2 + 4 hồ sơ demo đủ dữ liệu | Demo · 2b | `job_embeddings` 6 dòng mới; `UPDATE candidate_profiles SET embedding, embedding_model` cho `d6…01`, `…05`, `…06`, `…09` (Hoàng, Hà, Linh, Tuấn — sửa đợt 6 theo số đo, L29) |
 | U13 | Mọi tin OPEN của demo có embedding, ≥ 11 tin | Demo · 2b | 6 tin tầng 2 + 6 tin 2b = 12 |
 | C01, C04, H02, H03, H04–H06, U01, U03, U05, U06, U08, U14 | Như khảo sát mục 3 | Không đổi | Đã có ở demo tầng 1–2 và test `e`/`f1` |
 
@@ -178,16 +179,16 @@ Sau khi sửa ở đợt 2, `install-demo-files.ps1` chỉ đụng file của ch
 
 | Nhà cung cấp | Việc | Dự kiến | Trần |
 |---|---|---|---|
-| Anthropic | Chấm đơn Hoàng → DevOps: 5 tiêu chí (rubric sau P5), mỗi tiêu chí 1 lượt (H14 REQ 7.4 B4: "5 tiêu chí + 1 giải thích") | 5 | 10 (mỗi tiêu chí thử lại tối đa 1 lần khi JSON hỏng) |
-| Anthropic | Giải thích điểm (D4) | 1 | 2 |
-| Anthropic | Chấm lại nếu lượt FAILED (vd `EVIDENCE_NOT_VERIFIED`) — tối đa 1 lần chấm lại | 0 | 12 |
+| Anthropic | Chấm đơn Hoàng → DevOps: 5 tiêu chí (rubric sau P5), mỗi tiêu chí 1 lượt (H14 REQ 7.4 B4: "5 tiêu chí + 1 giải thích") | 5 | 14 (mỗi tiêu chí thử lại tối đa 1 lần khi output hỏng; lỗi tạm thời đưa lượt về PENDING, tối đa 3 lần thử — L32) |
+| Anthropic | Giải thích điểm (D4) | 1 | 6 (tối đa 3 lần thử × 2 — L32) |
 | OpenAI | Embedding 6 tin công ty 2 | 6 | 6 |
-| OpenAI | Embedding 4 hồ sơ demo đủ dữ liệu (`d6…02`, `…06`, `…07`, `…10`; 5 hồ sơ còn lại rỗng nên không embed — R-E2) | 4 | 4 |
+| OpenAI | Embedding 4 hồ sơ demo đủ dữ liệu (`d6…01`, `…05`, `…06`, `…09`; 5 hồ sơ còn lại rỗng nên không embed — R-E2) | 4 | 4 |
 | — | CV builder (P4): lưu không gọi AI (`model = 'cv-builder'`); không phải CV chính nên không embed | 0 | 0 |
-| **Tổng** | | **Anthropic 6, OpenAI 10** | **Anthropic 24, OpenAI 10** |
+| **Tổng** | | **Anthropic 6, OpenAI 10** | **Anthropic 24 (trần duyệt; trần theo code 20), OpenAI 10** |
 
-Không tính lượt thử lại ngầm của SDK Anthropic (không tắt được qua `ChatModel` — CLAUDE.md §7). Quy tắc dừng: hai lượt
-chấm liên tiếp FAILED thì dừng, báo lại, không chấm thêm.
+Sửa ở đợt 6: mã hồ sơ theo số đo (L29); bỏ dòng "chấm lại nếu lượt FAILED" (12 lượt) và thay trần từng dòng bằng
+trần theo code (L32). Không tính lượt thử lại ngầm của SDK Anthropic (không tắt được qua `ChatModel` — CLAUDE.md §7).
+Quy tắc dừng: lượt chấm FAILED thì dừng, báo lại, không tự chấm lại (L32).
 
 ### K7. Kế hoạch 6 đợt và điểm dừng an toàn
 
@@ -285,3 +286,53 @@ Phát sinh ở đợt 5 sau lượt chạy AI (đã duyệt 19/10/2026):
 | L40 | Chưa thử nạp 2b lần hai trên cùng một DB | Không thử; đợt 6 ghi README "2b chỉ nạp theo K5 (L11)" | Đã nạp 2b thì nạp lại từ đầu theo K5, như tầng 2 |
 | L41 | Sau đợt 5 DB dev không còn bộ test (L34) | Chấp nhận | Nạp lại bộ test khi cần soát giao diện |
 | L42 | `raw_text` của 2 CV builder trong `seed-demo-ai-output-2b.sql` chứa CRLF (PDFBox trích văn bản trên Windows); `* text=auto eol=lf` sẽ đổi thành LF khi commit — giữ hay chuẩn hoá? | Giữ nguyên byte bằng dòng `db/seed/seed-demo-ai-output-2b.sql -text` trong `.gitattributes`, chỉ đúng đường dẫn này | Tầng 2b là output thật đông cứng, không chỉnh; hai lần nạp sạch ở bước 12 đã chạy trên đúng bản CRLF nên vẫn còn giá trị. Tầng 2 (`seed-demo-ai-output.sql`) không có CR — không đổi gì ở file đó |
+
+Phát sinh ở đợt 6 (đã duyệt 19/10/2026):
+
+| Mã | Câu hỏi | Quyết định | Lý do |
+|---|---|---|---|
+| L43 | README mục 7 ghi khối gợi ý việc làm của Bùi Ngọc Mai "nhiều khả năng rỗng" (ca ngưỡng của chore/seed-demo, ROADMAP mục `chore/seed-demo`) — còn đúng không? | Không đúng; giữ phần sửa README mục 7 theo số đo. KHÔNG tạo ca "gợi ý rỗng" mới; ngưỡng trình bày bằng lời khi demo. Mục tiêu "ca ngưỡng gợi ý" của P4: không đạt, chấp nhận. Câu sai ở ROADMAP:465-467 (mục `chore/seed-demo`) để nhánh `docs/final` sửa | Đo bằng vector đã nạp (19/10/2026): độ tương đồng CV chính của Mai với tin OPEN cao nhất 0.6188 ("Chuyên viên Nhân sự tổng hợp", tầng 1b), và tin tầng 1 "Chuyên viên Marketing" đã 0.4774 — đều ≥ `MIN_SIMILARITY_SCORE = 0.40` (`JobRecommendationCandidateService.java:36`). Câu cũ đã sai từ trước nhánh này; 1b làm lệch thêm. Tạo ca mới phải sửa seed và chạy lại embedding, phá chuỗi nạp đã kiểm |
+| L44 | Đợt 4 không lưu câu đo "md5 dải demo" — đợt 6 so thế nào? | md5 nội dung từng bảng (36 bảng, `string_agg` mọi dòng theo thứ tự text) trên DB chỉ có demo, so với sau khi reset bộ test | Mạnh hơn so riêng dải demo: bắt được cả dòng test sót lại lẫn dòng demo bị đổi |
+| L45 | README có 6 khối PowerShell — khối nào không chạy ở đợt 6? | Khối "SAI — ĐỪNG LÀM THẾ NÀY" (mục 2) và khối khởi động backend gọi AI thật (mục 10) không chạy | Khối mục 2 là ví dụ sai có chủ đích; khối mục 10 gọi API trả phí, đợt 6 cấm gọi AI. Khối mục 10 đã chạy nguyên văn tham số ở đợt 5 |
+| L46 | ROADMAP không có mục `chore/seed-final` để tick | Thêm một dòng `[x]` sau `fix/hr-job-edit-select` (mục gần nhất cùng loại) | Không đụng mục khác |
+
+## Kết quả
+
+### Đợt 4 — bộ test dải `f2` (đo lại ở đợt 6, DB demo + test)
+
+- Dải `f2`: 3 user, 3 tin, 3 đơn, 3 tin nhắn (cả 3 có đính kèm), 9 thông báo, 2 mục kho ứng viên. Bộ test tổng
+  8 tài khoản (5 dải `e` + 3 dải `f2`), 190 dòng có `id` thuộc dải test trên các bảng có cột `id` kiểu uuid.
+- `install-test-files.ps1`: mọi khoá file của bộ test có file trên đĩa; số byte dải `f2` khớp DB.
+
+### Đợt 5 — lượt chạy AI thật (19/10/2026)
+
+| | Ước tính | Trần | Thực tế |
+|---|---|---|---|
+| Anthropic | 6 (5 tiêu chí + 1 giải thích) | 24 | **6**: 5 `criterion_scores` + 1 `score_explanations`, 0 dòng log lỗi/thử lại, `attempt_count` 0 |
+| OpenAI | 10 (6 tin + 4 hồ sơ) | 10 | **10**: 0 WARN embedding |
+
+- Lượt chấm đơn Trần Minh Hoàng → Kỹ sư DevOps: DONE, `total_score` 35,000, `token_usage` 13 149,
+  `claude-sonnet-4-6`, `criterion-score-v1`. Tiêu chí (điểm/5, trọng số, số evidence): vận hành/CI-CD 2,00/35/3;
+  Kubernetes/Docker/cloud 3,50/30/4; scripting 0/20/0; giao tiếp & xử lý sự cố 0/10/0; viết tài liệu vận hành
+  0/5/0 (L38). Giải thích `score-explanation-v1`.
+- MailHog nhận đúng 1 thư (`SCORING_FINISHED` gửi `hr@demo.local`); log backend 0 ERROR.
+- CV builder của Bùi Ngọc Mai: 2 CV DONE, không phải CV chính. Đăng nhập `Demo1234` thành công (L6).
+- `seed-demo-ai-output-2b.sql`: 20 INSERT + 5 UPDATE; không khoá API; email/số điện thoại duy nhất là dữ liệu giả
+  của Mai (`example.com`) đã có ở tầng 2; cột lỗi đều NULL.
+
+### Đợt 6 — nạp sạch và soát
+
+| Kiểm | Kết quả |
+|---|---|
+| a. Nạp demo hai lần từ `down -v` (Flyway V19 bằng khối lệnh README mục 1, rồi khối nạp demo chạy nguyên văn) | Cả hai lần: 11/11 lệnh exit 0, 0 dòng `ERROR:`; 36 bảng giống nhau giữa hai lần và giống số đợt 5 (`job_embeddings` 12, `scoring_runs` 16, `criterion_scores` 62, `score_explanations` 13, `resumes` 11, `cv_builder_documents` 2, `notifications` 35); `install-demo-files.ps1` đối chiếu resume 11, logo 2, đính kèm 2 |
+| b. Nạp bộ test → reset bộ test (khối README mục 8.1, 8.2) | Nạp: exit 0, đối chiếu file đạt. Reset: dải test 190 → 0 dòng, user test 8 → 0; md5 36 bảng trùng mốc chỉ có demo (đối chứng: lúc có bộ test lệch 46 dòng) — L44 |
+| c. Đăng nhập API (backend tắt AI) | `hr@demo.local`, `bui.ngoc.mai@demo.local` (`Demo1234`), `minhdathr@gmail.com`, `dang.minh.thu.hr@test.local` (`12345678`): cả 4 HTTP 200 có `accessToken`; đối chứng sai mật khẩu → 401 |
+| d. Khối lệnh README trên PowerShell 5.1 | 4/6 khối chạy nguyên văn ở a–c; 2 khối không chạy (L45) |
+| e. Khoá API, đường dẫn máy cục bộ trong README/walkthrough/ROADMAP | 0 kết quả (đối chứng dương đạt) |
+
+Trạng thái DB dev cuối đợt 6: demo đầy đủ (tầng 1 → 2 → 1b → 2b) + bộ test.
+
+## Soát tay
+
+<!-- Người duyệt điền. -->
+

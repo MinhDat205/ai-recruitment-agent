@@ -1139,6 +1139,9 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   (thẳng cột với `CardFooter`). Soát tay đạt (19/10/2026): form sửa tin J1 hiện đủ hai ô; đổi lương tối thiểu rồi lưu
   thì DB cập nhật `salary_min` và `updated_at`, `employment_type`/`work_mode` vẫn `FULL_TIME`/`ONSITE`; CV builder
   "Điền sẵn" giữ đúng ngành.
+- [x] `chore/seed-final` — bộ dữ liệu cuối (19/10/2026, không gắn mã FR, xem `docs/walkthrough/chore-seed-final.md`):
+  demo 4 tầng (1 → 2 → 1b → 2b; công ty 2, 12 tin OPEN, đủ trạng thái các FR bổ sung, tầng 2b từ một lượt AI thật
+  Anthropic 6 / OpenAI 10 lượt) + bộ test thêm dải `f2` (8 tài khoản); hướng dẫn nạp ở `db/seed/README.md`.
 
 > FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-U11 không dùng lại; các mã khác giữ nguyên.
