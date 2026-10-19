@@ -73,6 +73,7 @@ Không va chạm với dải cũ (`d1b…` khác `d1000000`, `f2…` khác `f0`/
 | 0007 | interview_templates | 0016 | talent_pools |
 | 0008 | job_screening_questions | 0017 | talent_pool_entries |
 | 0009 | job_applications | 0018 | job_blind_review_changes |
+| | | 0019 | resumes (L19, đợt 4) |
 
 Tầng 2b: UUID ngẫu nhiên do app sinh trong lượt chạy thật (như tầng 2). Logo: cột `companies.logo_url` lưu
 dạng URL công khai `'/uploads/logos/<id công ty>.png'` (`LocalStorageService.java:41`), file trên đĩa ở
@@ -243,3 +244,20 @@ Phát sinh ở đợt 3 (chờ duyệt):
 | L14 | K3 ghi phễu công ty 1 "sau 1b + 2b"; đo sau 1b (chưa 2b) đã ra đúng PENDING 5, INTERVIEW_INVITED 3, HIRED 1, REJECTED 1, WITHDRAWN 1 | Không chênh: 2b chỉ thêm lượt chấm/embedding, không thêm đơn |
 | L15 | `application_messages.attachment_size` ghi cứng số byte của file nguồn (19770, 29044). File sinh một lần bằng chương trình Java tạm (PDFBox 3.0.3 + Noto Sans của dự án cho PDF, AWT cho PNG), không commit chương trình | Sinh lại file thì phải sửa hai số này trong 1b; `install-demo-files.ps1` chỉ kiểm tồn tại, không kiểm kích thước |
 | L16 | Công ty 2 (user, công ty, tin, rubric, mẫu giấy mời) dùng mốc **tương đối** (`now() - …`), không tuyệt đối như K2 | Tin công ty 2 cần `published_at` tương đối (rải ngày đăng, K3); công ty và HR lấy mốc trước tin để không tạo trước khi công ty tồn tại. Công ty 2 không có đơn/sự kiện nên không lệch với mốc tuyệt đối |
+
+Phát sinh ở đợt 4 (đã duyệt 19/10/2026):
+
+| Mã | Câu hỏi | Quyết định | Lý do |
+|---|---|---|---|
+| L17 | K3 chỉ ghi trạng thái tin `-03`; P2 nói tin công ty test 2 không OPEN công khai — tin `-01`, `-02` ở trạng thái nào? | Tin `-01` PAUSED, `-02` CLOSED, `-03` OPEN + `deleted_at` | Chọn khung, gửi tin, gửi giấy mời không kiểm trạng thái tin (`MessageService.java:380-382`, `InterviewInvitationService.java:139-166`); bảng việc làm công khai và embedding chỉ lấy `OPEN AND deleted_at IS NULL` (`JobRepository.java:50`, `JobEmbeddingRepository.java:26`) → bảng công khai không đổi, không thêm lượt OpenAI (K8 giữ 3) |
+| L18 | Đơn `REVOKED` của H15 đặt ở đâu? | Thêm đơn `0009-03` (U1 → tin `-02` CLOSED): nộp có đồng ý → HR thêm vào kho → REJECTED → U1 rút đồng ý 20/09, `removed_at = revoked_at` | Đơn `-01` đang ẩn danh không thêm vào kho được (H16 R-K2); `-02` dùng cho mục ACTIVE; `uq_application_per_cycle` (V1:222) + 2 ứng viên → cần tin thứ hai |
+| L19 | Bảng mã K2 không có mã cho `resumes` (K4 cần 2 CV `f2`) | `0019` = resumes; bổ sung vào bảng mã K2 | Giữ quy tắc truy dọn theo tiền tố |
+| L20 | Hồ sơ nghề nghiệp của 2 ứng viên `f2`? | Hồ sơ "bỏ qua onboarding" như Lan/Khoa (`seed-test.sql:92-97`) | Không vào màn onboarding; hồ sơ rỗng nên không embedding |
+| L21 | Trạng thái 2 CV `f2`? | PENDING, `next_attempt_at = 2099` | DONE cần output AI thật, viết tay bị cấm (`seed-test.sql:21-23`) |
+| L22 | Đính kèm đặt trên đơn nào, kích thước ghi thế nào? | Trên đơn `-02`: `0014-01` HR → U2 kèm PDF (đã đọc), `0014-02` U2 → HR kèm PNG (HR chưa đọc). Thêm `0014-03` U1 → HR kèm tệp trên đơn ẩn danh `-01` (soát H16 R-T2), HR chưa đọc, kèm 1 thông báo `NEW_MESSAGE` cho HR theo quy tắc nhãn ẩn danh H16 (R-O1, R-O2). `attachment_size` ghi cứng đúng số byte tệp do `install-test-files.ps1` sinh. Tổng: application_messages 3, notifications 9, đính kèm 3 | Đơn `-02` đã hết ẩn danh → nhãn tên thật; `0014-03` cho trạng thái tên tệp ẩn + tải 409 phía HR |
+| L23 | Lịch sử `0018` mấy dòng? | 1 dòng (bật) | Không có endpoint đọc lưu vết (H16 R-B5) |
+| L24 | `install-test-files.ps1` không đối chiếu khoá file với DB | Thêm bước đối chiếu theo mẫu `install-demo-files.ps1`; chỉ đọc, lệch thì in rõ khoá/đường dẫn lệch và thoát mã khác 0; script vẫn chỉ ghi file của chính nó | Bắt thiếu file như bộ demo |
+| L25 | Comment/README ghi "5 tài khoản test" | Đợt này sửa comment đầu `seed-test.sql` (số tài khoản test mới); README để đợt 6 | README viết lại ở đợt 6 (K4) |
+| L26 | Grep tên cấm (CLAUDE.md §7) khớp `sender_label` trên dòng thêm của đợt 4 (cùng `version_label` cột V1) — có phải vi phạm? | Giữ nguyên `sender_label`. **Đã xét**: 3 dòng khớp (`version_label` ×1, `sender_label` ×2) không phải vi phạm — lần soát sau không cần xét lại | `sender_label` là bí danh trong `SELECT`, không phải cột/field; đổi tên phải sửa 1b đã commit (`seed-demo-structural-1b.sql:592`) và kiểm lại |
+| L27 | Đếm dải `e` bằng `LIKE 'e%'`/`~ '^e'` bắt nhầm UUID ngẫu nhiên của demo tầng 2 (đo được scoring_runs e = 3 thay vì 2) | Đợt 6 ghi vào README: đếm theo dải phải dùng tiền tố đủ 8 ký tự (`~ '^e[0-9a-f]000000-0000-0000-0000-'`), và `resume_parsed_data` của R3 có id ngẫu nhiên (`01ddeb0e…`) | Script đã commit đều dùng tiền tố đủ 8 ký tự; chỉ câu kiểm chứng viết tay bị ảnh hưởng |
+| L28 | Bước đối chiếu của `install-test-files.ps1` chỉ so số byte với dải `f2` | Chấp nhận như hiện tại: so byte chỉ dải `f2`, dải `e` chỉ kiểm có file | Đã đo dải `e` khớp DB (574/837/779/71/787); số byte dải `f2` ghi cứng trong SQL (L22) nên cần chốt chặn riêng |

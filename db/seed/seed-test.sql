@@ -7,8 +7,9 @@
 --
 -- Doc lap voi bo demo (seed-demo-structural.sql / seed-demo-ai-output.sql):
 -- nap duoc tren DB chi co schema, va nap cung DB voi hai tang demo khong va
--- cham - UUID tien to rieng e0..ef, f0, f1 (demo tang 1 dung d0..d6, tang 2 UUID
--- ngau nhien), email rieng, ten cong ty rieng.
+-- cham - UUID tien to rieng e0..ef, f0, f1, f2 (demo tang 1 dung d0..d6, tang 1b
+-- d1b00000, tang 2 UUID ngau nhien), email rieng, ten cong ty rieng. Dai f2 (muc 17)
+-- la cong ty test thu hai voi HR va 2 ung vien rieng.
 --
 -- Idempotent: moi INSERT co ON CONFLICT (id) DO NOTHING, chay lai nhieu lan
 -- khong loi, khong nhan doi. Chay lai KHONG khoi phuc dong da bi sua qua UI -
@@ -27,8 +28,9 @@
 -- hoac <= now(). Khong seed PROCESSING/RUNNING (stale-claim reaper se thu hoi).
 -- Moi thong bao email_status = 'SKIPPED' de NotificationMailScheduler bo qua.
 --
--- MAT KHAU CUA CA 5 TAI KHOAN TEST: "12345678" (BCrypt strength 10, sinh bang
--- BCryptPasswordEncoder that cua spring-security-crypto - khop SecurityConfig).
+-- MAT KHAU CUA CA 8 TAI KHOAN TEST (5 dai e0 + 3 dai f2): "12345678" (BCrypt
+-- strength 10, sinh bang BCryptPasswordEncoder that cua spring-security-crypto -
+-- khop SecurityConfig).
 --
 -- CACH CHAY (PowerShell, tu thu muc goc repo) - xem db/seed/README.md muc 8:
 --   docker compose cp db/seed/seed-test.sql postgres:/tmp/seed-test.sql
@@ -785,6 +787,400 @@ INSERT INTO notifications (id, user_id, type, title, body, link, entity_type, en
      FALSE, NULL, 'SKIPPED', '2026-10-09 02:00:01+00')
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- 17. Dai f2 (chore/seed-final dot 4, walkthrough K3 + P2 + K9 L17-L25) - trang thai "SAU" cua bo test, dat o
+--     CONG TY TEST THU HAI de khong lam sai bang soat tay 7.4 cua cac FR da hoan thanh (dem tren HR test / Quoc Huy).
+--     Khong dong nao o day tham chieu dong dai e.../f1 (ngoai le duy nhat: ma danh muc V8 category_code/location_code).
+--     id = f2000000-TTTT-0000-0000-NNNNNNNNNNNN, TTTT theo bang ma K2 (0019 = resumes - L19).
+--     Nguoi dung: HR Dang Minh Thu (-01), ung vien U1 Vu Hoang Nam (-02), U2 Do Minh Chau (-03).
+--     Tin (L17): J-01 PAUSED  - an danh BAT (H16), 3 cau sang loc, cau 3 xoa mem (H10), don -01/-02
+--                J-02 CLOSED  - don -03 (H15 REVOKED, L18)
+--                J-03 OPEN + deleted_at (C02) - an khoi trang cong khai, khong embedding
+--     -> khong tin nao OPEN cong khai: bang viec lam cong khai va so luot OpenAI (K8) khong doi.
+--     Don: -01 U1 -> J-01 PENDING, dang an danh (khong co lich su INTERVIEW_INVITED), CAPTURED 3 cau, NOT_GIVEN
+--          -02 U2 -> J-01 INTERVIEW_INVITED, CAPTURED 2 cau (nop sau khi xoa cau 3), dong y ACTIVE, trong kho,
+--              giay moi 2 khung, U2 da chon khung 2 (U10 "sau")
+--          -03 U1 -> J-02 REJECTED, NO_QUESTIONS, dong y REVOKED, muc kho da go (removed_at = revoked_at)
+-- ---------------------------------------------------------------------------
+
+-- 17.1 Nguoi dung (mat khau 12345678 - cung chuoi hash muc 1) + ho so "bo qua onboarding" (L20, nhu muc 2)
+INSERT INTO users (id, email, password_hash, role, full_name, phone, is_active, email_verified, created_at, updated_at) VALUES
+    ('f2000000-0001-0000-0000-000000000001', 'dang.minh.thu.hr@test.local',
+     '$2a$10$s./N/XWUeTp1KdR/gblIvOz7AwviQWPKBRQKSOysZ7QYdLj.u/bZG',
+     'HR', 'Đặng Minh Thư', '0900000201', TRUE, TRUE, '2026-08-20 08:00:00+00', '2026-08-20 08:00:00+00'),
+    ('f2000000-0001-0000-0000-000000000002', 'vu.hoang.nam@test.local',
+     '$2a$10$s./N/XWUeTp1KdR/gblIvOz7AwviQWPKBRQKSOysZ7QYdLj.u/bZG',
+     'CANDIDATE', 'Vũ Hoàng Nam', '0900000211', TRUE, TRUE, '2026-09-01 08:00:00+00', '2026-09-01 08:00:00+00'),
+    ('f2000000-0001-0000-0000-000000000003', 'do.minh.chau@test.local',
+     '$2a$10$s./N/XWUeTp1KdR/gblIvOz7AwviQWPKBRQKSOysZ7QYdLj.u/bZG',
+     'CANDIDATE', 'Đỗ Minh Châu', '0900000212', TRUE, TRUE, '2026-09-02 08:00:00+00', '2026-09-02 08:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO candidate_profiles (id, user_id, onboarding_completed_at, created_at, updated_at) VALUES
+    ('f2000000-0003-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000002',
+     '2026-09-01 08:02:00+00', '2026-09-01 08:02:00+00', '2026-09-01 08:02:00+00'),
+    ('f2000000-0003-0000-0000-000000000002', 'f2000000-0001-0000-0000-000000000003',
+     '2026-09-02 08:02:00+00', '2026-09-02 08:02:00+00', '2026-09-02 08:02:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.2 Cong ty test thu hai
+INSERT INTO companies (
+    id, owner_id, name, description, company_size, industry, website,
+    contact_email, contact_phone, address, created_at, updated_at
+) VALUES (
+    'f2000000-0002-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000001',
+    'Công ty TNHH Thử Nghiệm Bình Minh',
+    'Doanh nghiệp hư cấu thứ hai của bộ dữ liệu test giao diện: hỗ trợ khách hàng, nhân sự và hành chính.',
+    '10-49', 'Dịch vụ khách hàng', 'https://binhminh-test.local',
+    'tuyendung@binhminh-test.local', '02343000222',
+    'Tầng 2, 12 Lê Lợi, TP. Huế',
+    '2026-08-20 09:00:00+00', '2026-08-20 09:00:00+00'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.3 Tin (L17). updated_at = lan ghi cuoi len hang tin:
+--      J-01: tam dung 01/10 (sau: them 3 cau luc dang 01/09, bat an danh 10/09, xoa cau 3 20/09 - moi lan deu UPDATE
+--            hang tin: incrementRevision / BlindReviewService). screening_revision = 3 lan them + 1 lan xoa = 4.
+--      J-02: dong 26/09 (het han 25/09). J-03: xoa mem 12/09 khi dang OPEN (JobOwnerService.delete chi dat deleted_at).
+INSERT INTO jobs (
+    id, company_id, created_by, title, description, requirements,
+    category, location, category_code, location_code, employment_type, work_mode,
+    salary_min, salary_max, salary_currency,
+    status, recruitment_cycle, deadline, published_at, deleted_at, created_at, updated_at,
+    screening_revision, blind_review_enabled
+) VALUES
+    ('f2000000-0004-0000-0000-000000000001', 'f2000000-0002-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000001',
+     'Nhân viên Hỗ trợ khách hàng',
+     'Tiếp nhận yêu cầu hỗ trợ của khách hàng qua tổng đài và email, hướng dẫn sử dụng dịch vụ và ghi nhận phản hồi.',
+     'Giao tiếp tốt, sử dụng thành thạo máy tính. Ưu tiên có kinh nghiệm tổng đài.',
+     NULL, NULL, 'CUSTOMER_SERVICE', 'HUE', 'FULL_TIME', 'ONSITE',
+     8000000.00, 11000000.00, 'VND',
+     'PAUSED', 1, CURRENT_DATE + 30, '2026-09-01 02:00:00+00', NULL, '2026-08-30 02:00:00+00', '2026-10-01 02:00:00+00',
+     4, TRUE),
+    ('f2000000-0004-0000-0000-000000000002', 'f2000000-0002-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000001',
+     'Chuyên viên Nhân sự',
+     'Phụ trách hồ sơ nhân sự, chấm công và hỗ trợ tuyển dụng cho các phòng ban.',
+     'Tối thiểu 1 năm kinh nghiệm hành chính - nhân sự.',
+     NULL, NULL, 'HUMAN_RESOURCES', 'HUE', 'FULL_TIME', 'ONSITE',
+     10000000.00, 14000000.00, 'VND',
+     'CLOSED', 1, '2026-09-25', '2026-08-27 02:00:00+00', NULL, '2026-08-25 02:00:00+00', '2026-09-26 02:00:00+00',
+     DEFAULT, DEFAULT),
+    ('f2000000-0004-0000-0000-000000000003', 'f2000000-0002-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000001',
+     'Nhân viên Hành chính',
+     'Quản lý văn thư, đặt lịch họp và hỗ trợ công việc hành chính của văn phòng.',
+     'Cẩn thận, thành thạo tin học văn phòng.',
+     NULL, NULL, 'ADMINISTRATION', 'HUE', 'FULL_TIME', 'HYBRID',
+     7000000.00, 9000000.00, 'VND',
+     'OPEN', 1, CURRENT_DATE + 30, '2026-09-06 02:00:00+00', '2026-09-12 02:00:00+00', '2026-09-05 02:00:00+00', '2026-09-12 02:00:00+00',
+     DEFAULT, DEFAULT)
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.4 Rubric (mo khoa - khong co luot cham), 3 tieu chi/tin, tong trong so 100 (dieu kien chuyen OPEN)
+INSERT INTO rubrics (id, job_id, name, is_locked, created_at, updated_at) VALUES
+    ('f2000000-0005-0000-0000-000000000001', 'f2000000-0004-0000-0000-000000000001', 'Rubric Nhân viên Hỗ trợ khách hàng', FALSE, '2026-08-30 02:00:00+00', '2026-08-30 02:00:00+00'),
+    ('f2000000-0005-0000-0000-000000000002', 'f2000000-0004-0000-0000-000000000002', 'Rubric Chuyên viên Nhân sự',          FALSE, '2026-08-25 02:00:00+00', '2026-08-25 02:00:00+00'),
+    ('f2000000-0005-0000-0000-000000000003', 'f2000000-0004-0000-0000-000000000003', 'Rubric Nhân viên Hành chính',         FALSE, '2026-09-05 02:00:00+00', '2026-09-05 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO rubric_criteria (id, rubric_id, name, description, weight, max_score, display_order, created_at, updated_at) VALUES
+    ('f2000000-0006-0000-0000-000000000001', 'f2000000-0005-0000-0000-000000000001', 'Kinh nghiệm hỗ trợ khách hàng',
+     'Số năm làm tổng đài hoặc hỗ trợ khách hàng.', 40.00, 5, 1, '2026-08-30 02:00:00+00', '2026-08-30 02:00:00+00'),
+    ('f2000000-0006-0000-0000-000000000002', 'f2000000-0005-0000-0000-000000000001', 'Kỹ năng giao tiếp',
+     'Khả năng trình bày rõ ràng, lắng nghe và xử lý tình huống.', 35.00, 5, 2, '2026-08-30 02:00:00+00', '2026-08-30 02:00:00+00'),
+    ('f2000000-0006-0000-0000-000000000003', 'f2000000-0005-0000-0000-000000000001', 'Kỹ năng tin học',
+     'Mức độ sử dụng máy tính và phần mềm hỗ trợ khách hàng.', 25.00, 5, 3, '2026-08-30 02:00:00+00', '2026-08-30 02:00:00+00'),
+
+    ('f2000000-0006-0000-0000-000000000004', 'f2000000-0005-0000-0000-000000000002', 'Kinh nghiệm hành chính - nhân sự',
+     'Số năm làm hồ sơ nhân sự, chấm công.', 40.00, 5, 1, '2026-08-25 02:00:00+00', '2026-08-25 02:00:00+00'),
+    ('f2000000-0006-0000-0000-000000000005', 'f2000000-0005-0000-0000-000000000002', 'Hiểu biết pháp luật lao động',
+     'Mức độ nắm quy định về hợp đồng, bảo hiểm của người lao động.', 35.00, 5, 2, '2026-08-25 02:00:00+00', '2026-08-25 02:00:00+00'),
+    ('f2000000-0006-0000-0000-000000000006', 'f2000000-0005-0000-0000-000000000002', 'Kỹ năng tổ chức công việc',
+     'Khả năng sắp xếp hồ sơ, theo dõi tiến độ.', 25.00, 5, 3, '2026-08-25 02:00:00+00', '2026-08-25 02:00:00+00'),
+
+    ('f2000000-0006-0000-0000-000000000007', 'f2000000-0005-0000-0000-000000000003', 'Kinh nghiệm văn thư',
+     'Số năm làm văn thư, lưu trữ.', 40.00, 5, 1, '2026-09-05 02:00:00+00', '2026-09-05 02:00:00+00'),
+    ('f2000000-0006-0000-0000-000000000008', 'f2000000-0005-0000-0000-000000000003', 'Kỹ năng tin học văn phòng',
+     'Mức độ thành thạo Word, Excel.', 35.00, 5, 2, '2026-09-05 02:00:00+00', '2026-09-05 02:00:00+00'),
+    ('f2000000-0006-0000-0000-000000000009', 'f2000000-0005-0000-0000-000000000003', 'Tính cẩn thận',
+     'Mức độ chính xác khi xử lý giấy tờ.', 25.00, 5, 3, '2026-09-05 02:00:00+00', '2026-09-05 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.5 Mau giay moi (1/tin) - placeholder that cua InterviewInvitationService, nhu muc 6
+INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address, created_at, updated_at)
+SELECT ('f2000000-0007-0000-0000-00000000000' || n)::uuid,
+       ('f2000000-0004-0000-0000-00000000000' || n)::uuid,
+       'Công ty TNHH Thử Nghiệm Bình Minh',
+       'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+       'Kính gửi {{candidateName}},' || E'\n\n'
+       || 'Cảm ơn bạn đã ứng tuyển vị trí {{jobTitle}} tại {{companyName}}. Chúng tôi trân trọng mời '
+       || 'bạn tham gia buổi phỏng vấn theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
+       || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
+       || 'Trân trọng,',
+       'Đặng Minh Thư', 'Trưởng phòng Nhân sự',
+       'Tầng 2, 12 Lê Lợi, TP. Huế',
+       j.created_at, j.created_at
+FROM generate_series(1, 3) AS n
+JOIN jobs j ON j.id = ('f2000000-0004-0000-0000-00000000000' || n)::uuid
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.6 Cau hoi sang loc J-01 (H10): them 3 cau luc dang tin; cau 3 xoa mem 20/09 - SAU luc don -01 nop (15/09), TRUOC
+--      luc don -02 nop (22/09). Xoa mem chi dat deleted_at, updated_at = luc xoa (trigger).
+INSERT INTO job_screening_questions (
+    id, job_id, question_type, question_text, options, is_required, display_order, deleted_at, created_at, updated_at
+) VALUES
+    ('f2000000-0008-0000-0000-000000000001', 'f2000000-0004-0000-0000-000000000001', 'SHORT_TEXT',
+     'Bạn có thể bắt đầu đi làm từ khi nào?', NULL, TRUE, 1, NULL,
+     '2026-09-01 02:00:00+00', '2026-09-01 02:00:00+00'),
+    ('f2000000-0008-0000-0000-000000000002', 'f2000000-0004-0000-0000-000000000001', 'YES_NO',
+     'Bạn có thể làm việc vào thứ Bảy không?', NULL, FALSE, 2, NULL,
+     '2026-09-01 02:00:00+00', '2026-09-01 02:00:00+00'),
+    ('f2000000-0008-0000-0000-000000000003', 'f2000000-0004-0000-0000-000000000001', 'SINGLE_CHOICE',
+     'Bạn biết đến tin tuyển dụng này qua kênh nào?', '["Trang việc làm", "Bạn bè giới thiệu", "Mạng xã hội"]'::jsonb,
+     FALSE, 3, '2026-09-20 02:00:00+00',
+     '2026-09-01 02:00:00+00', '2026-09-20 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.7 An danh J-01 (H16): bat 10/09 (L23: 1 dong). Ca hai don nop SAU moc nay.
+INSERT INTO job_blind_review_changes (id, job_id, enabled, changed_by, changed_at) VALUES
+    ('f2000000-0018-0000-0000-000000000001', 'f2000000-0004-0000-0000-000000000001', TRUE,
+     'f2000000-0001-0000-0000-000000000001', '2026-09-10 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.8 CV chinh cua U1, U2 - PENDING dong bang (L21). file_size = so byte file do install-test-files.ps1 sinh (L22).
+INSERT INTO resumes (
+    id, candidate_id, file_url, file_name, file_type, file_size, version_label, is_primary,
+    parse_status, parse_error, uploaded_at, claimed_at, attempt_count, next_attempt_at
+) VALUES
+    ('f2000000-0019-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000002',
+     'resumes/f2000000-0019-0000-0000-000000000001.pdf', 'cv-vu-hoang-nam.pdf', 'PDF', 783, NULL, TRUE,
+     'PENDING', NULL, '2026-09-02 03:00:00+00', NULL, 0, '2099-01-01 00:00:00+00'),
+    ('f2000000-0019-0000-0000-000000000002', 'f2000000-0001-0000-0000-000000000003',
+     'resumes/f2000000-0019-0000-0000-000000000002.pdf', 'cv-do-minh-chau.pdf', 'PDF', 783, NULL, TRUE,
+     'PENDING', NULL, '2026-09-03 03:00:00+00', NULL, 0, '2099-01-01 00:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.9 Don. updated_at = lan ghi cuoi len hang don: -02 = luc U2 chon khung (lockIfInterviewInvited + trigger);
+--      -03 = luc U1 rut dong y (revokeTalentPoolConsentIfActive + trigger). screening_captured_at = applied_at.
+INSERT INTO job_applications (
+    id, job_id, candidate_id, resume_id, recruitment_cycle, status,
+    ai_consent, ai_consent_at, cover_letter, applied_at, updated_at, screening_captured_at,
+    talent_pool_consent, talent_pool_consent_at, talent_pool_consent_revoked_at
+) VALUES
+    ('f2000000-0009-0000-0000-000000000001', 'f2000000-0004-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000002',
+     'f2000000-0019-0000-0000-000000000001', 1, 'PENDING', TRUE, '2026-09-15 03:00:00+00',
+     'Tôi là Vũ Hoàng Nam, đã có 2 năm làm tổng đài viên tại Huế và mong được trao đổi thêm.',
+     '2026-09-15 03:00:00+00', '2026-09-15 03:00:00+00', '2026-09-15 03:00:00+00', FALSE, NULL, NULL),
+    ('f2000000-0009-0000-0000-000000000002', 'f2000000-0004-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000003',
+     'f2000000-0019-0000-0000-000000000002', 1, 'INTERVIEW_INVITED', TRUE, '2026-09-22 03:00:00+00', NULL,
+     '2026-09-22 03:00:00+00', '2026-09-26 03:00:00+00', '2026-09-22 03:00:00+00',
+     TRUE, '2026-09-22 03:00:00+00', NULL),
+    ('f2000000-0009-0000-0000-000000000003', 'f2000000-0004-0000-0000-000000000002', 'f2000000-0001-0000-0000-000000000002',
+     'f2000000-0019-0000-0000-000000000001', 1, 'REJECTED', TRUE, '2026-09-03 03:00:00+00', NULL,
+     '2026-09-03 03:00:00+00', '2026-09-20 02:00:00+00', '2026-09-03 03:00:00+00',
+     FALSE, '2026-09-03 03:00:00+00', '2026-09-20 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO application_status_history (id, application_id, from_status, to_status, changed_by, note, changed_at) VALUES
+    -- -01: nop (dang an danh, khong co dong INTERVIEW_INVITED -> BlindReviewResolver che)
+    ('f2000000-0010-0000-0000-000000000001', 'f2000000-0009-0000-0000-000000000001', NULL, 'PENDING',
+     'f2000000-0001-0000-0000-000000000002', NULL, '2026-09-15 03:00:00+00'),
+    -- -02: nop -> HR gui giay moi (bo an danh)
+    ('f2000000-0010-0000-0000-000000000002', 'f2000000-0009-0000-0000-000000000002', NULL, 'PENDING',
+     'f2000000-0001-0000-0000-000000000003', NULL, '2026-09-22 03:00:00+00'),
+    ('f2000000-0010-0000-0000-000000000003', 'f2000000-0009-0000-0000-000000000002', 'PENDING', 'INTERVIEW_INVITED',
+     'f2000000-0001-0000-0000-000000000001', NULL, '2026-09-25 02:00:00+00'),
+    -- -03: nop -> HR tu choi
+    ('f2000000-0010-0000-0000-000000000004', 'f2000000-0009-0000-0000-000000000003', NULL, 'PENDING',
+     'f2000000-0001-0000-0000-000000000002', NULL, '2026-09-03 03:00:00+00'),
+    ('f2000000-0010-0000-0000-000000000005', 'f2000000-0009-0000-0000-000000000003', 'PENDING', 'REJECTED',
+     'f2000000-0001-0000-0000-000000000001', NULL, '2026-09-10 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.10 Ban chup cau hoi (bat bien, ScreeningCaptureService): chep tu cau hoi dang hoat dong LUC NOP, created_at = luc
+--       nop. -01 nop khi con 3 cau -> 3 dong (ke ca cau 3 nay da xoa mem); -02 nop sau khi xoa -> 2 dong.
+INSERT INTO application_screening_answers (
+    id, application_id, question_id, display_order, question_type_snapshot, question_text_snapshot,
+    options_snapshot, required_snapshot, answer_text, answer_yes_no, created_at
+)
+SELECT v.id::uuid, v.application_id::uuid, q.id, q.display_order, q.question_type, q.question_text,
+       q.options, q.is_required, v.answer_text, v.answer_yes_no, v.created_at
+FROM (VALUES
+    ('f2000000-0011-0000-0000-000000000001', 'f2000000-0009-0000-0000-000000000001', 'f2000000-0008-0000-0000-000000000001'::uuid,
+     'Đầu tháng 10/2026.', NULL::boolean, '2026-09-15 03:00:00+00'::timestamptz),
+    ('f2000000-0011-0000-0000-000000000002', 'f2000000-0009-0000-0000-000000000001', 'f2000000-0008-0000-0000-000000000002'::uuid,
+     NULL, TRUE, '2026-09-15 03:00:00+00'::timestamptz),
+    ('f2000000-0011-0000-0000-000000000003', 'f2000000-0009-0000-0000-000000000001', 'f2000000-0008-0000-0000-000000000003'::uuid,
+     'Mạng xã hội', NULL, '2026-09-15 03:00:00+00'::timestamptz),
+    ('f2000000-0011-0000-0000-000000000004', 'f2000000-0009-0000-0000-000000000002', 'f2000000-0008-0000-0000-000000000001'::uuid,
+     'Có thể đi làm ngay.', NULL, '2026-09-22 03:00:00+00'::timestamptz),
+    ('f2000000-0011-0000-0000-000000000005', 'f2000000-0009-0000-0000-000000000002', 'f2000000-0008-0000-0000-000000000002'::uuid,
+     NULL, FALSE, '2026-09-22 03:00:00+00'::timestamptz)
+) AS v(id, application_id, question_id, answer_text, answer_yes_no, created_at)
+JOIN job_screening_questions q ON q.id = v.question_id
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.11 Giay moi don -02 (H12, U10 "sau"). Gui khi don dang an danh -> {{candidateName}} thay bang ho ten that (H16
+--       R-I2), nen noi dung giong don khong an danh. Ghi theo ba buoc nhu muc 11: giay moi chua chot -> khung -> UPDATE.
+--       2 khung tuong lai (tinh theo luc nap); U2 chon khung 2 luc 26/09 03:00 (confirmed_at > sent_at).
+INSERT INTO interview_invitations (id, application_id, subject, rendered_content, sent_at, sent_by, superseded_at, created_at)
+SELECT 'f2000000-0012-0000-0000-000000000001', a.id,
+       replace(replace(replace(t.subject, '{{candidateName}}', u.full_name), '{{jobTitle}}', j.title), '{{companyName}}', t.company_name),
+       replace(replace(replace(t.body,    '{{candidateName}}', u.full_name), '{{jobTitle}}', j.title), '{{companyName}}', t.company_name),
+       '2026-09-25 02:00:00+00', 'f2000000-0001-0000-0000-000000000001', NULL, '2026-09-25 02:00:00+00'
+FROM job_applications a
+JOIN users u ON u.id = a.candidate_id
+JOIN jobs j ON j.id = a.job_id
+JOIN interview_templates t ON t.job_id = j.id
+WHERE a.id = 'f2000000-0009-0000-0000-000000000002'
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO interview_invitation_slots (id, invitation_id, display_order, scheduled_at, location, created_at) VALUES
+    ('f2000000-0013-0000-0000-000000000001', 'f2000000-0012-0000-0000-000000000001', 1,
+     date_trunc('day', now()) + INTERVAL '6 days 2 hours', 'Tầng 2, 12 Lê Lợi, TP. Huế', '2026-09-25 02:00:00+00'),
+    ('f2000000-0013-0000-0000-000000000002', 'f2000000-0012-0000-0000-000000000001', 2,
+     date_trunc('day', now()) + INTERVAL '8 days 3 hours', 'Phỏng vấn trực tuyến qua Google Meet (đường dẫn gửi trước 1 ngày)',
+     '2026-09-25 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- Chi cap nhat khi chua chot - chay lai khong doi gi.
+UPDATE interview_invitations
+SET confirmed_slot_id = 'f2000000-0013-0000-0000-000000000002', confirmed_at = '2026-09-26 03:00:00+00'
+WHERE id = 'f2000000-0012-0000-0000-000000000001' AND confirmed_slot_id IS NULL;
+
+-- 17.12 Kho ung vien (H15 "sau"): 1 kho. -03 vao kho 08/09 khi con ACTIVE, go luc U1 rut dong y 20/09 (R-C1:
+--       removed_at = revoked_at). -02 vao kho 27/09, sau khi het an danh (H16 R-K2) va dang ACTIVE.
+INSERT INTO talent_pools (id, company_id, name, created_at, updated_at, deleted_at) VALUES
+    ('f2000000-0016-0000-0000-000000000001', 'f2000000-0002-0000-0000-000000000001', 'Ứng viên tiềm năng 2027',
+     '2026-09-08 01:00:00+00', '2026-09-08 01:00:00+00', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO talent_pool_entries (id, pool_id, application_id, added_at, removed_at) VALUES
+    ('f2000000-0017-0000-0000-000000000001', 'f2000000-0016-0000-0000-000000000001', 'f2000000-0009-0000-0000-000000000002',
+     '2026-09-27 02:00:00+00', NULL),
+    ('f2000000-0017-0000-0000-000000000002', 'f2000000-0016-0000-0000-000000000001', 'f2000000-0009-0000-0000-000000000003',
+     '2026-09-08 02:00:00+00', '2026-09-20 02:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.13 Tin nhan (C06) + dinh kem (L22). Khoa tep = 'message-attachments/<id tin>.<duoi chuan>', file do
+--       install-test-files.ps1 sinh; attachment_size = so byte file do (PDF 797, PNG 355, PDF 758). read_at = luc BEN
+--       NHAN mo cuoc trao doi.
+--       -01 HR -> U2 (don -02): PDF, U2 da doc.
+--       -02 U2 -> HR (don -02): PNG, HR chua doc.
+--       -03 U1 -> HR (don -01 DANG AN DANH): PDF, HR chua doc -> phia HR ten tep = null, tai -> 409 (H16 R-T2);
+--           than tin co ho ten ung vien -> phia HR hien "[đã ẩn]" (R-M4).
+INSERT INTO application_messages (
+    id, application_id, sender_id, sender_role, body,
+    attachment_key, attachment_name, attachment_type, attachment_size, read_at, created_at
+) VALUES
+    ('f2000000-0014-0000-0000-000000000001', 'f2000000-0009-0000-0000-000000000002', 'f2000000-0001-0000-0000-000000000001', 'HR',
+     'Chào bạn Châu, phòng Nhân sự gửi bạn hướng dẫn chuẩn bị cho buổi phỏng vấn. Bạn xem trước giúp mình nhé.',
+     'message-attachments/f2000000-0014-0000-0000-000000000001.pdf', 'Hướng dẫn chuẩn bị phỏng vấn.pdf', 'PDF', 797,
+     '2026-09-27 08:00:00+00', '2026-09-27 03:00:00+00'),
+    ('f2000000-0014-0000-0000-000000000002', 'f2000000-0009-0000-0000-000000000002', 'f2000000-0001-0000-0000-000000000003', 'CANDIDATE',
+     'Dạ em cảm ơn chị. Em gửi kèm ảnh chứng chỉ tin học văn phòng của em ạ.',
+     'message-attachments/f2000000-0014-0000-0000-000000000002.png', 'chung-chi-tin-hoc.png', 'PNG', 355,
+     NULL, '2026-09-28 02:00:00+00'),
+    ('f2000000-0014-0000-0000-000000000003', 'f2000000-0009-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000002', 'CANDIDATE',
+     'Em là Vũ Hoàng Nam, em gửi bổ sung bảng điểm tốt nghiệp để anh/chị tham khảo thêm ạ.',
+     'message-attachments/f2000000-0014-0000-0000-000000000003.pdf', 'Bảng điểm tốt nghiệp.pdf', 'PDF', 758,
+     NULL, '2026-09-29 03:00:00+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17.14 Thong bao (C03) - khop 1-1 su kien that (NotificationEventListener), noi dung theo NotificationContentBuilder.
+--       Nhan ung vien trong thong bao gui HR tinh TAI LUC su kien (H16 R-O1): don dang an danh -> CandidateAlias
+--       "Ung vien #" + 8 hex cuoi cua id don (viet hoa). Khong co thong bao cho: gui giay moi lan dau (H12 R-F2), rut dong
+--       y (U09 R-K8), kho ung vien, bat an danh (H16 R-U2), xoa cau hoi, xoa tin.
+INSERT INTO notifications (id, user_id, type, title, body, link, email_body, entity_type, entity_id, is_read, read_at, email_status, created_at)
+SELECT v.id::uuid, v.user_id::uuid, v.type, v.title, v.body, v.link, NULL, 'APPLICATION', v.app_id::uuid,
+       v.read_at IS NOT NULL, v.read_at, 'SKIPPED', v.created_at
+FROM (VALUES
+    -- Nop don -03 (J-02 khong an danh) -> HR, ten that
+    ('f2000000-0015-0000-0000-000000000001', 'f2000000-0001-0000-0000-000000000001', 'APPLICATION_SUBMITTED',
+     'Có đơn ứng tuyển mới',
+     'Ứng viên Vũ Hoàng Nam vừa ứng tuyển vị trí "Chuyên viên Nhân sự"',
+     '/hr/applications/f2000000-0009-0000-0000-000000000003', 'f2000000-0009-0000-0000-000000000003',
+     '2026-09-03 05:00:00+00'::timestamptz, '2026-09-03 03:00:01+00'::timestamptz),
+    -- -03 bi tu choi -> U1
+    ('f2000000-0015-0000-0000-000000000002', 'f2000000-0001-0000-0000-000000000002', 'APPLICATION_STATUS_CHANGED',
+     'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "Chuyên viên Nhân sự" của bạn đã chuyển sang trạng thái: Bị từ chối',
+     '/candidate/applications/f2000000-0009-0000-0000-000000000003', 'f2000000-0009-0000-0000-000000000003',
+     '2026-09-10 08:00:00+00', '2026-09-10 02:00:01+00'),
+    -- Nop don -01 khi J-01 dang an danh -> HR, nhan an danh
+    ('f2000000-0015-0000-0000-000000000003', 'f2000000-0001-0000-0000-000000000001', 'APPLICATION_SUBMITTED',
+     'Có đơn ứng tuyển mới',
+     'Ứng viên #' || upper(right(replace('f2000000-0009-0000-0000-000000000001', '-', ''), 8))
+     || ' vừa ứng tuyển vị trí "Nhân viên Hỗ trợ khách hàng"',
+     '/hr/applications/f2000000-0009-0000-0000-000000000001', 'f2000000-0009-0000-0000-000000000001',
+     '2026-09-15 05:00:00+00', '2026-09-15 03:00:01+00'),
+    -- Nop don -02 khi J-01 dang an danh -> HR, nhan an danh (thong bao da tao khong bi sua khi het an danh - R-O3)
+    ('f2000000-0015-0000-0000-000000000004', 'f2000000-0001-0000-0000-000000000001', 'APPLICATION_SUBMITTED',
+     'Có đơn ứng tuyển mới',
+     'Ứng viên #' || upper(right(replace('f2000000-0009-0000-0000-000000000002', '-', ''), 8))
+     || ' vừa ứng tuyển vị trí "Nhân viên Hỗ trợ khách hàng"',
+     '/hr/applications/f2000000-0009-0000-0000-000000000002', 'f2000000-0009-0000-0000-000000000002',
+     '2026-09-22 05:00:00+00', '2026-09-22 03:00:01+00'),
+    -- Gui giay moi -02 -> U2
+    ('f2000000-0015-0000-0000-000000000005', 'f2000000-0001-0000-0000-000000000003', 'APPLICATION_STATUS_CHANGED',
+     'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "Nhân viên Hỗ trợ khách hàng" của bạn đã chuyển sang trạng thái: Đã mời phỏng vấn',
+     '/candidate/applications/f2000000-0009-0000-0000-000000000002', 'f2000000-0009-0000-0000-000000000002',
+     '2026-09-25 06:00:00+00', '2026-09-25 02:00:01+00'),
+    -- U1 gui tin co chu + tep tren don -01 dang an danh -> HR: KHONG co doan trich (forNewMessageWithoutExcerpt, H16
+    -- R-O2 [Q7]), chua doc
+    ('f2000000-0015-0000-0000-000000000009', 'f2000000-0001-0000-0000-000000000001', 'NEW_MESSAGE',
+     'Tin nhắn mới từ ứng viên',
+     'Ứng viên #' || upper(right(replace('f2000000-0009-0000-0000-000000000001', '-', ''), 8))
+     || ' đã gửi tin nhắn về đơn ứng tuyển vị trí "Nhân viên Hỗ trợ khách hàng"',
+     '/hr/applications/f2000000-0009-0000-0000-000000000001?tab=messages', 'f2000000-0009-0000-0000-000000000001',
+     NULL, '2026-09-29 03:00:01+00')
+) AS v(id, user_id, type, title, body, link, app_id, read_at, created_at)
+ON CONFLICT (id) DO NOTHING;
+
+-- INTERVIEW_SLOT_CONFIRMED (forSlotConfirmed) -> HR: ten that (H16 R-O4 khong doi), body mot dong co gio Viet Nam,
+-- email_body = body + dia diem + lien ket (URL mac dinh app.frontend-base-url, SKIPPED nen khong gui). Gio/dia diem doc
+-- tu chinh khung da chot (cung bieu thuc now() cua transaction). HR chua doc.
+INSERT INTO notifications (id, user_id, type, title, body, link, email_body, entity_type, entity_id, is_read, read_at, email_status, created_at)
+SELECT 'f2000000-0015-0000-0000-000000000006', 'f2000000-0001-0000-0000-000000000001', 'INTERVIEW_SLOT_CONFIRMED',
+       'Ứng viên đã chọn lịch phỏng vấn', x.body,
+       '/hr/applications/f2000000-0009-0000-0000-000000000002?tab=invitation',
+       x.body || E'\n\n' || 'Địa điểm: ' || x.location || E'\n\n'
+       || 'Xem giấy mời tại: http://localhost:5173/hr/applications/f2000000-0009-0000-0000-000000000002?tab=invitation',
+       'APPLICATION', 'f2000000-0009-0000-0000-000000000002', FALSE, NULL, 'SKIPPED', '2026-09-26 03:00:01+00'
+FROM (
+    SELECT 'Ứng viên Đỗ Minh Châu đã chọn khung giờ phỏng vấn '
+           || to_char(s.scheduled_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM/YYYY')
+           || ' (giờ Việt Nam) cho vị trí "Nhân viên Hỗ trợ khách hàng".' AS body,
+           s.location
+    FROM interview_invitation_slots s
+    WHERE s.id = 'f2000000-0013-0000-0000-000000000002'
+) AS x
+ON CONFLICT (id) DO NOTHING;
+
+-- NEW_MESSAGE (forNewMessage) cho tin tren don -02 (da het an danh): ung vien nhan -> nhan = ten cong ty; HR nhan ->
+-- "Ung vien <ho ten>". Doan trich MessageExcerpt (gop khoang trang, cat 120 code point + "…") tinh tu chinh tin o 17.13.
+-- U2 doc cuoc trao doi luc 08:00 -> thong bao NEW_MESSAGE cua U2 cung da doc (R-R3).
+INSERT INTO notifications (id, user_id, type, title, body, link, email_body, entity_type, entity_id, is_read, read_at, email_status, created_at)
+SELECT v.id::uuid, v.user_id::uuid, 'NEW_MESSAGE', v.title,
+       v.sender_label || ' đã gửi tin nhắn về đơn ứng tuyển vị trí "' || j.title || '": '
+       || CASE WHEN char_length(e.c) <= 120 THEN e.c ELSE left(e.c, 120) || '…' END,
+       v.link, NULL, 'APPLICATION', m.application_id, v.read_at IS NOT NULL, v.read_at, 'SKIPPED', v.created_at
+FROM (VALUES
+    ('f2000000-0015-0000-0000-000000000007', 'f2000000-0001-0000-0000-000000000003', 'f2000000-0014-0000-0000-000000000001'::uuid,
+     'Tin nhắn mới từ nhà tuyển dụng', 'Công ty TNHH Thử Nghiệm Bình Minh',
+     '/candidate/applications/f2000000-0009-0000-0000-000000000002?tab=messages',
+     '2026-09-27 08:00:00+00'::timestamptz, '2026-09-27 03:00:01+00'::timestamptz),
+    ('f2000000-0015-0000-0000-000000000008', 'f2000000-0001-0000-0000-000000000001', 'f2000000-0014-0000-0000-000000000002'::uuid,
+     'Tin nhắn mới từ ứng viên', 'Ứng viên Đỗ Minh Châu',
+     '/hr/applications/f2000000-0009-0000-0000-000000000002?tab=messages',
+     NULL, '2026-09-28 02:00:01+00')
+) AS v(id, user_id, message_id, title, sender_label, link, read_at, created_at)
+JOIN application_messages m ON m.id = v.message_id
+JOIN job_applications a ON a.id = m.application_id
+JOIN jobs j ON j.id = a.job_id
+CROSS JOIN LATERAL (SELECT btrim(regexp_replace(m.body, '\s+', ' ', 'g')) AS c) AS e
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;
 
 -- ---------------------------------------------------------------------------
@@ -796,6 +1192,10 @@ COMMIT;
 -- application_screening_answers 6.
 -- Va dai f1 (FR-U10, muc 16): job_applications 1, application_status_history 2,
 -- interview_invitations 1, interview_invitation_slots 3, notifications 2.
+-- Va dai f2 (muc 17): users 3, candidate_profiles 2, companies 1, jobs 3, rubrics 3, rubric_criteria 9,
+-- interview_templates 3, job_screening_questions 3, job_blind_review_changes 1, resumes 2, job_applications 3,
+-- application_status_history 5, application_screening_answers 5, interview_invitations 1,
+-- interview_invitation_slots 2, talent_pools 1, talent_pool_entries 2, application_messages 3, notifications 9.
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'e0000000-%'
 UNION ALL SELECT 'candidate_profiles', count(*) FROM candidate_profiles WHERE id::text LIKE 'e6000000-%'
@@ -819,4 +1219,23 @@ UNION ALL SELECT 'f1 job_applications', count(*) FROM job_applications WHERE id:
 UNION ALL SELECT 'f1 application_status_history', count(*) FROM application_status_history WHERE id::text LIKE 'f1000000-%'
 UNION ALL SELECT 'f1 interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'f1000000-%'
 UNION ALL SELECT 'f1 interview_invitation_slots', count(*) FROM interview_invitation_slots WHERE id::text LIKE 'f1000000-%'
-UNION ALL SELECT 'f1 notifications', count(*) FROM notifications WHERE id::text LIKE 'f1000000-%';
+UNION ALL SELECT 'f1 notifications', count(*) FROM notifications WHERE id::text LIKE 'f1000000-%'
+UNION ALL SELECT 'f2 users', count(*) FROM users WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 candidate_profiles', count(*) FROM candidate_profiles WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 companies', count(*) FROM companies WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 jobs', count(*) FROM jobs WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 rubrics', count(*) FROM rubrics WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 rubric_criteria', count(*) FROM rubric_criteria WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 interview_templates', count(*) FROM interview_templates WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 job_screening_questions', count(*) FROM job_screening_questions WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 job_blind_review_changes', count(*) FROM job_blind_review_changes WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 resumes', count(*) FROM resumes WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 job_applications', count(*) FROM job_applications WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 application_status_history', count(*) FROM application_status_history WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 application_screening_answers', count(*) FROM application_screening_answers WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 interview_invitation_slots', count(*) FROM interview_invitation_slots WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 talent_pools', count(*) FROM talent_pools WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 talent_pool_entries', count(*) FROM talent_pool_entries WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 application_messages', count(*) FROM application_messages WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f2 notifications', count(*) FROM notifications WHERE id::text LIKE 'f2000000-%';
