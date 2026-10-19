@@ -785,7 +785,12 @@ export function CvBuilderFormView({ mode, initial, onSave }: CvBuilderFormViewPr
                 {(aria) => (
                   <Select
                     value={field.value}
-                    onValueChange={(next) => field.onChange(next === NO_INDUSTRY ? '' : next)}
+                    // fix/hr-job-edit-select - dien san (applyPrefill -> reset) doi gia tri bang code sau
+                    // khi Select da mount, Radix co the phat onValueChange('') -> bo qua chuoi rong.
+                    // "Khong chon nganh" cua nguoi dung di qua NO_INDUSTRY nen khong mat thao tac nao.
+                    onValueChange={(next) => {
+                      if (next) field.onChange(next === NO_INDUSTRY ? '' : next)
+                    }}
                     disabled={!catalogs}
                   >
                     <SelectTrigger ref={field.ref} {...aria} className="min-h-10 w-full">

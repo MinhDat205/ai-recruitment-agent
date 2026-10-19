@@ -44,10 +44,12 @@ export function BlindReviewCard({ jobId, enabled }: BlindReviewCardProps) {
     }
   }
 
+  // Le = --card-spacing cua Card cha (cung padding voi CardContent/CardFooter): mep card thang cot voi o nhap va nut
+  // "Luu thay doi", co khoang cach voi dai nen CardFooter phia tren.
   return (
     <section
       aria-labelledby="blind-review-title"
-      className="mx-6 mb-6 flex flex-col gap-3 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4 sm:flex-row sm:items-end sm:justify-between"
+      className="m-(--card-spacing) flex flex-col gap-3 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4 sm:flex-row sm:items-end sm:justify-between"
     >
       <div className="flex min-w-0 flex-col gap-1">
         <h3 id="blind-review-title" className="text-base font-medium text-m3-on-surface">
