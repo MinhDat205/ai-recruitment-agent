@@ -74,8 +74,9 @@ Không va chạm với dải cũ (`d1b…` khác `d1000000`, `f2…` khác `f0`/
 | 0008 | job_screening_questions | 0017 | talent_pool_entries |
 | 0009 | job_applications | 0018 | job_blind_review_changes |
 
-Tầng 2b: UUID ngẫu nhiên do app sinh trong lượt chạy thật (như tầng 2). Tên file trên đĩa: logo
-`logos/<id công ty>.png`; đính kèm `message-attachments/<id tin nhắn>.<pdf|png>` (khoá thật của app là
+Tầng 2b: UUID ngẫu nhiên do app sinh trong lượt chạy thật (như tầng 2). Logo: cột `companies.logo_url` lưu
+dạng URL công khai `'/uploads/logos/<id công ty>.png'` (`LocalStorageService.java:41`), file trên đĩa ở
+`backend/uploads/logos/<id công ty>.png`; đính kèm `message-attachments/<id tin nhắn>.<pdf|png>` (khoá thật của app là
 `message-attachments/<uuid>.<ext>`, `MessageService.java:306-309`).
 
 Mốc thời gian: theo quy ước có sẵn — sự kiện đã xảy ra dùng mốc **tuyệt đối** (09–10/2026, sau mốc tầng 2 ngày
@@ -216,3 +217,17 @@ Mỗi đợt: dừng → báo diff → chờ duyệt → mới commit.
   Java hiện nhãn ẩn danh. Không sửa REQUIREMENT đã hoàn thành; README seed ghi rõ khác biệt.
 - Dữ liệu soát tay để lại trên DB dev (`u12-…`, `6@gmail.com`, `7@gmail.com`, 2 `cv_builder_documents`) bị
   `reset-demo-db.sql` xoá; `reset-test-data.sql` không đụng tới.
+
+### K9. Làm rõ (phát sinh ở đợt 2, đã duyệt)
+
+| Mã | Nội dung | Quyết định |
+|---|---|---|
+| L1 | `reset-demo-db.sql` đã đòi V19 từ commit FR-H16 (liệt kê `job_blind_review_changes`), không chạy được trên V18 như kế hoạch giả định. Ca âm trên V18: `TRUNCATE` báo `relation does not exist`, exit 3, users 18 → 18, không xoá gì | Không thêm chốt chặn thứ 4; ghi điều kiện "DB ở V19 trở lên" vào comment script và README mục 1. Người dùng lên V19 bằng lệnh K5 (bước 1 đợt 2 xác nhận đủ 8 cờ có thật, 3 scheduler còn lại không gọi AI) |
+| L2 | Danh sách `TRUNCATE` cũ có 26 bảng (comment ghi 22) | Liệt kê đủ 30 bảng nghiệp vụ V1–V19, đối chiếu `information_schema`. Không truncate `catalog_*`, `flyway_schema_history`, `vector_store` (Spring AI tự tạo, `application.yml:58-59`, 0 dòng) |
+| L3 | `companies.logo_url` là URL công khai `/uploads/logos/<tên>` (`LocalStorageService.java:41`), khác `resumes.file_url` (`resumes/<tên>`) và `attachment_key` (`message-attachments/<tên>`) | Tầng 1b ghi `logo_url = '/uploads/logos/<id>.png'`; K2 đã sửa theo |
+| L4 | Mẫu giấy mời demo chỉ đổi `[Tên ứng viên]`, tên job/công ty vẫn ghi cứng | Đổi sang đủ 3 placeholder `{{candidateName}}`, `{{jobTitle}}`, `{{companyName}}` ở cả tiêu đề và thân thư, như bộ test |
+| L5 | Comment `seed-demo-structural.sql:38` ghi "8 candidate" | Sửa thành 9 cùng với comment mật khẩu `:39` |
+| L6 | Comment mật khẩu `Demo1234` lấy theo đầu file và README, chưa kiểm hash bcrypt độc lập | Kiểm bằng đăng nhập ở đợt 6 |
+| L7 | `install-demo-files.ps1` không còn dọn file thừa trong `backend/uploads/` (file soát tay cũ nằm lại) | Chấp nhận: DB sau reset không trỏ tới chúng; logo cũ `d1000000-…01.jpg` khác đuôi `.png` của đợt 3 nên không đè |
+| L8 | Câu đối chiếu của `install-demo-files.ps1` đã gồm dải `d1b00000-%` | Đợt 3 không cần sửa script nếu file nguồn đặt đúng `demo-files/logos/`, `demo-files/message-attachments/` |
+| L9 | README mục 1 còn thiếu `-v ON_ERROR_STOP=1` ở lệnh nạp (K5 đã có) | Sửa ở đợt 6 khi viết lại mục 1 |

@@ -42,8 +42,14 @@ docker compose exec -T postgres psql -U recruitment -d recruitment -f /tmp/seed-
 ```
 
 Bỏ qua bước 4 thì DB vẫn đúng, nhưng nút "Xem CV gốc" (FR-H06) sẽ báo lỗi vì file
-không có trên đĩa. Chạy bước 4 mà chưa chạy xong bước 3 sẽ báo lỗi ngay (bảng
-`resumes` rỗng), không âm thầm sai.
+không có trên đĩa. Chạy bước 4 mà chưa chạy xong bước 3 sẽ báo lỗi ngay (không có CV
+demo nào trong DB), không âm thầm sai.
+
+**DB phải ở V19 trở lên** trước bước 1: `reset-demo-db.sql` liệt kê tường minh cả 30 bảng
+nghiệp vụ đến V19 (`job_blind_review_changes`). DB còn ở V18 thì `TRUNCATE` báo
+`relation ... does not exist` và dừng, không xoá gì. Lên V19 bằng cách khởi động backend
+một lần (Flyway tự chạy), xem lệnh tắt scheduler gọi AI ở
+`docs/walkthrough/chore-seed-final.md` mục K5.
 
 ---
 
@@ -122,6 +128,16 @@ SQL tự chép một file nhị phân lên đĩa. Vì vậy 9 file PDF gốc đ�
 (`install-demo-files.ps1`) chép chúng sang đúng vị trí `backend/uploads/resumes/`
 mà backend đọc.
 
+`install-demo-files.ps1` (chore/seed-final) chép ba nguồn, nguồn chưa có thì bỏ qua:
+`db/seed/resumes/` → `backend/uploads/resumes/`, `db/seed/demo-files/logos/` →
+`backend/uploads/logos/`, `db/seed/demo-files/message-attachments/` →
+`backend/uploads/message-attachments/`. Script **chỉ ghi đè file cùng tên với file nguồn**,
+không xoá file nào khác (file của bộ test, file tải lên qua UI giữ nguyên). Sau khi chép,
+script đối chiếu mọi `resumes.file_url`, `companies.logo_url`, `application_messages.attachment_key`
+của **dữ liệu demo** (user `d0000000-…`/`d1b00000-…`, công ty `d1000000-…`/`d1b00000-…`) với file
+đích; thiếu file nào thì báo lỗi, liệt kê đủ khoá thiếu. Lưu ý `logo_url` là URL công khai
+`/uploads/logos/<tên>`, khác hai khoá kia (`resumes/<tên>`, `message-attachments/<tên>`).
+
 ---
 
 ## 6. Nội dung dữ liệu demo
@@ -129,6 +145,13 @@ mà backend đọc.
 **6 job đa ngành**, mỗi job 1 rubric (4 tiêu chí, tổng trọng số 100%): Senior Java
 Backend Developer, Kỹ sư Kiểm thử phần mềm (QA), Kỹ sư DevOps, Kế toán tổng hợp,
 Chuyên viên Marketing, Nhân viên kinh doanh qua điện thoại.
+
+**6 mẫu giấy mời** (1/job) dùng đủ 3 placeholder thật `{{candidateName}}`, `{{jobTitle}}`,
+`{{companyName}}` ở cả tiêu đề lẫn thân thư (không ghi cứng tên job/công ty, như bộ test) và
+**không** có ngày giờ/địa điểm trong thư — khung giờ lưu và hiển thị tách khỏi
+thư (FR-H12 R-C1), cùng câu chữ với mẫu của bộ test ("theo một trong các khung giờ phỏng vấn
+được gửi kèm"). Trước chore/seed-final, mẫu demo còn placeholder cũ `[Tên ứng viên]`,
+`[Giờ phỏng vấn]`, `[Ngày phỏng vấn]` mà app không thay.
 
 **9 CV / 8 ứng viên** — một ứng viên (Lê Văn Đức) giữ 2 phiên bản CV (một bản chính,
 một bản cũ), minh hoạ FR-U01 "nhiều phiên bản CV, một bản là chính". Ứng viên Bùi
@@ -271,15 +294,14 @@ docker compose cp db\seed\seed-test.sql postgres:/tmp/seed-test.sql
 docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-test.sql
 .\db\seed\install-test-files.ps1
 
-# Cùng demo: chạy đủ 4 bước ở mục 1 (gồm install-demo-files.ps1) TRƯỚC, rồi mới 3 lệnh trên.
+# Cùng demo: chạy đủ 4 bước ở mục 1 TRƯỚC (reset-demo-db.sql xoá luôn bộ test), rồi mới 3 lệnh trên.
 ```
 
-**Thứ tự bắt buộc khi nạp cùng demo:** `install-demo-files.ps1` phải chạy **trước khi**
-nạp `seed-test.sql`. Script demo đọc mọi `resumes.file_url` trong DB và **xoá mọi file
-`.pdf`** trong `backend/uploads/resumes/` trước khi chép. Nếu DB đã có CV test, script sẽ
-dừng ở file test đầu tiên và để thư mục trống PDF. Muốn cài lại file demo khi bộ test đã
-nạp: chạy `reset-test-data.sql`, rồi `install-demo-files.ps1`, rồi nạp lại bộ test và
-`install-test-files.ps1`.
+Từ chore/seed-final, `install-demo-files.ps1` chỉ ghi đè file có trong nguồn của demo và
+chỉ đối chiếu khoá file của dữ liệu demo (mục 5), nên chạy lại bao nhiêu lần, trước hay sau
+`install-test-files.ps1`, cũng không xoá file CV của bộ test. Trước đây script xoá mọi
+`.pdf` trong `backend/uploads/resumes/` và dừng khi gặp CV test — ràng buộc thứ tự đó không
+còn.
 
 `install-test-files.ps1` **sinh** 5 file PDF ngay trong script, nên không commit PDF nào.
 Chữ trong PDF là ASCII không dấu vì font chuẩn PDF không có glyph tiếng Việt; dữ liệu

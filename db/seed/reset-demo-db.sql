@@ -78,8 +78,14 @@ $guard3$;
 
 \echo 'Ca ba chot chan da qua - bat dau TRUNCATE...'
 
--- Liet ke tuong minh toan bo 22 bang nghiep vu, lay dung tu danh sach
--- CREATE TABLE trong V1__init_schema.sql + V5__/V6__/V12__ (khong doan so bang).
+-- Liet ke tuong minh toan bo 30 bang nghiep vu, lay dung tu danh sach
+-- CREATE TABLE trong V1..V19 (khong doan so bang). KHONG truncate: 4 bang
+-- catalog_* (V8, danh muc nap san trong migration), flyway_schema_history,
+-- vector_store (Spring AI tu tao do initialize-schema, du an khong ghi vao);
+-- job_recommendations da DROP o V11.
+-- Can DB o V19 tro len: thieu bang nao (vd DB con o V18, chua co
+-- job_blind_review_changes) thi TRUNCATE bao "relation does not exist" va
+-- dung lai, khong xoa gi (mot cau lenh duy nhat).
 -- TRUNCATE CASCADE quet theo MOI FK tro toi bang bi truncate, bat ke FK khai
 -- ON DELETE RESTRICT/CASCADE/SET NULL - liet ke day du de nguoi doc script
 -- biet chinh xac pham vi anh huong, khong phai suy doan tu CASCADE.
@@ -88,10 +94,16 @@ TRUNCATE TABLE
     users, candidate_profiles,
     -- Doanh nghiep & tin tuyen dung
     companies, jobs, interview_templates, rubrics, rubric_criteria,
+    -- Cau hoi sang loc theo tin (FR-H10, V13) + nhat ky sinh nhap tin bang AI (FR-H11, V15)
+    job_screening_questions, job_ai_generations,
     -- CV & du lieu AI trich xuat
     resumes, resume_parsed_data, job_embeddings, resume_reparse_requests,
+    -- CV dung bang cong cu (FR-U12, V18)
+    cv_builder_documents,
     -- Don ung tuyen & pipeline HR
     job_applications, application_status_history, interview_invitations,
+    -- Cau tra loi sang loc chup luc nop don (FR-U09, V13)
+    application_screening_answers,
     -- Khung gio giay moi (FR-H12, V16) - CASCADE van xoa theo neu thieu ten; liet ke cho tuong minh
     interview_invitation_slots,
     -- Tin nhan theo don (FR-C06, V12)
@@ -109,4 +121,4 @@ TRUNCATE TABLE
     notifications
 CASCADE;
 
-\echo 'Da don sach. Tiep theo: chay seed-demo-structural.sql roi seed-demo-ai-output.sql.'
+\echo 'Da don sach. Tiep theo: chay seed-demo-structural.sql roi seed-demo-ai-output.sql, roi install-demo-files.ps1.'

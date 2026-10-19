@@ -6,3 +6,4 @@
 *.pdf binary -text
 *.docx binary -text
 *.ttf binary -text
+*.png binary -text
