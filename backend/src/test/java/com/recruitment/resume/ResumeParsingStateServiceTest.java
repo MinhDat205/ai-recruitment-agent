@@ -289,7 +289,9 @@ class ResumeParsingStateServiceTest {
         resumeRepository.saveAndFlush(waiting);
         entityManager.clear();
 
-        List<Resume> ready = resumeRepository.findReadyForProcessing(10);
+        // Lo du lon: truy van xep uploaded_at ASC, container dung chung con CV PENDING cua lop chay truoc (thu tu lop
+        // khac nhau giua nen tang) - xem ResumeEmbeddingOrchestratorTest.
+        List<Resume> ready = resumeRepository.findReadyForProcessing(10_000);
 
         assertThat(ready).extracting(Resume::getId).contains(readyId).doesNotContain(waitingId);
     }
@@ -401,7 +403,8 @@ class ResumeParsingStateServiceTest {
         assertThat(stateService.retry(resumeId)).isTrue();
         entityManager.clear();
 
-        List<Resume> ready = resumeRepository.findReadyForProcessing(50);
+        // Lo du lon - cung ly do voi findReadyForProcessing_pendingWithFutureNextAttempt_excludedFromBatch.
+        List<Resume> ready = resumeRepository.findReadyForProcessing(10_000);
         assertThat(ready).extracting(Resume::getId).contains(resumeId);
     }
 

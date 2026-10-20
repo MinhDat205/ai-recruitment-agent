@@ -128,7 +128,9 @@ class JobEmbeddingOrchestratorTest {
 
         orchestrator.processOne(jobId);
 
-        List<UUID> stillNeeding = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(PageRequest.of(0, 10));
+        // Trang du lon: truy van xep created_at ASC, container dung chung con job OPEN chua embedding cua lop chay truoc
+        // (thu tu lop khac nhau giua nen tang) - xem ResumeEmbeddingOrchestratorTest.
+        List<UUID> stillNeeding = jobEmbeddingRepository.findOpenJobIdsNeedingEmbedding(PageRequest.of(0, 10_000));
         assertThat(stillNeeding).contains(jobId);
     }
 
