@@ -153,11 +153,13 @@ Script cổng lưu UTF-8 có BOM và kiểm số byte từng câu trước khi g
 không BOM: PowerShell 5.1 đọc theo ANSI nên câu gửi đi bị vỡ mã, ra 502 `AI_INVALID_OUTPUT`, và tốn 10 lần gọi
 Anthropic không dùng được (L57).
 
-**Soát tay (người dùng điền):**
+**Soát tay** (người dùng, 20/10/2026; backend tắt mọi scheduler AI; tài khoản `bui.ngoc.mai@demo.local`; chế độ "Tìm
+bằng mô tả"):
 
-| Bước | Kết quả |
-|---|---|
-| | |
+| Câu | Kết quả | Đánh giá |
+|---|---|---|
+| content marketing lương trên 15 triệu ở Hà Nội, không yêu cầu kinh nghiệm | Điều kiện: Hà Nội · Marketing - Truyền thông · Lương từ 15 triệu; "Xếp theo mô tả: không yêu cầu kinh nghiệm"; 0 việc làm ("Không tìm thấy việc làm nào khớp các điều kiện đã hiểu.") | Đạt (A). 0 kết quả do dữ liệu demo không có tin Marketing ở Hà Nội lương ≥ 15 triệu — không phải lỗi; kịch bản demo ở docs/final cần chọn câu khớp dữ liệu |
+| việc hành chính văn phòng Hà Nội hoặc Sài Gòn, làm kết hợp | Điều kiện: Hà Nội · TP. Hồ Chí Minh · Hành chính - Văn phòng · Kết hợp; "Không còn phần mô tả để xếp theo độ liên quan; việc làm được sắp theo thời gian đăng mới nhất."; 1 việc làm | Đạt (B). Kết quả là tin của bộ test (DB đang có demo + bộ test) |
 
 **Chưa kiểm thử:**
 - 7.2 phần A không chạy lại. Nhánh không đổi controller, rate limit hay validator đầu vào.
