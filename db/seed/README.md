@@ -1,49 +1,99 @@
-# db/seed — Dữ liệu demo cho buổi bảo vệ (chore/seed-demo)
+# db/seed — Dữ liệu demo và dữ liệu test
 
-Bộ dữ liệu demo đầy đủ: 1 HR, 1 công ty, 6 job đa ngành có rubric, 9 CV thật (8 ứng
-viên, một ứng viên giữ 2 phiên bản CV) đã qua parse/embedding/chấm điểm/giải thích
-bằng pipeline AI thật (Anthropic + OpenAI) một lần duy nhất.
+Thư mục có **hai bộ dữ liệu độc lập, hai vai trò** (`chore/seed-final`, K1 Q1):
 
-Chia **hai tầng**:
+| Bộ | Dùng cho | File | Nạp khi demo cho hội đồng? |
+|---|---|---|---|
+| **Demo** | Câu chuyện liền mạch cho hội đồng: 2 công ty, 12 tin OPEN, 9 ứng viên, điểm và giải thích do AI thật sinh | 4 tầng: 1 → 2 → 1b → 2b (mục 1) | **Có** |
+| **Test** | Ma trận trạng thái để soát giao diện (mỗi màn hình đủ mọi trạng thái) | `seed-test.sql` (mục 8) | **Không** |
+
+Bộ demo chia **bốn tầng**, nạp đúng thứ tự:
 
 - **Tầng 1** (`seed-demo-structural.sql`) — dữ liệu cấu trúc thuần, không phụ thuộc
   AI: HR, candidate, company, job, rubric, tiêu chí, mẫu giấy mời phỏng vấn. SQL
   thuần, idempotent (`ON CONFLICT (id) DO NOTHING`), viết tay, chạy lại vô hạn lần.
 - **Tầng 2** (`seed-demo-ai-output.sql`) — output thật của pipeline AI (parse CV,
-  embedding, chấm điểm, giải thích, gợi ý việc làm, gợi ý cải thiện CV) cộng với các
+  embedding, chấm điểm, giải thích, gợi ý cải thiện CV) cộng với các
   bảng phụ thuộc thời điểm chạy thật (`resumes`, `job_applications`,
   `application_status_history`, `notifications`...). Sinh **một lần** bằng cách chạy
   ứng dụng thật qua UI, rồi xuất bằng `pg_dump` (script `export-ai-output.ps1`) và
   commit thẳng vào repo — **không phải SQL viết tay**, và **không idempotent**.
+- **Tầng 1b** (`seed-demo-structural-1b.sql`, chore/seed-final) — dữ liệu cấu trúc viết tay, không phụ thuộc
+  AI: công ty demo thứ hai + 6 tin OPEN, logo hai công ty, đơn tầng 2 chuyển sang đủ trạng thái pipeline
+  (mời phỏng vấn, tuyển, từ chối) kèm lịch sử, giấy mời nhiều khung giờ, câu hỏi sàng lọc, kho ứng viên,
+  ẩn danh Job Java, tin nhắn có đính kèm, thông báo. Idempotent khi **chưa** nạp 2b (xem mục 9, L11).
+- **Tầng 2b** (`seed-demo-ai-output-2b.sql`, chore/seed-final) — output AI thật của **một** lượt chạy
+  (19/10/2026) trên DB chỉ có demo: embedding 6 tin công ty 2 + 4 hồ sơ, lượt chấm + giải thích đơn
+  Trần Minh Hoàng → Kỹ sư DevOps (FR-H14), 2 CV dựng bằng công cụ của Bùi Ngọc Mai (FR-U12). Sinh bằng
+  `export-demo-ai-2b.ps1` (mục 10), không sửa tay.
 
-Lý do tách hai tầng và vì sao tầng 2 không viết tay: xem
-`docs/walkthrough/chore-seed-demo.md` mục "Quyết định thiết kế".
+Lý do tách tầng và vì sao tầng 2/2b không viết tay: `docs/walkthrough/chore-seed-demo.md` mục "Quyết
+định thiết kế" và `docs/walkthrough/chore-seed-final.md` (K1, K5).
+
+### Dải id
+
+| Dải | Bộ · tầng | Ghi chú |
+|---|---|---|
+| `d0`–`d6` (`d0000000-…`, nhóm 4 = `0000`) | Demo · tầng 1 | Người dùng, công ty, tin, rubric, hồ sơ… |
+| UUID ngẫu nhiên | Demo · tầng 2 và 2b | Do app sinh trong lượt chạy thật |
+| `d1b00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 1b | `TTTT` = mã bảng, bảng mã ở `chore-seed-final.md` mục K2 |
+| `e0`–`ef` (`e0000000-…`), `f0000000-…`, `f1000000-…` | Test | Bộ test gốc |
+| `f2000000-TTTT-0000-0000-NNNNNNNNNNNN` | Test · mục 17 | Công ty test thứ hai + HR + 2 ứng viên; cùng bảng mã `TTTT` |
+| `c0000000-…`, `10000000-…` | `dev-seed.sql` | Không thuộc hai bộ trên |
+
+Đếm hay dọn theo dải phải dùng tiền tố đủ 8 ký tự (vd `LIKE 'd1b00000-%'`, `~ '^e[0-9a-f]000000-0000-0000-0000-'`),
+xem mục 9.
 
 ---
 
 ## 1. Thứ tự chạy BẮT BUỘC — không được đảo
 
+**Tiền đề (một lần): DB phải ở V19 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 30 bảng
+nghiệp vụ đến V19 (`job_blind_review_changes`); DB còn ở V18 thì `TRUNCATE` báo
+`relation ... does not exist` và dừng, không xoá gì. DB trống (vd sau `docker compose down -v`) cũng
+cần bước này. Khởi động backend một lần với mọi scheduler gọi AI **tắt**, chờ dòng log
+`Started BackendApplication` (Flyway đã chạy xong), rồi dừng backend (Ctrl+C):
+
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--app.job-embedding.enabled=false --app.candidate-profile-embedding.enabled=false --app.resume-embedding.enabled=false --app.resume-parsing.enabled=false --app.scoring.enabled=false --app.explanation.enabled=false --app.cv-improvement.enabled=false --app.resume-reparse.enabled=false"
+cd ..
+```
+
+**Nạp bộ demo** (từ gốc repo, PowerShell 5.1):
+
 ```powershell
 # 1. Dọn sạch dữ liệu cũ (BẮT BUỘC truyền biến xác nhận, xem mục 2 để hiểu vì sao)
 docker compose cp db\seed\reset-demo-db.sql postgres:/tmp/reset-demo-db.sql
-docker compose exec -T postgres psql -U recruitment -d recruitment `
-  -v DEMO_SEED_CONFIRM=YES_RESET_DEMO_DB -f /tmp/reset-demo-db.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v DEMO_SEED_CONFIRM=YES_RESET_DEMO_DB -f /tmp/reset-demo-db.sql
 
 # 2. Tầng 1 — dữ liệu cấu trúc (HR, company, job, rubric, candidate)
 docker compose cp db\seed\seed-demo-structural.sql postgres:/tmp/seed-demo-structural.sql
-docker compose exec -T postgres psql -U recruitment -d recruitment -f /tmp/seed-demo-structural.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-structural.sql
 
 # 3. Tầng 2 — output AI thật đã đông cứng (parse, embedding, chấm điểm, giải thích...)
 docker compose cp db\seed\seed-demo-ai-output.sql postgres:/tmp/seed-demo-ai-output.sql
-docker compose exec -T postgres psql -U recruitment -d recruitment -f /tmp/seed-demo-ai-output.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-ai-output.sql
 
-# 4. Cài file PDF CV thật vào đúng chỗ backend đọc được (xem mục 5)
+# 4. Tầng 1b — công ty 2, trạng thái pipeline, giấy mời, kho, ẩn danh, tin nhắn...
+docker compose cp db\seed\seed-demo-structural-1b.sql postgres:/tmp/seed-demo-structural-1b.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-structural-1b.sql
+
+# 5. Tầng 2b — output AI thật của lượt chạy chore/seed-final
+docker compose cp db\seed\seed-demo-ai-output-2b.sql postgres:/tmp/seed-demo-ai-output-2b.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-ai-output-2b.sql
+
+# 6. Cài file (CV PDF, logo, tệp đính kèm) vào đúng chỗ backend đọc được (xem mục 5)
 .\db\seed\install-demo-files.ps1
 ```
 
-Bỏ qua bước 4 thì DB vẫn đúng, nhưng nút "Xem CV gốc" (FR-H06) sẽ báo lỗi vì file
-không có trên đĩa. Chạy bước 4 mà chưa chạy xong bước 3 sẽ báo lỗi ngay (bảng
-`resumes` rỗng), không âm thầm sai.
+`-v ON_ERROR_STOP=1` buộc psql dừng ở lỗi đầu tiên và thoát mã khác 0 (tầng 1b, 2b còn bọc cả file trong
+một transaction nên lỗi thì không ghi gì). Bỏ qua bước 6 thì DB vẫn đúng, nhưng nút "Xem CV gốc" (FR-H06),
+logo và tệp đính kèm sẽ báo lỗi vì file không có trên đĩa. Chạy bước 6 mà chưa nạp dữ liệu demo sẽ báo lỗi
+ngay, không âm thầm sai.
+
+**Nạp thêm bộ test** (chỉ để soát giao diện, KHÔNG khi demo cho hội đồng): sau khối trên, chạy khối ở
+mục 8.1. Dọn riêng bộ test: mục 8.2.
 
 ---
 
@@ -77,6 +127,10 @@ ghi trùng. Chạy lần thứ hai trên cùng một DB sẽ báo lỗi vi phạ
 Muốn nạp lại: chạy lại **từ bước 1** (`reset-demo-db.sql`) để dọn sạch trước, không
 chạy riêng lẻ `seed-demo-ai-output.sql` lần hai.
 
+Tầng 2b (`seed-demo-ai-output-2b.sql`) dùng `INSERT … ON CONFLICT DO NOTHING` cho dòng mới và `UPDATE` cho
+cột đổi trên dòng có sẵn, nhưng **chỉ nạp theo đúng chuỗi ở mục 1** — chưa từng thử nạp lại riêng 2b trên
+cùng một DB. Đã nạp 2b thì **không chạy lại riêng tầng 1b** (chốt chặn đầu file 1b từ chối, xem mục 9).
+
 File này nặng **~493 KB** — đây là dữ liệu AI **thật**, sinh ra bằng cách chạy toàn
 bộ pipeline (Anthropic parse CV, OpenAI embedding, Anthropic chấm điểm + giải thích)
 **một lần duy nhất** qua UI thật, rồi xuất ra và commit thẳng vào repo. Mục đích:
@@ -88,13 +142,15 @@ lần chạy lại pipeline thật sẽ ra một bộ điểm/giải thích khá
 
 ## 4. Tài khoản demo — mật khẩu công khai có chủ đích
 
-Toàn bộ 10 tài khoản dùng chung mật khẩu **`Demo1234`**. Đây **không phải rò rỉ bí
+Toàn bộ 11 tài khoản demo dùng chung mật khẩu **`Demo1234`** (đã kiểm bằng đăng nhập thật qua API ở
+chore/seed-final, L6). Đây **không phải rò rỉ bí
 mật** — mật khẩu được công khai có chủ đích để phục vụ buổi bảo vệ đồ án, ai cũng có
-thể đăng nhập thử trên máy chạy demo cục bộ.
+thể đăng nhập thử trên máy chạy demo cục bộ. Tài khoản bộ test (mật khẩu `12345678`) ở mục 8.3.
 
 | Email | Vai trò | Họ tên |
 |---|---|---|
-| `hr@demo.local` | HR | Nguyễn Thị Hạnh |
+| `hr@demo.local` | HR | Nguyễn Thị Hạnh — Công ty Cổ phần Công nghệ Hoàn Mỹ (6 tin, có đơn, điểm, giải thích) |
+| `hr.nganha@demo.local` | HR | Phạm Thu Trang — Công ty TNHH Dịch vụ Số Ngân Hà (tầng 1b: 6 tin OPEN, chưa có đơn) |
 | `tran.minh.hoang@demo.local` | Ứng viên | Trần Minh Hoàng |
 | `le.van.duc@demo.local` | Ứng viên | Lê Văn Đức |
 | `pham.quoc.bao@demo.local` | Ứng viên | Phạm Quốc Bảo |
@@ -117,10 +173,21 @@ làm việc lúc chạy `mvnw spring-boot:run`**, tức là `backend/`. Vậy fi
 tại `backend/uploads/resumes/<uuid>.pdf`.
 
 Ba file SQL ở mục 1 chỉ ghi được **dữ liệu trong Postgres** — không có cách nào để
-SQL tự chép một file nhị phân lên đĩa. Vì vậy 9 file PDF gốc được commit sẵn ở
-`db/seed/resumes/` (đặt tên đúng theo UUID trong `file_url`), và bước 4
+SQL tự chép một file nhị phân lên đĩa. Vì vậy 11 file PDF gốc (9 của tầng 2 + 2 CV dựng bằng công cụ
+của tầng 2b) được commit sẵn ở
+`db/seed/resumes/` (đặt tên đúng theo UUID trong `file_url`), và bước 6
 (`install-demo-files.ps1`) chép chúng sang đúng vị trí `backend/uploads/resumes/`
 mà backend đọc.
+
+`install-demo-files.ps1` (chore/seed-final) chép ba nguồn, nguồn chưa có thì bỏ qua:
+`db/seed/resumes/` → `backend/uploads/resumes/`, `db/seed/demo-files/logos/` →
+`backend/uploads/logos/`, `db/seed/demo-files/message-attachments/` →
+`backend/uploads/message-attachments/`. Script **chỉ ghi đè file cùng tên với file nguồn**,
+không xoá file nào khác (file của bộ test, file tải lên qua UI giữ nguyên). Sau khi chép,
+script đối chiếu mọi `resumes.file_url`, `companies.logo_url`, `application_messages.attachment_key`
+của **dữ liệu demo** (user `d0000000-…`/`d1b00000-…`, công ty `d1000000-…`/`d1b00000-…`) với file
+đích; thiếu file nào thì báo lỗi, liệt kê đủ khoá thiếu. Lưu ý `logo_url` là URL công khai
+`/uploads/logos/<tên>`, khác hai khoá kia (`resumes/<tên>`, `message-attachments/<tên>`).
 
 ---
 
@@ -129,6 +196,13 @@ mà backend đọc.
 **6 job đa ngành**, mỗi job 1 rubric (4 tiêu chí, tổng trọng số 100%): Senior Java
 Backend Developer, Kỹ sư Kiểm thử phần mềm (QA), Kỹ sư DevOps, Kế toán tổng hợp,
 Chuyên viên Marketing, Nhân viên kinh doanh qua điện thoại.
+
+**6 mẫu giấy mời** (1/job) dùng đủ 3 placeholder thật `{{candidateName}}`, `{{jobTitle}}`,
+`{{companyName}}` ở cả tiêu đề lẫn thân thư (không ghi cứng tên job/công ty, như bộ test) và
+**không** có ngày giờ/địa điểm trong thư — khung giờ lưu và hiển thị tách khỏi
+thư (FR-H12 R-C1), cùng câu chữ với mẫu của bộ test ("theo một trong các khung giờ phỏng vấn
+được gửi kèm"). Trước chore/seed-final, mẫu demo còn placeholder cũ `[Tên ứng viên]`,
+`[Giờ phỏng vấn]`, `[Ngày phỏng vấn]` mà app không thay.
 
 **9 CV / 8 ứng viên** — một ứng viên (Lê Văn Đức) giữ 2 phiên bản CV (một bản chính,
 một bản cũ), minh hoạ FR-U01 "nhiều phiên bản CV, một bản là chính". Ứng viên Bùi
@@ -214,27 +288,68 @@ vector `job_embeddings` (6 dòng) và `resume_parsed_data.embedding` (8 dòng) �
   họ, không có bên thứ hai cần được báo, nên không phát sinh thông báo nào cho bước
   này.
 
+### 6b. Sau tầng 1b + 2b (chore/seed-final)
+
+Phần trên mô tả tầng 1–2. Tầng 1b + 2b thêm (chi tiết theo trạng thái: `docs/walkthrough/chore-seed-final.md`
+mục K3):
+
+- **Công ty 2** "Công ty TNHH Dịch vụ Số Ngân Hà" (HR Phạm Thu Trang) với 6 tin OPEN → demo có **12 tin OPEN**,
+  cả 12 có embedding; logo cho cả hai công ty.
+- **Phễu công ty 1**: PENDING 5, INTERVIEW_INVITED 3, HIRED 1, REJECTED 1, WITHDRAWN 1; giấy mời một khung đã
+  chốt (Hà, HIRED), nhiều khung chưa chọn (Linh), ứng viên đã chọn khung (Tùng → Telesales).
+- **Job Kỹ sư DevOps**: rubric 5 tiêu chí (thêm "Viết tài liệu vận hành"), 2 câu hỏi sàng lọc, đơn thứ ba của
+  Trần Minh Hoàng có lượt chấm + giải thích do AI thật sinh ở tầng 2b (FR-H14 so sánh 3 cột).
+- **Job Senior Java Backend Developer**: bật chấm ẩn danh (FR-H16), có lịch sử bật/tắt; đơn mới của Võ Thanh
+  Tùng đã được mời phỏng vấn (hiện tên thật), hai đơn còn lại hiện nhãn ẩn danh.
+- **Kho ứng viên** (FR-H15): kho có mục, mục đã gỡ do rút đồng ý, kho rỗng, kho đã xoá.
+- **Bùi Ngọc Mai**: thêm 2 CV dựng bằng công cụ (mẫu Cổ điển, rồi Hiện đại), không phải CV chính, không nộp đơn.
+- **Hồ sơ nghề nghiệp**: 4 hồ sơ khai đủ (Trần Minh Hoàng, Nguyễn Thị Thu Hà, Đỗ Khánh Linh, Hoàng Minh Tuấn)
+  có embedding đông cứng ở tầng 2b — bật backend **không** còn phát sinh lượt OpenAI cho hồ sơ demo.
+
+Số dòng sau khi nạp đủ mục 1 (đo hai lần trên DB trống, 19/10/2026):
+
+| Bảng | Số dòng | Bảng | Số dòng |
+|---|---|---|---|
+| `users` | 11 | `scoring_runs` | 16 |
+| `companies` | 2 | `criterion_scores` | 62 |
+| `jobs` | 12 | `score_explanations` | 13 |
+| `rubrics` / `rubric_criteria` | 12 / 43 | `job_embeddings` | 12 |
+| `candidate_profiles` (có embedding) | 9 (4) | `notifications` | 35 |
+| `resumes` / `resume_parsed_data` | 11 / 11 | `application_messages` | 3 |
+| `cv_builder_documents` | 2 | `interview_invitations` / `_slots` | 4 / 7 |
+| `job_applications` | 11 | `talent_pools` / `talent_pool_entries` | 4 / 3 |
+| `application_status_history` | 18 | `job_screening_questions` / `application_screening_answers` | 2 / 2 |
+| `job_blind_review_changes` | 3 | `interview_templates` | 12 |
+
 ---
 
 ## 7. Kiểm chứng sau khi nạp xong
 
-Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều sau — nếu khác, có gì đó
-đã sai ở một trong 4 bước:
+Sau khi chạy đủ 6 bước ở mục 1, nên thấy đúng những điều sau — nếu khác, có gì đó
+đã sai ở một trong 6 bước:
 
-- Đăng nhập `hr@demo.local`, mở job **"Kỹ sư DevOps"** → tab Ứng viên: **2 ứng viên**
-  — Nguyễn Hải Sơn **81.00** hạng 1, Lê Văn Đức **59.50** hạng 2.
-- Job **"Senior Java Backend Developer"**: **2 đơn** nhưng chỉ **1 đơn có điểm**
-  (**67.50**) — đơn còn lại ở trạng thái chấm điểm **thất bại**. Đây là hiện trạng
-  đã biết, không phải lỗi của bước nạp seed — xem ghi chú D2 trong `docs/ROADMAP.md`.
+- Đăng nhập `hr@demo.local`, mở job **"Kỹ sư DevOps"** → tab Ứng viên: **3 ứng viên**
+  — Nguyễn Hải Sơn **81.00** hạng 1, Lê Văn Đức **59.50** hạng 2, Trần Minh Hoàng **35.00** hạng 3 (tầng 2b).
+  Ba tiêu chí của Hoàng được 0 điểm, không có trích dẫn, kèm lý giải "không tìm thấy thông tin trong CV":
+  đây là trạng thái hợp lệ (CV backend Java nộp vào DevOps) — dùng làm ca "AI không bịa evidence khi CV
+  trái ngành" (`chore-seed-final.md` L38).
+- Job **"Senior Java Backend Developer"**: **3 đơn**, job đang **bật chấm ẩn danh** — 1 đơn có điểm
+  (**67.50**), 1 đơn chấm điểm **thất bại** (hiện trạng đã biết, không phải lỗi của bước nạp seed — xem ghi
+  chú D2 trong `docs/ROADMAP.md`), 1 đơn của Võ Thanh Tùng đã mời phỏng vấn (chưa chấm, hiện tên thật).
 - Mở một hồ sơ bất kỳ, bấm **"Xem CV gốc"** — phải tải được file PDF. Nếu lỗi, nghĩa
-  là bước 4 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
+  là bước 6 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
 - Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm **tính
   trực tiếp ngay khi gọi `GET /api/candidates/job-recommendations` (FR-U15, không còn bảng đệm/scheduler
-  — xem ghi chú `job_recommendations` ở mục 6)** — ứng viên này thuộc ngành Nhân sự, không
-  trùng ngành với 6 job seed hiện có (không có job Nhân sự nào), nhiều khả năng khối gợi ý của riêng
-  ứng viên này vẫn rỗng do dưới ngưỡng tương đồng.
+  — xem ghi chú `job_recommendations` ở mục 6)**. Khối này **không rỗng**: đo trực tiếp bằng vector đã
+  nạp (19/10/2026), độ tương đồng CV chính của Mai với tin OPEN cao nhất là 0.6188 ("Chuyên viên Nhân sự tổng
+  hợp", công ty 2, tầng 1b), và ngay tin tầng 1 "Chuyên viên Marketing" cũng đạt 0.4774 — đều trên ngưỡng
+  `MIN_SIMILARITY_SCORE = 0.40`. Ca "gợi ý rỗng dưới ngưỡng" của chore/seed-demo không còn dùng được (mục 9).
 - Đăng nhập `le.van.duc@demo.local`, trang hồ sơ: thấy **2 phiên bản CV**, một bản
   đánh dấu là chính; mục Đơn ứng tuyển có **1 đơn "Đã rút đơn"**.
+- `bui.ngoc.mai@demo.local` có **3 CV**: 1 CV chính tải lên + 2 CV dựng bằng công cụ (FR-U12, tầng 2b).
+- Bảng soát tay mục 7.4 của FR-H14 (nhóm A–B) và FR-H16 mô tả dữ liệu demo **gốc** (trước chore/seed-final):
+  sau tầng 1b + 2b, nhóm B của H14 đã dựng sẵn (đơn thứ ba trên Job DevOps có điểm) và Job Java đã bật ẩn danh.
+  Soát theo các bảng đó thì bỏ qua bước dựng tương ứng; REQUIREMENT đã hoàn thành không sửa (K8).
 - FR-C05 — kiểm bằng SQL sau khi nạp:
   `SELECT count(*) FILTER (WHERE prompt_version = 'resume-parse-v2'), count(experience_computed_at),
   count(region_code) FROM resume_parsed_data;` → **9 | 9 | 9**;
@@ -252,7 +367,11 @@ Sau khi chạy đủ 4 bước ở mục 1, nên thấy đúng những điều s
 > khai và có thể xuất hiện trong gợi ý việc làm của ứng viên demo.
 
 Bộ test độc lập với hai tầng demo: nạp được trên DB chỉ có schema, hoặc nạp chung với
-demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, `f0…` và `f1…`, email và tên công ty riêng). SQL viết
+demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, `f0…`, `f1…` và `f2000000-…`, email và tên công ty riêng).
+Dải `f2` (mục 17 của `seed-test.sql`, chore/seed-final) là **công ty test thứ hai** — HR riêng, 2 ứng viên riêng,
+3 tin (PAUSED, CLOSED, OPEN đã xoá mềm nên không hiện trên bảng việc làm công khai) — giữ các trạng thái "sau"
+(kho có mục, mục đã gỡ, ẩn danh, khung đã chọn, đính kèm, `NEW_MESSAGE`) mà không làm sai các bảng soát tay 7.4
+đang đếm dữ liệu `e…`/`f1`. SQL viết
 tay, idempotent (`ON CONFLICT (id) DO NOTHING`), với **một ngoại lệ**: dòng
 `resume_parsed_data` của CV R3 là output thật của pipeline trích xuất. Dòng này được chạy
 một lần rồi chép nguyên văn vào file (xem comment mục 8 trong `seed-test.sql`). Bộ test
@@ -271,17 +390,18 @@ docker compose cp db\seed\seed-test.sql postgres:/tmp/seed-test.sql
 docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-test.sql
 .\db\seed\install-test-files.ps1
 
-# Cùng demo: chạy đủ 4 bước ở mục 1 (gồm install-demo-files.ps1) TRƯỚC, rồi mới 3 lệnh trên.
+# Cùng demo: chạy đủ 6 bước ở mục 1 TRƯỚC (reset-demo-db.sql xoá luôn bộ test), rồi mới 3 lệnh trên.
 ```
 
-**Thứ tự bắt buộc khi nạp cùng demo:** `install-demo-files.ps1` phải chạy **trước khi**
-nạp `seed-test.sql`. Script demo đọc mọi `resumes.file_url` trong DB và **xoá mọi file
-`.pdf`** trong `backend/uploads/resumes/` trước khi chép. Nếu DB đã có CV test, script sẽ
-dừng ở file test đầu tiên và để thư mục trống PDF. Muốn cài lại file demo khi bộ test đã
-nạp: chạy `reset-test-data.sql`, rồi `install-demo-files.ps1`, rồi nạp lại bộ test và
-`install-test-files.ps1`.
+Từ chore/seed-final, `install-demo-files.ps1` chỉ ghi đè file có trong nguồn của demo và
+chỉ đối chiếu khoá file của dữ liệu demo (mục 5), nên chạy lại bao nhiêu lần, trước hay sau
+`install-test-files.ps1`, cũng không xoá file CV của bộ test. Trước đây script xoá mọi
+`.pdf` trong `backend/uploads/resumes/` và dừng khi gặp CV test — ràng buộc thứ tự đó không
+còn.
 
-`install-test-files.ps1` **sinh** 5 file PDF ngay trong script, nên không commit PDF nào.
+`install-test-files.ps1` **sinh** file ngay trong script, nên không commit PDF nào: 5 file CV của dải `e`,
+2 CV + 3 tệp đính kèm (2 PDF, 1 PNG) của dải `f2`. Sau khi chép, script đối chiếu mọi khoá file của bộ test với
+đĩa (dải `f2` so cả số byte, vì số byte ghi cứng trong SQL); lệch thì in khoá lệch và thoát mã 1.
 Chữ trong PDF là ASCII không dấu vì font chuẩn PDF không có glyph tiếng Việt; dữ liệu
 trong DB vẫn có dấu đầy đủ. Script chép thêm CV DOCX tiếng Việt có dấu
 `test-files/cv-mau-quoc-huy.docx` cho R3. Nội dung mỗi file khớp trạng thái CV:
@@ -300,7 +420,8 @@ docker compose exec -T postgres psql -U recruitment -d recruitment `
 # rồi nạp lại như mục 8.1
 ```
 
-Script này chỉ xoá dữ liệu của 5 user test và công ty test, **kể cả dòng phát sinh qua UI**
+Script này chỉ xoá dữ liệu của 8 user test (5 dải `e`, 3 dải `f2`), hai công ty test và mọi dòng dải `f2`,
+**kể cả dòng phát sinh qua UI**
 (đơn, lượt chấm, embedding tin, thông báo…), theo thứ tự khoá ngoại. Một ngoại lệ có chủ
 đích: đơn mà ứng viên **demo** tự nộp vào tin test qua UI cũng bị xoá, cùng thông báo gắn
 với đơn đó. Dữ liệu demo gốc không bị đụng tới (đã kiểm bằng md5 nội dung 21 bảng). Script
@@ -315,6 +436,11 @@ không xoá file trên đĩa. `reset-demo-db.sql` (mục 1) `TRUNCATE` toàn b�
 | `le.thi.lan@test.local` | Ứng viên phụ | Lê Thị Lan: đã bỏ qua onboarding (hồ sơ rỗng); có đơn A10 đã mời phỏng vấn, giấy mời 3 khung chưa chốt (1 khung đã qua); 1 thông báo chưa đọc |
 | `pham.van.khoa@test.local` | Ứng viên phụ | Phạm Văn Khoa: đã bỏ qua onboarding, CV hỏng |
 | `tran.bao.ngoc@test.local` | Ứng viên phụ | Trần Bảo Ngọc: chưa có hồ sơ, đăng nhập sẽ bị đưa sang màn onboarding |
+| `dang.minh.thu.hr@test.local` | HR | Đặng Minh Thư (dải `f2`), chủ "Công ty TNHH Thử Nghiệm Bình Minh": tin bật ẩn danh, kho có mục ACTIVE và mục đã gỡ, tin nhắn có đính kèm |
+| `vu.hoang.nam@test.local` | Ứng viên (`f2`) | Vũ Hoàng Nam: đơn đang ẩn danh (gửi tệp đính kèm), đơn bị từ chối rồi rút đồng ý lưu hồ sơ |
+| `do.minh.chau@test.local` | Ứng viên (`f2`) | Đỗ Minh Châu: đơn đã mời phỏng vấn, đã chọn khung giờ, tin nhắn có đính kèm hai chiều |
+
+Tổng cộng **8 tài khoản test**, cùng mật khẩu `12345678`.
 
 Lần đầu Trần Bảo Ngọc mở trang ứng viên, `GET /api/candidates/profile/me` tự tạo một dòng
 hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn onboarding vẫn hiện.
@@ -356,5 +482,61 @@ hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn on
   - "Thử lại" ở CV thất bại (Anthropic);
   - chấm lại đơn có lượt FAILED (Anthropic);
   - yêu cầu gợi ý cải thiện CV (Anthropic).
-- **Nạp cùng demo:** lần đầu bật backend sẽ phát sinh thêm 4 lượt OpenAI cho 4 hồ sơ demo
-  chưa có embedding (xem ghi chú ở mục 6).
+- **Nạp cùng demo:** từ chore/seed-final, 12 tin demo (6 ở tầng 2, 6 ở tầng 2b) và 4 hồ sơ demo (tầng 2b) đã
+  có embedding đông cứng, nên nạp chung không phát sinh thêm lượt OpenAI nào cho dữ liệu demo (bộ test vẫn 3
+  lượt như trên).
+
+---
+
+## 9. Lưu ý đã biết
+
+Mã `Lnn` tham chiếu `docs/walkthrough/chore-seed-final.md` mục K9.
+
+- **Lệch thời gian giữa tin và đơn (L13).** `created_at`/`published_at` của tin tầng 1 tính tương đối theo
+  lúc nạp, còn đơn tầng 2 và sự kiện tầng 1b ghi mốc tuyệt đối (08–10/2026); nạp sau khoảng cuối 10/2026 thì
+  có đơn mang ngày trước ngày đăng tin. Không sửa ở chore/seed-final.
+- **Số byte tệp đính kèm demo ghi cứng (L15).** `application_messages.attachment_size` trong tầng 1b là số byte
+  của file trong `demo-files/message-attachments/` (19770, 29044); sinh lại file thì phải sửa hai số này.
+  `install-demo-files.ps1` chỉ kiểm có file, không kiểm kích thước.
+- **Đếm theo dải phải dùng tiền tố đủ 8 ký tự (L27).** `LIKE 'e%'` bắt nhầm UUID ngẫu nhiên của tầng 2/2b; dùng
+  `~ '^e[0-9a-f]000000-0000-0000-0000-'`, `LIKE 'd1b00000-%'`, `LIKE 'f2000000-%'`. Dòng `resume_parsed_data` của
+  CV R3 bộ test có id ngẫu nhiên (`01ddeb0e…`), không theo dải.
+- **`updated_at` đổi mỗi lần nạp tầng 2b (L33).** 2b `UPDATE` `candidate_profiles` (embedding) và `rubrics`
+  (khoá rubric DevOps) nên trigger `set_updated_at` ghi `now()`; giá trị này khác nhau giữa các lần nạp.
+- **2b chỉ nạp theo chuỗi mục 1; đã nạp 2b thì không chạy lại riêng 1b (L11, L40).** 1b xoá rồi chèn lại dải
+  `d1b00000-…`, sẽ kéo theo xoá dây chuyền lượt chấm/embedding của 2b; chốt chặn đầu file 1b báo
+  `CHOT CHAN 1b THAT BAI` và không ghi gì. Muốn nạp lại: làm lại từ bước 1.
+- **`seed-demo-ai-output-2b.sql` có CRLF trong dữ liệu (L42).** `raw_text` của 2 CV dựng bằng công cụ giữ ký tự
+  `\r\n` của PDFBox trên Windows; `.gitattributes` khai `-text` riêng cho file này để git giữ nguyên byte. Đừng
+  để editor đổi kiểu xuống dòng của file.
+- **Khối gợi ý việc làm của Bùi Ngọc Mai không còn rỗng (L43).** Xem mục 7.
+
+---
+
+## 10. Sinh lại tầng 2b bằng AI thật (chỉ khi thật sự cần)
+
+Tầng 2b đã đông cứng; chỉ sinh lại khi dữ liệu tầng 1–1b đổi đến mức 2b không còn khớp. Lượt chạy gọi API
+**trả phí** (Anthropic + OpenAI). Kế hoạch và số đo của lượt chạy 19/10/2026: `chore-seed-final.md` K6, L29–L34.
+
+1. Nạp demo theo mục 1 **đến hết tầng 1b** (bước 1–4, bỏ bước 5), rồi `install-demo-files.ps1`. **Không** nạp
+   bộ test. Kiểm trong DB không có thông báo `email_status = 'PENDING'`.
+2. Khởi động backend với đúng các cờ dưới đây (L37) — bật job-embedding, candidate-profile-embedding, scoring,
+   explanation; tắt resume-embedding, resume-parsing, cv-improvement, resume-reparse; ép SMTP về MailHog:
+
+   ```powershell
+   cd backend
+   .\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--app.job-embedding.enabled=true --app.candidate-profile-embedding.enabled=true --app.resume-embedding.enabled=false --app.resume-parsing.enabled=false --app.scoring.enabled=true --app.explanation.enabled=true --app.cv-improvement.enabled=false --app.resume-reparse.enabled=false --spring.mail.host=localhost --spring.mail.port=1025 --spring.mail.username= --spring.mail.password= --spring.mail.properties.mail.smtp.auth=false --spring.mail.properties.mail.smtp.starttls.enable=false --logging.level.com.recruitment.ai.criterion.CriterionScoringService=DEBUG --logging.level.com.recruitment.ai.explanation.ScoreExplanationService=DEBUG"
+   ```
+
+   Hai logger DEBUG chỉ để đếm lượt gọi lỗi/thử lại; log có thể chứa đoạn output LLM — không commit log.
+3. Chờ đủ 6 embedding tin + 4 embedding hồ sơ. Đăng nhập `bui.ngoc.mai@demo.local` gọi 2 lần
+   `POST /api/candidates/cv-builder/resumes` (mẫu CLASSIC, rồi MODERN); đăng nhập `hr@demo.local` gọi
+   `POST /api/hr/applications/d1b00000-0009-0000-0000-000000000001/scoring-runs`. Chờ lượt chấm DONE và có giải
+   thích, rồi dừng backend.
+4. **Trần lượt gọi:** Anthropic 24 (dự kiến 6), OpenAI 10. Dừng backend ngay khi vượt trần, khi có dòng WARN
+   `Goi API embedding that bai` (scheduler embedding thử lại vô hạn), khi lượt chấm FAILED (không tự chấm lại),
+   hoặc khi log có dòng ERROR.
+5. Xuất: `.\db\seed\export-demo-ai-2b.ps1` — chạy **không** redirect stderr (L36: PowerShell 5.1 biến dòng tiến
+   trình stderr của `docker compose cp` thành lỗi dừng). Script ghi cứng số dòng kỳ vọng `$Expected` của lượt
+   19/10/2026 (L39): lượt chạy khác số dòng thì sửa `$Expected` trước, đối chiếu với số đo thật.
+6. Kiểm nạp sạch theo mục 1 từ DB trống hai lần, đếm bảng hai lần giống nhau.

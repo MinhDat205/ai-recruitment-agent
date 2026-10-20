@@ -35,8 +35,8 @@ SET client_encoding = 'UTF8';
 BEGIN;
 
 -- ---------------------------------------------------------------------------
--- 1. HR + 8 candidate
---    Mat khau chung: "secret" (xem canh bao hash o dau file)
+-- 1. HR + 9 candidate
+--    Mat khau chung: "Demo1234" (xem ghi chu o dau file)
 -- ---------------------------------------------------------------------------
 
 INSERT INTO users (id, email, password_hash, role, full_name, phone, is_active, email_verified) VALUES
@@ -558,17 +558,21 @@ INSERT INTO rubric_criteria (id, rubric_id, name, description, weight, max_score
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 6. 6 interview_template (1 template / job, o ngay gio de trong)
+-- 6. 6 interview_template (1 template / job). Dung placeholder that cua
+--    InterviewInvitationService: {{candidateName}}, {{jobTitle}}, {{companyName}} (ca
+--    tieu de lan than thu, khong ghi cung ten job/cong ty - cung quy uoc seed-test).
+--    FR-H12 (R-C1, L14): thu KHONG chua ngay gio/dia diem - khung gio luu tach
+--    khoi thu, mau chi nhac "cac khung gio duoc gui kem" (cung cau voi seed-test).
 -- ---------------------------------------------------------------------------
 
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address) VALUES
     ('d5000000-0000-0000-0000-000000000001', 'd2000000-0000-0000-0000-000000000001',
      'Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Thư mời phỏng vấn vị trí Senior Java Backend Developer - Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Kính gửi [Tên ứng viên],' || E'\n\n'
-     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí Senior Java Backend Developer tại '
-     || 'Công ty Cổ phần Công nghệ Hoàn Mỹ. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
-     || 'vào lúc [Giờ phỏng vấn] ngày [Ngày phỏng vấn] tại địa chỉ công ty.' || E'\n\n'
+     'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+     'Kính gửi {{candidateName}},' || E'\n\n'
+     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí {{jobTitle}} tại '
+     || '{{companyName}}. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
+     || 'theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
      'Nguyễn Thị Hạnh', 'Chuyên viên Tuyển dụng',
@@ -578,11 +582,11 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address) VALUES
     ('d5000000-0000-0000-0000-000000000002', 'd2000000-0000-0000-0000-000000000002',
      'Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Thư mời phỏng vấn vị trí Kỹ sư Kiểm thử phần mềm (QA Engineer) - Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Kính gửi [Tên ứng viên],' || E'\n\n'
-     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí Kỹ sư Kiểm thử phần mềm tại '
-     || 'Công ty Cổ phần Công nghệ Hoàn Mỹ. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
-     || 'vào lúc [Giờ phỏng vấn] ngày [Ngày phỏng vấn] tại địa chỉ công ty.' || E'\n\n'
+     'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+     'Kính gửi {{candidateName}},' || E'\n\n'
+     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí {{jobTitle}} tại '
+     || '{{companyName}}. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
+     || 'theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
      'Nguyễn Thị Hạnh', 'Chuyên viên Tuyển dụng',
@@ -592,11 +596,11 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address) VALUES
     ('d5000000-0000-0000-0000-000000000003', 'd2000000-0000-0000-0000-000000000003',
      'Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Thư mời phỏng vấn vị trí Kỹ sư DevOps - Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Kính gửi [Tên ứng viên],' || E'\n\n'
-     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí Kỹ sư DevOps tại '
-     || 'Công ty Cổ phần Công nghệ Hoàn Mỹ. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
-     || 'vào lúc [Giờ phỏng vấn] ngày [Ngày phỏng vấn] tại địa chỉ công ty.' || E'\n\n'
+     'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+     'Kính gửi {{candidateName}},' || E'\n\n'
+     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí {{jobTitle}} tại '
+     || '{{companyName}}. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
+     || 'theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
      'Nguyễn Thị Hạnh', 'Chuyên viên Tuyển dụng',
@@ -606,11 +610,11 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address) VALUES
     ('d5000000-0000-0000-0000-000000000004', 'd2000000-0000-0000-0000-000000000004',
      'Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Thư mời phỏng vấn vị trí Kế toán tổng hợp - Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Kính gửi [Tên ứng viên],' || E'\n\n'
-     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí Kế toán tổng hợp tại '
-     || 'Công ty Cổ phần Công nghệ Hoàn Mỹ. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
-     || 'vào lúc [Giờ phỏng vấn] ngày [Ngày phỏng vấn] tại địa chỉ công ty.' || E'\n\n'
+     'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+     'Kính gửi {{candidateName}},' || E'\n\n'
+     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí {{jobTitle}} tại '
+     || '{{companyName}}. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
+     || 'theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
      'Nguyễn Thị Hạnh', 'Chuyên viên Tuyển dụng',
@@ -620,11 +624,11 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address) VALUES
     ('d5000000-0000-0000-0000-000000000005', 'd2000000-0000-0000-0000-000000000005',
      'Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Thư mời phỏng vấn vị trí Chuyên viên Marketing - Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Kính gửi [Tên ứng viên],' || E'\n\n'
-     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí Chuyên viên Marketing tại '
-     || 'Công ty Cổ phần Công nghệ Hoàn Mỹ. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
-     || 'vào lúc [Giờ phỏng vấn] ngày [Ngày phỏng vấn] tại địa chỉ công ty.' || E'\n\n'
+     'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+     'Kính gửi {{candidateName}},' || E'\n\n'
+     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí {{jobTitle}} tại '
+     || '{{companyName}}. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
+     || 'theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
      'Nguyễn Thị Hạnh', 'Chuyên viên Tuyển dụng',
@@ -634,11 +638,11 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO interview_templates (id, job_id, company_name, subject, body, sender_name, sender_title, address) VALUES
     ('d5000000-0000-0000-0000-000000000006', 'd2000000-0000-0000-0000-000000000006',
      'Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Thư mời phỏng vấn vị trí Nhân viên kinh doanh qua điện thoại - Công ty Cổ phần Công nghệ Hoàn Mỹ',
-     'Kính gửi [Tên ứng viên],' || E'\n\n'
-     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí Nhân viên kinh doanh qua điện thoại tại '
-     || 'Công ty Cổ phần Công nghệ Hoàn Mỹ. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
-     || 'vào lúc [Giờ phỏng vấn] ngày [Ngày phỏng vấn] tại địa chỉ công ty.' || E'\n\n'
+     'Thư mời phỏng vấn vị trí {{jobTitle}} - {{companyName}}',
+     'Kính gửi {{candidateName}},' || E'\n\n'
+     || 'Cảm ơn bạn đã dành thời gian ứng tuyển vị trí {{jobTitle}} tại '
+     || '{{companyName}}. Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn '
+     || 'theo một trong các khung giờ phỏng vấn được gửi kèm.' || E'\n\n'
      || 'Vui lòng phản hồi email này để xác nhận tham dự.' || E'\n\n'
      || 'Trân trọng,',
      'Nguyễn Thị Hạnh', 'Chuyên viên Tuyển dụng',
