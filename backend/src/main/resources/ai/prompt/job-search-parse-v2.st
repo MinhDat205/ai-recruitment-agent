@@ -29,6 +29,6 @@ TỈNH/THÀNH:
 NGÀNH NGHỀ:
 {industryCatalog}
 
-Không có điều kiện nào thì trả danh sách rỗng và salary = null.
+Không có điều kiện nào thì trả danh sách rỗng; không có lương thì bỏ trường salary; chỉ có một mốc thì bỏ trường mốc còn lại.
 
 {format}

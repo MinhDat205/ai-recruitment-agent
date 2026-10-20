@@ -141,6 +141,36 @@ class JobSearchDescriptionBuilderTest {
         assertThat(build("kế toán", accepted("ở Hà Nội"))).isEqualTo("kế toán");
     }
 
+    // ---- L56: chi con tu dem -> null ----
+
+    @Test
+    void fillerOnly_null() {
+        assertThat(build("việc", accepted())).isNull();
+        assertThat(build("Việc", accepted())).isNull();
+        assertThat(build("tìm việc làm", accepted())).isNull();
+        // Hai dau cach - gop truoc khi so.
+        assertThat(build("việc  làm", accepted())).isNull();
+        assertThat(JobSearchDescriptionBuilder.isFiller("việc  làm")).isTrue();
+        // Con dau cau o hai dau sau khi cat -> R-D3 bo truoc, roi moi so.
+        assertThat(build("việc ở Hà Nội,", accepted("ở Hà Nội"))).isNull();
+    }
+
+    // Chi so trung TOAN BO; khong co nhom "tuyen" (L56).
+    @Test
+    void nonFiller_kept() {
+        assertThat(build("việc nhẹ", accepted())).isEqualTo("việc nhẹ");
+        assertThat(build("Java", accepted())).isEqualTo("Java");
+        assertThat(build("tuyển dụng", accepted())).isEqualTo("tuyển dụng");
+        assertThat(build("tìm việc gấp", accepted())).isEqualTo("tìm việc gấp");
+    }
+
+    // 7.2 B cau 3: cat ba doan cua nganh, khu vuc, hinh thuc -> con "việc" -> null (truoc L56: "việc").
+    @Test
+    void gate72bCase3_threeTextsCut_null() {
+        String q = "việc hành chính văn phòng Hà Nội hoặc Sài Gòn, làm kết hợp";
+        assertThat(build(q, accepted("hành chính văn phòng", "Hà Nội hoặc Sài Gòn", "làm kết hợp"))).isNull();
+    }
+
     // ---- R-D5 ----
 
     @Test

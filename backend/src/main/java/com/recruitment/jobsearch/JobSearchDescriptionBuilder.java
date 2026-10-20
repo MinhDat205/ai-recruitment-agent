@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -22,6 +23,13 @@ final class JobSearchDescriptionBuilder {
     private static final Pattern PUNCTUATION_RUN = Pattern.compile("[,;:](?:\\s*[,;:])+");
     // R-D3 - dau cau va gach noi o hai dau.
     private static final Pattern EDGE_PUNCTUATION = Pattern.compile("^[\\s,.;:\\-–—]+|[\\s,.;:\\-–—]+$");
+    // L56 - phan con lai TRUNG TOAN BO mot muc nay (sau ha chu thuong + gop khoang trang) -> khong con noi dung mo ta.
+    // Khong co nhom "tuyen" ("tuyển dụng" co the chinh la nganh ung vien muon tim). Chi so trung toan bo, khong cat tu
+    // dem khoi mo ta dai hon ("việc nhẹ" giu nguyen).
+    static final Set<String> FILLER_DESCRIPTIONS = Set.of(
+            "việc", "việc làm", "công việc", "tìm việc", "tìm việc làm", "tìm công việc", "cần tìm việc",
+            "muốn tìm việc", "làm", "làm việc",
+            "viec", "viec lam", "cong viec", "tim viec", "tim viec lam", "lam viec");
 
     // q: cau DA chuan hoa R-I2. Tra null khi khong con chu nao (R-D3).
     static String build(String q, Resolution resolution) {
@@ -69,7 +77,7 @@ final class JobSearchDescriptionBuilder {
         return current;
     }
 
-    // R-D3 - don; rong hoac khong con chu cai/chu so nao (chi con dau cau) -> null.
+    // R-D3 - don; rong hoac khong con chu cai/chu so nao (chi con dau cau) -> null; chi con tu dem (L56) -> null.
     static String clean(String value) {
         String s = VerbatimQuoteVerifier.normalizeWhitespace(value);
         s = SPACE_BEFORE_PUNCTUATION.matcher(s).replaceAll("$1");
@@ -79,6 +87,15 @@ final class JobSearchDescriptionBuilder {
         if (s.codePoints().noneMatch(Character::isLetterOrDigit)) {
             return null;
         }
+        if (isFiller(s)) {
+            return null;
+        }
         return s;
+    }
+
+    // L56 - ban chuan hoa CHI de so; description tra ra van la chuoi sau R-D3 (R-D4 khong doi).
+    static boolean isFiller(String value) {
+        String key = VerbatimQuoteVerifier.normalizeWhitespace(value.toLowerCase(Locale.ROOT));
+        return FILLER_DESCRIPTIONS.contains(key);
     }
 }

@@ -17,8 +17,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class JobSearchParseService {
 
-    // Gan lien ten file prompt (job-search-parse-v1.st) - khai MOT CHO DUY NHAT, chi dung nap resource (khong luu o dau).
-    static final String PROMPT_VERSION = "job-search-parse-v1";
+    // Gan lien ten file prompt (job-search-parse-v2.st) - khai MOT CHO DUY NHAT, chi dung nap resource (khong luu o dau).
+    // v2 (FR-U13 L57): khong co luong thi bo truong salary; chi co mot moc thi bo truong moc con lai.
+    static final String PROMPT_VERSION = "job-search-parse-v2";
 
     private final ChatClient chatClient;
     private final Resource promptResource;
