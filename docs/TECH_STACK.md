@@ -16,11 +16,10 @@ Không tách microservice. Không thêm service Python.
 | Data | Spring Data JPA + Hibernate | `ddl-auto: validate`, KHÔNG dùng `update` |
 | Migration | **Flyway** | Schema là file SQL có version — Claude Code sửa được, và là bằng chứng audit |
 | AI | Spring AI 2.0.0 | `ChatClient`, `EmbeddingModel`, `PgVectorStore` |
-| Đọc file CV | Apache PDFBox (PDF) + Apache POI (DOCX) | Hoặc Apache Tika cho cả hai |
+| Đọc file CV | Apache PDFBox (PDF) + Apache POI (DOCX) | PDFBox 3.0.3, POI 5.4.0 |
 | Validate output LLM | Spring AI `BeanOutputConverter` + Bean Validation | Ép LLM trả JSON đúng schema |
-| Job nền | Bảng trạng thái + `@Scheduled` poller + `@Async` | Không cần Redis/RabbitMQ |
+| Job nền | Bảng trạng thái + `@Scheduled` poller | Không cần Redis/RabbitMQ |
 | Email | Spring Mail (SMTP) | Dev dùng MailHog trong docker-compose |
-| API doc | springdoc-openapi | Swagger UI để test nhanh |
 | Test | JUnit 5 + Testcontainers | Testcontainers chạy Postgres thật, không H2 |
 
 ## Frontend
