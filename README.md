@@ -105,6 +105,12 @@ Copy-Item .env.example backend\.env
 | `OPENAI_API_KEY` | Embedding |
 | `JWT_SECRET` | Ký JWT, tối thiểu 32 ký tự ngẫu nhiên |
 
+Sinh `JWT_SECRET` ngẫu nhiên (64 ký tự, có sẵn trong PowerShell 5.1, không cần cài thêm), rồi dán vào `backend\.env`:
+
+```powershell
+$b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)
+```
+
 **2. Hạ tầng** (PostgreSQL + pgvector, MailHog, MinIO):
 
 ```powershell
@@ -214,6 +220,7 @@ npm run lint
 | [docs/TECH_STACK.md](docs/TECH_STACK.md) | Lý do chọn từng công nghệ |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Tiến độ theo nhánh, nợ kỹ thuật, giới hạn đã biết |
 | [docs/ER.md](docs/ER.md) | Sơ đồ ER xuất từ database thật |
+| [docs/DEMO.md](docs/DEMO.md) | Kịch bản demo 30 phút trước hội đồng: chuẩn bị, lệnh chạy, kịch bản theo phút, dự phòng |
 | [docs/walkthrough/](docs/walkthrough/) | Luồng và quyết định thiết kế của từng nhánh |
 | [db/seed/README.md](db/seed/README.md) | Nạp dữ liệu demo/test, tài khoản |
 | [CLAUDE.md](CLAUDE.md) | Nguyên tắc bất di bất dịch, quy ước code, ranh giới không được vượt |

@@ -521,7 +521,9 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
     cho ứng viên rằng hồ sơ đã được đánh giá mà không kèm điểm số hay nhận xét (điểm và
     rubric là thông tin nội bộ của HR, không được lộ cho ứng viên theo nguyên tắc ở
     FR-U05) — nếu làm, nội dung thông báo phải trung tính, không suy ra được kết quả.
-- [ ] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
+- [x] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
+  (20/10/2026): 3 đợt — sửa nợ tài liệu; README viết lại + `docs/ER.md`; `docs/DEMO.md` kịch bản 30 phút, tập dượt
+  bằng AI thật qua API (Anthropic 18, OpenAI 3 lượt; chấm một đơn ~93 s).
 
 ---
 
