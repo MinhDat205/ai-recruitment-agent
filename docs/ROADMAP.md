@@ -56,6 +56,13 @@ và không có chỗ ghi kết quả ra.
 ## Phase D — AI đọc và chấm
 
 - [X] **D1** `feat/fr-c04-parsing` — FR-C04 · Trích xuất CV → JSON, chạy nền, validate schema
+  - Nợ kỹ thuật (ghi 20/10/2026, phát hiện ở `fix/u13-salary-parse` L57): schema JSON mà `BeanOutputConverter`
+    (Spring AI 2.0.0, `requiredByDefault = true`) sinh từ `ResumeParsedPayload` đánh dấu mọi field là `required`
+    (Contact, Education…), nên AI có thể bị đẩy điền giá trị cho field CV không có thay vì bỏ trống — rủi ro trái
+    nguyên tắc "không bịa" (`CLAUDE.md` §2); chưa đo tần suất thực tế. Hướng sửa: `@Nullable` (jspecify) cho field
+    tuỳ chọn, khoá bằng test schema, cân nhắc đổi phiên bản prompt (tiền lệ `JobSearchParsePayload` +
+    `job-search-parse-v2`). Không sửa trước bảo vệ: đổi schema làm tầng 2/2b của seed (output AI thật xuất theo
+    schema cũ) lệch với code.
 - [X] **D2** `feat/fr-h04-scoring` — FR-H04 · Chấm **từng tiêu chí riêng** + evidence
   - Bắt buộc: khi tạo lượt chấm đầu tiên (`scoring_runs`) phải set `rubrics.is_locked = true`.
     Hiện chưa có đường nào trong ứng dụng đặt cờ này; guard mở lại tin ở
@@ -328,6 +335,8 @@ kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại c�
       template. Đây là dữ liệu tạo ngoài `JobOwnerService.create` nên thiếu các bất biến mà B2 đảm
       bảo (Job+Rubric+InterviewTemplate luôn tạo cùng nhau). Xử lý bằng xoá mềm khi làm
       `chore/seed-demo`, không vá bằng INSERT tay.
+      Cập nhật 20/10/2026: `db/seed/dev-seed.sql` đã xoá ở `chore/cleanup` (#30) — hỏng khoá ngoại, không thuộc bộ
+      demo/test.
     - ~~Console cảnh báo `Select is changing from uncontrolled to controlled` (radix-ui)~~ — **đã
       xử lý ở Đợt 6 (`chore/hardening`)**: nguyên nhân thật là pattern `field.value || undefined`
       (biến giá trị rỗng hợp lệ `''` thành `undefined`), không phải thiếu `defaultValues` — sửa cả
@@ -465,6 +474,10 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
     - **6 job thay vì 2**: cần đủ đa ngành để ca demo ngưỡng `MIN_SIMILARITY_SCORE =
       0.40` (FR-U04) thuyết phục — ứng viên Nhân sự phải thấy gợi ý việc làm RỖNG
       thật, không phải vì hệ thống chưa chạy.
+      Cập nhật 20/10/2026: câu trên không đúng — đo bằng vector đã nạp (19/10/2026), CV chính của Bùi Ngọc Mai
+      có độ tương đồng 0.6188 với "Chuyên viên Nhân sự tổng hợp" (tầng 1b) và đã 0.4774 với "Chuyên viên
+      Marketing" (tầng 1), đều ≥ 0.40, nên khối gợi ý không rỗng. Bộ demo không có ca "gợi ý rỗng"; ngưỡng trình
+      bày bằng lời khi demo. Nguồn: `docs/walkthrough/chore-seed-final.md` L43.
     - **9 CV (không phải 8)**: ứng viên Lê Văn Đức upload thêm bản CV thay thế sau
       khi phát hiện bản đầu ghi nhầm tên người khác — diễn biến thật trong lúc kiểm
       thử tay, không phải kế hoạch ban đầu.
@@ -995,6 +1008,7 @@ giấy mời đã gửi không đổi khi sửa mẫu.
   - Bucket `ai-sync` dùng chung với soạn nháp C07 và tạo tin H11 (Q8): hỏi đáp nhiều làm hết lượt của chức năng kia.
   - Quy tắc R-N3 (khoá phiên theo đơn/CV, bỏ kết quả về muộn) là phòng trước, chưa có liên kết nào kích hoạt.
   - Việc tài liệu: đoạn tổng quan SRS.md:13-17 ('18 chức năng đã hoàn thành…') đã cũ — sửa ở nhánh docs/ riêng (L60 FR-C08)
+    Cập nhật 20/10/2026: đã sửa ở `docs/final` đợt 1.
 - [x] `feat/fr-h14-compare` — FR-H14 · So sánh 2–3 ứng viên — **HOÀN THÀNH**
   (16/10/2026, 6 đợt). Bảng song song điểm, tiêu chí, kinh nghiệm, kỹ năng của 2–3 đơn cùng Job; không đánh dấu người thắng.
   Giới hạn đã biết:
@@ -1067,6 +1081,7 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   - Gợi ý diễn đạt thận trọng sau khi siết prompt: ít diễn đạt lại hơn, có đoạn trả nguyên văn (L48).
   - Việc tài liệu: `docs/features/UV/U15/UI.md:18` cột FR còn ghi FR-U11 (đã loại 16/10/2026) — không thuộc U12, sửa ở
     nhánh docs/ riêng (D7 FR-U12).
+    Cập nhật 20/10/2026: đã sửa ở `docs/final` đợt 1.
 - [x] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên — **HOÀN THÀNH**
   (18/10/2026, 6 đợt — xem `docs/walkthrough/fr-u13-nl-search.md`). Ở `/candidate` (trang `/` không đổi) có chế độ "Tìm
   bằng mô tả": ứng viên gõ một câu 2–300 ký tự; AI (K3, bean `jobSearchChatClient`, prompt `job-search-parse-v2`) chỉ trỏ
@@ -1096,6 +1111,7 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   - R-D1 so khớp theo từng `sourceText`: đoạn lồng nhau giữa điều kiện nhận và điều kiện bỏ có thể cắt chữ trong đoạn bị
     bỏ (L28).
   - Việc tài liệu: `docs/features/UV/U15/UI.md:18` vẫn chưa sửa (D7 FR-U12, FR-U13).
+    Cập nhật 20/10/2026: đã sửa ở `docs/final` đợt 1.
 - [x] `feat/fr-h16-blind` — FR-H16 · Chế độ ẩn danh — **HOÀN THÀNH**
   (19/10/2026, 6 đợt, đợt 3 và 4 tách đôi — xem `docs/walkthrough/fr-h16-blind.md`). HR bật/tắt ẩn danh cho từng Job
   (B1 `PATCH /api/hr/jobs/{id}/blind-review`, khối riêng ở tab "Thông tin tin tuyển dụng"). Đơn của Job đang bật mà
@@ -1148,6 +1164,7 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   `job-search-parse-v2` (L57); phần mô tả chỉ còn từ đệm ("việc"…) thành rỗng → xếp mới nhất (L56). Full suite 2088
   test xanh; cổng AI thật 21/21 lượt 200, câu 1 tách lương 7/7 (L61). Làm rõ L56–L63. Nợ: `ResumeParsedPayload`
   (D1) cũng có mọi field `required` — chưa sửa (L57).
+  Cập nhật 20/10/2026: ghi đầy đủ ở Phase D, mục D1.
 
 > FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-U11 không dùng lại; các mã khác giữ nguyên.
