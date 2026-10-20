@@ -241,10 +241,14 @@ Danh sách đầy đủ theo từng nhánh: [docs/ROADMAP.md](docs/ROADMAP.md). 
 
 ## Known issues
 
-`npm audit` trong `frontend/` (chạy ngày 20/10/2026): **19 cảnh báo — 1 critical, 14 high, 4 moderate**.
+`npm audit` trong `frontend/` (chạy ngày 21/10/2026): **18 cảnh báo — 1 critical, 13 high, 4 moderate**.
+`npm audit --omit=dev` (chỉ phụ thuộc production): **1 high**.
 
-- `axios` 1.19.0 (high) là thư viện chạy trong trình duyệt, khai trực tiếp; cần nâng phiên bản.
-- Phần lớn còn lại đến từ gói `shadcn` 4.16.2 (công cụ dòng lệnh, khai trong `dependencies`; mã nguồn chỉ import
-  `shadcn/tailwind.css`) qua các phụ thuộc như `@modelcontextprotocol/sdk`, `express`/`proxy-addr` (critical),
-  `undici`, `postcss`, `js-yaml`, cùng `eslint` (`brace-expansion`) — công cụ phát triển, không đóng gói vào ứng dụng.
-- Chưa chạy `npm audit fix` vì đổi `package-lock.json` là sửa code, cần nhánh riêng và chạy lại build + lint.
+- Phần lớn đến từ gói `shadcn` 4.16.2 (công cụ dòng lệnh, khai trong `devDependencies`; mã nguồn chỉ import
+  `shadcn/tailwind.css`, được gộp vào CSS lúc build) qua các phụ thuộc như `@modelcontextprotocol/sdk`,
+  `express`/`proxy-addr` (critical), `undici`, `postcss`, `js-yaml`, cùng `eslint` (`brace-expansion`) — công cụ phát
+  triển, không đóng gói vào ứng dụng.
+- Cảnh báo duy nhất khi `--omit=dev` là `fast-uri` (high), qua `ajv` — `peerOptional` của `@hookform/resolvers`. Mã
+  nguồn chỉ import `@hookform/resolvers/zod`, nên `ajv`/`fast-uri` không vào bundle.
+- Không chạy `npm audit fix` vì lệnh này đổi lan nhiều gói trong `package-lock.json`; phần của `shadcn` chỉ sửa được
+  bằng `shadcn@1.0.0` (đổi major).
