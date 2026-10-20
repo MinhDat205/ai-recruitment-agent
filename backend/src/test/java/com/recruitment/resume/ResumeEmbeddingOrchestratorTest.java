@@ -144,7 +144,11 @@ class ResumeEmbeddingOrchestratorTest {
         orchestrator.processOne(parsedDataId);
 
         assertThat(resumeParsedDataRepository.hasEmbedding(parsedDataId)).isFalse();
-        List<UUID> stillNeeding = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10));
+        // Trang du lon: findIdsNeedingEmbedding xep parsed_at ASC (CV cu truoc) va container Postgres dung chung giua cac
+        // lop test (khong don du lieu). Lop chay truoc de lai >= 10 CV chinh chua embedding thi CV vua tao roi khoi trang
+        // 10 dau - thu tu lop test khac nhau giua Windows va Linux (CI) nen chi lo o CI. Ngu nghia giu nguyen: CV van con
+        // trong tap "can embedding" cho luot quet sau.
+        List<UUID> stillNeeding = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10_000));
         assertThat(stillNeeding).contains(parsedDataId);
     }
 

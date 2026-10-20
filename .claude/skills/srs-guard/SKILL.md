@@ -236,7 +236,7 @@ Ngoại lệ đã duyệt (L59 FR-C08, L70 FR-U12): `backend/src/main/resources/
 không?' (cho phép ứng viên kiểm CV của chính mình, R-G5).
 `backend/src/main/resources/ai/prompt/cv-rephrase-v1.st` — dòng 'KHÔNG thêm thông tin nhân thân (tuổi, ngày sinh, …)'
 (lệnh CẤM AI thêm thuộc tính nhân thân vào gợi ý — L70 FR-U12).
-`backend/src/main/resources/ai/prompt/job-search-parse-v1.st` — dòng 'Nếu câu có đoạn nói về thông tin nhân thân của ứng
+`backend/src/main/resources/ai/prompt/job-search-parse-v2.st` (v1 trước L57) — dòng 'Nếu câu có đoạn nói về thông tin nhân thân của ứng
 viên hoặc người được tuyển (tuổi, năm sinh, giới tính, …), chép NGUYÊN VĂN từng đoạn đó vào personalInfoTexts. KHÔNG tạo
 điều kiện nào từ các đoạn này.' (sửa theo FR-U13 đã duyệt — N10, O1: AI chỉ ra đoạn nhân thân trong câu ứng viên tự gõ để
 backend **bỏ qua**, không thành điều kiện lọc, không vào phần mô tả gửi embedding, không lưu; SRS mục 5 ghi ngoại lệ này).

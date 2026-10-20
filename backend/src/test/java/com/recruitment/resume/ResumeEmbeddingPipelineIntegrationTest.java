@@ -119,8 +119,10 @@ class ResumeEmbeddingPipelineIntegrationTest {
 
     // Thay cho resumeEmbeddingScheduler.pollResumesNeedingEmbedding() (bean bi tat trong test, xem
     // comment dau class) - lap lai dung logic do: query chon lo roi goi orchestrator cho tung CV.
+    // Lo du lon thay batch-size 10 cua scheduler: truy van xep parsed_at ASC, container dung chung con CV chua embedding
+    // cua lop chay truoc (thu tu lop khac nhau giua nen tang) - lo 10 co the khong toi CV vua tao.
     private void pollOnce() {
-        List<UUID> ids = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10));
+        List<UUID> ids = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10_000));
         for (UUID id : ids) {
             orchestrator.processOne(id);
         }

@@ -207,7 +207,9 @@ class ResumeParsedDataRepositoryTest {
         ResumeParsedData data =
                 resumeParsedDataRepository.saveAndFlush(newRow(resumeId, "CV chinh chua co embedding"));
 
-        List<UUID> ids = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10));
+        // Trang du lon: truy van xep parsed_at ASC, container dung chung con CV chua embedding cua lop chay truoc (thu tu
+        // lop khac nhau giua nen tang) - xem ResumeEmbeddingOrchestratorTest.
+        List<UUID> ids = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10_000));
 
         assertThat(ids).contains(data.getId());
     }

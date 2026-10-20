@@ -1069,7 +1069,7 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
     nhánh docs/ riêng (D7 FR-U12).
 - [x] `feat/fr-u13-nl-search` — FR-U13 · Tìm việc bằng ngôn ngữ tự nhiên — **HOÀN THÀNH**
   (18/10/2026, 6 đợt — xem `docs/walkthrough/fr-u13-nl-search.md`). Ở `/candidate` (trang `/` không đổi) có chế độ "Tìm
-  bằng mô tả": ứng viên gõ một câu 2–300 ký tự; AI (K3, bean `jobSearchChatClient`, prompt `job-search-parse-v1`) chỉ trỏ
+  bằng mô tả": ứng viên gõ một câu 2–300 ký tự; AI (K3, bean `jobSearchChatClient`, prompt `job-search-parse-v2`) chỉ trỏ
   ra đoạn chữ nguyên văn cho 4 loại điều kiện (khu vực, ngành, lương triệu VND, hình thức) và đoạn nhân thân; backend tự
   kiểm mã theo danh mục C05, cắt đoạn, phần chữ nguyên văn còn lại được embedding đồng bộ qua `SyncEmbeddingCaller` (K3 mở
   rộng, hạn 5 s, không thử lại) rồi xếp bằng `findRankedForSearch` ghép từ `PUBLIC_JOB_FILTER_WHERE` của U07 (SQL U15
@@ -1077,9 +1077,9 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
   kiện" tính xác định; sửa/xoá thẻ chuyển sang bộ lọc U07. Không lưu câu/kết quả, không đưa câu lên URL, một lượt
   `ai-sync` mỗi lần tìm. Full suite 1955 (L51); build + lint sạch; kiểm tĩnh 7.1, 7.3 đạt; 7.2 phần A 9/9 (L39); cổng AI
   7.2 phần B 16/16 lượt 200, đạt mọi tiêu chí (L50); soát tay 7.4 đạt toàn bộ (L52); `srs-guard` sạch (ngoại lệ đích danh
-  dòng nhân thân của `job-search-parse-v1.st` — N10). Làm rõ L1–L55. Giới hạn đã biết:
-  - AI có thể bỏ sót hoặc đánh dấu nhầm thông tin nhân thân (R-D5); AI có thể không tách điều kiện lương (cổng 7.2 B: câu
-    "lương trên 15 triệu" ở lại phần mô tả cả hai vòng — L50).
+  dòng nhân thân của `job-search-parse-v2.st` — N10). Làm rõ L1–L55. Giới hạn đã biết:
+  - AI có thể bỏ sót hoặc đánh dấu nhầm thông tin nhân thân (R-D5). Câu chỉ có một mốc lương không được tách (cổng 18/10,
+    L50): đã sửa ở fix/u13-salary-parse (L57), cổng 20/10 câu 1 tách lương 7/7.
   - Câu có sẵn ký tự `‹`/`›` → 502 (R-P2).
   - Truy vấn U13 không dùng index HNSW — chậm dần khi số tin OPEN lớn (N12).
   - Hai mệnh đề `ORDER BY` và guard NaN nằm ở hai method (`findRankedMatchesByVector` của U15, `findRankedForSearch` của
@@ -1142,6 +1142,12 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 - [x] `chore/seed-final` — bộ dữ liệu cuối (19/10/2026, không gắn mã FR, xem `docs/walkthrough/chore-seed-final.md`):
   demo 4 tầng (1 → 2 → 1b → 2b; công ty 2, 12 tin OPEN, đủ trạng thái các FR bổ sung, tầng 2b từ một lượt AI thật
   Anthropic 6 / OpenAI 10 lượt) + bộ test thêm dải `f2` (8 tài khoản); hướng dẫn nạp ở `db/seed/README.md`.
+- [x] `fix/u13-salary-parse` — sửa hai lỗi của FR-U13 lộ ra ở cổng 7.2 B (20/10/2026, xem
+  `docs/walkthrough/fix-u13-salary-parse.md`): schema `BeanOutputConverter` bắt mọi field `required` nên câu chỉ có
+  một mốc lương bị AI điền mốc giả và không tách lương → `@Nullable` cho `salary` và hai mốc, prompt
+  `job-search-parse-v2` (L57); phần mô tả chỉ còn từ đệm ("việc"…) thành rỗng → xếp mới nhất (L56). Full suite 2088
+  test xanh; cổng AI thật 21/21 lượt 200, câu 1 tách lương 7/7 (L61). Làm rõ L56–L63. Nợ: `ResumeParsedPayload`
+  (D1) cũng có mọi field `required` — chưa sửa (L57).
 
 > FR-U11 (Thống kê ứng tuyển cá nhân) đã loại khỏi phạm vi ngày 16/10/2026 — xem `docs/features/README.md` mục 5.
 > Mã FR-U11 không dùng lại; các mã khác giữ nguyên.

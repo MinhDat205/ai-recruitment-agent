@@ -594,7 +594,9 @@ class ScoringRunStateServiceTest {
         scoringRunRepository.saveAndFlush(waiting);
         entityManager.clear();
 
-        List<ScoringRun> ready = scoringRunRepository.findReadyForProcessing(10);
+        // Lo du lon: truy van xep created_at ASC, container dung chung con luot PENDING cua lop chay truoc (thu tu lop
+        // khac nhau giua nen tang) - xem ResumeEmbeddingOrchestratorTest.
+        List<ScoringRun> ready = scoringRunRepository.findReadyForProcessing(10_000);
 
         assertThat(ready).extracting(ScoringRun::getId).contains(readyId).doesNotContain(waitingId);
     }

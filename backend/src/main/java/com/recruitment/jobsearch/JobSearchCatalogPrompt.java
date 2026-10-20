@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
-// FR-U13 R-A2 - hai chuoi {provinceCatalog}, {industryCatalog} cua job-search-parse-v1.st, dung MOT lan luc khoi tao bean
+// FR-U13 R-A2 - hai chuoi {provinceCatalog}, {industryCatalog} cua job-search-parse-v2.st, dung MOT lan luc khoi tao bean
 // tu CatalogRegistry (danh muc C05 co dinh, chi doi qua migration). Du lieu he thong, KHONG lay tu request.
 // Moi muc mot dong "MA: Nhan (còn gọi: bi danh 1, bi danh 2)" theo sort_order; muc khong co bi danh: "MA: Nhan". Thu tu
 // bi danh giu nguyen thu tu registry tra ve (CatalogJdbcLoader - phu thuoc collation, muc 13.5/L9). Nganh bo OTHER

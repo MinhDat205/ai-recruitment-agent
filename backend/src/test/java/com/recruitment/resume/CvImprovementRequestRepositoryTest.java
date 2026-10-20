@@ -10,6 +10,7 @@ import com.recruitment.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,24 +150,32 @@ class CvImprovementRequestRepositoryTest {
     // co the khong bao gio duoc chon khi hang doi dai hon batchSize). KHONG tu doan thu tu bang Java
     // (UUID.compareTo() cua Java va thu tu byte cua kieu uuid trong Postgres co the KHONG khop nhau
     // cho UUID ngau nhien) - lay "thu tu that" bang chinh cau query voi trang lon hon roi doi chieu
-    // voi ket qua trang nho hon, goi lai lan hai de chung minh tinh xac dinh (determinism). Moi test
-    // khac trong file nay deu @Transactional (tu rollback), nen bang nay luon rong truoc khi test nay
-    // chay, bat ke thu tu JUnit chon chay truoc/sau.
+    // voi ket qua trang nho hon, goi lai lan hai de chung minh tinh xac dinh (determinism). KHONG gia
+    // dinh bang rong: container Postgres dung chung giua cac lop test, CvImprovementSuggestionEndpointTest:295
+    // (khong @Transactional, scheduler tat) de lai request PENDING da commit, cu hon 3 hang o day - thu tu
+    // lop test khac nhau giua nen tang. Vi vay: 3 hang cua test loc theo id tu tao; trang nho doi chieu voi
+    // tien to cua trang lon tren TOAN bang.
     @Test
     @Transactional
     void findByStatusOrderByRequestedAtAscIdAsc_returnsOldestFirst() {
         UUID resumeId1 = createResume();
         UUID resumeId2 = createResume();
         UUID resumeId3 = createResume();
-        createRequest(resumeId1, CvImprovementRequestStatus.PENDING);
-        createRequest(resumeId2, CvImprovementRequestStatus.PENDING);
-        createRequest(resumeId3, CvImprovementRequestStatus.PENDING);
+        Set<UUID> ownIds = Set.of(
+                createRequest(resumeId1, CvImprovementRequestStatus.PENDING),
+                createRequest(resumeId2, CvImprovementRequestStatus.PENDING),
+                createRequest(resumeId3, CvImprovementRequestStatus.PENDING));
 
-        List<CvImprovementRequest> fullOrder = cvImprovementRequestRepository
-                .findByStatusOrderByRequestedAtAscIdAsc(CvImprovementRequestStatus.PENDING, PageRequest.of(0, 10));
-        assertThat(fullOrder).hasSize(3);
-        List<UUID> expectedFirstTwo =
-                fullOrder.stream().map(CvImprovementRequest::getId).toList().subList(0, 2);
+        List<UUID> fullOrder = cvImprovementRequestRepository
+                .findByStatusOrderByRequestedAtAscIdAsc(CvImprovementRequestStatus.PENDING, PageRequest.of(0, 10_000))
+                .stream().map(CvImprovementRequest::getId).toList();
+        List<UUID> ownOrder = fullOrder.stream().filter(ownIds::contains).toList();
+        assertThat(ownOrder).hasSize(3);
+        List<UUID> ownOrderAgain = cvImprovementRequestRepository
+                .findByStatusOrderByRequestedAtAscIdAsc(CvImprovementRequestStatus.PENDING, PageRequest.of(0, 10_000))
+                .stream().map(CvImprovementRequest::getId).filter(ownIds::contains).toList();
+        assertThat(ownOrderAgain).isEqualTo(ownOrder);
+        List<UUID> expectedFirstTwo = fullOrder.subList(0, 2);
 
         List<CvImprovementRequest> pageOne = cvImprovementRequestRepository
                 .findByStatusOrderByRequestedAtAscIdAsc(CvImprovementRequestStatus.PENDING, PageRequest.of(0, 2));

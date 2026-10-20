@@ -150,7 +150,9 @@ class CandidateProfileEmbeddingOrchestratorTest {
         UUID filledProfileId =
                 createProfileWithContent(filledCandidateId, "Co noi dung", new String[0], null);
 
-        List<UUID> needingEmbedding = candidateProfileRepository.findIdsNeedingEmbedding(PageRequest.of(0, 50));
+        // Trang du lon: truy van xep updated_at ASC, container dung chung con ho so co noi dung chua embedding cua lop chay
+        // truoc (thu tu lop khac nhau giua nen tang) - xem ResumeEmbeddingOrchestratorTest.
+        List<UUID> needingEmbedding = candidateProfileRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10_000));
 
         assertThat(needingEmbedding).doesNotContain(emptyProfileId);
         assertThat(needingEmbedding).contains(filledProfileId);

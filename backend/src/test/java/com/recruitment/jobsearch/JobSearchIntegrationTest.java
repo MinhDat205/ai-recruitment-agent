@@ -124,7 +124,7 @@ class JobSearchIntegrationTest extends JobSearchIntegrationTestSupport {
         String system = lf(prompt.getSystemMessage().getText());
         String user = lf(prompt.getUserMessage().getText());
         // R-P1 - system = file prompt + hai danh muc; khong chua cau.
-        String file = lf(new ClassPathResource("ai/prompt/" + "job-search-parse-v1.st")
+        String file = lf(new ClassPathResource("ai/prompt/" + "job-search-parse-v2.st")
                 .getContentAsString(StandardCharsets.UTF_8));
         assertThat(system).startsWith(file.substring(0, file.indexOf("{provinceCatalog}")));
         assertThat(system).contains(catalogPrompt.provinceCatalog()).contains(catalogPrompt.industryCatalog());
