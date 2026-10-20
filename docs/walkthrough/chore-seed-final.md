@@ -334,5 +334,19 @@ Trạng thái DB dev cuối đợt 6: demo đầy đủ (tầng 1 → 2 → 1b �
 
 ## Soát tay
 
-<!-- Người duyệt điền. -->
+Ngày 20/10/2026, người soát: Nguyễn Quốc Huy. Backend chạy với AI tắt.
+
+| Màn hình | Tài khoản | Kết quả |
+|---|---|---|
+| So sánh tin Kỹ sư DevOps (H14): Sơn 81 / Đức 59,5 / Hoàng 35, hạng 1/2/3; badge trung tính, không nhãn/màu phán quyết; thông báo khác phiên bản rubric, "Chưa có dữ liệu" ở tiêu chí "Viết tài liệu vận hành" (P5); tóm tắt có nhãn "Do AI tạo" | hr@demo.local | Đạt |
+| Tiêu chí 0 điểm của Hoàng khi mở rộng: "Không tìm thấy trích dẫn nào trong CV cho tiêu chí này." kèm lý giải (L38) | hr@demo.local | Đạt |
+| Bật ẩn danh tin DevOps (H16): hộp thoại xác nhận; danh sách hiện "Ứng viên #…"; "Xem CV gốc" bị khoá | hr@demo.local | Đạt |
+| Danh sách CV: 2 CV builder có "Sửa CV"; gợi ý việc làm có "Chuyên viên Nhân sự tổng hợp" (L43) | bui.ngoc.mai@demo.local | Đạt |
+| Tin nhắn: "Ứng viên #00000001" với nội dung "[đã ẩn]"; Đỗ Minh Châu hiện tên thật; chuông 3 chưa đọc | dang.minh.thu.hr@test.local | Đạt |
+| Đính kèm trên đơn ẩn danh: không hiện tên tệp, tải về báo lỗi (R-T2); đơn Đỗ Minh Châu có PDF + PNG, tải được | dang.minh.thu.hr@test.local | Đạt |
+| Tin -01: đơn ẩn danh cạnh đơn tên thật; CV "Chờ xử lý", "chưa so sánh được" (L21); hồ sơ Đỗ Minh Châu có khung giờ đã chọn (U10); kho có 1 mục hiệu lực (H15) | dang.minh.thu.hr@test.local | Đạt |
+| Danh sách tin f2: -01 Tạm dừng, -02 Đã đóng, -03 (xoá mềm) không hiện | dang.minh.thu.hr@test.local | Đạt |
+| Danh sách tin bộ test cũ: đủ trạng thái, nhãn "Chưa chuẩn hoá" | minhdathr@gmail.com | Đạt |
+
+Khi soát đã bật ẩn danh tin DevOps của bộ demo; DB đã được nạp lại từ đầu sau khi soát (xem việc 2).
 
