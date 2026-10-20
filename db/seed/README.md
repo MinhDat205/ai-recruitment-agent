@@ -39,7 +39,6 @@ Lý do tách tầng và vì sao tầng 2/2b không viết tay: `docs/walkthrough
 | `d1b00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 1b | `TTTT` = mã bảng, bảng mã ở `chore-seed-final.md` mục K2 |
 | `e0`–`ef` (`e0000000-…`), `f0000000-…`, `f1000000-…` | Test | Bộ test gốc |
 | `f2000000-TTTT-0000-0000-NNNNNNNNNNNN` | Test · mục 17 | Công ty test thứ hai + HR + 2 ứng viên; cùng bảng mã `TTTT` |
-| `c0000000-…`, `10000000-…` | `dev-seed.sql` | Không thuộc hai bộ trên |
 
 Đếm hay dọn theo dải phải dùng tiền tố đủ 8 ký tự (vd `LIKE 'd1b00000-%'`, `~ '^e[0-9a-f]000000-0000-0000-0000-'`),
 xem mục 9.
