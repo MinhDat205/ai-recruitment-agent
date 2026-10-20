@@ -24,7 +24,8 @@
 --
 -- MAT KHAU DANG NHAP DEMO CHO CA HR LAN 9 CANDIDATE: "Demo1234"
 --
--- CACH CHAY (PowerShell, tu thu muc goc repo), giong dev-seed.sql:
+-- CACH CHAY (PowerShell, tu thu muc goc repo), ly do dung docker compose cp
+-- thay vi pipe Get-Content: db/seed/README.md muc 2:
 --
 --   docker compose cp db/seed/seed-demo-structural.sql postgres:/tmp/seed-demo-structural.sql
 --   docker compose exec -T postgres psql -U recruitment -d recruitment -f /tmp/seed-demo-structural.sql

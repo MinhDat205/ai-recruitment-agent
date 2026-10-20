@@ -147,7 +147,7 @@ class CatalogSeedConsistencyTest {
         assertThat(provinceMatcher.match("Hà Nội, TP. HCM")).isNull();
         assertThat(provinceMatcher.match("Quận 1")).isNull();
 
-        // Gia tri category cua seed demo va dev-seed (REQUIREMENT muc 4, Seed demo).
+        // Gia tri category cu cua seed truoc FR-C05 (bang anh xa o REQUIREMENT muc 4, Seed demo).
         assertThat(industryMatcher.match("Công nghệ thông tin")).isEqualTo("IT_SOFTWARE");
         assertThat(industryMatcher.match("Trí tuệ nhân tạo")).isEqualTo("IT_SOFTWARE");
         assertThat(industryMatcher.match("Kế toán - Kiểm toán")).isEqualTo("ACCOUNTING_AUDIT");
