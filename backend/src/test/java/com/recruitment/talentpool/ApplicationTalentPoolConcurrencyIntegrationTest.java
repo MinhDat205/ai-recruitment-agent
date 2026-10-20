@@ -106,13 +106,16 @@ class ApplicationTalentPoolConcurrencyIntegrationTest {
         resume.setParseStatus(ParseStatus.DONE);
         resume = resumeRepository.save(resume);
 
+        // talent_pool_consent_at backdate tuong minh (CLAUDE.md muc 3c): T16 rut dong y bang Instant.now() cua JVM, con
+        // now() la dong ho Postgres trong container - lech dong ho giua hai ben lam revoked_at < consent_at, vi pham
+        // chk_talent_pool_consent_state (V14).
         UUID applicationId = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO job_applications
                     (id, job_id, candidate_id, resume_id, recruitment_cycle, status, ai_consent, ai_consent_at,
                      talent_pool_consent, talent_pool_consent_at)
-                VALUES (?, ?, ?, ?, 1, 'PENDING', TRUE, now(), TRUE, now())
+                VALUES (?, ?, ?, ?, 1, 'PENDING', TRUE, now(), TRUE, now() - interval '1 minute')
                 """,
                 applicationId, job.getId(), candidate.getId(), resume.getId());
         UUID poolId = UUID.randomUUID();
