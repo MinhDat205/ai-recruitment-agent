@@ -1,7 +1,8 @@
 # Chức năng bổ sung — thứ tự thực hiện và mô tả định hướng
 
 > Đọc file này ở ĐẦU mỗi phiên làm một FR bổ sung, TRƯỚC khi đọc REQUIREMENT.md của FR đó.
-> Cập nhật: 16/10/2026 (rút gọn FR-H15, loại FR-U11).
+> Cập nhật: 20/10/2026 (cột "Dùng bởi" của K2 ở mục 2, gộp câu lặp ở mục 14); trước đó 16/10/2026 (rút gọn FR-H15,
+> loại FR-U11).
 
 ## 0. Cách dùng file này
 
@@ -29,7 +30,7 @@ Chi tiết: `docs/SRS.md` mục "Nguyên tắc bổ sung cho các chức năng m
 | Mã | Thành phần | Xây lần đầu ở | Dùng bởi |
 |---|---|---|---|
 | K1 | Bộ gom ngữ cảnh CV theo vai trò | FR-C07 | C07, C08, H12 |
-| K2 | Bộ kiểm tra trích dẫn nguyên văn | FR-C08 | FR-H04, C08 |
+| K2 | Bộ kiểm tra trích dẫn nguyên văn | FR-C08 | FR-H04, C08, U12, U13 |
 | K3 | Gọi AI đồng bộ có giới hạn thời gian | FR-C07 | C07, C08, H11, U12, U13 |
 | K4 | Siêu dữ liệu kết quả AI | FR-H11 | H11 |
 
@@ -631,7 +632,7 @@ Hỏi trực tiếp về nội dung một CV cụ thể và nhận câu trả l�
 
 - Ngữ cảnh qua K1 theo vai trò. HR: CV của đơn và JD của Job đó, không có rubric (sửa theo FR-C08 đã duyệt). Ứng viên: CV của chính mình (sửa theo FR-C08 đã duyệt: không có JD), không bao giờ có điểm hay rubric.
 - Kiểm tra quyền: HR chỉ hỏi CV của đơn thuộc Job công ty mình; ứng viên chỉ hỏi CV của mình.
-- Mọi trích dẫn được kiểm tra qua K2; một trích dẫn không khớp là cả câu trả lời hỏng, thử lại một lần (sửa theo FR-C08 đã duyệt). CV không có thông tin thì hiện "Không tìm thấy căn cứ trong CV"; trích dẫn không khớp thì thử lại một lần rồi báo lỗi, không hiện câu trả lời (sửa theo FR-C08 đã duyệt).
+- Mọi trích dẫn được kiểm tra qua K2; một trích dẫn không khớp là cả câu trả lời hỏng: thử lại một lần rồi báo lỗi, không hiện câu trả lời (sửa theo FR-C08 đã duyệt). CV không có thông tin thì hiện "Không tìm thấy căn cứ trong CV".
 - Không lưu lịch sử hỏi đáp (sửa theo FR-C08 đã duyệt). Gọi AI theo K3.
 
 **AI**

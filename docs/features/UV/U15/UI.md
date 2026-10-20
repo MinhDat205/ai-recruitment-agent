@@ -15,7 +15,7 @@ Không %, không thanh màu, không nhãn 'phù hợp'", `UI_GUIDE.md:241-242`).
 | Route | Tên | Cột FR | Ghi chú |
 |---|---|---|---|
 | `/candidate` | "Việc làm" | FR-U07, FR-U13, **FR-U15**, FR-C05 | Màn hình cũ (★ không phải mới) — FR-U15 **mở rộng**: thêm khối "Gợi ý cho bạn" trên danh sách, không đổi phần còn lại |
-| `/candidate/dashboard` | "Bảng tin" | FR-U11, **FR-U15**, FR-C05 | Màn hình cũ — FR-U15 **thay nội dung** khối gợi ý hiện có (`CandidateHomePage.tsx`), không đổi 2 thẻ còn lại ("CV chính", "Đơn ứng tuyển") hay khối "Cải thiện CV" |
+| `/candidate/dashboard` | "Bảng tin" | **FR-U15**, FR-C05 | Màn hình cũ — FR-U15 **thay nội dung** khối gợi ý hiện có (`CandidateHomePage.tsx`), không đổi 2 thẻ còn lại ("CV chính", "Đơn ứng tuyển") hay khối "Cải thiện CV" |
 
 Cả hai route đã có sẵn trong bảng Bản đồ màn hình (`docs/UI_GUIDE.md:308-309`) — không cần sửa
 bảng đó.

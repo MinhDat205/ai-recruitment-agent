@@ -1,7 +1,7 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này phản ánh hệ thống đã hoàn thành, cập nhật lần gần nhất ngày 16/10/2026. Các quyết
+> Đặc tả này phản ánh hệ thống đã hoàn thành, cập nhật lần gần nhất ngày 20/10/2026. Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
@@ -11,10 +11,10 @@ Tài liệu này tổ chức lại toàn bộ yêu cầu chức năng theo 3 nh�
 # 0. Tổng quan hệ thống
 
 Nền tảng có hai vai trò sử dụng: **Nhà tuyển dụng (HR)** và **Ứng viên (Candidate)**. Tính đến thời
-điểm cập nhật này, hệ thống có tổng cộng 37 mã yêu cầu chức năng: **18 chức năng đã hoàn thành**
-(FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ ở Mục 1/2/3 bên dưới) và **19 chức năng bổ
-sung đang ở giai đoạn đặc tả** (chưa được duyệt, chưa được code), mỗi chức năng có tài liệu chi
-tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md`.
+điểm cập nhật này, hệ thống có tổng cộng 37 mã yêu cầu chức năng và **cả 37 đã hoàn thành**: 18
+chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ ở Mục 1/2/3 bên dưới) và 19
+chức năng bổ sung (FR-C05–C08, FR-H09–H12, FR-H14–H16, FR-U07–U10, FR-U12–U15), mỗi chức năng bổ
+sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
 
 | Mã | Tên | Actor | Trạng thái | Tài liệu chi tiết |
 | --- | --- | --- | --- | --- |

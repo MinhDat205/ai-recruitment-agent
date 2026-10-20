@@ -172,7 +172,7 @@ Không cài lại riêng trong từng FR. FR cần thành phần mà thành ph�
 
 ```bash
 docker compose up -d                 # postgres + mailhog + minio
-cd backend && ./mvnw spring-boot:run # API tại http://localhost:8080, Swagger /swagger-ui.html
+cd backend && ./mvnw spring-boot:run # API tại http://localhost:8080
 cd backend && ./mvnw test            # LUÔN chạy đầy đủ, không chỉ class mới
 cd frontend && npm run dev           # http://localhost:5173
 cd frontend && npm run build         # tsc -b + vite build — bắt buộc trước khi báo xong đợt
