@@ -98,10 +98,11 @@ exclude trong `application.yml` — đừng gỡ".
 - `toolCallingManager` bị gỡ; tool execution chuyển sang `ToolCallingAdvisor` ở tầng `ChatClient`.
 - Dùng `.call().responseEntity(converter)` chứ không phải `.entity(converter)` — `entity()` vứt mất
   `ChatResponse`, mà `resume_parsed_data.model` là NOT NULL và cần cả `token_usage`.
-- Converter output AI **luôn** tạo qua `AiOutputConverters.forType(...)` (`ai/client/`), không
-  `new BeanOutputConverter<>(...)` — mapper mặc định từ chối ký tự điều khiển chưa escape trong chuỗi
-  JSON (TAB từ CV DOCX ⇒ `LLM_INVALID_JSON`); `AiOutputConvertersSourceGuardTest` chặn. Overload 2
-  tham số mà nó dùng đòi `tools.jackson.databind.json.JsonMapper`, không phải `ObjectMapper` cũ.
+- Converter output AI **luôn** tạo qua `AiOutputConverters.forType(...)` (`ai/client/`; mapper mặc
+  định của `BeanOutputConverter` + `ALLOW_UNESCAPED_CONTROL_CHARS`), không `new BeanOutputConverter<>(...)`
+  — LLM chép nguyên văn TAB của CV DOCX vào chuỗi JSON, mapper mặc định từ chối ⇒ `LLM_INVALID_JSON`.
+  `AiOutputConvertersSourceGuardTest` chặn `new` trực tiếp. Overload 2 tham số mà nó dùng đòi
+  `tools.jackson.databind.json.JsonMapper`, không phải `ObjectMapper` cũ.
 
 ## 3c. Bẫy đã trả giá — transaction và job nền
 
@@ -147,8 +148,8 @@ Không cài lại riêng trong từng FR. FR cần thành phần mà thành ph�
 - Prompt gửi LLM đặt trong `backend/src/main/resources/ai/prompt/`, đánh version trong tên file
   (`resume-parse-v1.st`). Không hardcode giữa business logic. Hằng số `PROMPT_VERSION` khai một
   chỗ duy nhất, gắn liền tên file.
-- Output của LLM luôn parse qua `BeanOutputConverter` theo schema record cố định, retry 1 lần khi
-  JSON hỏng, rồi mới `FAILED`.
+- Output của LLM luôn parse qua `BeanOutputConverter` (tạo bằng `AiOutputConverters.forType`, §3b)
+  theo schema record cố định, retry 1 lần khi JSON hỏng, rồi mới `FAILED`.
 - **Cột lỗi (`parse_error`, `error_message`...) chỉ lưu mã lỗi đã chuẩn hoá** (`EXTRACT_EMPTY`,
   `LLM_INVALID_JSON`...) kèm câu mô tả tiếng Việt cố định. Stack trace và output thô của LLM chỉ
   ghi ở `log.debug` — nội dung CV là dữ liệu cá nhân, không được vào DB hay log mức thường.
