@@ -63,7 +63,12 @@ thật trong project trước khi viết, đừng suy ra từ "Jackson 3 nên m�
   dữ liệu bắt buộc K4 (CLAUDE.md §3d) cho mọi kết quả AI của FR bổ sung.
 - Dùng `.call().responseEntity(converter)`, **không phải** `.entity(converter)` — `entity()` vứt
   mất `ChatResponse`, mà cột `model`/`token_usage` (NOT NULL ở `resume_parsed_data`) cần đọc từ đó.
-- `BeanOutputConverter` dùng constructor 1 tham số `BeanOutputConverter(Class<T>)`. Overload 2
+- Converter output AI **luôn** tạo qua `AiOutputConverters.forType(...)` (`ai/client/`), không
+  `new BeanOutputConverter<>(...)`: mapper mặc định từ chối ký tự điều khiển (TAB/CR/LF) chưa escape
+  trong chuỗi JSON, mà LLM hay chép nguyên văn từ CV DOCX — ra `LLM_INVALID_JSON` dù JSON "đúng ý".
+  `AiOutputConverters` dùng overload `BeanOutputConverter(Class<T>, JsonMapper)` với mapper mặc định
+  + `JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS`; schema/`{format}` không đổi.
+  `AiOutputConvertersSourceGuardTest` chặn mọi `new BeanOutputConverter` ở chỗ khác. Overload 2
   tham số đòi `tools.jackson.databind.json.JsonMapper`, không phải `ObjectMapper` cũ.
 - `toolCallingManager` đã bị gỡ khỏi Spring AI 2.0; tool execution chuyển sang `ToolCallingAdvisor`
   ở tầng `ChatClient`.

@@ -98,8 +98,10 @@ exclude trong `application.yml` — đừng gỡ".
 - `toolCallingManager` bị gỡ; tool execution chuyển sang `ToolCallingAdvisor` ở tầng `ChatClient`.
 - Dùng `.call().responseEntity(converter)` chứ không phải `.entity(converter)` — `entity()` vứt mất
   `ChatResponse`, mà `resume_parsed_data.model` là NOT NULL và cần cả `token_usage`.
-- `BeanOutputConverter` dùng constructor 1 tham số `BeanOutputConverter(Class<T>)` — overload 2
-  tham số đòi `tools.jackson.databind.json.JsonMapper`, không phải `ObjectMapper` cũ.
+- Converter output AI **luôn** tạo qua `AiOutputConverters.forType(...)` (`ai/client/`), không
+  `new BeanOutputConverter<>(...)` — mapper mặc định từ chối ký tự điều khiển chưa escape trong chuỗi
+  JSON (TAB từ CV DOCX ⇒ `LLM_INVALID_JSON`); `AiOutputConvertersSourceGuardTest` chặn. Overload 2
+  tham số mà nó dùng đòi `tools.jackson.databind.json.JsonMapper`, không phải `ObjectMapper` cũ.
 
 ## 3c. Bẫy đã trả giá — transaction và job nền
 
