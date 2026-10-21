@@ -67,6 +67,17 @@ class CriterionScoringServiceIntegrationTest {
 
     private static final String INVALID_JSON = "day khong phai JSON hop le";
 
+    // CV DOCX co tab stop giua chuc danh va moc thoi gian (loi that 21/10/2026) - LLM chep nguyen van ky tu TAB vao
+    // chuoi JSON, KHONG escape thanh \t. "\t" va "\r\n" duoi day la ky tu dieu khien THO nam trong chuoi JSON.
+    private static final String RAW_TEXT_WITH_TAB =
+            "KINH NGHIỆM LÀM VIỆC\n"
+                    + "Nhân viên Hành chính\t03/2023 – nay\n"
+                    + "Công ty TNHH Thương mại Minh An\n";
+
+    private static final String JSON_WITH_UNESCAPED_TAB_AND_CRLF =
+            "{\"score\": 3, \"reasoning\": \"Có kinh nghiệm hành chính.\r\nĐang làm việc từ 03/2023.\","
+                    + " \"evidence\": [{\"quote\": \"Nhân viên Hành chính\t03/2023 – nay\", \"section\": \"experience\"}]}";
+
     @Autowired
     private CriterionScoringService criterionScoringService;
 
@@ -195,6 +206,20 @@ class CriterionScoringServiceIntegrationTest {
 
         assertThat(result).isNotNull();
         assertThat(result.payload().score()).isEqualTo(4.0);
+    }
+
+    @Test
+    void score_unescapedTabAndCrlfInJsonStrings_parsesVerbatimWithOneCall() {
+        doReturn(fakeResponse(JSON_WITH_UNESCAPED_TAB_AND_CRLF, "claude-sonnet-4-6", 10, 10))
+                .when(chatModel)
+                .call(any(Prompt.class));
+
+        CriterionScoringResult result = criterionScoringService.score(criterion(5, null), RAW_TEXT_WITH_TAB);
+
+        assertThat(result.payload().score()).isEqualTo(3.0);
+        assertThat(result.payload().evidence().get(0).quote()).isEqualTo("Nhân viên Hành chính\t03/2023 – nay");
+        assertThat(result.payload().reasoning()).isEqualTo("Có kinh nghiệm hành chính.\r\nĐang làm việc từ 03/2023.");
+        verify(chatModel, times(1)).call(any(Prompt.class));
     }
 
     // ---- Case am ----

@@ -4,6 +4,7 @@ import com.anthropic.errors.AnthropicIoException;
 import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
+import com.recruitment.ai.client.AiOutputConverters;
 import com.recruitment.scoring.CriterionScoreExplanationInput;
 import java.util.List;
 import java.util.Set;
@@ -69,7 +70,7 @@ public class ScoreExplanationService {
         Set<String> criterionNames =
                 criteria.stream().map(CriterionScoreExplanationInput::criterionName).collect(Collectors.toSet());
         String criteriaText = buildCriteriaText(criteria);
-        BeanOutputConverter<ScoreExplanationPayload> converter = new BeanOutputConverter<>(ScoreExplanationPayload.class);
+        BeanOutputConverter<ScoreExplanationPayload> converter = AiOutputConverters.forType(ScoreExplanationPayload.class);
 
         ResponseEntity<ChatResponse, ScoreExplanationPayload> result;
         try {

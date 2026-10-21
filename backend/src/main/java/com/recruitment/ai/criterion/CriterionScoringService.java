@@ -5,6 +5,7 @@ import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
+import com.recruitment.ai.client.AiOutputConverters;
 import com.recruitment.ai.citation.VerbatimQuoteVerifier;
 import com.recruitment.rubric.ScaleLevelDescription;
 import com.recruitment.scoring.RubricSnapshot;
@@ -112,7 +113,7 @@ public class CriterionScoringService {
     public CriterionScoringResult score(RubricSnapshot.CriterionSnapshot criterion, String rawText) {
         String promptText = truncateForPrompt(rawText, criterion.criterionId());
         String scaleDescriptionText = buildScaleDescriptionText(criterion);
-        BeanOutputConverter<CriterionScorePayload> converter = new BeanOutputConverter<>(CriterionScorePayload.class);
+        BeanOutputConverter<CriterionScorePayload> converter = AiOutputConverters.forType(CriterionScorePayload.class);
 
         ResponseEntity<ChatResponse, CriterionScorePayload> result;
         try {

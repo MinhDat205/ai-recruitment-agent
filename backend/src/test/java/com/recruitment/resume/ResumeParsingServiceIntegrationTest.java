@@ -123,6 +123,19 @@ class ResumeParsingServiceIntegrationTest {
         assertThat(result.model()).isEqualTo("claude-sonnet-4-6");
     }
 
+    // Mo ta kinh nghiem nhieu dong / co tab stop cua CV DOCX - LLM chep nguyen van ky tu LF va TAB vao chuoi JSON khong
+    // escape. Van la output dung, giu nguyen van, KHONG thu lai.
+    @Test
+    void parse_unescapedNewlineAndTabInJsonString_parsesVerbatimWithOneCall() {
+        String json = VALID_JSON.replace("\"Phat trien API\"", "\"Phat trien API\nToi uu truy van\tSQL\"");
+        doReturn(fakeResponse(json, "claude-sonnet-4-6", 10, 10)).when(chatModel).call(any(Prompt.class));
+
+        ResumeParsingResult result = resumeParsingService.parse(UUID.randomUUID(), "noi dung CV bat ky");
+
+        assertThat(result.payload().experience().get(0).description()).isEqualTo("Phat trien API\nToi uu truy van\tSQL");
+        verify(chatModel, times(1)).call(any(Prompt.class));
+    }
+
     @Test
     void parse_invalidJsonBothAttempts_retriesExactlyOnceThenFailsWithLlmInvalidJson() {
         doReturn(fakeResponse(INVALID_JSON, "claude-sonnet-4-6", 10, 10))

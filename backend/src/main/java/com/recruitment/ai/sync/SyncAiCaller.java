@@ -1,6 +1,7 @@
 package com.recruitment.ai.sync;
 
 import com.anthropic.models.messages.StopReason;
+import com.recruitment.ai.client.AiOutputConverters;
 import com.recruitment.common.exception.AiSyncErrorCode;
 import com.recruitment.common.exception.AiSyncFailedException;
 import java.util.HashMap;
@@ -66,7 +67,7 @@ public class SyncAiCaller implements AutoCloseable {
                     "Khong duoc goi AI dong bo (K3) khi dang co transaction - giu ket noi DB trong luc cho LLM (R-K3-4)");
         }
 
-        BeanOutputConverter<T> converter = new BeanOutputConverter<>(outputType);
+        BeanOutputConverter<T> converter = AiOutputConverters.forType(outputType);
         Map<String, Object> params = new HashMap<>(systemParams);
         params.put("format", converter.getFormat());
 
