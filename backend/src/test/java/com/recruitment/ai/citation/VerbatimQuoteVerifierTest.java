@@ -63,6 +63,28 @@ class VerbatimQuoteVerifierTest {
         assertThat(VerbatimQuoteVerifier.isVerbatim("3 năm Kỹ năng: Docker", SOURCE)).isTrue();
     }
 
+    // Dong "chuc danh<TAB>thoi gian" cua CV DOCX (tab stop) - \s cua Java khop TAB, nen quote giu nguyen tab hay doi
+    // thanh space deu khop; noi dung khac thi van truot.
+    private static final String SOURCE_WITH_TAB_STOP = "KINH NGHIỆM\nNhân viên Hành chính\t03/2023 – nay\nCông ty ABC";
+
+    @Test
+    void isVerbatim_quoteWithTabMatchingTabInSource_returnsTrue() {
+        assertThat(VerbatimQuoteVerifier.isVerbatim("Nhân viên Hành chính\t03/2023 – nay", SOURCE_WITH_TAB_STOP))
+                .isTrue();
+    }
+
+    @Test
+    void isVerbatim_quoteWithSpaceWhereSourceHasTab_returnsTrue() {
+        assertThat(VerbatimQuoteVerifier.isVerbatim("Nhân viên Hành chính 03/2023 – nay", SOURCE_WITH_TAB_STOP))
+                .isTrue();
+    }
+
+    @Test
+    void isVerbatim_quoteWithTabButDifferentContent_returnsFalse() {
+        assertThat(VerbatimQuoteVerifier.isVerbatim("Nhân viên Hành chính\t03/2022 – nay", SOURCE_WITH_TAB_STOP))
+                .isFalse();
+    }
+
     @Test
     void isVerbatim_nullQuote_returnsFalse() {
         assertThat(VerbatimQuoteVerifier.isVerbatim(null, SOURCE)).isFalse();

@@ -5,6 +5,7 @@ import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
+import com.recruitment.ai.client.AiOutputConverters;
 import com.recruitment.catalog.CatalogEntry;
 import com.recruitment.catalog.CatalogRegistry;
 import java.util.List;
@@ -77,7 +78,7 @@ public class ResumeParsingService {
     // AnthropicServiceException khac) la VINH VIEN, map ve LLM_ERROR nhu cu.
     public ResumeParsingResult parse(UUID resumeId, String rawText) {
         String promptText = truncateForPrompt(rawText, resumeId);
-        BeanOutputConverter<ResumeParsedPayload> converter = new BeanOutputConverter<>(ResumeParsedPayload.class);
+        BeanOutputConverter<ResumeParsedPayload> converter = AiOutputConverters.forType(ResumeParsedPayload.class);
 
         ResponseEntity<ChatResponse, ResumeParsedPayload> result;
         try {

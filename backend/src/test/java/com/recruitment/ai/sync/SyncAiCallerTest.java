@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.chat.client.ChatClient;
@@ -126,6 +127,16 @@ class SyncAiCallerTest {
         when(chatModel.call(any(Prompt.class))).thenReturn(response("{\"text\": \"a\"}", END_TURN, null));
 
         assertThat(call(NOT_BLANK).model()).isEqualTo("configured-model");
+    }
+
+    // LLM chep nguyen van ky tu dieu khien (TAB/CR/LF) vao chuoi JSON khong escape - van la output dung, KHONG thu lai.
+    @ParameterizedTest
+    @ValueSource(strings = {"cot1\tcot2", "dong1\r\ndong2", "dong1\ndong2", "dong1\rdong2"})
+    void call_unescapedControlCharInJsonString_returnsVerbatim_withOneCall(String text) {
+        when(chatModel.call(any(Prompt.class))).thenReturn(ok(text));
+
+        assertThat(call(NOT_BLANK).entity().text()).isEqualTo(text);
+        verify(chatModel, times(1)).call(any(Prompt.class));
     }
 
     @Test

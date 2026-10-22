@@ -4,6 +4,7 @@ import com.anthropic.errors.AnthropicIoException;
 import com.anthropic.errors.AnthropicRetryableException;
 import com.anthropic.errors.InternalServerException;
 import com.anthropic.errors.RateLimitException;
+import com.recruitment.ai.client.AiOutputConverters;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +65,7 @@ public class CvImprovementService {
     // LLM_ERROR ngay lan dau - mau ScoreExplanationService.explain().
     public CvImprovementResult generate(String resumeText, String marketTrendText) {
         String userMessage = buildUserMessage(resumeText, marketTrendText);
-        BeanOutputConverter<CvImprovementPayload> converter = new BeanOutputConverter<>(CvImprovementPayload.class);
+        BeanOutputConverter<CvImprovementPayload> converter = AiOutputConverters.forType(CvImprovementPayload.class);
 
         ResponseEntity<ChatResponse, CvImprovementPayload> result;
         try {

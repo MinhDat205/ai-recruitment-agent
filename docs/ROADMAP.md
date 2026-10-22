@@ -532,6 +532,19 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
   sang chu kỳ 2 kèm 2 câu sàng lọc để Phạm Quốc Bảo nộp lại (đơn đợt 1 giữ nguyên); `docs/DEMO.md` viết lại theo
   mạch hai tài khoản, tập dượt bằng AI thật qua API (Anthropic 15, OpenAI 2 lượt; chấm đơn mới 82,00, đợt 1 83,50;
   bấm chấm → có giải thích ~70 s).
+- [x] `fix/llm-json-control-chars` — chấm điểm thất bại `LLM_INVALID_JSON` với CV DOCX (21/10/2026, xem
+  `docs/walkthrough/fix-llm-json-control-chars.md`): tab stop của Word (`Nhân viên Hành chính<TAB>03/2023 – nay`) bị
+  LLM chép nguyên văn vào chuỗi JSON không escape, mapper mặc định của `BeanOutputConverter` ném "Illegal unquoted
+  character ((CTRL-CHAR, code 9))" ở cả hai lần gọi (3 lượt FAILED liên tiếp của đơn `ba22e3f3`; 13/13 lượt DONE trên
+  PDF không có tab). Không chuẩn hoá `raw_text` ở D1 (giữ nguyên văn CV, không lệch seed tầng 2/2b) — thêm
+  `ai/client/AiOutputConverters.forType(...)`: mapper mặc định + `JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS`,
+  schema/prompt không đổi; 5 chỗ tạo converter (D1, D2, D4, F2, K3) dùng chung, `AiOutputConvertersSourceGuardTest`
+  chặn `new BeanOutputConverter` ở chỗ khác. K2 không cần sửa (`\s` đã khớp TAB/CR/LF). Full suite 2111 test xanh
+  (2088 + 23 mới; test đỏ trước khi sửa). Nợ kỹ thuật:
+  - NUL thô (`U+0000`) giờ parse được nhưng Postgres từ chối khi ghi TEXT/JSONB — lỗi lúc ghi thay vì được thử lại;
+    rủi ro rất thấp (`raw_text` không chứa được NUL nên trích dẫn có NUL đã trượt K2).
+  - K2 (`VerbatimQuoteVerifier`) dùng `\s`, không khớp NBSP (U+00A0) — quote có dấu cách ở chỗ `raw_text` có NBSP
+    (hoặc ngược lại) sẽ trượt `EVIDENCE_NOT_VERIFIED`; chưa gặp trên dữ liệu thật.
 
 ---
 

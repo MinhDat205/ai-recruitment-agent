@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
-// ai/jobsearch/ - output tho cua LLM (FR-U13 muc 4.5). Schema co dinh cho BeanOutputConverter (constructor 1 tham so).
+// ai/jobsearch/ - output tho cua LLM (FR-U13 muc 4.5). Schema co dinh cho BeanOutputConverter (qua AiOutputConverters).
 // Kiem R-V o JobSearchParseValidator; chap nhan dieu kien (R-C) o jobsearch/. So dung wrapper (CLAUDE.md muc 4).
 // List null -> List.of(); KHONG List.copyOf - phan tu null phai con nguyen de validator bat (R-V1).
 // Annotation Jackson o package com.fasterxml la DUNG (CLAUDE.md muc 3b).
