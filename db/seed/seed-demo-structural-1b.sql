@@ -618,6 +618,29 @@ WHERE user_id = 'd0000000-0000-0000-0000-000000000001'
   AND id::text NOT LIKE 'd1b00000-%'
   AND created_at < '2026-08-28 11:45:00+00';
 
+-- ===========================================================================
+-- PHAN G - Tin QA mo lai sang chu ky 2 + cau hoi sang loc (demo 1 HR + 1 ung vien, P1)
+--   Demo chi dang nhap Pham Quoc Bao. Bao da co don dot 1 vao tin QA (APP-QA-BAO, REJECTED o B1) nen
+--   uq_application_per_cycle chan nop lai o chu ky 1. Mo phong HR dong roi mo lai tin (JobOwnerService.changeStatus:
+--   CLOSED -> OPEN chi tang recruitment_cycle; status cuoi van OPEN, published_at da co nen giu nguyen) -> Bao nop lai
+--   duoc o chu ky 2. Don dot 1 (cua Bao, Duc) giu nguyen chu ky 1.
+--   Sau khi mo lai, HR them 2 cau hoi (ScreeningQuestionOwnerService.add: moi lan them tang screening_revision 1,
+--   display_order = max + 1) -> revision 0 -> 2. Embedding tin khong doi (chi doi khi tieu de/mo ta/nganh doi) -
+--   khong phat sinh luot OpenAI. updated_at cua tin giu nguyen (trigger dang tat, xem dau file).
+-- ===========================================================================
+
+UPDATE jobs SET recruitment_cycle = 2, screening_revision = 2 WHERE id = 'd2000000-0000-0000-0000-000000000002';
+
+INSERT INTO job_screening_questions (
+    id, job_id, question_type, question_text, options, is_required, display_order, deleted_at, created_at, updated_at
+) VALUES
+    ('d1b00000-0008-0000-0000-000000000003', 'd2000000-0000-0000-0000-000000000002', 'YES_NO',
+     'Bạn có thể làm việc tại văn phòng ở TP. Hồ Chí Minh không?', NULL, TRUE, 1, NULL,
+     '2026-10-14 02:00:00+00', '2026-10-14 02:00:00+00'),
+    ('d1b00000-0008-0000-0000-000000000004', 'd2000000-0000-0000-0000-000000000002', 'SHORT_TEXT',
+     'Bạn đã dùng công cụ kiểm thử tự động nào trong dự án thực tế?', NULL, FALSE, 2, NULL,
+     '2026-10-14 02:05:00+00', '2026-10-14 02:05:00+00');
+
 -- Bat lai trigger updated_at. trg_rubric_weight_sum la constraint trigger DEFERRED: con su kien cho thi ALTER TABLE
 -- rubric_criteria bi tu choi ("pending trigger events") - chay kiem tong trong so NGAY tai day truoc.
 SET CONSTRAINTS ALL IMMEDIATE;
@@ -630,10 +653,10 @@ COMMIT;
 
 -- ---------------------------------------------------------------------------
 -- Kiem tra sau khi nap - so dong dai d1b00000 mong doi: users 1, companies 1, jobs 6, rubrics 6,
--- rubric_criteria 19, interview_templates 6, job_screening_questions 2, job_applications 2,
+-- rubric_criteria 19, interview_templates 6, job_screening_questions 4, job_applications 2,
 -- application_status_history 8, application_screening_answers 2, interview_invitations 4,
 -- interview_invitation_slots 7, application_messages 3, notifications 12, talent_pools 4,
--- talent_pool_entries 3, job_blind_review_changes 3 (tong 89).
+-- talent_pool_entries 3, job_blind_review_changes 3 (tong 91).
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'd1b00000-%'
 UNION ALL SELECT 'companies', count(*) FROM companies WHERE id::text LIKE 'd1b00000-%'

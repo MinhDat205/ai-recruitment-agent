@@ -300,12 +300,16 @@ mục K3):
   Trần Minh Hoàng có lượt chấm + giải thích do AI thật sinh ở tầng 2b (FR-H14 so sánh 3 cột).
 - **Job Senior Java Backend Developer**: bật chấm ẩn danh (FR-H16), có lịch sử bật/tắt; đơn mới của Võ Thanh
   Tùng đã được mời phỏng vấn (hiện tên thật), hai đơn còn lại hiện nhãn ẩn danh.
+- **Job Kỹ sư Kiểm thử phần mềm (QA Engineer)** (demo 1 HR + 1 ứng viên): tin đã mở lại sang **chu kỳ 2**, có
+  2 câu hỏi sàng lọc. Đơn đợt 1 của Phạm Quốc Bảo (`REJECTED`, 83.50) và Lê Văn Đức (`WITHDRAWN`) giữ ở chu kỳ 1,
+  nên Phạm Quốc Bảo nộp lại được ở chu kỳ 2.
 - **Kho ứng viên** (FR-H15): kho có mục, mục đã gỡ do rút đồng ý, kho rỗng, kho đã xoá.
 - **Bùi Ngọc Mai**: thêm 2 CV dựng bằng công cụ (mẫu Cổ điển, rồi Hiện đại), không phải CV chính, không nộp đơn.
 - **Hồ sơ nghề nghiệp**: 4 hồ sơ khai đủ (Trần Minh Hoàng, Nguyễn Thị Thu Hà, Đỗ Khánh Linh, Hoàng Minh Tuấn)
   có embedding đông cứng ở tầng 2b — bật backend **không** còn phát sinh lượt OpenAI cho hồ sơ demo.
 
-Số dòng sau khi nạp đủ mục 1 (đo hai lần trên DB trống, 19/10/2026):
+Số dòng sau khi nạp đủ mục 1 (đo hai lần trên DB trống, 19/10/2026; `job_screening_questions` đo lại 21/10/2026 sau P1
+(tin QA chu kỳ 2)):
 
 | Bảng | Số dòng | Bảng | Số dòng |
 |---|---|---|---|
@@ -317,7 +321,7 @@ Số dòng sau khi nạp đủ mục 1 (đo hai lần trên DB trống, 19/10/20
 | `resumes` / `resume_parsed_data` | 11 / 11 | `application_messages` | 3 |
 | `cv_builder_documents` | 2 | `interview_invitations` / `_slots` | 4 / 7 |
 | `job_applications` | 11 | `talent_pools` / `talent_pool_entries` | 4 / 3 |
-| `application_status_history` | 18 | `job_screening_questions` / `application_screening_answers` | 2 / 2 |
+| `application_status_history` | 18 | `job_screening_questions` / `application_screening_answers` | 4 / 2 |
 | `job_blind_review_changes` | 3 | `interview_templates` | 12 |
 
 ---
@@ -335,6 +339,8 @@ Sau khi chạy đủ 6 bước ở mục 1, nên thấy đúng những điều s
 - Job **"Senior Java Backend Developer"**: **3 đơn**, job đang **bật chấm ẩn danh** — 1 đơn có điểm
   (**67.50**), 1 đơn chấm điểm **thất bại** (hiện trạng đã biết, không phải lỗi của bước nạp seed — xem ghi
   chú D2 trong `docs/ROADMAP.md`), 1 đơn của Võ Thanh Tùng đã mời phỏng vấn (chưa chấm, hiện tên thật).
+- Job **"Kỹ sư Kiểm thử phần mềm (QA Engineer)"**: chu kỳ tuyển dụng **2**, 2 câu hỏi sàng lọc; tab Ứng viên có 2
+  đơn chu kỳ 1 (Phạm Quốc Bảo bị từ chối **83.50**, Lê Văn Đức đã rút). Phạm Quốc Bảo nộp lại được tin này.
 - Mở một hồ sơ bất kỳ, bấm **"Xem CV gốc"** — phải tải được file PDF. Nếu lỗi, nghĩa
   là bước 6 (`install-demo-files.ps1`) chưa chạy hoặc chạy chưa xong.
 - Đăng nhập `bui.ngoc.mai@demo.local`: có dữ liệu gợi ý cải thiện CV. Khối gợi ý việc làm **tính

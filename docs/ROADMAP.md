@@ -75,6 +75,10 @@ và không có chỗ ghi kết quả ra.
     vì lý do: không có CV gốc thì không đối chiếu được evidence trong báo cáo AI với văn bản thật,
     đúng nguyên tắc Explainable AI của FR-H06. Chi tiết lập luận ở walkthrough `fr-h06-explain.md`
     mục 4h.
+  - Cập nhật 21/10/2026: tóm tắt giải thích (FR-H06) không qua K2; lượt tập ghi sai số năm kinh nghiệm (4 so với ~6).
+    Hướng xử lý sau bảo vệ: kiểm số liệu trong tóm tắt hoặc ràng buộc tóm tắt chỉ trích từ reasoning đã kiểm.
+    (Giới hạn đã biết của thiết kế D4: không đọc lại CV nên không có căn cứ đối chiếu nội dung tự do —
+    `ScoreExplanationService.java`, comment hàm `validate`. Lượt tập: `chore/demo-single-candidate`.)
 
 **Xong khi:** unit test `ScoreAggregator` pass; đổi trọng số → thứ hạng đổi đúng công thức; mở bất
 kỳ tiêu chí nào cũng thấy evidence trích từ CV; không tồn tại cột/field nào tên `verdict`, `label`,
@@ -524,6 +528,10 @@ giản hơn, không phải sơ suất hay việc chưa kịp làm. Chi tiết đ
 - [x] `docs/final` — README hoàn chỉnh, kịch bản demo, sơ đồ ER xuất từ database thật
   (20/10/2026): 3 đợt — sửa nợ tài liệu; README viết lại + `docs/ER.md`; `docs/DEMO.md` kịch bản 30 phút, tập dượt
   bằng AI thật qua API (Anthropic 18, OpenAI 3 lượt; chấm một đơn ~93 s).
+- [x] `chore/demo-single-candidate` — demo chỉ đăng nhập 1 HR + 1 ứng viên (21/10/2026): seed tầng 1b mở lại tin QA
+  sang chu kỳ 2 kèm 2 câu sàng lọc để Phạm Quốc Bảo nộp lại (đơn đợt 1 giữ nguyên); `docs/DEMO.md` viết lại theo
+  mạch hai tài khoản, tập dượt bằng AI thật qua API (Anthropic 15, OpenAI 2 lượt; chấm đơn mới 82,00, đợt 1 83,50;
+  bấm chấm → có giải thích ~70 s).
 - [x] `fix/llm-json-control-chars` — chấm điểm thất bại `LLM_INVALID_JSON` với CV DOCX (21/10/2026, xem
   `docs/walkthrough/fix-llm-json-control-chars.md`): tab stop của Word (`Nhân viên Hành chính<TAB>03/2023 – nay`) bị
   LLM chép nguyên văn vào chuỗi JSON không escape, mapper mặc định của `BeanOutputConverter` ném "Illegal unquoted
