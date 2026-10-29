@@ -217,8 +217,9 @@ class JobRecommendationCandidateControllerIntegrationTest {
         data.setData(samplePayload());
         data.setModel("claude-sonnet-4-6");
         data.setPromptVersion("resume-parse-v1");
-        UUID parsedDataId = resumeParsedDataRepository.saveAndFlush(data).getId();
-        resumeEmbeddingStateService.save(parsedDataId, vectorWithSimilarity(similarity));
+        ResumeParsedData saved = resumeParsedDataRepository.saveAndFlush(data);
+        UUID parsedDataId = saved.getId();
+        resumeEmbeddingStateService.save(parsedDataId, vectorWithSimilarity(similarity), saved.getParsedAt());
         return resumeId;
     }
 

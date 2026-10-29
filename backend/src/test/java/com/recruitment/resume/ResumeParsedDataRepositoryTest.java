@@ -10,6 +10,7 @@ import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -199,7 +200,7 @@ class ResumeParsedDataRepositoryTest {
         assertThrows(DataIntegrityViolationException.class, () -> resumeParsedDataRepository.saveAndFlush(second));
     }
 
-    // --- Test moi cho F1 (Dot 2): findIdsNeedingEmbedding / updateEmbedding ---
+    // --- Test moi cho F1 (Dot 2): findIdsNeedingEmbedding / updateEmbeddingIfUnchanged ---
 
     @Test
     void findIdsNeedingEmbedding_primaryResumeWithoutEmbedding_isIncluded() {
@@ -214,7 +215,7 @@ class ResumeParsedDataRepositoryTest {
         assertThat(ids).contains(data.getId());
     }
 
-    // @Transactional o MUC METHOD - can thiet cho updateEmbedding (@Modifying can transaction dang
+    // @Transactional o MUC METHOD - can thiet cho updateEmbeddingIfUnchanged (@Modifying can transaction dang
     // mo de thuc thi, xem tien le CvImprovementRequestRepositoryTest.claimForProcessing). Cac test
     // khac trong file nay khong doi vi khong goi @Modifying nao.
     @Test
@@ -222,7 +223,8 @@ class ResumeParsedDataRepositoryTest {
     void findIdsNeedingEmbedding_primaryResumeWithEmbedding_isExcluded() {
         UUID resumeId = createCandidateAndResume(true);
         ResumeParsedData data = resumeParsedDataRepository.saveAndFlush(newRow(resumeId, "CV chinh da co embedding"));
-        resumeParsedDataRepository.updateEmbedding(data.getId(), EmbeddingTextFormat.toVectorText(new float[1536]));
+        resumeParsedDataRepository.updateEmbeddingIfUnchanged(
+                data.getId(), EmbeddingTextFormat.toVectorText(new float[1536]), data.getParsedAt());
 
         List<UUID> ids = resumeParsedDataRepository.findIdsNeedingEmbedding(PageRequest.of(0, 10));
 
@@ -246,7 +248,7 @@ class ResumeParsedDataRepositoryTest {
     // khong phai van ban y het.
     @Test
     @Transactional
-    void updateEmbedding_roundTripsVectorValueExactly() {
+    void updateEmbeddingIfUnchanged_roundTripsVectorValueExactly() {
         UUID resumeId = createCandidateAndResume(true);
         ResumeParsedData data = resumeParsedDataRepository.saveAndFlush(newRow(resumeId, "CV mau"));
         float[] vector = new float[1536];
@@ -254,7 +256,7 @@ class ResumeParsedDataRepositoryTest {
         vector[1] = -0.2f;
         String vectorText = EmbeddingTextFormat.toVectorText(vector);
 
-        resumeParsedDataRepository.updateEmbedding(data.getId(), vectorText);
+        resumeParsedDataRepository.updateEmbeddingIfUnchanged(data.getId(), vectorText, data.getParsedAt());
         entityManager.clear();
 
         Boolean equal = (Boolean) entityManager
@@ -263,5 +265,57 @@ class ResumeParsedDataRepositoryTest {
                 .setParameter("id", data.getId())
                 .getSingleResult();
         assertThat(equal).isTrue();
+    }
+
+    // perf/scoring-latency - dieu kien parsed_at cua updateEmbeddingIfUnchanged so bang o DUNG do phan giai
+    // cua cot (TIMESTAMPTZ, micro giay): gia tri doc tu DB khop -> ghi; lech 1 micro giay ve hai phia -> rowcount
+    // 0, embedding van NULL.
+    @Test
+    @Transactional
+    void updateEmbeddingIfUnchanged_parsedAtMatches_writesEmbedding() {
+        UUID resumeId = createCandidateAndResume(true);
+        ResumeParsedData data = resumeParsedDataRepository.saveAndFlush(newRow(resumeId, "CV mau"));
+
+        int updated = resumeParsedDataRepository.updateEmbeddingIfUnchanged(
+                data.getId(), EmbeddingTextFormat.toVectorText(sampleVector()), data.getParsedAt());
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(resumeParsedDataRepository.hasEmbedding(data.getId())).isTrue();
+    }
+
+    @Test
+    @Transactional
+    void updateEmbeddingIfUnchanged_parsedAtOneMicrosecondLater_writesNothing() {
+        UUID resumeId = createCandidateAndResume(true);
+        ResumeParsedData data = resumeParsedDataRepository.saveAndFlush(newRow(resumeId, "CV mau"));
+
+        int updated = resumeParsedDataRepository.updateEmbeddingIfUnchanged(
+                data.getId(),
+                EmbeddingTextFormat.toVectorText(sampleVector()),
+                data.getParsedAt().plus(1, ChronoUnit.MICROS));
+
+        assertThat(updated).isZero();
+        assertThat(resumeParsedDataRepository.hasEmbedding(data.getId())).isFalse();
+    }
+
+    @Test
+    @Transactional
+    void updateEmbeddingIfUnchanged_parsedAtOneMicrosecondEarlier_writesNothing() {
+        UUID resumeId = createCandidateAndResume(true);
+        ResumeParsedData data = resumeParsedDataRepository.saveAndFlush(newRow(resumeId, "CV mau"));
+
+        int updated = resumeParsedDataRepository.updateEmbeddingIfUnchanged(
+                data.getId(),
+                EmbeddingTextFormat.toVectorText(sampleVector()),
+                data.getParsedAt().minus(1, ChronoUnit.MICROS));
+
+        assertThat(updated).isZero();
+        assertThat(resumeParsedDataRepository.hasEmbedding(data.getId())).isFalse();
+    }
+
+    private static float[] sampleVector() {
+        float[] vector = new float[1536];
+        vector[0] = 0.1f;
+        return vector;
     }
 }

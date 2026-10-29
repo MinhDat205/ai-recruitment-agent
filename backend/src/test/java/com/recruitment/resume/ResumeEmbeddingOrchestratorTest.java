@@ -2,6 +2,7 @@ package com.recruitment.resume;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
@@ -28,6 +29,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 // Mock o tang EmbeddingModel (khong mock EmbeddingService truc tiep) - dung tien le Dot 3
 // (JobEmbeddingOrchestratorTest): mock model that thap nhat, de EmbeddingService that chay nguyen.
@@ -53,6 +55,9 @@ class ResumeEmbeddingOrchestratorTest {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @BeforeEach
     void resetEmbeddingModelMock() {
@@ -164,9 +169,52 @@ class ResumeEmbeddingOrchestratorTest {
         assertThat(resumeParsedDataRepository.hasEmbedding(parsedDataId)).isFalse();
     }
 
+    // perf/scoring-latency - ca race: mo phong job trich xuat lai (luong scheduler khac) COMMIT THAT
+    // touchAfterReparse (parsed_at = now(), embedding = NULL) NGAY TRONG LUC goi EmbeddingModel - giua luc
+    // orchestrator da doc parsed_at va luc stateService ghi. Mong doi: UPDATE co dieu kien rowcount 0, vector
+    // cua van ban cu KHONG duoc ghi (khuon CandidateProfileEmbeddingOrchestratorTest nhom 12).
+    @Test
+    void processOne_reparsedDuringEmbedCall_doesNotWriteStaleEmbedding() {
+        UUID candidateId = createCandidate();
+        UUID resumeId = createResume(candidateId, true);
+        UUID parsedDataId = createParsedData(resumeId);
+        reparseDuringNextEmbedCall(parsedDataId);
+
+        orchestrator.processOne(parsedDataId);
+
+        assertThat(resumeParsedDataRepository.hasEmbedding(parsedDataId)).isFalse();
+    }
+
+    // Sau ca race tren, embedding van NULL nen CV con trong tap quet - lan poll ke tiep doc parsed_at moi va
+    // ghi duoc.
+    @Test
+    void processOne_afterLosingReparseRace_nextPollWritesEmbedding() {
+        UUID candidateId = createCandidate();
+        UUID resumeId = createResume(candidateId, true);
+        UUID parsedDataId = createParsedData(resumeId);
+        reparseDuringNextEmbedCall(parsedDataId);
+        orchestrator.processOne(parsedDataId);
+        assertThat(resumeParsedDataRepository.hasEmbedding(parsedDataId)).isFalse();
+
+        doReturn(fakeResponse(1536, "text-embedding-3-small")).when(embeddingModel).embedForResponse(anyList());
+        orchestrator.processOne(parsedDataId);
+
+        assertThat(resumeParsedDataRepository.hasEmbedding(parsedDataId)).isTrue();
+    }
+
+    private void reparseDuringNextEmbedCall(UUID parsedDataId) {
+        doAnswer(invocation -> {
+                    transactionTemplate.executeWithoutResult(
+                            status -> resumeParsedDataRepository.touchAfterReparse(parsedDataId));
+                    return fakeResponse(1536, "text-embedding-3-small");
+                })
+                .when(embeddingModel)
+                .embedForResponse(anyList());
+    }
+
     // Hai resume KHAC NHAU cua CUNG mot candidate, tung la CV chinh o hai THOI DIEM khac nhau
     // (uq_resume_primary_per_candidate - V3 - chi cho phep MOT resume la primary tai mot thoi diem,
-    // khong the seed ca hai cung true). Muc dich: xac nhan updateEmbedding scope dung theo
+    // khong the seed ca hai cung true). Muc dich: xac nhan updateEmbeddingIfUnchanged scope dung theo
     // resume_parsed_data.id - embedding cua A KHONG bi doi/mat khi B duoc xu ly sau do. Dung
     // EntityManager doc truc tiep gia tri vector (khong phai chi kiem "co hay khong") de chung minh
     // dung vector, khong bi ghi de/lech hang - can @Transactional o day (goi truc tiep EntityManager,
