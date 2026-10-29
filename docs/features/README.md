@@ -1,12 +1,12 @@
 # Chức năng bổ sung — thứ tự thực hiện và mô tả định hướng
 
 > Đọc file này ở ĐẦU mỗi phiên làm một FR bổ sung, TRƯỚC khi đọc REQUIREMENT.md của FR đó.
-> Cập nhật: 20/10/2026 (cột "Dùng bởi" của K2 ở mục 2, gộp câu lặp ở mục 14); trước đó 16/10/2026 (rút gọn FR-H15,
-> loại FR-U11).
+> Cập nhật: 29/10/2026 (Phase 2.7 — đăng ký FR-U16, FR-C09 và phần mở rộng FR-H04, mục 3 và 4); trước đó 20/10/2026
+> (cột "Dùng bởi" của K2 ở mục 2, gộp câu lặp ở mục 14); 16/10/2026 (rút gọn FR-H15, loại FR-U11).
 
 ## 0. Cách dùng file này
 
-- File này cho biết **toàn cảnh**: 19 FR bổ sung, thứ tự làm, FR nào dựa vào FR nào, và mỗi FR định làm gì. Mục đích: khi làm một FR, biết nó nằm ở đâu trong tổng thể, không làm lấn sang FR khác, không làm thiếu phần mà FR sau cần.
+- File này cho biết **toàn cảnh**: 21 FR bổ sung (cùng phần mở rộng FR-H04 ở Phase 2.7, không phải mã mới), thứ tự làm, FR nào dựa vào FR nào, và mỗi FR định làm gì. Mục đích: khi làm một FR, biết nó nằm ở đâu trong tổng thể, không làm lấn sang FR khác, không làm thiếu phần mà FR sau cần.
 - File này là **mô tả định hướng**, KHÔNG phải đặc tả để code. Nguồn sự thật khi code là `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md` ở trạng thái `ĐÃ DUYỆT`.
 - **Mâu thuẫn giữa file này và REQUIREMENT.md/UI.md đã duyệt → REQUIREMENT.md/UI.md thắng.** Báo ra chỗ mâu thuẫn, không tự sửa file này cho khớp.
 - Chưa có REQUIREMENT.md đã duyệt → KHÔNG code, dù file này đã mô tả khá chi tiết (CLAUDE.md §6).
@@ -102,6 +102,20 @@ Làm tuần tự từ trên xuống. Mỗi FR chỉ bắt đầu khi mọi mục
 | 19 | FR-H16 | Chế độ ẩn danh khi duyệt hồ sơ | `feat/fr-h16-blind` | FR-H09, FR-H14, FR-C08 |
 
 **Xong phase khi:** Bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu ứng viên nhập.
+
+### Phase 2.7 — Đợt bổ sung 11/2026
+
+Kế hoạch: `docs/plans/2026-11-dot-bo-sung.md` (đọc cùng `docs/plans/2026-10-28-tang-toc-cham-diem.md`).
+
+**Trước FR đầu tiên của phase:** `perf/scoring-latency` — tăng số luồng scheduler, rút chu kỳ quét chấm điểm; tối ưu, không mã FR, không đặc tả.
+
+| # | Mã | Tên | Nhánh | Phụ thuộc |
+|---|---|---|---|---|
+| 20 | FR-U16 | Lưu tin tuyển dụng | `feat/fr-u16-saved-jobs` | FR-C02, FR-U02, FR-U07, FR-U08 |
+| 21 | FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | `feat/fr-c09-reconsideration` | FR-H07, FR-H12, FR-U08, FR-H09, FR-C03, FR-H16 |
+| 22 | FR-H04 mở rộng | Chấm tất cả CV trong tin (mở rộng FR-H04, không phải mã mới) | `feat/fr-h04-bulk-scoring` | FR-H03, FR-H04; sau `perf/scoring-latency` |
+
+**Xong phase khi:** Đơn vẫn đúng 5 trạng thái và cạnh `REJECTED → INTERVIEW_INVITED` chỉ chạy khi HR chấp nhận yêu cầu xem xét lại `OPEN`; bỏ lưu tin là đặt `deleted_at`; nút chấm tất cả chỉ tạo lượt chấm `PENDING`, không gọi AI trong request.
 
 ## 4. Mô tả từng FR (theo thứ tự thực hiện)
 
@@ -854,6 +868,130 @@ Bật theo Job; chưa ẩn danh trong email/tin nhắn gửi ứng viên; không
   người và thời điểm mỗi lần đổi; không có màn xem lưu vết.
 - Thư giới thiệu ẩn toàn bộ (không che từng chuỗi), không tải được CV gốc và tệp ứng viên gửi; nút Lưu vào kho khoá.
 - Phụ thuộc thực tế: thêm FR-C06, FR-C07, FR-H12, FR-H15 (SRS mục 2).
+
+### 20. FR-U16 — Lưu tin tuyển dụng
+
+- **Phase:** 2.7 · **Nhánh:** `feat/fr-u16-saved-jobs` · **Phía sử dụng:** Ứng viên
+- **Đặc tả chi tiết:** `docs/features/UV/U16/REQUIREMENT.md`, `UI.md`
+- **Phụ thuộc:** FR-C02, FR-U02, FR-U07, FR-U08
+- **Mở rộng chức năng hiện có:** FR-C02, FR-U07, FR-U13, FR-U15 (nút Lưu trên thẻ tin và trang chi tiết tin)
+- **Màn hình (UI_GUIDE mục 7):** ★`/candidate/saved-jobs` (mục mới trong menu ứng viên); nút Lưu trên `JobCard` (danh sách Việc làm, kết quả tìm bằng mô tả FR-U13, gợi ý FR-U15) và ở `/jobs/:id`.
+
+**Mục đích**
+
+Cho ứng viên lưu tin để xem lại sau, thay vì phải tìm lại từ đầu.
+
+**Người dùng thao tác**
+
+- Bấm biểu tượng Lưu trên thẻ tin hoặc ở trang chi tiết tin.
+- Mở Tin đã lưu: tin lưu gần nhất ở trên. Tin còn mở có nút Ứng tuyển dẫn về `/jobs/:id/apply` (luồng hiện có); tin không còn mở thì nút bị khoá, kèm câu lý do.
+- Bấm Bỏ lưu ở thẻ tin hoặc ở trang Tin đã lưu, tin rời khỏi danh sách.
+
+**Hệ thống**
+
+- Chỉ tài khoản ứng viên được lưu. Chỉ lưu được tin đang hiển thị công khai; tin khác → 409. Lưu lặp là idempotent.
+- Một bảng mới (V20), mỗi cặp ứng viên–tin đúng một dòng. Bỏ lưu là đặt `deleted_at`; lưu lại cùng tin thì xoá `deleted_at` và cập nhật `saved_at`.
+- Tình trạng tin do backend tính, tái dùng `availabilityOf` + `JobAvailability` của FR-U08 (tách thành thành phần dùng chung), không viết lại điều kiện ngày.
+- Ứng viên đã có đơn ở chu kỳ hiện tại của tin thì thay nút Ứng tuyển bằng "Đã ứng tuyển" + liên kết sang chi tiết đơn.
+- Tin đã gỡ vẫn hiện tên tin và công ty với nhãn "Không còn đăng", vẫn bỏ lưu được.
+- Tối đa 100 tin đang lưu.
+
+**AI**
+
+Không dùng AI.
+
+**Kết quả**
+
+Danh sách tin đã lưu của ứng viên, kèm tình trạng từng tin và lối vào luồng ứng tuyển hiện có.
+
+**Lưu ý**
+
+Kho lưu không thêm đường ứng tuyển mới; backend `apply` vẫn chặn tin không mở. Không thêm cờ `saved` vào API công khai của tin. Nhãn tình trạng tin dùng một kiểu trung tính cho cả 5 giá trị, tái dùng nhãn của FR-U08.
+
+**Phạm vi**
+
+Lưu và bỏ lưu tin của chính ứng viên; HR không xem được ai đã lưu tin; chưa nhắc hạn nộp, chưa dùng tin đã lưu cho gợi ý (FR-U04/U15); không có thư mục, ghi chú hay chia sẻ tin.
+
+### 21. FR-C09 — Yêu cầu xem xét lại đơn bị từ chối
+
+- **Phase:** 2.7 · **Nhánh:** `feat/fr-c09-reconsideration` · **Phía sử dụng:** HR, Ứng viên
+- **Đặc tả chi tiết:** `docs/features/CHUNG/C09/REQUIREMENT.md`, `UI.md`
+- **Phụ thuộc:** FR-H07, FR-H12, FR-U08, FR-H09, FR-C03, FR-H16
+- **Mở rộng chức năng hiện có:** FR-H07 (cạnh `REJECTED → INTERVIEW_INVITED` chỉ qua yêu cầu), FR-U03, FR-U08, FR-H09, FR-H12, FR-C03 (hai loại thông báo mới)
+- **Màn hình (UI_GUIDE mục 7):** Nút và hộp thoại ở ★`/candidate/applications/:id`; nhãn trạng thái ở `/candidate/applications`; ★tab "Yêu cầu xem xét lại" ở `/hr/jobs/:id/edit`; khối yêu cầu đang chờ ở ★`/hr/applications/:id`.
+
+**Mục đích**
+
+Cho ứng viên bị từ chối ở vòng hồ sơ một lần đề nghị HR xem xét lại, và cho HR một chỗ xử lý các đề nghị đó.
+
+**Người dùng thao tác**
+
+- Ứng viên: ở chi tiết đơn đủ điều kiện bấm Yêu cầu xem xét lại (kèm hạn chót) → nhập lý do (không bắt buộc) → Gửi. Sau khi gửi không sửa, không huỷ. Danh sách đơn và chi tiết đơn hiện "Bị từ chối · Đang chờ xem xét lại"; HR quyết xong thì chi tiết đơn hiện kết quả và phản hồi (nếu có).
+- HR: ở tab Yêu cầu xem xét lại của tin (kèm số yêu cầu đang chờ) hoặc khối yêu cầu ở hồ sơ đơn (H09) → Mời phỏng vấn (mở đúng hộp giấy mời FR-H12) hoặc Giữ quyết định từ chối (kèm phản hồi không bắt buộc).
+
+**Hệ thống**
+
+- **Giữ đúng 5 trạng thái đơn.** Yêu cầu nằm ở bảng riêng (V21) với trạng thái riêng `OPEN` / `ACCEPTED` / `DECLINED`; không thêm giá trị nào vào trạng thái đơn.
+- Chỉ đơn bị từ chối ở vòng hồ sơ (`PENDING → REJECTED`) được gửi, mỗi đơn một lần (chốt ở DB), trong 7 ngày kể từ lúc bị từ chối, tính theo giờ DB. Tin quá hạn nộp, tạm dừng hoặc đã đóng vẫn gửi được nếu còn trong 7 ngày.
+- Mời phỏng vấn: gửi giấy mời FR-H12 thành công thì yêu cầu thành `ACCEPTED` và đơn thành `INTERVIEW_INVITED` trong cùng transaction. Đây là cạnh mới duy nhất ở vòng đời đơn, chỉ chạy khi đơn có yêu cầu `OPEN`; không thêm vào bảng chuyển tiếp chung cho mọi đơn.
+- Giữ từ chối: yêu cầu thành `DECLINED`, đơn giữ `REJECTED`. Quyết định bằng UPDATE có điều kiện `status = 'OPEN'`; bấm trùng → 409.
+- Lý do và phản hồi lưu nguyên văn, tối đa 1000 ký tự mỗi ô. Đơn đang ẩn danh (FR-H16): lý do hiển thị cho HR qua bộ che dùng chung, danh sách dùng nhãn "Ứng viên #…".
+- Thông báo: loại mới `RECONSIDERATION_REQUESTED` (tới HR) và `RECONSIDERATION_DECLINED` (tới ứng viên); chấp nhận dùng thông báo đổi trạng thái sẵn có.
+
+**AI**
+
+Không dùng AI: không gợi ý chấp nhận hay từ chối, không soạn phản hồi.
+
+**Kết quả**
+
+Đơn bị từ chối ở vòng hồ sơ có một lối đề nghị xem xét lại; HR mời phỏng vấn hoặc giữ quyết định, ứng viên thấy kết quả.
+
+**Lưu ý**
+
+Phía ứng viên chỉ thấy yêu cầu, trạng thái và phản hồi của chính mình; không thấy điểm, rubric, giải thích AI, ghi chú nội bộ. Phản hồi là nội dung gửi ứng viên, không phải ghi chú nội bộ. Commit đặc tả phải sửa `CLAUDE.md` §2 và `docs/SRS.md` (FR-H07, mục nguyên tắc): giữ "5 trạng thái", nêu thêm ngoại lệ của FR-C09.
+
+**Phạm vi**
+
+Chỉ đơn bị từ chối ở vòng hồ sơ; không áp cho đơn bị từ chối sau phỏng vấn; ứng viên không sửa hay huỷ yêu cầu; không thống kê yêu cầu trên dashboard FR-H08.
+
+### 22. FR-H04 (mở rộng) — Chấm tất cả CV trong tin
+
+- **Phase:** 2.7 · **Nhánh:** `feat/fr-h04-bulk-scoring` · **Phía sử dụng:** HR
+- **Đặc tả chi tiết:** `docs/features/HR/H04/REQUIREMENT.md`, `UI.md`
+- **Phụ thuộc:** FR-H03, FR-H04; làm sau khi `perf/scoring-latency` đã merge
+- **Mở rộng chức năng hiện có:** FR-H04 (phần mở rộng, không phải mã mới)
+- **Màn hình (UI_GUIDE mục 7):** Nút "Chấm tất cả (N)" ở tab Ứng viên của `/hr/jobs/:id/edit`.
+
+**Mục đích**
+
+HR xếp mọi đơn không có lượt `DONE` nào của một tin vào hàng chấm bằng một lần bấm, thay vì bấm chấm từng hồ sơ.
+
+**Người dùng thao tác**
+
+Ở tab Ứng viên của tin, bấm Chấm tất cả (N) → hộp xác nhận ghi số đơn sẽ chấm, số lượt gọi AI ước tính, thời gian ước tính → xác nhận → toast báo số đơn đã xếp vào hàng chấm và số đơn bỏ qua; danh sách tự làm mới.
+
+**Hệ thống**
+
+- Một request tạo một lượt chấm `PENDING` cho mỗi đơn đủ điều kiện: đơn thuộc tin của công ty HR, trạng thái `PENDING`, CV đã trích xuất xong, không có lượt đang chạy, không có lượt `DONE` nào, thuộc chu kỳ tuyển dụng hiện tại của tin.
+- Rubric chưa đủ tổng trọng số 100 → 409, không tạo lượt nào. Mọi lượt dùng chung một `rubric_snapshot`.
+- Trần 50 đơn mỗi lần bấm; đơn bị bỏ qua trả về kèm mã lý do chuẩn hoá.
+- Request chỉ tạo bản ghi, không gọi AI; AI vẫn chạy qua job nền như nút đơn lẻ.
+
+**AI**
+
+Không thêm lời gọi AI mới; lượt chấm chạy đúng luật FR-H04 (mỗi tiêu chí một lần gọi, evidence qua K2).
+
+**Kết quả**
+
+Các đơn đủ điều kiện của tin vào hàng chấm; kết quả hiện dần trên danh sách như khi chấm từng đơn.
+
+**Lưu ý**
+
+Các lượt chạy lần lượt, lô lớn mất nhiều phút; mỗi lượt xong vẫn tạo một thông báo. Không tô màu hay gắn nhãn theo kết quả. Không chấm lại đơn đã có lượt `DONE`.
+
+**Phạm vi**
+
+Chấm trong phạm vi một tin, chu kỳ hiện tại; không chấm song song tiêu chí, không đổi prompt.
 
 ## 5. Ngoài phạm vi (đã chủ động loại, không làm lại)
 

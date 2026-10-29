@@ -7,10 +7,10 @@
 
 Nền tảng tuyển dụng có AI hỗ trợ, 2 loại tài khoản: **HR** và **Ứng viên (Candidate)**.
 Mọi thay đổi hành vi phải bám theo mã yêu cầu (FR-C / FR-H / FR-U). Hai nguồn đặc tả:
-- `docs/SRS.md`: tóm tắt toàn hệ thống (37 mã) + đặc tả đầy đủ của 18 FR đã hoàn thành.
+- `docs/SRS.md`: tóm tắt toàn hệ thống (39 mã) + đặc tả đầy đủ của 18 FR đã hoàn thành.
 - `docs/features/<CHUNG|HR|UV>/<mã>/REQUIREMENT.md` (đặc tả chức năng) và `UI.md` (đặc tả giao
-  diện): nguồn sự thật của 19 FR bổ sung.
-- `docs/features/README.md`: thứ tự thực hiện + mô tả định hướng 19 FR bổ sung — đọc đầu mỗi
+  diện): nguồn sự thật của 21 FR bổ sung.
+- `docs/features/README.md`: thứ tự thực hiện + mô tả định hướng 21 FR bổ sung — đọc đầu mỗi
   phiên làm FR bổ sung; không phải đặc tả để code.
 
 Thứ tự ưu tiên khi mâu thuẫn: REQUIREMENT.md/UI.md đã duyệt > SRS.md > ROADMAP.md/walkthrough.
