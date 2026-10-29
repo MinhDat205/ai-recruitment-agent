@@ -1207,6 +1207,22 @@ vẫn pass; backend chặn việc thêm đơn chưa đồng ý vào kho.
 **Xong khi:** bật ẩn danh không đổi đầu vào chấm điểm; CV builder không thêm nội dung ngoài dữ liệu
 ứng viên nhập.
 
+**Đợt bổ sung 11/2026** (Phase 2.7 ở `docs/features/README.md`; kế hoạch `docs/plans/2026-11-dot-bo-sung.md`)
+
+Làm tuần tự theo thứ tự dưới đây, mỗi nhánh merge xong mới mở nhánh code kế tiếp. **FR-U16 merge trước
+FR-C09** vì số migration đã chốt trước (V20, V21): Flyway không nhận V20 khi DB đã ở V21, đổi thứ tự merge thì
+phải đổi số.
+- [x] `docs/plan-2026-11` — thêm kế hoạch đợt 11/2026, đăng ký FR-U16, FR-C09 và phần mở rộng FR-H04 vào SRS,
+  `docs/features/README.md`, ROADMAP, `CLAUDE.md` §1; tạo khung đặc tả `CHƯA ĐẶC TẢ` (đợt D1 của kế hoạch).
+- [ ] `perf/scoring-latency` — tăng số luồng scheduler, rút chu kỳ quét chấm điểm 5 s → 1 s, chặn race embedding;
+  không mã FR, không migration (kế hoạch 28/10 + mục sửa đổi trong kế hoạch 11/2026).
+- [ ] `feat/fr-u16-saved-jobs` — FR-U16 · Lưu tin tuyển dụng (V20): ứng viên lưu tin, xem ở "Tin đã lưu", bỏ lưu
+  bằng `deleted_at`.
+- [ ] `feat/fr-c09-reconsideration` — FR-C09 · Yêu cầu xem xét lại đơn bị từ chối (V21): yêu cầu ở bảng riêng, đơn
+  vẫn đúng 5 trạng thái; rebase lên `main` sau khi FR-U16 đã merge.
+- [ ] `feat/fr-h04-bulk-scoring` — FR-H04 mở rộng · Chấm tất cả CV trong tin: một lần bấm tạo lượt chấm `PENDING`
+  cho các đơn đủ điều kiện, trần 50; không migration, làm nếu còn thời gian.
+
 ---
 
 ## Ba nhánh cần review kỹ nhất

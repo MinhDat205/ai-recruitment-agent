@@ -1,7 +1,7 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này phản ánh hệ thống đã hoàn thành, cập nhật lần gần nhất ngày 20/10/2026. Các quyết
+> Đặc tả này cập nhật lần gần nhất ngày 29/10/2026 (đăng ký FR-C09, FR-U16 và phần mở rộng FR-H04). Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
@@ -11,10 +11,11 @@ Tài liệu này tổ chức lại toàn bộ yêu cầu chức năng theo 3 nh�
 # 0. Tổng quan hệ thống
 
 Nền tảng có hai vai trò sử dụng: **Nhà tuyển dụng (HR)** và **Ứng viên (Candidate)**. Tính đến thời
-điểm cập nhật này, hệ thống có tổng cộng 37 mã yêu cầu chức năng và **cả 37 đã hoàn thành**: 18
-chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ ở Mục 1/2/3 bên dưới) và 19
-chức năng bổ sung (FR-C05–C08, FR-H09–H12, FR-H14–H16, FR-U07–U10, FR-U12–U15), mỗi chức năng bổ
-sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
+điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **37 đã hoàn thành và 2 chưa
+hoàn thành** (FR-C09, FR-U16): 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
+ở Mục 1/2/3 bên dưới) và 21 chức năng bổ sung (FR-C05–C09, FR-H09–H12, FR-H14–H16, FR-U07–U10,
+FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng tại
+`docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
 
 | Mã | Tên | Actor | Trạng thái | Tài liệu chi tiết |
 | --- | --- | --- | --- | --- |
@@ -26,6 +27,7 @@ sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIR
 | FR-C06 | Nhắn tin theo đơn ứng tuyển | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C06/REQUIREMENT.md](features/CHUNG/C06/REQUIREMENT.md) |
 | FR-C07 | AI soạn nháp tin nhắn | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C07/REQUIREMENT.md](features/CHUNG/C07/REQUIREMENT.md) |
 | FR-C08 | Hỏi đáp CV có trích dẫn | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C08/REQUIREMENT.md](features/CHUNG/C08/REQUIREMENT.md) |
+| FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | HR, Ứng viên | Chưa hoàn thành | [features/CHUNG/C09/REQUIREMENT.md](features/CHUNG/C09/REQUIREMENT.md) |
 | FR-H01 | Quản lý Hồ sơ Doanh nghiệp | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H02 | Quản lý Tin Tuyển dụng (Job Posting) | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H03 | Thiết lập Rubric Tuyển dụng | HR | Đã hoàn thành | Mục 2 bên dưới |
@@ -55,6 +57,7 @@ sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIR
 | FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Ứng viên | Đã hoàn thành | [features/UV/U13/REQUIREMENT.md](features/UV/U13/REQUIREMENT.md) |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Ứng viên | Đã hoàn thành | [features/UV/U14/REQUIREMENT.md](features/UV/U14/REQUIREMENT.md) |
 | FR-U15 | Gợi ý việc làm theo hồ sơ | Ứng viên | Đã hoàn thành | [features/UV/U15/REQUIREMENT.md](features/UV/U15/REQUIREMENT.md) |
+| FR-U16 | Lưu tin tuyển dụng | Ứng viên | Chưa hoàn thành | [features/UV/U16/REQUIREMENT.md](features/UV/U16/REQUIREMENT.md) |
 
 > FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026, trước khi đặc tả. Mã FR-H13 không
 > dùng lại; các mã khác giữ nguyên. Lý do: `docs/features/README.md` mục 5.
@@ -81,6 +84,7 @@ sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIR
 | FR-C06 | Nhắn tin theo đơn ứng tuyển | HR và ứng viên trao đổi quanh từng đơn, có đính kèm file, thông báo web + email, tự tải lại định kỳ | HR, Ứng viên | FR-C03, FR-U01, FR-H09, FR-U08 |
 | FR-C07 | AI soạn nháp tin nhắn | Soạn nháp theo tình huống có sẵn của từng vai trò; người dùng sửa rồi tự bấm Gửi; không lộ điểm/rubric | HR, Ứng viên | FR-C06 |
 | FR-C08 | Hỏi đáp CV có trích dẫn | Hỏi về một CV cụ thể, trả lời kèm trích dẫn đã kiểm chứng; HR hỏi CV của đơn, ứng viên hỏi CV của mình | HR, Ứng viên | FR-C04, FR-H09 |
+| FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | Ứng viên có đơn bị từ chối ở vòng hồ sơ được gửi một yêu cầu xem xét lại trong 7 ngày; HR mời phỏng vấn hoặc giữ quyết định từ chối | HR, Ứng viên | FR-H07, FR-H12, FR-U08, FR-H09, FR-C03, FR-H16 |
 
 # 2. Chức năng Nhà tuyển dụng (HR)
 
@@ -134,6 +138,7 @@ sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIR
 | FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Mô tả việc mong muốn bằng lời; hệ thống tách điều kiện lọc và xếp theo độ liên quan | Ứng viên | FR-U07, FR-U15, FR-C05, FR-C07 |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Sau đăng ký hoặc ở trang hồ sơ: khai chức danh, ngành, khu vực, lương, kỹ năng mong muốn; điền nhanh từ CV | Ứng viên | FR-U01, FR-C05, FR-U04 |
 | FR-U15 | Gợi ý việc làm theo hồ sơ | Khối "Gợi ý cho bạn" trên trang Việc làm, dựa trên mong muốn + CV (hoặc hồ sơ nếu chưa có CV); mở rộng FR-U04 | Ứng viên | FR-U14, FR-U07, FR-C05, FR-U04 |
+| FR-U16 | Lưu tin tuyển dụng | Ứng viên lưu tin để xem lại ở trang "Tin đã lưu", chỉ ứng tuyển được tin còn mở và bỏ lưu bất kỳ lúc nào | Ứng viên | FR-C02, FR-U02, FR-U07, FR-U08 |
 
 ## Ghi chú tổng hợp về nguyên tắc thiết kế AI
 
@@ -181,6 +186,18 @@ sung có tài liệu chi tiết riêng tại `docs/features/<nhóm>/<mã>/REQUIR
 | FR-U01 | FR-U12 | Tạo CV bằng form, sửa thành phiên bản mới |
 | FR-C04 | FR-U12 | Nguồn CV đã trích xuất thứ hai (`cv-builder-v1`, không qua AI) |
 | FR-U07 | FR-U13 | Trang Việc làm có thêm chế độ tìm bằng mô tả (chỉ khi đăng nhập ứng viên) |
+| FR-H07 | FR-C09 | Thêm đúng một cạnh `REJECTED → INTERVIEW_INVITED`, chỉ khi HR chấp nhận yêu cầu xem xét lại `OPEN`; vẫn 5 trạng thái |
+| FR-U03 | FR-C09 | Danh sách đơn hiện "Bị từ chối · Đang chờ xem xét lại" |
+| FR-U08 | FR-C09 | Nút "Yêu cầu xem xét lại" kèm hạn chót; hiện kết quả và phản hồi của HR |
+| FR-H09 | FR-C09 | Khối yêu cầu đang chờ với hai nút Mời phỏng vấn / Giữ quyết định từ chối |
+| FR-H12 | FR-C09 | Giấy mời nhận đơn `REJECTED` có yêu cầu `OPEN`; gửi xong, yêu cầu thành `ACCEPTED` trong cùng transaction |
+| FR-C03 | FR-C09 | Thêm loại thông báo `RECONSIDERATION_REQUESTED` (tới HR), `RECONSIDERATION_DECLINED` (tới ứng viên) |
+| FR-C02 | FR-U16 | Nút Lưu trên thẻ tin và trang chi tiết `/jobs/:id`; API công khai của tin không thêm cờ `saved` |
+| FR-U07 | FR-U16 | Nút Lưu trên thẻ tin ở danh sách Việc làm |
+| FR-U13 | FR-U16 | Nút Lưu trên thẻ kết quả tìm bằng mô tả |
+| FR-U15 | FR-U16 | Nút Lưu trên thẻ gợi ý |
+| FR-U08 | FR-U16 | Tách tình trạng tin (availabilityOf + JobAvailability) thành thành phần dùng chung cho trang Tin đã lưu; hành vi FR-U08 không đổi |
+| FR-H04 | Chấm tất cả CV trong tin (mở rộng FR-H04, không mã mới) | Nút "Chấm tất cả (N)" ở tab Ứng viên: tạo lượt chấm `PENDING` cho đơn `PENDING` không có lượt `DONE` nào, thuộc chu kỳ hiện tại, trần 50 đơn; request không gọi AI |
 
 # 5. Ngoài phạm vi
 
