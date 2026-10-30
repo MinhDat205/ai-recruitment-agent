@@ -535,7 +535,7 @@ khác "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục 
   `frontend/src/pages/CandidateSavedJobsPage.tsx` → 0 dòng.
 - Tìm `POST.*candidates/applications|createApplication` trong `features/savedJobs` → 0 dòng (R-V8).
 
-### 7.4 Soát tay (desktop ≥ `lg`, `md` 768px và điện thoại 375px) — `quochuyuv@gmail.com` / `12345678`
+### 7.4 Soát tay (desktop ≥ `lg`, 768px và điện thoại 375px) — `quochuyuv@gmail.com` / `12345678`
 
 **Thẻ việc làm sau khi đổi `<Link>` → `<article>` (R-B3) — kiểm ở đủ 4 nơi dùng `JobCard`:**
 
@@ -572,7 +572,7 @@ khác "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục 
 | Đã ứng tuyển | Lưu tin đã có đơn A1 | "Đã ứng tuyển" + badge + "Xem đơn" mở `/candidate/applications/{A1}` |
 | Bỏ lưu tin không còn mở | Bấm "Bỏ lưu" ở tin quá hạn | Hộp xác nhận nói rõ không lưu lại được (Q5); xác nhận → tin rời danh sách, số đếm giảm |
 | Rỗng | Bỏ lưu hết | Câu rỗng + liên kết "Tìm việc làm" |
-| Menu ở `md` | Cửa sổ rộng 768px và 1023px, mọi trang ứng viên | `document.documentElement.scrollWidth === document.documentElement.clientWidth` (không cuộn ngang); 6 mục menu, chuông, Đăng xuất nhìn thấy trọn, không chồng lên nhau (UI.md mục 8) — sai thì dừng, đề xuất sửa UI.md |
+| Menu theo bề rộng (B9) | Cửa sổ rộng 375px, 768px, 1023px, 1024px, 1280px ở `/candidate/saved-jobs` | Cả 5 mức `document.documentElement.scrollWidth === document.documentElement.clientWidth`; 375/768/1023px: nút mở sheet, sheet có đủ 6 mục, "Tin đã lưu" có `aria-current`; 1024/1280px: thanh ngang 6 mục, không chồng lên nhau (UI.md mục 8) |
 
 ## 8. AI hay làm sai (dành cho người code)
 
@@ -708,3 +708,4 @@ Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3
 | B6 | Một query cho cả trang, cập nhật lạc quan | R-B4, R-B5, R-B6 (thay câu "không cập nhật lạc quan" của bản `f514a03`); UI.md mục 6, 10; mục 8 |
 | B7 (30/10/2026) | `PUT` tin đang lưu nhưng không còn mở (gỡ/đóng/tạm dừng/hết hạn) | 409 `JOB_NOT_SAVEABLE` theo thứ tự kiểm R-L3/mục 4.2 (R-S2 trước khi đọc dòng hiện có); dòng lưu không đổi. Ghi rõ ở R-S4 và bảng E1 mục 4.2 |
 | B8 (30/10/2026) | Hoàn lại khi lưu/bỏ lưu lỗi | Lỗi thì đưa riêng tin vừa bấm về trạng thái trước khi bấm (không trả lại ảnh chụp cả danh sách, để không xoá thay đổi đang chờ của thẻ khác). Ghi ở R-B5, mục 8; UI.md mục 5a, 6, 10. Cùng đợt duyệt: giữ hiệu ứng tiêu đề đổi màu khi rê cả thẻ (hệ quả của liên kết phủ thẻ, R-B3) |
+| B9 (30/10/2026) | Menu ứng viên ngang từ lg | Menu ứng viên ngang từ lg; lỗi tràn 40px ở 768px có từ trước FR-U16, sửa luôn ở đây. Dưới `lg` dùng nút mở sheet. Ghi ở UI_GUIDE mục 2 (chỉ dòng Ứng viên, HR giữ nguyên), UI.md mục 3, 8; mục 7.4 |

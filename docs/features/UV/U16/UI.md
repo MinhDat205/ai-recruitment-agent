@@ -31,7 +31,7 @@ sửa bảng mục 7 UI_GUIDE: trong commit duyệt đặc tả (REQUIREMENT m�
 ## 3. Điểm vào
 
 - Menu ứng viên: mục mới **"Tin đã lưu"**, đặt **ngay sau "Việc làm"** trong `NAV_ITEMS` (`CandidateLayout.tsx:21-44`),
-  cùng hiện ở thanh ngang (`≥ md`) và sheet điện thoại (`< md`). Sáng khi `path.startsWith('/candidate/saved-jobs')`.
+  cùng hiện ở thanh ngang (`≥ lg`) và sheet (`< lg`, B9 — UI_GUIDE mục 2). Sáng khi `path.startsWith('/candidate/saved-jobs')`.
 - Mở thẳng URL (dán link, F5): trang tự tải.
 - Từ trang Tin đã lưu đi ra: tiêu đề tin (chỉ khi `OPEN`) → `/jobs/:id`; "Ứng tuyển" → `/jobs/:id/apply`; "Xem đơn" →
   `/candidate/applications/:id`; câu rỗng → "Tìm việc làm" (`/candidate`).
@@ -281,7 +281,7 @@ Chuỗi có sẵn của `ApplicationStatusBadge`, `formatDeadline` giữ nguyên
 | Lớp | Thẻ việc làm | Trang Tin đã lưu | Menu ứng viên |
 |---|---|---|---|
 | Expanded (≥ `lg`) | Lưới 2 cột như cũ; nút Lưu 40×40 góc dưới phải | Hàng: logo 64px trái; nội dung giữa; nhóm nút phải cùng hàng "Đã lưu …" | Thanh ngang 6 mục |
-| Medium (`sm`–`lg`) | 1 cột như cũ; nút như expanded | Nhóm nút xuống dòng dưới "Đã lưu …", căn trái | `md`–`lg`: thanh ngang 6 mục — **soát tay bắt buộc ở 768px** (REQUIREMENT 7.4): thanh hiện đã có logo + 5 mục + chuông + tên + Đăng xuất; tràn thì dừng, đề xuất sửa mục này. `sm`–`md`: sheet |
+| Medium (`sm`–`lg`) | 1 cột như cũ; nút như expanded | Nhóm nút xuống dòng dưới "Đã lưu …", căn trái | *(B9)* Nút menu mở sheet (`MobileNavSheet`), đủ 6 mục; không thanh ngang. Lý do: đo 30/10/2026 ở 768px, thanh ngang tràn 40px khi còn 5 mục (có từ trước FR-U16) và 127px khi thêm "Tin đã lưu" |
 | Compact (< `sm`, 375px) | Nút Lưu giữ 40×40 (vùng chạm ≥ 40px, UI_GUIDE mục 3) | Mục 4d: logo 48px, nút `w-full` xếp dọc | Sheet (`MobileNavSheet`) |
 
 - Không thanh dưới đáy cố định ở bất kỳ khổ nào; không cuộn ngang toàn trang ở 375px.

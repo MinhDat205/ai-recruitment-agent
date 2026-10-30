@@ -172,8 +172,9 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 `sm–lg` = medium, `≥ lg` = expanded.
 
 - **HR**: navigation drawer 240px khi `≥ lg`; navigation rail (icon + nhãn ngắn) khi `< lg`.
-- **Ứng viên**: thanh tab ngang khi `≥ md`; khi `< md` dùng nút menu mở sheet (khu vực ứng viên có
-  quá 5 đích nên không dùng thanh điều hướng dưới đáy).
+- **Ứng viên**: thanh tab ngang khi `≥ lg`; khi `< lg` dùng nút menu mở sheet (khu vực ứng viên có
+  quá 5 đích nên không dùng thanh điều hướng dưới đáy; từ `md` tới dưới `lg` thanh ngang không đủ chỗ — đo
+  30/10/2026 ở 768px: tràn ngang cả khi chỉ có 5 mục, FR-U16 B9).
 - Không dùng hero ở trang HR; không dùng sidebar ở trang ứng viên.
 
 ---
