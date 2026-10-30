@@ -4,10 +4,10 @@ Thư mục có **hai bộ dữ liệu độc lập, hai vai trò** (`chore/seed-
 
 | Bộ | Dùng cho | File | Nạp khi demo cho hội đồng? |
 |---|---|---|---|
-| **Demo** | Câu chuyện liền mạch cho hội đồng: 2 công ty, 12 tin OPEN, 9 ứng viên, điểm và giải thích do AI thật sinh | 4 tầng: 1 → 2 → 1b → 2b (mục 1) | **Có** |
+| **Demo** | Câu chuyện liền mạch cho hội đồng: 2 công ty, 12 tin OPEN, 9 ứng viên, điểm và giải thích do AI thật sinh | 5 tầng: 1 → 2 → 1b → 2b → 3 (mục 1) | **Có** |
 | **Test** | Ma trận trạng thái để soát giao diện (mỗi màn hình đủ mọi trạng thái) | `seed-test.sql` (mục 8) | **Không** |
 
-Bộ demo chia **bốn tầng**, nạp đúng thứ tự:
+Bộ demo chia **năm tầng**, nạp đúng thứ tự:
 
 - **Tầng 1** (`seed-demo-structural.sql`) — dữ liệu cấu trúc thuần, không phụ thuộc
   AI: HR, candidate, company, job, rubric, tiêu chí, mẫu giấy mời phỏng vấn. SQL
@@ -26,6 +26,11 @@ Bộ demo chia **bốn tầng**, nạp đúng thứ tự:
   (19/10/2026) trên DB chỉ có demo: embedding 6 tin công ty 2 + 4 hồ sơ, lượt chấm + giải thích đơn
   Trần Minh Hoàng → Kỹ sư DevOps (FR-H14), 2 CV dựng bằng công cụ của Bùi Ngọc Mai (FR-U12). Sinh bằng
   `export-demo-ai-2b.ps1` (mục 10), không sửa tay.
+- **Tầng 3** (`seed-demo-structural-3.sql`, FR-U16) — dữ liệu cấu trúc viết tay, không phụ thuộc AI: một tin của công
+  ty Hoàn Mỹ đã **hết hạn nộp** ("Nhân viên Hỗ trợ kỹ thuật (IT Helpdesk)", `OPEN`, hạn `CURRENT_DATE - 1` lúc nạp) và
+  **4 tin đã lưu** của Phạm Quốc Bảo (tin quá hạn + 3 tin đang mở của công ty Ngân Hà). Idempotent: đầu file xoá dải
+  của mình rồi chèn lại, chạy lại bao nhiêu lần cũng được (đã thử hai lần liên tiếp, 30/10/2026). FR-C09 thêm phần của
+  mình vào cùng file.
 
 Lý do tách tầng và vì sao tầng 2/2b không viết tay: `docs/walkthrough/chore-seed-demo.md` mục "Quyết
 định thiết kế" và `docs/walkthrough/chore-seed-final.md` (K1, K5).
@@ -37,19 +42,21 @@ Lý do tách tầng và vì sao tầng 2/2b không viết tay: `docs/walkthrough
 | `d0`–`d6` (`d0000000-…`, nhóm 4 = `0000`) | Demo · tầng 1 | Người dùng, công ty, tin, rubric, hồ sơ… |
 | UUID ngẫu nhiên | Demo · tầng 2 và 2b | Do app sinh trong lượt chạy thật |
 | `d1b00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 1b | `TTTT` = mã bảng, bảng mã ở `chore-seed-final.md` mục K2 |
+| `d3a00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 3 | Cùng bảng mã `TTTT`, thêm `0020` = `saved_jobs`. **Không** dùng `d3000000-`: đó là tiền tố 6 rubric của tầng 1 (FR-U16 B10) |
 | `e0`–`ef` (`e0000000-…`), `f0000000-…`, `f1000000-…` | Test | Bộ test gốc |
 | `f2000000-TTTT-0000-0000-NNNNNNNNNNNN` | Test · mục 17 | Công ty test thứ hai + HR + 2 ứng viên; cùng bảng mã `TTTT` |
 
-Đếm hay dọn theo dải phải dùng tiền tố đủ 8 ký tự (vd `LIKE 'd1b00000-%'`, `~ '^e[0-9a-f]000000-0000-0000-0000-'`),
+Đếm hay dọn theo dải phải dùng tiền tố đủ 8 ký tự (vd `LIKE 'd1b00000-%'`, `LIKE 'd3a00000-%'`, `~ '^e[0-9a-f]000000-0000-0000-0000-'`),
 xem mục 9.
 
 ---
 
 ## 1. Thứ tự chạy BẮT BUỘC — không được đảo
 
-**Tiền đề (một lần): DB phải ở V19 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 30 bảng
-nghiệp vụ đến V19 (`job_blind_review_changes`); DB còn ở V18 thì `TRUNCATE` báo
-`relation ... does not exist` và dừng, không xoá gì. DB trống (vd sau `docker compose down -v`) cũng
+**Tiền đề (một lần): DB phải ở V20 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 31 bảng
+nghiệp vụ đến V20 (`saved_jobs`, FR-U16); DB còn ở V19 thì `TRUNCATE` báo
+`relation ... does not exist` và dừng, không xoá gì. Tầng 1b chấp nhận V19 trở lên, tầng 3 cần V20 trở lên (chốt chặn
+đầu file; trước FR-U16 tầng 1b đòi **đúng** V19 nên chuỗi nạp từ DB trống dừng ở 1b sau khi có V20 — B11). DB trống (vd sau `docker compose down -v`) cũng
 cần bước này. Khởi động backend một lần với mọi scheduler gọi AI **tắt**, chờ dòng log
 `Started BackendApplication` (Flyway đã chạy xong), rồi dừng backend (Ctrl+C):
 
@@ -82,11 +89,15 @@ docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_S
 docker compose cp db\seed\seed-demo-ai-output-2b.sql postgres:/tmp/seed-demo-ai-output-2b.sql
 docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-ai-output-2b.sql
 
+# 5b. Tầng 3 — tin đã lưu (FR-U16): một tin hết hạn nộp + 4 tin đã lưu của Phạm Quốc Bảo
+docker compose cp db\seed\seed-demo-structural-3.sql postgres:/tmp/seed-demo-structural-3.sql
+docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-structural-3.sql
+
 # 6. Cài file (CV PDF, logo, tệp đính kèm) vào đúng chỗ backend đọc được (xem mục 5)
 .\db\seed\install-demo-files.ps1
 ```
 
-`-v ON_ERROR_STOP=1` buộc psql dừng ở lỗi đầu tiên và thoát mã khác 0 (tầng 1b, 2b còn bọc cả file trong
+`-v ON_ERROR_STOP=1` buộc psql dừng ở lỗi đầu tiên và thoát mã khác 0 (tầng 1b, 2b, 3 còn bọc cả file trong
 một transaction nên lỗi thì không ghi gì). Bỏ qua bước 6 thì DB vẫn đúng, nhưng nút "Xem CV gốc" (FR-H06),
 logo và tệp đính kèm sẽ báo lỗi vì file không có trên đĩa. Chạy bước 6 mà chưa nạp dữ liệu demo sẽ báo lỗi
 ngay, không âm thầm sai.
@@ -324,12 +335,32 @@ Số dòng sau khi nạp đủ mục 1 (đo hai lần trên DB trống, 19/10/20
 | `application_status_history` | 18 | `job_screening_questions` / `application_screening_answers` | 4 / 2 |
 | `job_blind_review_changes` | 3 | `interview_templates` | 12 |
 
+### 6c. Sau tầng 3 (FR-U16)
+
+Tầng 3 chỉ thêm 2 bảng so với bảng 6b: `jobs` **13** (12 tin OPEN còn hạn + 1 tin OPEN hết hạn nộp, không hiện trên bảng
+việc làm công khai), `saved_jobs` **4**. Mọi bảng khác giữ nguyên số ở 6b (đo hai lần nạp đủ chuỗi mục 1 từ DB trống,
+30/10/2026, số dòng mọi bảng giống nhau giữa hai lần).
+
+**Kịch bản thử lưu tin** (đăng nhập `pham.quoc.bao@demo.local`):
+
+1. Menu **"Tin đã lưu"** (`/candidate/saved-jobs`): "Đang lưu 4/100 tin", thứ tự từ trên xuống: Chuyên viên Thiết kế
+   UI/UX, Chuyên viên Phân tích dữ liệu, Nhân viên Chăm sóc khách hàng, Nhân viên Hỗ trợ kỹ thuật (IT Helpdesk).
+2. Tin IT Helpdesk: nhãn "Đã hết hạn nộp", nút Ứng tuyển khoá kèm câu lý do, không có liên kết sang trang tin. Bấm "Bỏ
+   lưu" → hộp xác nhận (tin không còn mở thì không lưu lại được).
+3. Trang Việc làm `/candidate`: bấm Lưu trên thẻ một tin khác → thẻ hiện "Đã lưu", trang tin không mở; quay lại Tin đã
+   lưu thấy tin đó ở trên cùng.
+4. "Đã ứng tuyển" + "Xem đơn": Bảo chưa có đơn ở chu kỳ hiện tại của 4 tin trên — bấm "Ứng tuyển" ở một tin đang mở, nộp
+   đơn, quay lại trang để thấy trạng thái này.
+
+Kiểm bằng SQL: `SELECT count(*) FROM saved_jobs WHERE deleted_at IS NULL AND candidate_id =
+'d0000000-0000-0000-0000-000000000004';` → **4**.
+
 ---
 
 ## 7. Kiểm chứng sau khi nạp xong
 
-Sau khi chạy đủ 6 bước ở mục 1, nên thấy đúng những điều sau — nếu khác, có gì đó
-đã sai ở một trong 6 bước:
+Sau khi chạy đủ các bước ở mục 1, nên thấy đúng những điều sau — nếu khác, có gì đó
+đã sai ở một trong các bước (riêng tầng 3: mục 6c):
 
 - Đăng nhập `hr@demo.local`, mở job **"Kỹ sư DevOps"** → tab Ứng viên: **3 ứng viên**
   — Nguyễn Hải Sơn **81.00** hạng 1, Lê Văn Đức **59.50** hạng 2, Trần Minh Hoàng **35.00** hạng 3 (tầng 2b).
@@ -395,7 +426,7 @@ docker compose cp db\seed\seed-test.sql postgres:/tmp/seed-test.sql
 docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-test.sql
 .\db\seed\install-test-files.ps1
 
-# Cùng demo: chạy đủ 6 bước ở mục 1 TRƯỚC (reset-demo-db.sql xoá luôn bộ test), rồi mới 3 lệnh trên.
+# Cùng demo: chạy đủ các bước ở mục 1 TRƯỚC (reset-demo-db.sql xoá luôn bộ test), rồi mới 3 lệnh trên.
 ```
 
 Từ chore/seed-final, `install-demo-files.ps1` chỉ ghi đè file có trong nguồn của demo và
@@ -490,6 +521,8 @@ hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn on
 - **Nạp cùng demo:** từ chore/seed-final, 12 tin demo (6 ở tầng 2, 6 ở tầng 2b) và 4 hồ sơ demo (tầng 2b) đã
   có embedding đông cứng, nên nạp chung không phát sinh thêm lượt OpenAI nào cho dữ liệu demo (bộ test vẫn 3
   lượt như trên).
+- **Ngoại lệ từ tầng 3 (FR-U16):** tin hết hạn nộp vẫn `OPEN` và không có embedding (seed không sinh embedding), nên
+  backend chạy với khoá OpenAI thật và bật `job-embedding` sẽ gọi OpenAI **một lần** cho tin này.
 
 ---
 

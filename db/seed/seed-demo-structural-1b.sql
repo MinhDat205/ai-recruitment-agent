@@ -10,7 +10,8 @@
 -- nop, published_at cong ty 2) doi theo luc nap - nhu quy uoc tang 1 va seed-test.
 --
 -- Chot chan dau file (sai thi RAISE EXCEPTION, khong ghi gi - ca file la MOT transaction):
---   1. DB o dung V19 (flyway_schema_history).
+--   1. DB o V19 tro len (flyway_schema_history). Truoc FR-U16 la "dung V19" - V20 (saved_jobs) lam chuoi nap tu
+--      DB trong dung o day; 1b khong dung bang nao moi tu V20, nen chi can >= V19.
 --   2. Du 9 don demo cua tang 2 (K3: APP-*).
 --   3. Chua co du lieu tang 2b tro toi dai d1b (luot cham cua don d1b, embedding tin d1b, diem theo tieu chi
 --      d1b): xoa dai d1b se CASCADE xoa mat chung. Da nap 2b thi phai nap lai tu dau (K5), khong chay lai 1b.
@@ -50,8 +51,8 @@ DECLARE
     v_tier2b  INT;
 BEGIN
     SELECT max(version::int) INTO v_version FROM flyway_schema_history WHERE success AND version IS NOT NULL;
-    IF v_version IS DISTINCT FROM 19 THEN
-        RAISE EXCEPTION 'CHOT CHAN 1b THAT BAI: DB dang o V% , can dung V19. Khoi dong backend mot lan de Flyway len V19 (K5).',
+    IF v_version IS NULL OR v_version < 19 THEN
+        RAISE EXCEPTION 'CHOT CHAN 1b THAT BAI: DB dang o V% , can V19 tro len. Khoi dong backend mot lan de Flyway chay xong (K5).',
             v_version;
     END IF;
 
