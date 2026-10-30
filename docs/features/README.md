@@ -912,6 +912,20 @@ Kho lưu không thêm đường ứng tuyển mới; backend `apply` vẫn chặ
 
 Lưu và bỏ lưu tin của chính ứng viên; HR không xem được ai đã lưu tin; chưa nhắc hạn nộp, chưa dùng tin đã lưu cho gợi ý (FR-U04/U15); không có thư mục, ghi chú hay chia sẻ tin.
 
+**Phạm vi thực tế (hoàn thành 30/10/2026, `docs/features/UV/U16/REQUIREMENT.md`)**
+
+- Tình trạng tin tách thành `job/JobAvailabilityResolver` (một tin và theo lô — danh sách không N+1) và
+  `job/JobSummaryMapper`; FR-U08 dùng lại, JSON không đổi.
+- Mọi tin không mở → 409 `JOB_NOT_SAVEABLE` cùng một câu, kể cả UUID không tồn tại (Q2) và tin đang lưu nhưng đã
+  đóng/tạm dừng/hết hạn (B7, dòng lưu không đổi). Vượt trần 100 → 409 `SAVED_JOB_LIMIT_REACHED`; trần chốt bằng khoá
+  hàng `users` `FOR NO KEY UPDATE` (Q1).
+- Khoá ngoại `ON DELETE CASCADE` cho cả hai cột (Q8): xoá tin/người dùng thì dòng lưu mất theo.
+- Tin "Không còn đăng" chỉ trả tên tin và công ty. Bỏ lưu tin không còn mở thì hỏi xác nhận (Q5).
+- Nút Lưu có ở cả khối gợi ý của Bảng tin `/candidate/dashboard`; `JobCard` đổi thành `<article>` có liên kết phủ thẻ
+  để nút không nằm trong liên kết. Bấm Lưu đổi ngay (lạc quan), lỗi thì riêng tin đó trở lại (B6, B8).
+- Menu ứng viên ngang từ `lg` (B9, sửa cả lỗi tràn có từ trước ở 768px); dưới `lg` dùng sheet.
+- Seed demo tầng 3 (`seed-demo-structural-3.sql`): Phạm Quốc Bảo có 4 tin đã lưu, một tin đã hết hạn nộp.
+
 ### 21. FR-C09 — Yêu cầu xem xét lại đơn bị từ chối
 
 - **Phase:** 2.7 · **Nhánh:** `feat/fr-c09-reconsideration` · **Phía sử dụng:** HR, Ứng viên

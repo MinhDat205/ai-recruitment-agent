@@ -1,7 +1,8 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này cập nhật lần gần nhất ngày 29/10/2026 (đăng ký FR-C09, FR-U16 và phần mở rộng FR-H04). Các quyết
+> Đặc tả này cập nhật lần gần nhất ngày 30/10/2026 (FR-U16 hoàn thành; 29/10/2026: đăng ký FR-C09, FR-U16 và phần
+> mở rộng FR-H04). Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
@@ -11,8 +12,8 @@ Tài liệu này tổ chức lại toàn bộ yêu cầu chức năng theo 3 nh�
 # 0. Tổng quan hệ thống
 
 Nền tảng có hai vai trò sử dụng: **Nhà tuyển dụng (HR)** và **Ứng viên (Candidate)**. Tính đến thời
-điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **37 đã hoàn thành và 2 chưa
-hoàn thành** (FR-C09, FR-U16): 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
+điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **38 đã hoàn thành và 1 chưa
+hoàn thành** (FR-C09): 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
 ở Mục 1/2/3 bên dưới) và 21 chức năng bổ sung (FR-C05–C09, FR-H09–H12, FR-H14–H16, FR-U07–U10,
 FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng tại
 `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
@@ -57,7 +58,7 @@ FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng t�
 | FR-U13 | Tìm việc bằng ngôn ngữ tự nhiên | Ứng viên | Đã hoàn thành | [features/UV/U13/REQUIREMENT.md](features/UV/U13/REQUIREMENT.md) |
 | FR-U14 | Hồ sơ nghề nghiệp và mong muốn công việc | Ứng viên | Đã hoàn thành | [features/UV/U14/REQUIREMENT.md](features/UV/U14/REQUIREMENT.md) |
 | FR-U15 | Gợi ý việc làm theo hồ sơ | Ứng viên | Đã hoàn thành | [features/UV/U15/REQUIREMENT.md](features/UV/U15/REQUIREMENT.md) |
-| FR-U16 | Lưu tin tuyển dụng | Ứng viên | Chưa hoàn thành | [features/UV/U16/REQUIREMENT.md](features/UV/U16/REQUIREMENT.md) |
+| FR-U16 | Lưu tin tuyển dụng | Ứng viên | Đã hoàn thành | [features/UV/U16/REQUIREMENT.md](features/UV/U16/REQUIREMENT.md) |
 
 > FR-H13 (Câu hỏi phỏng vấn theo CV) đã loại khỏi phạm vi ngày 14/10/2026, trước khi đặc tả. Mã FR-H13 không
 > dùng lại; các mã khác giữ nguyên. Lý do: `docs/features/README.md` mục 5.

@@ -1,6 +1,7 @@
 # FR-U16 — Lưu tin tuyển dụng
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026). Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q8; Q8 đổi FK sang
+> Trạng thái: ĐÃ HOÀN THÀNH (30/10/2026). Duyệt: 30/10/2026. Walkthrough: `docs/walkthrough/fr-u16-saved-jobs.md`.
+> Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q8; Q8 đổi FK sang
 > `ON DELETE CASCADE`; bổ sung B1–B3 về `JobCard`, quyền riêng tư, không AI/không xếp hạng).
 >
 > Viết theo kế hoạch `docs/plans/2026-11-dot-bo-sung.md` (mục "FR-U16", R1–R10).
@@ -656,17 +657,17 @@ demo của ứng viên demo còn nguyên. `reset-demo-db.sql` → `saved_jobs` r
 Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3**; mọi việc của FR-U16 thuộc "Đợt cuối U16", trừ
 `docs/UI_GUIDE.md` mục 7 sửa sớm theo Q6. Đợt 7 làm:
 
-- [ ] `docs/features/UV/U16/REQUIREMENT.md`, `UI.md`: `ĐÃ HOÀN THÀNH <ngày>`.
-- [ ] `docs/SRS.md:60` (mục 0): FR-U16 "Đã hoàn thành"; câu mở đầu `:14-15` "37 đã hoàn thành và 2 chưa hoàn thành
+- [x] `docs/features/UV/U16/REQUIREMENT.md`, `UI.md`: `ĐÃ HOÀN THÀNH <ngày>`.
+- [x] `docs/SRS.md:60` (mục 0): FR-U16 "Đã hoàn thành"; câu mở đầu `:14-15` "37 đã hoàn thành và 2 chưa hoàn thành
   (FR-C09, FR-U16)" → "38 đã hoàn thành và 1 chưa hoàn thành (FR-C09)" (nếu FR-C09 chưa xong lúc đó).
-- [ ] `docs/ROADMAP.md:1219`: tick `feat/fr-u16-saved-jobs`.
-- [ ] `CLAUDE.md` §3: thêm `savedjob/` (FR-U16) vào danh sách package.
+- [x] `docs/ROADMAP.md:1219`: tick `feat/fr-u16-saved-jobs`.
+- [x] `CLAUDE.md` §3: thêm `savedjob/` (FR-U16) vào danh sách package.
 - [x] `docs/UI_GUIDE.md` mục 7: **đã sửa trong commit duyệt đặc tả** (Q6) — dòng `★/candidate/saved-jobs` và FR-U16 ở
   các dòng `/`, `/jobs/:id`, `/candidate`, `/candidate/dashboard`. Đợt cuối chỉ soát lại cho khớp code.
-- [ ] `docs/ER.md`: thêm `saved_jobs` (35 → 36 bảng; FR-C09 đưa lên 37).
-- [ ] `db/seed/README.md`: tiền đề "DB ở V20", tầng seed demo mới, kịch bản thử lưu tin.
-- [ ] `docs/DEMO.md`: kịch bản lưu tin.
-- [ ] `docs/features/README.md` mục 20: thêm khối "Phạm vi thực tế" như các FR đã xong (nếu có lệch so với mô tả định
+- [x] `docs/ER.md`: thêm `saved_jobs` (35 → 36 bảng; FR-C09 đưa lên 37).
+- [x] `db/seed/README.md`: tiền đề "DB ở V20", tầng seed demo mới, kịch bản thử lưu tin.
+- [x] `docs/DEMO.md`: kịch bản lưu tin.
+- [x] `docs/features/README.md` mục 20: thêm khối "Phạm vi thực tế" như các FR đã xong (nếu có lệch so với mô tả định
   hướng).
 
 ## 11. Đã chốt 30/10/2026
@@ -696,7 +697,7 @@ Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3
 |---|---|---|
 | L1 | `ApplicationServiceTest.java:71` và `JobPublicServiceTest.java:37,53` tạo service bằng `new` | `JobAvailabilityResolver` là bean (R-A1); **sửa cơ học đúng một đối số** ở `ApplicationServiceTest.java:71` (`new JobAvailabilityResolver(jobRepository)`), không đổi khẳng định nào (tiền lệ FR-U15 R-H7). `JobSummaryMapper` là hàm static (khuôn `JobCatalogFields.of`) → constructor `JobPublicService` giữ nguyên, `JobPublicServiceTest` không sửa |
 | L2 | Tên hàm dựng DTO thẻ tin | `job/JobSummaryMapper` (final class): `static JobSummaryResponse toSummary(Job, Company, CatalogRegistry)`, `static CompanyRef toCompanyRef(Company)`; thân chuyển nguyên từ `JobPublicService.toRef`/`toSummary` |
-| L3 | Tầng seed demo mới | `db/seed/seed-demo-structural-3.sql`, nạp sau 2b, dải id `d3000000-%`; tự tạo **một** tin quá hạn (hạn `CURRENT_DATE - 1`) thay vì sửa tin của tầng khác; lưu 3 tin demo đang mở cho ứng viên demo. FR-C09 thêm phần của mình vào cùng file |
+| L3 | Tầng seed demo mới | `db/seed/seed-demo-structural-3.sql`, nạp sau 2b, dải id `d3a00000-%` (B10; bản đầu ghi `d3000000-%`); tự tạo **một** tin quá hạn (hạn `CURRENT_DATE - 1`) thay vì sửa tin của tầng khác; lưu 3 tin demo đang mở cho ứng viên demo (`pham.quoc.bao@demo.local`), cộng chính tin quá hạn (4 dòng) để trang Tin đã lưu có tin "Đã hết hạn nộp" (mục 7.4). FR-C09 thêm phần của mình vào cùng file |
 | L4 | Ánh xạ entity `SavedJob` | `savedAt`: `@Generated(event = INSERT)` + `insertable = false, updatable = false` (khuôn `ApplicationStatusHistory.java:50-52`); `deletedAt`: `insertable = false, updatable = false` — mọi lần ghi qua câu native mục 4.4 |
 | L5 | Câu khoá `users` (R-L3) | Native trong `SavedJobRepository`, trả `Optional<UUID>`, không `@Modifying`, chỉ gọi trong `@Transactional` ghi; không có hàng → `IllegalStateException` |
 | L6 | Vòng focus của thẻ (UI.md 4a) | `has-[a:focus-visible]:ring-2`, không `focus-within` (tránh khoanh thẻ khi focus ở nút Lưu) |
@@ -709,3 +710,5 @@ Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3
 | B7 (30/10/2026) | `PUT` tin đang lưu nhưng không còn mở (gỡ/đóng/tạm dừng/hết hạn) | 409 `JOB_NOT_SAVEABLE` theo thứ tự kiểm R-L3/mục 4.2 (R-S2 trước khi đọc dòng hiện có); dòng lưu không đổi. Ghi rõ ở R-S4 và bảng E1 mục 4.2 |
 | B8 (30/10/2026) | Hoàn lại khi lưu/bỏ lưu lỗi | Lỗi thì đưa riêng tin vừa bấm về trạng thái trước khi bấm (không trả lại ảnh chụp cả danh sách, để không xoá thay đổi đang chờ của thẻ khác). Ghi ở R-B5, mục 8; UI.md mục 5a, 6, 10. Cùng đợt duyệt: giữ hiệu ứng tiêu đề đổi màu khi rê cả thẻ (hệ quả của liên kết phủ thẻ, R-B3) |
 | B9 (30/10/2026) | Menu ứng viên ngang từ lg | Menu ứng viên ngang từ lg; lỗi tràn 40px ở 768px có từ trước FR-U16, sửa luôn ở đây. Dưới `lg` dùng nút mở sheet. Ghi ở UI_GUIDE mục 2 (chỉ dòng Ứng viên, HR giữ nguyên), UI.md mục 3, 8; mục 7.4 |
+| B10 (30/10/2026) | Dải id tầng seed 3 | `d3a00000-TTTT-0000-0000-NNNNNNNNNNNN` (bảng mã `TTTT` của `chore-seed-final.md` K2, thêm `0020` = `saved_jobs`). `d3000000-` đã là tiền tố 6 rubric của tầng 1 (`seed-demo-structural.sql` mục 4) — đếm/dọn theo dải sẽ bắt nhầm. Ghi ở L3, `db/seed/README.md` bảng "Dải id" |
+| B11 (30/10/2026) | Chốt chặn tầng 1b sau V20 | `seed-demo-structural-1b.sql` đòi DB **đúng** V19 → nạp demo từ DB trống dừng ở 1b từ khi có V20. Đổi thành "V19 trở lên" (một điều kiện, cùng commit seed tầng 3); 1b không dùng bảng nào mới từ V20 |
