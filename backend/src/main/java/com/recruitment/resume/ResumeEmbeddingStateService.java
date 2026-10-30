@@ -1,7 +1,10 @@
 package com.recruitment.resume;
 
 import com.recruitment.ai.embedding.EmbeddingTextFormat;
+import java.time.Instant;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,14 +16,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ResumeEmbeddingStateService {
 
+    private static final Logger log = LoggerFactory.getLogger(ResumeEmbeddingStateService.class);
+
     private final ResumeParsedDataRepository resumeParsedDataRepository;
 
     public ResumeEmbeddingStateService(ResumeParsedDataRepository resumeParsedDataRepository) {
         this.resumeParsedDataRepository = resumeParsedDataRepository;
     }
 
+    // perf/scoring-latency - rowcount 0 la NO-OP AN TOAN (CV vua duoc trich xuat lai giua luc doc
+    // expectedParsedAt va luc ghi o day), khong phai loi - khong throw, chi debug (mau
+    // CandidateProfileEmbeddingStateService.save). Lan poll ke tiep doc lai van ban moi va tinh lai.
     @Transactional
-    public void save(UUID parsedDataId, float[] vector) {
-        resumeParsedDataRepository.updateEmbedding(parsedDataId, EmbeddingTextFormat.toVectorText(vector));
+    public void save(UUID parsedDataId, float[] vector, Instant expectedParsedAt) {
+        int updated = resumeParsedDataRepository.updateEmbeddingIfUnchanged(
+                parsedDataId, EmbeddingTextFormat.toVectorText(vector), expectedParsedAt);
+        if (updated == 0) {
+            log.debug("Bo qua ghi embedding CV: parsedDataId={} da duoc trich xuat lai giua luc doc va luc ghi",
+                    parsedDataId);
+        }
     }
 }

@@ -206,8 +206,9 @@ class JobRecommendationCandidateServiceTest {
         data.setData(samplePayload());
         data.setModel("claude-sonnet-4-6");
         data.setPromptVersion("resume-parse-v1");
-        UUID parsedDataId = resumeParsedDataRepository.saveAndFlush(data).getId();
-        resumeEmbeddingStateService.save(parsedDataId, vectorWithSimilarity(similarity));
+        ResumeParsedData saved = resumeParsedDataRepository.saveAndFlush(data);
+        UUID parsedDataId = saved.getId();
+        resumeEmbeddingStateService.save(parsedDataId, vectorWithSimilarity(similarity), saved.getParsedAt());
     }
 
     // Resume co parseStatus truyen vao, KHONG co resume_parsed_data (embedding chua co) - dung cho

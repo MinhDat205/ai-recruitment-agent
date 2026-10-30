@@ -17,6 +17,16 @@ spring:
       - org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
 
+  # perf/scoring-latency - 14 phuong thuc @Scheduled truoc day dung chung 1 luong mac dinh, mot loi goi
+  # LLM o job nay chan moi job khac. 8 = 5 job goi LLM (cham, giai thich, trich xuat, trich xuat lai, goi y
+  # sua CV) + 3 job embedding chay cung luc, buoc tong hop/giai thich khong phai xep hang sau chung. Job nen
+  # khong giu ket noi khi cho LLM nen pool Hikari 10 khong phai gioi han that. KHONG bat
+  # spring.threads.virtual.enabled: Boot se dung SimpleAsyncTaskScheduler va pool.size mat tac dung.
+  task:
+    scheduling:
+      pool:
+        size: 8
+
   datasource:
     url: jdbc:postgresql://localhost:5432/recruitment
     username: recruitment
@@ -80,14 +90,15 @@ app:
   resume-experience:
     poll-interval-ms: 30000
     batch-size: 50
+  # perf/scoring-latency - ba job nam tren duong HR dang cho ket qua cham quet moi 1 s (cac job khac giu 5 s).
   scoring:
-    poll-interval-ms: 5000
+    poll-interval-ms: 1000
     batch-size: 10
   aggregation:
-    poll-interval-ms: 5000
+    poll-interval-ms: 1000
     batch-size: 10
   explanation:
-    poll-interval-ms: 5000
+    poll-interval-ms: 1000
     batch-size: 10
     max-attempts: 3
   notification:
@@ -118,7 +129,8 @@ app:
       backoff-ms: 30000,120000
     # Dot 4h - stale-claim reaper (ResumeParsingScheduler/ScoringRunScheduler.reapStaleClaims): 15
     # phut la nguong coi mot ban ghi PROCESSING/RUNNING la "ket" do JVM restart giua chung; chu ky
-    # quet rieng 60s, tach khoi poll-interval-ms xu ly chinh.
+    # quet rieng 60s, tach khoi poll-interval-ms xu ly chinh. Tu perf/scoring-latency reaper chay song song
+    # voi worker (pool scheduler 8 luong) - da chap nhan, xem ROADMAP.
     stale-timeout-ms: 900000
     reaper-poll-interval-ms: 60000
   # FR-C07 K3 (goi AI dong bo trong request nguoi dung) - R-K3-1: moi lan goi ChatModel toi da 15 s (bao ca cac lan
@@ -177,7 +189,7 @@ app:
 logging:
   level:
     org.springframework.ai: INFO
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO
 
 management:
   endpoints:

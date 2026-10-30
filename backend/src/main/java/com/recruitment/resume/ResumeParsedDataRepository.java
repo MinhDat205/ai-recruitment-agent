@@ -38,11 +38,20 @@ public interface ResumeParsedDataRepository extends JpaRepository<ResumeParsedDa
     // (lay tu findIdsNeedingEmbedding), khong co UNIQUE nao lien quan can xu ly xung dot.
     // embeddingText PHAI di qua EmbeddingTextFormat.toVectorText truoc khi truyen vao day - repository
     // nay khong tu validate dinh dang/so chieu (xem yeu cau review Dot 2).
+    // perf/scoring-latency - ghi CO DIEU KIEN theo parsed_at da doc TRUOC khi goi EmbeddingService (khuon
+    // CandidateProfileRepository.updateEmbeddingIfUnchanged): trich xuat lai (touchAfterReparse) doi parsed_at
+    // va dat embedding = NULL; neu xay ra giua luc doc va luc ghi thi rowcount 0, vector cua van ban cu khong
+    // de len, lan poll ke tiep tu embed lai. expectedParsedAt phai la gia tri doc tu DB (micro giay), khong
+    // phai Instant.now().
     @Modifying(clearAutomatically = true)
     @Query(
-            value = "UPDATE resume_parsed_data SET embedding = CAST(:embeddingText AS vector) WHERE id = :id",
+            value = "UPDATE resume_parsed_data SET embedding = CAST(:embeddingText AS vector) "
+                    + "WHERE id = :id AND parsed_at = :expectedParsedAt",
             nativeQuery = true)
-    void updateEmbedding(@Param("id") UUID id, @Param("embeddingText") String embeddingText);
+    int updateEmbeddingIfUnchanged(
+            @Param("id") UUID id,
+            @Param("embeddingText") String embeddingText,
+            @Param("expectedParsedAt") Instant expectedParsedAt);
 
     // Doc truc tiep "CV nay da co embedding chua", KHONG phu thuoc is_primary - khac
     // findIdsNeedingEmbedding (loc is_primary=true trong SQL, khong dung de kiem "CV khong phai CV

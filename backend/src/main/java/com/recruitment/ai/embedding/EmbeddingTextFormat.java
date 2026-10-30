@@ -1,7 +1,7 @@
 package com.recruitment.ai.embedding;
 
 // NOI DUY NHAT sinh chuoi vector dinh dang pgvector ("[v1,v2,...]") trong toan du an - moi noi goi
-// JobEmbeddingRepository.upsertEmbedding/ResumeParsedDataRepository.updateEmbedding deu phai di qua
+// JobEmbeddingRepository.upsertEmbedding/ResumeParsedDataRepository.updateEmbeddingIfUnchanged deu phai di qua
 // day, KHONG tu viet String.join/StringBuilder rieng o noi khac (de dinh dang co the lech nhau giua
 // cac noi goi - vd thieu dau phay, sai ky tu ngoac). Validate SO CHIEU ngay o day (khong phai o
 // repository): repository la API cong khai, chuoi sai dinh dang hoac sai so chieu di thang xuong

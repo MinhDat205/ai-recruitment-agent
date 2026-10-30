@@ -2,6 +2,7 @@ package com.recruitment.resume;
 
 import com.recruitment.ai.embedding.EmbeddingResult;
 import com.recruitment.ai.embedding.EmbeddingService;
+import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,16 +11,22 @@ import org.springframework.stereotype.Component;
 // KHONG @Transactional - xem CLAUDE.md muc 3c va Plan Mode F1 muc A, cung cau truc voi
 // JobEmbeddingOrchestrator (Dot 3): doc -> dung text -> goi embedding NGOAI transaction -> ghi qua
 // StateService (transaction ngan rieng). Khong co buoc "claim": resume_parsed_data khong co cot
-// trang thai rieng cho embedding, @Scheduled(fixedDelay) da dam bao khong chay chong lot trong mot
-// instance.
+// trang thai rieng cho embedding, @Scheduled(fixedDelay) da dam bao job nay khong chay chong chinh no
+// trong mot instance.
 //
 // Khac Dot 3 o HAI cho (xem yeu cau review Dot 4):
 // 1. Dieu kien quet (ResumeParsedDataRepository.findIdsNeedingEmbedding, da co tu Dot 2) la
 //    "embedding IS NULL" tren bang co san, KHONG phai NOT EXISTS giua hai bang nhu job_embeddings -
 //    resume_parsed_data.embedding la cot nullable ngay tren chinh bang chua du lieu can doc.
-// 2. Ghi bang UPDATE thuong (ResumeParsedDataRepository.updateEmbedding, da co tu Dot 2), KHONG
-//    UPSERT - khong co UNIQUE constraint nao lien quan can xu ly xung dot (khac job_id UNIQUE cua
-//    job_embeddings), moi resume_parsed_data.id da chac chan ton tai truoc do (D1 tao ra).
+// 2. Ghi bang UPDATE (ResumeParsedDataRepository.updateEmbeddingIfUnchanged), KHONG UPSERT - khong co
+//    UNIQUE constraint nao lien quan can xu ly xung dot (khac job_id UNIQUE cua job_embeddings), moi
+//    resume_parsed_data.id da chac chan ton tai truoc do (D1 tao ra).
+//
+// perf/scoring-latency - tu khi scheduler co nhieu luong, job trich xuat lai (ResumeReparseScheduler) chay
+// SONG SONG voi job nay: no co the ghi data moi, doi parsed_at va dat embedding = NULL trong luc job nay
+// dang goi EmbeddingService voi van ban cu. Vi vay giu parsed_at doc cung luc voi data va chi ghi khi
+// parsed_at chua doi (mau CandidateProfileEmbeddingOrchestrator/updated_at); rowcount 0 thi bo qua, lan
+// poll ke tiep tu embed lai van ban moi.
 @Component
 public class ResumeEmbeddingOrchestrator {
 
@@ -56,6 +63,10 @@ public class ResumeEmbeddingOrchestrator {
             return;
         }
 
+        // Doc cung lan findById voi data (TRUOC khi goi EmbeddingService) de lam dieu kien ghi - gia tri
+        // DB (micro giay), KHONG dung Instant.now(). Xem ResumeParsedDataRepository.updateEmbeddingIfUnchanged.
+        Instant expectedParsedAt = data.getParsedAt();
+
         // Tai dung NGUYEN VAN CvImprovementOrchestrator.buildResumeText (F2, cung package resume,
         // package-private) - khong viet ham dung text moi. Ham nay render day du cac truong noi dung cua
         // ResumeParsedPayload theo dung thu tu uu tien (contact -> chuc danh hien tai (FR-C05 R-C6) -> hoc
@@ -74,6 +85,6 @@ public class ResumeEmbeddingOrchestrator {
             return;
         }
 
-        stateService.save(parsedDataId, result.vector());
+        stateService.save(parsedDataId, result.vector(), expectedParsedAt);
     }
 }

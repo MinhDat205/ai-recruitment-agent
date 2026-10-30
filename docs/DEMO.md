@@ -149,8 +149,9 @@ Nói:
 
    Nói: "Lượt chấm chạy nền, không chặn giao diện. Mỗi tiêu chí là một lần gọi AI riêng."
 
-   Thời gian đo khi tập: **~70 s** từ lúc bấm tới lúc có giải thích (job nhận việc ~4 s → chấm 4 tiêu chí ~44 s → giải
-   thích ~21 s). Trang tự cập nhật.
+   Thời gian đo khi tập 21/10: **~70 s** từ lúc bấm tới lúc có giải thích (job nhận việc ~4 s → chấm 4 tiêu chí ~44 s →
+   giải thích ~21 s). Sau `perf/scoring-latency` (đo 30/10) vẫn **~60–70 s** một lượt: job nhận việc < 1 s, gần như toàn
+   bộ thời gian là AI chấm từng tiêu chí và viết giải thích (mục 6). Trang tự cập nhật.
 
 ### 9–13' · Trong lúc chờ: hỏi đáp CV, chu kỳ tuyển dụng, xếp hạng (HR)
 
@@ -293,6 +294,20 @@ So với đợt 1 cùng CV, cùng rubric (83,50): tiêu chí 1 thấp hơn 0,5, 
 nguyên.
 
 Một lượt demo thật (bỏ câu A) tốn khoảng **14 lượt Anthropic và 1 lượt OpenAI**.
+
+**Trước/sau `perf/scoring-latency`** (AI thật, dữ liệu demo vừa nạp, tin Kỹ sư DevOps, 3 đơn; trung vị 3 lượt, giây;
+trước: 29/10 trên `main`, sau: 30/10)
+
+| Kịch bản | Chờ nhận việc | Chấm tiêu chí | Tổng hợp + giải thích | Tổng | Lượt cuối |
+|---|---|---|---|---|---|
+| Đơn lẻ · trước → sau | 1,2 → 0,2 | 45,5 → 40,4 | 17,6 → 17,9 | 69,2 → 58,4 | — |
+| Dồn 3 đơn trong 1 s · trước → sau | 57,9 → 47,8 | 44,9 → 42,0 | 75,8 → 18,2 | 178,6 → 111,5 | 193,2 → 139,1 |
+
+Cách đọc: kịch bản dồn đơn giảm thật vì tổng hợp và giải thích không còn xếp hàng sau vòng chấm trên một luồng duy
+nhất. Kịch bản đơn lẻ gần như không đổi — với 1 luồng, job tổng hợp/giải thích đã quá giờ nên chạy ngay khi luồng
+rảnh, không có nhịp chờ để cắt; chênh tổng chủ yếu do thời gian AI chấm tiêu chí, phần cải thiện cấu trúc chỉ là chờ
+nhận việc từ ~1 s xuống ≤ 0,3 s. Khi dồn đơn, chờ nhận việc vẫn cộng dồn thời gian chấm các lượt trước vì vòng chấm xử
+lý tuần tự (giới hạn đã biết).
 
 ## 7. Câu hỏi hội đồng hay hỏi
 

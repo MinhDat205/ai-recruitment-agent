@@ -194,12 +194,13 @@ class ResumeReparseOrchestratorTest {
         data.setModel("claude-sonnet-4-5");
         data.setPromptVersion("resume-parse-v1");
         data.setTokenUsage(111);
-        UUID parsedDataId = resumeParsedDataRepository.saveAndFlush(data).getId();
+        ResumeParsedData saved = resumeParsedDataRepository.saveAndFlush(data);
+        UUID parsedDataId = saved.getId();
 
         float[] vector = new float[1536];
         Arrays.fill(vector, 0.01f);
-        transactionTemplate.executeWithoutResult(status ->
-                resumeParsedDataRepository.updateEmbedding(parsedDataId, EmbeddingTextFormat.toVectorText(vector)));
+        transactionTemplate.executeWithoutResult(status -> resumeParsedDataRepository.updateEmbeddingIfUnchanged(
+                parsedDataId, EmbeddingTextFormat.toVectorText(vector), saved.getParsedAt()));
 
         UUID scoringRunId = seedScoringRun(candidateId, resumeId);
         return new Seeded(candidateId, resumeId, parsedDataId, scoringRunId);

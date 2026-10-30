@@ -52,8 +52,8 @@ public interface CandidateProfileRepository extends JpaRepository<CandidateProfi
     void clearEmbedding(@Param("id") UUID id);
 
     // R-E5 - ghi CO DIEU KIEN theo updated_at da doc TRUOC khi goi EmbeddingService (ngoai
-    // transaction) - khac CO CHU DICH voi UPDATE khong dieu kien cua ResumeParsedDataRepository.
-    // updateEmbedding (tien le CV) - sua dung rang buoc race da ghi no o ROADMAP. Rowcount 0 nghia
+    // transaction) - sua dung rang buoc race da ghi no o ROADMAP (CV cung da chuyen sang khuon nay o
+    // perf/scoring-latency: ResumeParsedDataRepository.updateEmbeddingIfUnchanged theo parsed_at). Rowcount 0 nghia
     // la ho so da bi sua lai giua luc doc va luc ghi xong -> bo qua, khong ghi gi, lan poll ke tiep
     // tu doc lai gia tri moi nhat va tinh lai.
     @Modifying(clearAutomatically = true)
