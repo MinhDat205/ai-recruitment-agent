@@ -34,6 +34,8 @@ Gặp mâu thuẫn thì báo ra, không tự chọn bên nào.
 - Rút đơn = đổi trạng thái (soft state), KHÔNG hard delete (FR-U06).
 - Vòng đời đơn ứng tuyển đúng 5 trạng thái: `PENDING` → `INTERVIEW_INVITED` → `HIRED` | `REJECTED`;
   và `WITHDRAWN` có thể xảy ra bất kỳ lúc nào trước kết quả cuối.
+  Ngoại lệ duy nhất (FR-C09): cạnh `REJECTED` → `INTERVIEW_INVITED`, chỉ khi HR gửi giấy mời cho đơn có
+  yêu cầu xem xét lại `OPEN`. Không thêm cạnh này vào bảng chuyển tiếp chung, không thêm trạng thái thứ 6.
 - Chức năng bổ sung còn phải tuân thủ mục "Nguyên tắc bổ sung cho các chức năng mới" trong
   `docs/SRS.md`.
 
