@@ -22,4 +22,7 @@ public interface ApplicationSummaryView {
     Instant getAppliedAt();
 
     Instant getUpdatedAt();
+
+    // FR-C09 R-C2 - trang thai yeu cau xem xet lai (chuoi, null khi chua co); convert sang enum o service.
+    String getReconsiderationStatus();
 }

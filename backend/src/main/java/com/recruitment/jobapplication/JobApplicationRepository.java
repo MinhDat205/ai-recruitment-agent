@@ -83,16 +83,20 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     // Entity khong co @ManyToOne (xem ghi chu o JobApplication/Job) nen phai join tuong minh bang
     // native SQL, giong phong cach JobRepository.searchPublicJobs/findOpenJobById. Alias phai khop
     // dung ten getter cua ApplicationSummaryView.
+    // FR-C09 R-C2 - LEFT JOIN yeu cau xem xet lai (toi da mot dong moi don, uq_reconsideration_per_application) trong
+    // CUNG cau, khong N+1; them khoa cuoi a.id cho ORDER BY (applied_at co the trung).
     @Query(
             value =
                     """
                     SELECT a.id AS id, a.job_id AS jobId, j.title AS jobTitle, c.name AS companyName,
-                           a.status AS status, a.applied_at AS appliedAt, a.updated_at AS updatedAt
+                           a.status AS status, a.applied_at AS appliedAt, a.updated_at AS updatedAt,
+                           r.status AS reconsiderationStatus
                     FROM job_applications a
                     JOIN jobs j ON j.id = a.job_id
                     JOIN companies c ON c.id = j.company_id
+                    LEFT JOIN application_reconsideration_requests r ON r.application_id = a.id
                     WHERE a.candidate_id = :candidateId
-                    ORDER BY a.applied_at DESC
+                    ORDER BY a.applied_at DESC, a.id DESC
                     """,
             nativeQuery = true)
     List<ApplicationSummaryView> findSummariesByCandidateId(@Param("candidateId") UUID candidateId);

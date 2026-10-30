@@ -150,6 +150,38 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("SAVED_JOB_LIMIT_REACHED", ex.getMessage()));
     }
 
+    // FR-C09 muc 4.3 - bon ma 409 cua C1 (thu tu kiem R-E5) va 400 do dai van ban (R-V2, dung chung C1/H2).
+    @ExceptionHandler(ReconsiderationAlreadyRequestedException.class)
+    public ResponseEntity<ErrorResponse> handleReconsiderationAlreadyRequested(
+            ReconsiderationAlreadyRequestedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RECONSIDERATION_ALREADY_REQUESTED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReconsiderationNotEligibleException.class)
+    public ResponseEntity<ErrorResponse> handleReconsiderationNotEligible(ReconsiderationNotEligibleException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RECONSIDERATION_NOT_ELIGIBLE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReconsiderationJobRemovedException.class)
+    public ResponseEntity<ErrorResponse> handleReconsiderationJobRemoved(ReconsiderationJobRemovedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RECONSIDERATION_JOB_REMOVED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReconsiderationDeadlinePassedException.class)
+    public ResponseEntity<ErrorResponse> handleReconsiderationDeadlinePassed(ReconsiderationDeadlinePassedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RECONSIDERATION_DEADLINE_PASSED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReconsiderationTextTooLongException.class)
+    public ResponseEntity<ErrorResponse> handleReconsiderationTextTooLong(ReconsiderationTextTooLongException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("RECONSIDERATION_TEXT_TOO_LONG", ex.getMessage()));
+    }
+
     // FR-U09 R-R1, R-R2 - 409: request hop le nhung bo cau hoi da doi giua luc ung vien dang dien.
     @ExceptionHandler(ScreeningQuestionsChangedException.class)
     public ResponseEntity<ErrorResponse> handleScreeningQuestionsChanged(ScreeningQuestionsChangedException ex) {
@@ -636,6 +668,16 @@ public class GlobalExceptionHandler {
         if (message != null && message.contains("uq_talent_pool_name_per_company")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new ErrorResponse("TALENT_POOL_NAME_TAKEN", new TalentPoolNameTakenException().getMessage()));
+        }
+        // uq_reconsideration_per_application (V21, FR-C09 R-E2) - chot chan cuoi cho hai C1 dong thoi cua cung don: ca hai
+        // qua buoc kiem truoc, INSERT cua request sau cho o unique index roi vang unique_violation. Lay cau tu
+        // ReconsiderationAlreadyRequestedException (khuon uq_scoring_run_in_progress) de hai duong tra DUNG mot ma va mot
+        // chuoi - khong 500, khong lo thong bao loi cua Postgres.
+        if (message != null && message.contains("uq_reconsideration_per_application")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse(
+                            "RECONSIDERATION_ALREADY_REQUESTED",
+                            new ReconsiderationAlreadyRequestedException().getMessage()));
         }
         throw ex;
     }
