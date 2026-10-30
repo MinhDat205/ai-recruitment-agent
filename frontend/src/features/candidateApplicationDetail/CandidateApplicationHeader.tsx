@@ -6,6 +6,7 @@ import { formatDateTimeVi } from '../../lib/date'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
 import type { ApplicationStatus } from '../applications/types'
 import { WithdrawApplicationDialog } from '../applications/WithdrawApplicationDialog'
+import { PendingReconsiderationText } from '../reconsideration/PendingReconsiderationText'
 import type { ApplicationCandidateDetail } from './types'
 
 // R-W1 - dung dieu kien FR-U06 (ApplicationService.withdraw): chi PENDING/INTERVIEW_INVITED rut duoc.
@@ -54,6 +55,10 @@ export function CandidateApplicationHeader({ detail }: { detail: ApplicationCand
             >
               <ApplicationStatusBadge status={detail.status} />
             </span>
+            {/* FR-C09 UI.md 4a - chu (khong badge) ngay sau badge khi yeu cau xem xet lai dang OPEN. */}
+            <PendingReconsiderationText
+              status={detail.reconsideration?.state === 'OPEN' ? 'OPEN' : null}
+            />
             <span className="text-sm text-m3-on-surface-variant">Nộp ngày {formatDateTimeVi(detail.appliedAt)}</span>
           </div>
         </div>

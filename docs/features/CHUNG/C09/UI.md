@@ -299,6 +299,7 @@ trong. `TabsList` trang sửa tin cuộn ngang như hiện có (6 tab).
 | `frontend/src/features/applicationDetail/queries.ts` | `applicationDetailInvalidateKeys` thêm khoá H1 của tin |
 | `frontend/src/features/interviewinvitation/queries.ts` | (L1, Plan Mode 30/10) `useSendInterviewInvitationMutation.onError` (`:73-78`): ngoài làm mới I1 khi 409 như cũ, khi 409 (mọi mã) hoặc 400 `INVALID_APPLICATION_STATUS_TRANSITION` thì làm mới thêm `extraInvalidateKeys` — để đạt mục 6 dòng "Mời phỏng vấn" lỗi. FR-H12 chỉ thêm việc làm mới, không đổi giao diện |
 | `frontend/src/features/notifications/types.ts` | Thêm `'RECONSIDERATION_REQUESTED'`, `'RECONSIDERATION_DECLINED'` |
+| `frontend/src/features/applications/queries.ts` | (Đợt 5, 30/10) `MY_APPLICATIONS_QUERY_KEY` đổi từ khai cục bộ sang `export`, để `features/reconsideration/queries.ts` làm mới danh sách đơn sau C1 — không khai khoá thứ hai |
 
 Không sửa: `InterviewInvitationDialog.tsx` (dùng nguyên — REQUIREMENT a24; việc làm mới khi lỗi đặt ở
 `interviewinvitation/queries.ts`, không ở hộp thoại), `ApplicationStatusBadge`,

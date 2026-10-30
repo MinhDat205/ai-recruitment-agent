@@ -8,7 +8,8 @@ import {
   withdrawApplicationRequest,
 } from './api'
 
-const MY_APPLICATIONS_QUERY_KEY = ['my-applications']
+// Export cho FR-C09 (features/reconsideration/queries.ts): gui yeu cau xem xet lai lam moi danh sach don.
+export const MY_APPLICATIONS_QUERY_KEY = ['my-applications']
 
 function applicationHistoryKey(id: string | undefined) {
   return ['application-history', id]

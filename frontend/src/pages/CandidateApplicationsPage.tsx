@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CandidateLayout } from '../components/layout/CandidateLayout'
 import { ApplicationStatusBadge } from '../features/applications/ApplicationStatusBadge'
 import { useMyApplicationsQuery } from '../features/applications/queries'
+import { PendingReconsiderationText } from '../features/reconsideration/PendingReconsiderationText'
 
 function formatAppliedAt(iso: string): string {
   return new Date(iso).toLocaleString('vi-VN', {
@@ -53,7 +54,11 @@ export function CandidateApplicationsPage() {
                       <TableCell>{application.jobTitle}</TableCell>
                       <TableCell className="text-m3-on-surface-variant">{application.companyName}</TableCell>
                       <TableCell>
-                        <ApplicationStatusBadge status={application.status} />
+                        {/* FR-C09 UI.md 4a - chu " · Đang chờ xem xét lại" sau badge, chi khi yeu cau OPEN. */}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <ApplicationStatusBadge status={application.status} />
+                          <PendingReconsiderationText status={application.reconsiderationStatus} />
+                        </div>
                       </TableCell>
                       <TableCell className="text-m3-on-surface-variant">{formatAppliedAt(application.appliedAt)}</TableCell>
                       <TableCell className="text-right">

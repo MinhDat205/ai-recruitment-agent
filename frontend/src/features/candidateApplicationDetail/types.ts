@@ -1,5 +1,6 @@
 import type { ApplicationStatus } from '../applications/types'
 import type { JobAvailability } from '../jobs/jobAvailability'
+import type { CandidateReconsideration } from '../reconsideration/types'
 import type { ParseStatus } from '../resumes/types'
 
 // FR-U08 R-D4 - kieu JobAvailability (5 gia tri) chuyen ra features/jobs/jobAvailability.ts o FR-U16 R-A5.
@@ -50,4 +51,6 @@ export interface ApplicationCandidateDetail {
   }
   // FR-U09 R-D1 - khoa duy nhat FR-U09 them vao E1.
   talentPoolConsent: TalentPoolConsent
+  // FR-C09 R-C1 (M2) - khoa duy nhat FR-C09 them vao E1; null khi khong co khoi.
+  reconsideration: CandidateReconsideration | null
 }
