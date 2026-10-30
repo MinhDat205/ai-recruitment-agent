@@ -9,29 +9,30 @@
 - Tóm tắt: Ứng viên có đơn bị từ chối ở vòng hồ sơ được gửi **một** yêu cầu xem xét lại trong **7 ngày**; HR **mời
   phỏng vấn** (qua hộp giấy mời FR-H12) hoặc **giữ quyết định từ chối** (kèm phản hồi hoặc không). Đơn vẫn đúng 5 trạng
   thái; yêu cầu nằm ở bảng riêng (V21), package `reconsideration/`. Không dùng AI.
-- Phụ thuộc: FR-H07, FR-H12, FR-U08, FR-H09, FR-C03, FR-H16 — cả sáu **Đã hoàn thành** (`docs/SRS.md:24`, `:37`,
-  `:39`, `:42`, `:45`, `:53`). Khớp danh sách phụ thuộc ở `docs/SRS.md:87`.
-- Nhánh: `feat/fr-c09-reconsideration` (tạo từ `main` tại `f0e6354`, 30/10/2026). **Phải rebase lên `main` sau khi
-  FR-U16 (V20, Chưa hoàn thành — `docs/SRS.md:60`) đã merge** rồi mới code (kế hoạch, mục "Thứ tự làm").
+- Phụ thuộc: FR-H07, FR-H12, FR-U08, FR-H09, FR-C03, FR-H16 — cả sáu **Đã hoàn thành** (`docs/SRS.md:25`, `:38`,
+  `:40`, `:43`, `:46`, `:54`). Khớp danh sách phụ thuộc ở `docs/SRS.md:88`.
+- Nhánh: `feat/fr-c09-reconsideration` (tạo từ `main` tại `f0e6354`, 30/10/2026; **đã rebase** lên `main` tại `0d6dbef`
+  sau khi FR-U16 — V20, Đã hoàn thành, `docs/SRS.md:61` — merge, 30/10/2026; xem mục 11 "Đồng bộ sau FR-U16").
 - Mở rộng: FR-H07 (một cạnh chuyển trạng thái mới, chỉ qua FR-C09), FR-H12 (giấy mời nhận đơn `REJECTED` có yêu cầu
   `OPEN`), FR-U03 (danh sách đơn), FR-U08 (khối xem xét lại, nút thứ hai), FR-H09 (khối yêu cầu ở hồ sơ đơn), trang sửa
   tin `/hr/jobs/:id/edit` (tab mới), FR-C03 (hai loại thông báo mới).
 
 ## 0. Đã đối chiếu code trước khi viết (CLAUDE.md §6)
 
-Đối chiếu trên `feat/fr-c09-reconsideration` tại `f0e6354` (30/10/2026, cây làm việc sạch).
+Đối chiếu trên `feat/fr-c09-reconsideration` tại `f0e6354` (30/10/2026, cây làm việc sạch). Số dòng các file FR-U16 có
+sửa đã cập nhật theo `main` tại `0d6dbef` (mục 11 "Đồng bộ sau FR-U16"); file FR-U16 không sửa giữ nguyên số dòng.
 
 ### (a) Hiện trạng
 
 | # | Điểm kiểm | Kết quả | Bằng chứng |
 |---|---|---|---|
 | a1 | Đơn có đúng 5 trạng thái | Đúng | `ApplicationStatus.java:3-8`; `labelVi()` `:15-23` là `switch` phủ đủ 5 giá trị |
-| a2 | `REJECTED` hiện không chuyển đi đâu | Đúng | `ApplicationStatusService.java:33-35`: `ALLOWED_TRANSITIONS` chỉ có khoá `PENDING` (→ `INTERVIEW_INVITED`, `REJECTED`) và `INTERVIEW_INVITED` (→ `HIRED`, `REJECTED`); comment `:29-32` ghi rõ `REJECTED` "không quay lại được `INTERVIEW_INVITED`". `changeStatus` tra bảng này (`:71-74`), sai → 400 `INVALID_APPLICATION_STATUS_TRANSITION` (`GlobalExceptionHandler.java:235-238`) |
-| a3 | Đổi trạng thái = `UPDATE` có điều kiện + ghi lịch sử + phát sự kiện | Đúng | `updateStatusIfCurrent` (`JobApplicationRepository.java:30-35`), 0 dòng → 409 `APPLICATION_STATUS_CONFLICT` (`ApplicationStatusService.java:76-79`, `GlobalExceptionHandler.java:243-246`); `applicationStatusRecorder.record` (`:83`); `ApplicationStatusChangedEvent` (`:88-89`) |
+| a2 | `REJECTED` hiện không chuyển đi đâu | Đúng | `ApplicationStatusService.java:33-35`: `ALLOWED_TRANSITIONS` chỉ có khoá `PENDING` (→ `INTERVIEW_INVITED`, `REJECTED`) và `INTERVIEW_INVITED` (→ `HIRED`, `REJECTED`); comment `:29-32` ghi rõ `REJECTED` "không quay lại được `INTERVIEW_INVITED`". `changeStatus` tra bảng này (`:71-74`), sai → 400 `INVALID_APPLICATION_STATUS_TRANSITION` (`GlobalExceptionHandler.java:248-251`) |
+| a3 | Đổi trạng thái = `UPDATE` có điều kiện + ghi lịch sử + phát sự kiện | Đúng | `updateStatusIfCurrent` (`JobApplicationRepository.java:30-35`), 0 dòng → 409 `APPLICATION_STATUS_CONFLICT` (`ApplicationStatusService.java:76-79`, `GlobalExceptionHandler.java:256-259`); `applicationStatusRecorder.record` (`:83`); `ApplicationStatusChangedEvent` (`:88-89`) |
 | a4 | `PATCH /status` chặn đặt thẳng `INTERVIEW_INVITED` | Đúng | `ApplicationStatusController.java:40-44` — guard ở controller, `sendInvitation` gọi thẳng service nên không bị chặn |
 | a5 | `application_status_history` có `from_status`, `changed_at` | Đúng | `V1__init_schema.sql:228-236`: `from_status VARCHAR(25)` (NULL được), `to_status`, `changed_at TIMESTAMPTZ NOT NULL DEFAULT now()`; index `idx_status_hist_app (application_id, changed_at)` `:237`. Không migration nào sau V1 sửa bảng này |
 | a6 | `changed_at` do **DB** gán, không phải JVM | Đúng | `ApplicationStatusHistory.java:50-52` (`@Generated(event = INSERT)`, `insertable = false`); `ApplicationStatusRecorder.record` không đặt thời gian (`:26-35`). Vì `now()` theo transaction, `changed_at` của dòng `PENDING → REJECTED` = thời điểm **bắt đầu** transaction từ chối |
-| a7 | Mọi đường ghi lịch sử | Ba chỗ | `ApplicationService.java:115` (`NULL → PENDING`), `:143` (→ `WITHDRAWN`), `ApplicationStatusService.java:83`. Không đường nào khác ghi `REJECTED` |
+| a7 | Mọi đường ghi lịch sử | Ba chỗ | `ApplicationService.java:118` (`NULL → PENDING`), `:146` (→ `WITHDRAWN`), `ApplicationStatusService.java:83`. Không đường nào khác ghi `REJECTED` |
 | a8 | Gửi giấy mời FR-H12 đổi trạng thái trong cùng transaction | Đúng | `InterviewInvitationService.sendInvitation` (`:138-166`, `@Transactional`): quyền (`:140`) → mẫu (`:145`) → kiểm khung (`:148`) → kiểm ẩn danh **trước** đổi trạng thái (`:153-155`) → `applicationStatusService.changeStatus(…, INTERVIEW_INVITED)` (`:161`) → tạo giấy mời (`:164-165`). Chỗ chèn bước "đơn `REJECTED` có yêu cầu `OPEN` → `ACCEPTED`": giữa `:155` và `:161` (R-S3) |
 | a9 | Preview giấy mời không xét trạng thái đơn | Đúng | `previewInvitation` (`:107-136`) chỉ kiểm quyền + mẫu — mở được cho đơn `REJECTED` |
 | a10 | Ẩn danh của đơn suy từ lịch sử, hết khi có dòng `→ INTERVIEW_INVITED` | Đúng | `JobBlindReviewChangeRepository.findMaskedApplicationIds` (`:19-33`): Job bật công tắc **và** không có dòng `to_status = 'INTERVIEW_INVITED'`. Đơn bị từ chối ở vòng hồ sơ của Job bật ẩn danh **vẫn ẩn** |
@@ -40,7 +41,7 @@
 | a13 | Thêm loại thông báo không cần migration | Đúng | `notifications.type VARCHAR(50) NOT NULL`, không CHECK (`V1:343`); `NotificationType.java:3-15` (7 loại, tiền lệ `NEW_MESSAGE`, `INTERVIEW_INVITATION_RESENT`, `INTERVIEW_SLOT_CONFIRMED`) |
 | a14 | Mời phỏng vấn phát thông báo đổi trạng thái tới ứng viên | Đúng | `NotificationEventListener.onApplicationStatusChanged` (`:64-74`) → `forStatusChanged` (`NotificationContentBuilder.java:39-46`): "… đã chuyển sang trạng thái: Đã mời phỏng vấn", link `/candidate/applications/{id}`. Không phụ thuộc trạng thái nguồn |
 | a15 | Nhãn ứng viên trong thông báo gửi HR theo ẩn danh | Có | `NotificationEventListener.candidateLabel` (`:207-212`), xét tại lúc listener chạy |
-| a16 | Chi tiết đơn ứng viên (FR-U08 E1) | Có | `ApplicationCandidateDetailResponse.java:14-22`; `ApplicationService.getMyApplicationDetail` (`:174-227`); quyền `findByIdAndCandidateId` → 404 cho cả đơn người khác (`:178-180`). **Comment `:172-173` (R-D1 của FR-U08) ghi "KHÔNG đọc … lịch sử"** — FR-C09 phải đọc lịch sử để tính hạn (M1) |
+| a16 | Chi tiết đơn ứng viên (FR-U08 E1) | Có | `ApplicationCandidateDetailResponse.java:15-23`; `ApplicationService.getMyApplicationDetail` (`:177-230`); quyền `findByIdAndCandidateId` → 404 cho cả đơn người khác (`:181-183`). **Comment `:175-176` (R-D1 của FR-U08) ghi "KHÔNG đọc … lịch sử"** — FR-C09 phải đọc lịch sử để tính hạn (M1). Từ FR-U16: `job.availability` lấy qua `job/JobAvailabilityResolver.of` (`:205`), enum `JobAvailability` ở `job/` (DTO `:51`) — FR-C09 không dùng hai thứ này |
 | a17 | Danh sách đơn ứng viên (FR-U03) | Có | `ApplicationSummaryResponse.java:7-14`; `findSummariesByCandidateId` (`JobApplicationRepository.java:86-98`, `ORDER BY a.applied_at DESC` **không** có khoá cuối) |
 | a18 | Hồ sơ đơn HR (FR-H09 E1) | Có | `ApplicationHrDetailResponse.java:15-28`; `ApplicationHrDetailService.getDetail` (`:55-83`), ẩn danh `:64-82` |
 | a19 | Kiểm quyền phía HR theo đơn | Có | `HrApplicationAccess.loadOwned` (`:42-56`): công ty (404) → đơn (404) → Job (404) → công ty khác 403. **Không lọc `jobs.deleted_at`** |
@@ -50,16 +51,16 @@
 | a23 | Thanh thao tác H09 với đơn `REJECTED` | Một câu cố định | `ApplicationActionBar.tsx:16-24` (`REJECTED` → không nút), `:67-73` "Đơn đã có kết quả cuối. Không còn thao tác nào." — sai khi có yêu cầu `OPEN` (M3) |
 | a24 | Hộp thoại giấy mời dùng được ngoài trang hồ sơ đơn | Đúng | `InterviewInvitationDialog` nhận `application {id, candidateName}`, `jobId`, `invalidateQueryKeys` (`InterviewInvitationDialog.tsx:95-104`); đã dùng ở ba điểm mở (comment `:183`) |
 | a25 | Funnel FR-H08 đếm "đã từng mời" bằng `EXISTS` | Đúng | `JobApplicationRepository.countFunnelForCompany` (`:122-140`), `JobRepository.findJobPerformanceForCompany` (`:347-350`) — đơn được mời lại đếm **một** lần; số "theo trạng thái hiện tại" (`countByStatusForCompany` `:104-114`) đổi khi đơn rời `REJECTED` |
-| a26 | Migration | **V21** còn trống | Cao nhất trên `main`: `V19__blind_review.sql`; V20 đã dành cho FR-U16 (kế hoạch, bảng mục "Phạm vi") |
+| a26 | Migration | **V21** còn trống | Cao nhất trên `main` (`0d6dbef`): `V20__saved_jobs.sql` (FR-U16) |
 
 ### (b) Mâu thuẫn và chỗ lệch
 
 | # | Mâu thuẫn | Xử lý trong đặc tả này |
 |---|---|---|
-| M1 | FR-U08 R-D1 (comment `ApplicationService.java:172-173`) cấm E1 đọc lịch sử; FR-C09 cần `changed_at` của dòng `PENDING → REJECTED` để tính hạn, và cần bảng yêu cầu | **Thay đổi hành vi FR đã hoàn thành**, ghi ở R-C1: E1 đọc thêm lịch sử **của chính đơn** và bảng yêu cầu, chỉ để dựng khối `reconsideration`. Không thêm dữ liệu nội bộ nào. Sửa comment `:172-173` cùng đợt |
-| M2 | `ApplicationCandidateDetailResponse` ghi "KHÔNG thêm field nào khác" (`:10-13`) | Ngoại lệ có duyệt như FR-U09: thêm đúng một khoá `reconsideration` (R-C1) |
+| M1 | FR-U08 R-D1 (comment `ApplicationService.java:175-176`) cấm E1 đọc lịch sử; FR-C09 cần `changed_at` của dòng `PENDING → REJECTED` để tính hạn, và cần bảng yêu cầu | **Thay đổi hành vi FR đã hoàn thành**, ghi ở R-C1: E1 đọc thêm lịch sử **của chính đơn** và bảng yêu cầu, chỉ để dựng khối `reconsideration`. Không thêm dữ liệu nội bộ nào. Sửa comment `:175-176` cùng đợt |
+| M2 | `ApplicationCandidateDetailResponse` ghi "KHÔNG thêm field nào khác" (`:11-14`) | Ngoại lệ có duyệt như FR-U09: thêm đúng một khoá `reconsideration` (R-C1) |
 | M3 | Thanh thao tác H09 nói "Không còn thao tác nào" cho mọi đơn `REJECTED` (a23) | Khi đơn có yêu cầu `OPEN`, câu đổi thành câu trỏ tới khối yêu cầu (R-D7, UI.md 4f). Không thêm nút vào thanh thao tác (Q8) |
-| M4 | `CLAUDE.md` §2, `docs/SRS.md:101` (FR-H07), `:155` (nguyên tắc) mô tả vòng đời không có cạnh `REJECTED → INTERVIEW_INVITED` | Sửa **cùng commit đặc tả này** (kế hoạch, bảng "Tài liệu chung phải sửa", dòng D4): giữ "5 trạng thái", thêm ngoại lệ FR-C09 |
+| M4 | `CLAUDE.md` §2, `docs/SRS.md:102` (FR-H07), `:156` (nguyên tắc) mô tả vòng đời không có cạnh `REJECTED → INTERVIEW_INVITED` | Sửa **cùng commit đặc tả này** (kế hoạch, bảng "Tài liệu chung phải sửa", dòng D4): giữ "5 trạng thái", thêm ngoại lệ FR-C09 |
 | M5 | FR-U08 R-P1 "Một nút thao tác duy nhất: Rút đơn" | FR-U08 R-P2 cho phép FR sau tự thêm phần của mình; FR-C09 thêm nút "Yêu cầu xem xét lại" ở **khối** trong tab "Thông tin đơn", không ở đầu trang (UI.md 4b) |
 | M6 | FR-H12 R-F3 (`docs/features/HR/H12/REQUIREMENT.md:175-177`): "Đơn không `PENDING` → 400 `INVALID_APPLICATION_STATUS_TRANSITION`, không tạo dòng nào" | **Thay đổi hành vi FR đã hoàn thành**: đơn `REJECTED` có yêu cầu `OPEN` → I2 thành công (R-S3). Mọi ca khác của R-F3 giữ nguyên, gồm đơn `REJECTED` không có yêu cầu `OPEN` (T11); test `send_applicationAlreadyInterviewInvited_returns400` không sửa. Đợt cuối thêm dòng "*Sửa bởi FR-C09*" dưới R-F3, theo tiền lệ FR-U10 sửa FR-H12 |
 
@@ -384,12 +385,14 @@ record HrReconsiderationListResponse(UUID jobId, int openCount, List<HrReconside
 
 ### 4.5 Seed (đợt cuối)
 
-- Tầng demo cấu trúc mới (kế hoạch, mục "Seed demo"): một đơn bị từ chối ở vòng hồ sơ cách lúc nạp 2 ngày (`now() -
-  interval '2 days'`) kèm yêu cầu `OPEN`. Không sửa tầng 2/2b.
+- Demo (đề xuất 30/10/2026, chờ chốt — mục 11 "Đồng bộ sau FR-U16", S1): thêm **Phần B** vào **tầng 3**
+  `db/seed/seed-demo-structural-3.sql` (không tạo tầng riêng): một đơn bị từ chối ở vòng hồ sơ cách lúc nạp 2 ngày
+  (`now() - interval '2 days'`) kèm yêu cầu `OPEN`, dải `d3a00000-`, mã bảng mới `0021`. Không sửa tầng 1/1b/2/2b.
 - `seed-test.sql`: đơn bị từ chối 6 ngày 23 giờ (còn hạn), 8 ngày (quá hạn), bị từ chối sau phỏng vấn; một yêu cầu
   `DECLINED` có phản hồi.
 - `reset-test-data.sql` xoá `application_reconsideration_requests` của đơn test **trước** câu xoá đơn (FK RESTRICT);
-  `reset-demo-db.sql` + `db/seed/README.md` cập nhật tới V21.
+  `reset-demo-db.sql` + `db/seed/README.md` cập nhật tới V21 (31 → 32 bảng nghiệp vụ); chốt chặn tầng 3 nâng từ
+  "V20 trở lên" lên "V21 trở lên". Chốt chặn tầng 1b ("V19 trở lên" từ FR-U16 B11) **không** sửa.
 
 ## 5. AI
 
@@ -535,13 +538,14 @@ test dọn bằng rollback của `@Transactional` hoặc tạo dữ liệu mới
 | Chỗ | Hiện trạng | Việc phải làm ở đợt V21 |
 |---|---|---|
 | `db/seed/reset-test-data.sql:110-123` | Mục 3 xoá con của `job_applications` rồi `DELETE FROM job_applications WHERE id IN (SELECT id FROM t_apps)` (`:123`) | Thêm `DELETE FROM application_reconsideration_requests WHERE application_id IN (SELECT id FROM t_apps)` trong mục 3, **trước** `:123`. Thiếu câu này thì reset lỗi FK ngay khi seed test có yêu cầu (mục 4.5) |
-| `db/seed/seed-demo-structural-1b.sql:87-99` | Mục 1 xoá dải `d1b00000-%` "con trước cha", `DELETE FROM job_applications` ở `:99` | Thêm `DELETE FROM application_reconsideration_requests WHERE application_id::text LIKE 'd1b00000-%' OR id::text LIKE 'd1b00000-%'` **trước** `:99`. Cần vì tầng seed demo mới (mục 4.5) có thể gắn yêu cầu vào đơn dải `d1b`; nạp lại 1b khi đó sẽ lỗi FK |
-| `db/seed/reset-demo-db.sql:92-122` | Một câu `TRUNCATE TABLE … CASCADE` (`:92`, `:122`), `job_applications` ở `:104` | `TRUNCATE … CASCADE` **không** bị `RESTRICT` chặn (CASCADE truncate mọi bảng có FK trỏ tới, comment `:89-91`), nên script không lỗi nếu quên. Vẫn phải thêm `application_reconsideration_requests` vào danh sách cạnh `job_applications` (quy ước liệt kê tường minh, comment `:89-91`, `:107`, `:111`, `:113`) và sửa tiền đề "Can DB o V19 tro len" (`:86`) thành V21 |
+| `db/seed/seed-demo-structural-1b.sql:88-100` | Mục 1 xoá dải `d1b00000-%` "con trước cha", `DELETE FROM job_applications` ở `:100` | Thêm `DELETE FROM application_reconsideration_requests WHERE application_id::text LIKE 'd1b00000-%' OR id::text LIKE 'd1b00000-%'` **trước** `:100`. Theo đề xuất S1 (mục 11) yêu cầu demo nằm ở đơn dải `d3a`, không ở `d1b`, nên câu này là phòng hờ — giữ để 1b không lỗi FK nếu sau này có yêu cầu gắn vào đơn `d1b` |
+| `db/seed/reset-demo-db.sql:92-124` | Một câu `TRUNCATE TABLE … CASCADE` (`:92`, `:124`), `job_applications` ở `:104` | `TRUNCATE … CASCADE` **không** bị `RESTRICT` chặn (CASCADE truncate mọi bảng có FK trỏ tới, comment `:89-91`), nên script không lỗi nếu quên. Vẫn phải thêm `application_reconsideration_requests` vào danh sách cạnh `job_applications` (quy ước liệt kê tường minh, comment `:89-91`, `:107`, `:111`, `:113`, `:115`), sửa tiền đề "Can DB o V20 tro len … chua co saved_jobs" (`:86-87`) thành V21, và comment đếm bảng "31 bang … V1..V20" (`:81-82`) thành "32 bang … V1..V21" |
+| `db/seed/seed-demo-structural-3.sql:72-81` (theo S1, mục 11) | Mục 1 xoá dải `d3a00000-%`; chưa xoá `job_applications`. Chốt chặn `:52` đòi V20 trở lên | Nếu Phần B thêm đơn dải `d3a`: xoá `application_reconsideration_requests` → `notifications` → `application_status_history` → `job_applications` dải `d3a` **trước** `DELETE FROM jobs` (`:81`); nâng chốt chặn `:52`-`:53` lên V21 |
 | `backend/src/test/java/com/recruitment/interviewinvitation/InterviewInvitationSchemaConstraintIntegrationTest.java:216` | `DELETE FROM job_applications WHERE id = ?` trong **thân** test T16 của FR-H12 (kiểm CASCADE giấy mời → khung), không phải bước dọn | Không sửa: đơn của test này không có dòng yêu cầu nên `RESTRICT` không chạm. Ghi lại để người code không nhầm là chỗ dọn |
 
 Kiểm ở đợt đó: chạy `reset-test-data.sql` trên DB có seed test (gồm yêu cầu ở mục 4.5) → không lỗi, 0 dòng yêu cầu của
 đơn test còn lại; nạp lại `seed-demo-structural-1b.sql` hai lần liên tiếp sau khi có tầng demo mới → không lỗi;
-`reset-demo-db.sql` → bảng mới rỗng.
+`reset-demo-db.sql` → bảng mới rỗng; nạp `seed-demo-structural-3.sql` hai lần liên tiếp → không lỗi (theo S1).
 
 ## 10. Tài liệu dùng chung
 
@@ -552,7 +556,7 @@ Sửa ở đợt cuối: `CLAUDE.md` §3 danh sách package (`reconsideration/`)
 `/hr/jobs/:id/edit` thêm tab "Yêu cầu xem xét lại"; dòng `/hr/applications/:id` thêm khối yêu cầu; dòng
 `/candidate/applications/:id` thêm khối xem xét lại; dòng `/candidate/applications` thêm chữ "Đang chờ xem xét lại");
 `docs/ER.md` (bảng mới); `db/seed/*` (mục 4.5); `docs/DEMO.md`; `docs/SRS.md` mục 0 + `docs/ROADMAP.md`;
-comment `ApplicationService.java:172-173` (M1), `ApplicationStatusService.java:29-32` (nêu ngoại lệ FR-C09).
+comment `ApplicationService.java:175-176` (M1), `ApplicationStatusService.java:29-32` (nêu ngoại lệ FR-C09).
 
 Ghi chú vào đặc tả của FR đã hoàn thành (đợt cuối, khuôn "*Sửa bởi FR-U10 …*" ở `docs/features/HR/H12/REQUIREMENT.md`
 mục 3.9):
@@ -564,7 +568,7 @@ mục 3.9):
 - [ ] Q10: sửa `docs/UI_GUIDE.md` mục 7 (bốn dòng route ở UI.md mục 2).
 - [ ] `.claude/skills/srs-guard/SKILL.md`: thêm nguyên tắc "cạnh `REJECTED → INTERVIEW_INVITED` chỉ qua yêu cầu `OPEN`;
   `ALLOWED_TRANSITIONS` không có khoá `REJECTED`; `ApplicationStatus` đúng 5 giá trị"; "19 FR mới" → 21 (dòng 3, 175).
-- [ ] `docs/features/README.md:921`: bỏ dấu ★ trước `/candidate/applications/:id` và `/hr/applications/:id` (route đã có).
+- [ ] `docs/features/README.md:935`: bỏ dấu ★ trước `/candidate/applications/:id` và `/hr/applications/:id` (route đã có).
 - [ ] Ghi chú FR-C09 vào `docs/features/UV/U08/` và `docs/features/HR/H12/` (đoạn trên).
 - [ ] Ghi "Giới hạn đã biết" (mục 6) vào `docs/ROADMAP.md`.
 
@@ -583,4 +587,56 @@ Người dùng chốt ngày 30/10/2026 sau `spec-review`; đặc tả duyệt c�
 | Q7 | Tab HR có hiện yêu cầu đã quyết không? | Có bộ lọc "Đang chờ" (mặc định) / "Tất cả" | Mục 4.3 H1, T17, UI.md 4e |
 | Q8 | Có thêm nút vào thanh thao tác FR-H07 không? | **Không thêm nút**, NHƯNG sửa M3: đơn `REJECTED` có yêu cầu `OPEN` thì thanh thao tác không hiện "Không còn thao tác nào" mà hiện câu trỏ xuống khối yêu cầu | R-D7, T25, mục 7.2, 7.3 bước 7, UI.md 4f |
 | Q9 | Chấp nhận thay đổi FR-U08 (M1, M2, M5) và FR-H12 R-F3 (M6)? | **Chấp nhận**. Thêm test hồi quy FR-H12: I2 vẫn 400 khi đơn `REJECTED` không có yêu cầu / có yêu cầu `ACCEPTED` / `DECLINED`, và khi đơn `HIRED` / `WITHDRAWN`. Đợt cuối ghi chú FR-C09 vào `docs/features/UV/U08` và `docs/features/HR/H12` | T11, mục 10 |
-| Q10 | Sửa `UI_GUIDE.md` mục 7 lúc nào? | **Đợt cuối** — cùng đề xuất sửa `srs-guard` và dấu ★ ở `docs/features/README.md:921` | Mục 10 "Checklist đợt cuối" |
+| Q10 | Sửa `UI_GUIDE.md` mục 7 lúc nào? | **Đợt cuối** — cùng đề xuất sửa `srs-guard` và dấu ★ ở `docs/features/README.md:935` | Mục 10 "Checklist đợt cuối" |
+
+### Đồng bộ sau FR-U16 (30/10/2026)
+
+Nhánh rebase từ `f0e6354` lên `main` tại `0d6dbef` (merge PR #36, FR-U16), không xung đột. Trạng thái đặc tả giữ
+**ĐÃ DUYỆT**; không quy tắc nghiệp vụ, endpoint, DTO hay test nào đổi. Chỉ sửa trích dẫn và phần dữ liệu/seed dưới đây.
+`UI.md` không cần sửa: bốn chỗ trích file:dòng (`HrJobEditPage.tsx`, `MessageComposer.tsx`, `ApplicationActionBar.tsx`,
+`CandidateApplicationsPage.tsx`) không bị FR-U16 sửa. `JobPublicService` và `CandidateLayout` (FR-U16 có sửa) không được
+đặc tả này trích ở đâu — không ảnh hưởng.
+
+**Migration và số liệu**
+
+| Chỗ | Trước | Sau |
+|---|---|---|
+| a26 | Cao nhất `V19__blind_review.sql`; V20 dành cho FR-U16 | Cao nhất `V20__saved_jobs.sql`; FR-C09 dùng **V21** (không đổi) |
+| 9.1 `reset-demo-db.sql` tiền đề | "Can DB o V19 tro len" (`:86`) → V21 | Hiện là "Can DB o V20 tro len … chua co saved_jobs" (`:86-87`) → V21 |
+| 9.1 `reset-demo-db.sql` số bảng | Không nêu | Comment `:81-82` "31 bang … V1..V20" → "32 bang … V1..V21". Đếm lại 30/10: 36 `CREATE TABLE` trong V1–V20 − `job_recommendations` (DROP ở V11) − 4 bảng `catalog_*` = 31, khớp đúng 31 tên trong câu `TRUNCATE` `:92-124` |
+| 4.5 chốt chặn | Không nêu | Tầng 3 đòi V20 trở lên (`seed-demo-structural-3.sql:52`) → V21; tầng 1b đã là "V19 trở lên" (FR-U16 B11) → giữ nguyên |
+| Mốc test | Không nêu | Full suite trên `main` `0d6dbef`: **2148** test xanh (`docs/walkthrough/fr-u16-saved-jobs.md:207`, `docs/ROADMAP.md:1224`) — mốc so sánh cho các đợt code |
+
+**Trích dẫn file:dòng bị dời** (chỉ đổi số dòng, trừ chỗ ghi "ý nghĩa")
+
+| Chỗ | Trước (`f0e6354`) | Sau (`0d6dbef`) |
+|---|---|---|
+| Đầu file — phụ thuộc | `docs/SRS.md:24`, `:37`, `:39`, `:42`, `:45`, `:53`; `:87` | `:25`, `:38`, `:40`, `:43`, `:46`, `:54`; `:88` |
+| Đầu file — nhánh | FR-U16 "Chưa hoàn thành — `docs/SRS.md:60`", phải rebase | FR-U16 Đã hoàn thành (`docs/SRS.md:61`), đã rebase lên `0d6dbef` |
+| a2 | `GlobalExceptionHandler.java:235-238` | `:248-251` (+13: FR-U16 thêm hai handler ở `:140-151`) |
+| a3 | `GlobalExceptionHandler.java:243-246` | `:256-259` |
+| a7 | `ApplicationService.java:115`, `:143` | `:118`, `:146` (+3: thêm field/tham số/gán `JobAvailabilityResolver`) |
+| a16 | `ApplicationCandidateDetailResponse.java:14-22`; `getMyApplicationDetail` `:174-227`; quyền `:178-180`; comment R-D1 `:172-173` | `:15-23`; `:177-230`; `:181-183`; `:175-176`. **Ý nghĩa:** `job.availability` nay lấy qua `job/JobAvailabilityResolver.of` (`:205`), enum `JobAvailability` chuyển từ lồng trong DTO sang `job/JobAvailability.java` (DTO `:51` chỉ còn comment). Nội dung comment R-D1 không đổi; khối `reconsideration` của FR-C09 không dùng `JobAvailability` (tin xoá mềm xét bằng `jobs.deleted_at`, R-E4) |
+| M1, mục 10 | comment `ApplicationService.java:172-173` | `:175-176` |
+| M2 | `ApplicationCandidateDetailResponse` "KHÔNG thêm field nào khác" `:10-13` | `:11-14` (+1: import `com.recruitment.job.JobAvailability`) |
+| M4 | `docs/SRS.md:101`, `:155` | `:102`, `:156` |
+| 9.1 `seed-demo-structural-1b.sql` | `:87-99`, `job_applications` `:99` | `:88-100`, `:100` (+1: comment chốt chặn B11) |
+| 9.1 `reset-demo-db.sql` | `:92-122`, `CASCADE` `:122` | `:92-124`, `:124` (+2: dòng `saved_jobs` `:115-116`; thêm `:115` vào danh sách comment "liệt kê cho tường minh") |
+| Mục 10, Q10 | `docs/features/README.md:921` | `:935` |
+
+Đã rà lại 30/10 trên `0d6dbef` mọi chỗ xoá `job_applications` (`*.sql`, `*.ps1`, `*.sh`, `*.java`): vẫn đúng ba chỗ của
+mục 9.1 (`reset-test-data.sql:123` không đổi), FR-U16 không thêm chỗ nào.
+
+**S1 — Đề xuất seed demo (chờ người dùng chốt, trước đợt cuối)**
+
+- **Thêm vào tầng 3** (`seed-demo-structural-3.sql`, Phần B "Xem xét lại (FR-C09)"), **không** tạo tầng riêng. Lý do:
+  header file ghi sẵn "FR-C09 them phan cua minh vao CUNG file nay" (`:6`) và README seed `:32-33` cũng vậy; tầng 3 chạy
+  sau 2b nên không đụng chốt chặn L11 của 1b; idempotent sẵn theo dải `d3a00000-%`.
+- **Dải id con** (cùng bảng mã `TTTT` của `chore-seed-final.md` K2, `0020` đã là `saved_jobs`): `d3a00000-0009-…` đơn
+  ứng tuyển, `d3a00000-0010-…` lịch sử trạng thái (`NULL → PENDING`, `PENDING → REJECTED` lúc `now() - interval '2
+  days'`), `d3a00000-0015-…` thông báo (`APPLICATION_STATUS_CHANGED` cho ứng viên, `RECONSIDERATION_REQUESTED` cho HR),
+  **`d3a00000-0021-…` = `application_reconsideration_requests` (mã mới)** — bổ sung vào bảng "Dải id" của
+  `db/seed/README.md` và bảng mã K2. Không có dòng nào trùng: tầng 3 hiện chỉ dùng `0004` và `0020`.
+- **Ràng buộc khi chọn đơn** (chốt ở đợt cuối): đơn mới nên thuộc tin `OPEN` của công ty Hoàn Mỹ không bật ẩn danh để HR
+  demo chính thấy tab; không dùng Phạm Quốc Bảo trên 4 tin đã lưu (giữ kịch bản "Đã ứng tuyển" của FR-U16); kiểm
+  `uq_application_per_cycle`. Một đơn `REJECTED` mới làm đổi số phễu công ty ở README seed mục 6c — cập nhật cùng đợt.
