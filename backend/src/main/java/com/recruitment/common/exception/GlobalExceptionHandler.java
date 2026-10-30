@@ -176,6 +176,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("RECONSIDERATION_DEADLINE_PASSED", ex.getMessage()));
     }
 
+    // FR-C09 R-D2, R-D3 - 409: yeu cau khong con OPEN (H2 khi da quyet/khong co yeu cau; I2 hoac H2 thua tranh chap).
+    @ExceptionHandler(ReconsiderationNotOpenException.class)
+    public ResponseEntity<ErrorResponse> handleReconsiderationNotOpen(ReconsiderationNotOpenException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("RECONSIDERATION_NOT_OPEN", ex.getMessage()));
+    }
+
     @ExceptionHandler(ReconsiderationTextTooLongException.class)
     public ResponseEntity<ErrorResponse> handleReconsiderationTextTooLong(ReconsiderationTextTooLongException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -282,6 +282,127 @@ abstract class ReconsiderationIntegrationTestSupport {
         return value.toInstant();
     }
 
+    // ---- Phia HR (dot 4) ----
+
+    // Mau giay moi cua tin (I2 doi hoi mau ton tai - InterviewInvitationService.loadTemplate).
+    void insertTemplate(UUID jobId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO interview_templates (job_id, company_name, subject, body, sender_name)
+                VALUES (?, 'Cong ty C09', 'Thu moi {{candidateName}}', 'Kinh gui {{candidateName}}', 'Phong Nhan Su')
+                """,
+                jobId);
+    }
+
+    // Don bi tu choi o vong ho so + yeu cau OPEN + mau giay moi: san sang cho I2/H2.
+    Fixture openRequest(String prefix, String reason) throws Exception {
+        Fixture f = rejectedAtScreening(prefix);
+        insertTemplate(f.jobId());
+        insertRequest(f.applicationId(), "OPEN", null, reason, null);
+        return f;
+    }
+
+    Fixture openRequest(HrAccount hr, Account candidate, String reason) {
+        UUID jobId = insertOpenJob(hr);
+        insertTemplate(jobId);
+        Fixture f = rejectedAtScreening(hr, candidate, jobId);
+        insertRequest(f.applicationId(), "OPEN", null, reason, null);
+        return f;
+    }
+
+    // I2 cua FR-H12 - mot khung gio tuong lai (khung kiem bang Instant.now() cua JVM - day la du lieu request, khong phai
+    // phep so han cua FR-C09).
+    MvcResult sendInvitation(String token, UUID applicationId, String subject, String content) throws Exception {
+        String scheduledAt = Instant.now().plus(java.time.Duration.ofDays(3)).truncatedTo(java.time.temporal.ChronoUnit.MINUTES)
+                .toString();
+        Map<String, Object> body = Map.of(
+                "slots", List.of(Map.of("scheduledAt", scheduledAt, "location", "Phong 1")),
+                "subject", subject,
+                "content", content);
+        return call(
+                post("/api/hr/applications/" + applicationId + "/interview-invitation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(body)),
+                token);
+    }
+
+    MvcResult sendInvitation(String token, UUID applicationId) throws Exception {
+        return sendInvitation(token, applicationId, "Thu moi phong van", "Kinh moi ban tham gia phong van.");
+    }
+
+    // H2 - bodyJson null = khong gui body.
+    MvcResult decline(String token, UUID applicationId, String bodyJson) throws Exception {
+        MockHttpServletRequestBuilder request =
+                post("/api/hr/applications/" + applicationId + "/reconsideration-request/decline");
+        if (bodyJson != null) {
+            request = request.contentType(MediaType.APPLICATION_JSON).content(bodyJson);
+        }
+        return call(request, token);
+    }
+
+    MvcResult declineWith(String token, UUID applicationId, String response) throws Exception {
+        Map<String, String> body = new java.util.HashMap<>();
+        body.put("response", response);
+        return decline(token, applicationId, JSON.writeValueAsString(body));
+    }
+
+    // H1 - status null = khong truyen tham so.
+    MvcResult listH1(String token, UUID jobId, String status) throws Exception {
+        MockHttpServletRequestBuilder request = get("/api/hr/jobs/" + jobId + "/reconsideration-requests");
+        if (status != null) {
+            request = request.param("status", status);
+        }
+        return call(request, token);
+    }
+
+    MvcResult getHrDetail(String token, UUID applicationId) throws Exception {
+        return call(get("/api/hr/applications/" + applicationId), token);
+    }
+
+    String applicationStatus(UUID applicationId) {
+        return jdbcTemplate.queryForObject("SELECT status FROM job_applications WHERE id = ?", String.class, applicationId);
+    }
+
+    String requestStatus(UUID applicationId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT status FROM application_reconsideration_requests WHERE application_id = ?",
+                String.class,
+                applicationId);
+    }
+
+    long countInvitations(UUID applicationId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM interview_invitations WHERE application_id = ?", Long.class, applicationId);
+    }
+
+    long countHistory(UUID applicationId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM application_status_history WHERE application_id = ?", Long.class, applicationId);
+    }
+
+    long countHistory(UUID applicationId, String from, String to) {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT count(*) FROM application_status_history
+                WHERE application_id = ? AND from_status IS NOT DISTINCT FROM ? AND to_status = ?
+                """,
+                Long.class,
+                applicationId,
+                from,
+                to);
+    }
+
+    // Giay moi hieu luc ghi tay (FR-H12: superseded_at NULL) - dung de lam buoc tao giay moi cua I2 vo uq_invitation_active.
+    void insertActiveInvitation(UUID applicationId, UUID sentBy) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO interview_invitations (application_id, subject, rendered_content, sent_at, sent_by)
+                VALUES (?, 'Giay moi ghi tay', 'Noi dung', now(), ?)
+                """,
+                applicationId,
+                sentBy);
+    }
+
     static List<String> keysOf(JsonNode node) {
         List<String> keys = new ArrayList<>();
         for (Map.Entry<String, JsonNode> entry : node.properties()) {

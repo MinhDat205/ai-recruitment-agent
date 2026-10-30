@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-// onApplicationStatusChanged/onApplicationSubmitted/onApplicationWithdrawn/onMessageSent/onReconsiderationRequested dung
+// onApplicationStatusChanged/onApplicationSubmitted/onApplicationWithdrawn/onMessageSent/onReconsideration* dung
 // @TransactionalEventListener(AFTER_COMMIT): ApplicationStatusService.changeStatus/ApplicationService.apply/
 // withdraw/MessageService.send publish TRONG transaction chinh, Spring hoan xu ly toi day chi khi transaction
 // do commit thanh cong. onAggregationFinished dung @EventListener thuong: AggregationOrchestrator.doProcess
@@ -131,6 +131,20 @@ public class NotificationEventListener {
             save(company.getOwnerId(), NotificationType.RECONSIDERATION_REQUESTED, content, event.applicationId());
         } catch (RuntimeException e) {
             log.error("Khong tao duoc thong bao yeu cau xem xet lai: applicationId={}", event.applicationId(), e);
+        }
+    }
+
+    // FR-C09 R-N1, R-N3 - cung khuon; nguoi nhan la ung vien, noi dung khong chua phan hoi (Q5). H2 thua (409) khong toi
+    // day. Chap nhan (I2) KHONG co su kien rieng - chi ApplicationStatusChangedEvent san co (R-S4).
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onReconsiderationDeclined(ReconsiderationDeclinedEvent event) {
+        try {
+            Job job = jobRepository.findById(event.jobId()).orElseThrow();
+            Content content = NotificationContentBuilder.forReconsiderationDeclined(job, event.applicationId());
+            save(event.candidateId(), NotificationType.RECONSIDERATION_DECLINED, content, event.applicationId());
+        } catch (RuntimeException e) {
+            log.error("Khong tao duoc thong bao giu quyet dinh tu choi: applicationId={}", event.applicationId(), e);
         }
     }
 

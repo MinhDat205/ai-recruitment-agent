@@ -1,6 +1,7 @@
 package com.recruitment.jobapplication.dto;
 
 import com.recruitment.jobapplication.ApplicationStatus;
+import com.recruitment.reconsideration.dto.HrReconsiderationResponse;
 import com.recruitment.resume.ParseStatus;
 import java.time.Instant;
 import java.util.UUID;
@@ -25,5 +26,8 @@ public record ApplicationHrDetailResponse(
         String resumeFileName,
         // FR-H16 R-N3 [Q12] - don dang an danh: candidateName la nhan, coverLetter = null (R-V3), resumeFileName = null
         // (R-V2).
-        boolean identityMasked) {
+        boolean identityMasked,
+        // FR-C09 (muc 4.4, R-D7) - yeu cau xem xet lai cua don o MOI trang thai; null khi don khong co yeu cau. Da che theo
+        // an danh o ReconsiderationReader (R-A2).
+        HrReconsiderationResponse reconsideration) {
 }
