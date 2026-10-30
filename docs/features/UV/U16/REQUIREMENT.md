@@ -224,18 +224,25 @@ FR-U16 **không dùng AI, không xếp hạng, không tính điểm phù hợp**
 - **R-B1. Vị trí.** Mọi nơi dùng `JobCard` (mục 0.a2) và `/jobs/:id` (cạnh `ApplyButton`). Bảng tin có nút vì dùng
   chung `RecommendedJobs` — không thêm prop để tắt.
 - **R-B2. Theo vai trò** (khuôn `ApplyButton`): HR → không render; khách → nút hiện ở trạng thái "chưa lưu", bấm sang
-  `/login` với `state.from`; ứng viên → nút bật/tắt theo `GET /saved-jobs/ids`.
+  `/login` với `state.from`; ứng viên → nút bật/tắt theo `GET /saved-jobs/ids`. *(B5)* Query ids chỉ chạy khi
+  `AuthContext` có người dùng role `CANDIDATE` (`enabled: user?.role === 'CANDIDATE'`); khách và HR **không** gửi
+  request nào tới `/api/candidates/saved-jobs/**`.
 - **R-B3. Đổi cấu trúc `JobCard`.** Thẻ không còn là một `<Link>` bọc tất cả. Thẻ thành `<article>` có `relative`; tiêu
   đề là `<Link>` phủ toàn thẻ bằng lớp giả `after:absolute after:inset-0` (cả thẻ vẫn bấm được như cũ); nút Lưu là
   `<button>` anh em của `<Link>`, nằm trên lớp phủ (`relative z-10`). Giao diện hiện có (logo, tiêu đề, hạn nộp, lương,
   tag, nhãn "Chưa chuẩn hoá", dòng điều kiện khớp) giữ nguyên vị trí và chữ; chỉ thêm nút (UI.md mục 4a).
 - **R-B4. Trạng thái nút lấy từ một nguồn.** Ứng viên: `useSavedJobIdsQuery` (một lần gọi `GET /saved-jobs/ids` cho cả
-  trang, dùng chung giữa các thẻ qua cache TanStack Query). **Không** thêm cờ `saved` vào `JobSummaryResponse`,
+  trang, dùng chung giữa các thẻ qua cache TanStack Query). *(B6)* Mọi thẻ và trang chi tiết đọc **cùng một** query
+  `['saved-job-ids']`; không gọi API theo từng thẻ. **Không** thêm cờ `saved` vào `JobSummaryResponse`,
   `JobDetailResponse` hay bất kỳ API `/api/public/**` nào (mục 4.4).
-- **R-B5. Sau khi lưu/bỏ lưu thành công** → làm mới `['saved-job-ids']` và `['saved-jobs']`. Không cập nhật lạc quan
-  (optimistic): nút khoá trong lúc chờ, đổi trạng thái khi API trả 204.
-- **R-B6. Lỗi.** 409 `JOB_NOT_SAVEABLE`/`SAVED_JOB_LIMIT_REACHED`: hiện câu backend trả về ngay dưới nút (`role="status"`),
-  nút giữ trạng thái cũ; lỗi mạng/5xx: câu cố định (UI.md mục 7). Không dùng snackbar (dự án chưa có, UI_GUIDE mục 3).
+- **R-B5. Cập nhật lạc quan** *(B6, thay câu "không cập nhật lạc quan" của bản duyệt f514a03)*. Bấm Lưu/Bỏ lưu: hủy
+  fetch đang chạy của `['saved-job-ids']`, ghi lại bản cũ, sửa cache ngay (thêm/bớt `jobId`) — mọi thẻ cùng tin đổi trạng
+  thái tức thì. API lỗi → hoàn lại đúng bản cũ và báo lỗi (R-B6). API thành công → **không** refetch `['saved-job-ids']`;
+  chỉ đánh dấu cũ `['saved-jobs']` (danh sách của trang Tin đã lưu). Trong lúc request của **chính** tin đó đang chạy, nút
+  của tin đó khoá để không gửi hai request ngược chiều; tin khác bấm được bình thường.
+- **R-B6. Lỗi.** 409 `JOB_NOT_SAVEABLE`/`SAVED_JOB_LIMIT_REACHED` hoặc lỗi mạng/5xx: hoàn lại cache (R-B5) rồi hiện câu
+  backend trả về (409) hoặc câu cố định (mạng/5xx, UI.md mục 7) ngay dưới nút (`role="status"`). Không dùng snackbar
+  (dự án chưa có, UI_GUIDE mục 3).
 
 ### 3.6 Ràng buộc chung (R-G)
 
@@ -552,7 +559,10 @@ khác "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục 
 | Cần thấy | Thao tác | Mong đợi |
 |---|---|---|
 | Đồng bộ giữa các nơi | Lưu ở `/jobs/:id` rồi quay lại `/candidate` và `/candidate/dashboard` | Thẻ J1 hiện "Đã lưu" ở cả danh sách, gợi ý, Bảng tin |
+| Một query cho cả trang (B6) | `/candidate`, DevTools tab Network, tải lại trang rồi bấm Lưu/Bỏ lưu 3 thẻ khác nhau | Đúng **một** `GET /api/candidates/saved-jobs/ids` lúc tải trang; mỗi lần bấm đúng một `PUT`/`DELETE`, **không** có `GET …/ids` theo sau; nút đổi ngay khi bấm |
+| Hoàn lại khi lỗi (B6) | Bấm Lưu một tin, HR đóng tin đó ở tab khác trước khi bấm (hoặc DevTools chặn request `PUT`) | Nút đổi sang "Đã lưu" rồi trở về "chưa lưu", câu lỗi hiện dưới nút |
 | Khách | Đăng xuất, `/`, bấm Lưu | Sang `/login`; đăng nhập xong về trang cũ, tin **chưa** được lưu |
+| Không request khi không phải ứng viên (B5) | Mở `/` và `/jobs/{J1}` khi **chưa đăng nhập**; rồi đăng nhập `minhdathr@gmail.com` (HR) và mở lại hai trang | DevTools tab Network (lọc `saved-jobs`): **0** request ở cả hai vai trò |
 | HR | `minhdathr@gmail.com`, mở `/` và `/jobs/:id` | Không có nút Lưu |
 | Trang Tin đã lưu | Menu "Tin đã lưu" | Mục menu sáng; "Đang lưu n/100 tin"; tin mới lưu ở trên |
 | Tình trạng | Seed demo (đợt 7) có 1 tin quá hạn | Nhãn "Đã hết hạn nộp", nút Ứng tuyển khoá + câu lý do, không liên kết sang tin |
@@ -594,20 +604,29 @@ khác "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục 
   `TRUNCATE` của `reset-demo-db.sql` (mục 9.1).
 - Thêm field/khoá lượt lưu vào DTO phía HR, hoặc import `savedjob/` từ package khác (T20, T21).
 - Bọc lớp test so `saved_at` bằng `@Transactional` cấp lớp (mọi `now()` bằng nhau, T5/T10 không xác định).
+- *(B5)* Gọi `GET /saved-jobs/ids` cho khách hoặc HR (thiếu `enabled` theo role) → 401/403 rơi vào console, dư request.
+- *(B6)* Gọi API theo từng thẻ (mỗi `JobCard` một query/`GET` riêng) thay vì một query `['saved-job-ids']` dùng chung;
+  refetch/`invalidateQueries(['saved-job-ids'])` sau mỗi lần bấm; cập nhật lạc quan mà quên hoàn lại khi API lỗi (thẻ
+  hiện "Đã lưu" cho tin không được lưu); hoặc hoàn lại bằng cách refetch thay vì trả bản cũ đã ghi.
+- *(B4)* Viết lệnh Maven có `-D` không bọc nháy kép trong PowerShell (`.\mvnw.cmd test -Dtest=A,B`) — PowerShell tách
+  dấu phẩy/dấu chấm, Maven nhận sai tham số.
 
 ## 9. Kế hoạch đợt code
 
 Mỗi đợt: dừng → báo cáo diff → chờ duyệt → một commit. Giữa các đợt backend chạy `.\mvnw.cmd test-compile` và lớp test
-liên quan (`-Dtest=...`); full suite `.\mvnw.cmd test` chạy ở đợt cuối. Frontend: `npm run build` + `npm run lint` sau mỗi
-đợt có sửa frontend. Trước khi code: rebase `feat/fr-u16-saved-jobs` lên `main` mới nhất (sau nhánh perf, kế hoạch mục
-"Thứ tự làm").
+liên quan; full suite `.\mvnw.cmd test` chạy ở đợt cuối. Frontend: `npm run build` + `npm run lint` sau mỗi đợt có sửa
+frontend. Trước khi code: rebase `feat/fr-u16-saved-jobs` lên `main` mới nhất (sau nhánh perf, kế hoạch mục "Thứ tự
+làm").
+
+*(B4)* Trong PowerShell, mọi lệnh Maven có `-D` bọc nháy kép **cả cụm**: `.\mvnw.cmd test "-Dtest=A,B,C"`,
+`.\mvnw.cmd test "-Dtest=SavedJob*"`.
 
 | Đợt | Nội dung | Kiểm |
 |---|---|---|
 | 1 | Plan Mode: đối chiếu đặc tả đã duyệt với code (mục 0, số dòng có thể lệch sau rebase); in SQL mục 4.4 ra chat để duyệt; chốt tên file | — |
-| 2 | Tách tình trạng tin: `job/JobAvailability`, `job/JobAvailabilityResolver` (một + theo lô), `ApplicationService` dùng resolver (R-A1, R-A2); tách hàm dựng `JobSummaryResponse` (mục 4.3); T18, T19 | `-Dtest=ApplicationCandidateDetailControllerIntegrationTest,JobAvailabilityResolverTest` |
-| 3 | V20 + entity `SavedJob` + repository + **dọn dữ liệu mục 9.1** + T17, T17b | `-Dtest=SavedJobMigrationTest`; chạy `reset-test-data.sql` trên DB có seed test |
-| 4 | Service + controller E1–E4, hai exception + handler; T1–T16, T20, T21 | `-Dtest=SavedJob*` |
+| 2 | Tách tình trạng tin: `job/JobAvailability`, `job/JobAvailabilityResolver` (một + theo lô), `ApplicationService` dùng resolver (R-A1, R-A2); tách hàm dựng `JobSummaryResponse` thành `job/JobSummaryMapper` static (mục 4.3, L1, L2); sửa cơ học một đối số ở `ApplicationServiceTest.java:71` (L1); T18, T19 + hồi quy FR-U08, U02/C02, U15, U13 | `.\mvnw.cmd test "-Dtest=JobAvailabilityResolverTest,ApplicationCandidateDetailControllerIntegrationTest,CandidateApplicationCrossEndpointAccessIntegrationTest,ApplicationServiceTest,ApplicationIntegrationTest,JobPublicIntegrationTest,JobPublicServiceTest,JobRecommendationCandidateControllerIntegrationTest,JobRecommendationCandidateServiceTest,JobSearchIntegrationTest,JobSearchResponseKeysIntegrationTest,JobSearchSignatureTest"` |
+| 3 | V20 + entity `SavedJob` (L4) + repository (L5) + **dọn dữ liệu mục 9.1** + T17, T17b | `.\mvnw.cmd test "-Dtest=SavedJobMigrationTest"`; chạy `reset-test-data.sql` trên DB có seed test |
+| 4 | Service + controller E1–E4, hai exception + handler; T1–T16, T20 (L8), T21; T16 lặp 20 vòng (L9) | `.\mvnw.cmd test "-Dtest=SavedJob*"` |
 | 5 | Frontend dùng chung: `JobAvailabilityBadge` + nhãn chuyển về `features/jobs/` (U08 dùng bản chung, giao diện không đổi); `features/savedJobs/` (api, queries, `SaveJobButton`); đổi cấu trúc `JobCard` (R-B3) + nút ở `/jobs/:id` | build + lint; 7.3 |
 | 6 | Trang `/candidate/saved-jobs` + route + mục menu | build + lint; 7.3 |
 | 7 | Đợt cuối: tầng seed demo (3–4 tin đã lưu cho ứng viên demo, 1 tin hạn `CURRENT_DATE - 1` lúc nạp — kế hoạch mục "Seed demo"); full `.\mvnw.cmd test`; khối 7.2 (dán output); soát tay 7.4; `srs-guard`; `walkthrough`; tài liệu chung mục 10; trạng thái `ĐÃ HOÀN THÀNH` | full suite; 7.2; 7.3; 7.4 |
@@ -666,3 +685,20 @@ Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3
 | B1 | `JobCard` đổi `<Link>` → `<article>`: soát tay đủ 4 nơi dùng thẻ (chuột, Tab + Enter ở tiêu đề, Tab + Enter/Space ở nút Lưu, bấm nút không mở trang tin) | Mục 7.4; mục 8 (lồng `<button>` trong `<a>`, quên `stopPropagation`/`preventDefault`) |
 | B2 | Quyền riêng tư: HR không biết ai lưu tin, không thấy số lượt lưu; không endpoint `/api/hr/**` đọc `saved_jobs` | Mục 6; T20 (JSON API HR), T21 (canh nguồn — dự án không có gói `hr/`, luật viết thành "chỉ `savedjob/` tham chiếu `savedjob`") |
 | B3 | Không AI, không xếp hạng, không điểm phù hợp; chỉ sắp `saved_at DESC, id DESC` | Đầu file, mục 1, R-G1, R-G2, R-V1, mục 5 |
+
+**Đã chốt sau Plan Mode đợt 1 (30/10/2026)**
+
+| # | Điểm | Quyết định |
+|---|---|---|
+| L1 | `ApplicationServiceTest.java:71` và `JobPublicServiceTest.java:37,53` tạo service bằng `new` | `JobAvailabilityResolver` là bean (R-A1); **sửa cơ học đúng một đối số** ở `ApplicationServiceTest.java:71` (`new JobAvailabilityResolver(jobRepository)`), không đổi khẳng định nào (tiền lệ FR-U15 R-H7). `JobSummaryMapper` là hàm static (khuôn `JobCatalogFields.of`) → constructor `JobPublicService` giữ nguyên, `JobPublicServiceTest` không sửa |
+| L2 | Tên hàm dựng DTO thẻ tin | `job/JobSummaryMapper` (final class): `static JobSummaryResponse toSummary(Job, Company, CatalogRegistry)`, `static CompanyRef toCompanyRef(Company)`; thân chuyển nguyên từ `JobPublicService.toRef`/`toSummary` |
+| L3 | Tầng seed demo mới | `db/seed/seed-demo-structural-3.sql`, nạp sau 2b, dải id `d3000000-%`; tự tạo **một** tin quá hạn (hạn `CURRENT_DATE - 1`) thay vì sửa tin của tầng khác; lưu 3 tin demo đang mở cho ứng viên demo. FR-C09 thêm phần của mình vào cùng file |
+| L4 | Ánh xạ entity `SavedJob` | `savedAt`: `@Generated(event = INSERT)` + `insertable = false, updatable = false` (khuôn `ApplicationStatusHistory.java:50-52`); `deletedAt`: `insertable = false, updatable = false` — mọi lần ghi qua câu native mục 4.4 |
+| L5 | Câu khoá `users` (R-L3) | Native trong `SavedJobRepository`, trả `Optional<UUID>`, không `@Modifying`, chỉ gọi trong `@Transactional` ghi; không có hàng → `IllegalStateException` |
+| L6 | Vòng focus của thẻ (UI.md 4a) | `has-[a:focus-visible]:ring-2`, không `focus-within` (tránh khoanh thẻ khi focus ở nút Lưu) |
+| L7 | Hướng phụ thuộc frontend | `features/jobs/JobCard` → `features/savedJobs/SaveJobButton`; `savedJobs` dùng badge/kiểu/định dạng của `features/jobs` nhưng **không** import `JobCard` |
+| L8 | T20 so JSON | Lấy JSON trước và sau khi lưu trong cùng test, so **toàn bộ**; chỉ loại khoá nào thật sự tự đổi theo thời gian (khi đó báo lại) |
+| L9 | T16 lặp 20 vòng | Giữ 20; mỗi vòng một ứng viên mới, 99 dòng chèn bằng `JdbcTemplate.batchUpdate` |
+| B4 | Lệnh Maven trong PowerShell | Bọc nháy kép cả cụm `-D` (mục 9) |
+| B5 | Query ids theo vai trò | Chỉ chạy khi `CANDIDATE` (R-B2); 7.4 có bước kiểm Network |
+| B6 | Một query cho cả trang, cập nhật lạc quan | R-B4, R-B5, R-B6 (thay câu "không cập nhật lạc quan" của bản `f514a03`); UI.md mục 6, 10; mục 8 |

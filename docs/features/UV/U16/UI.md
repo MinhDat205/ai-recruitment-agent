@@ -171,7 +171,7 @@ Chỉ hiện khi `availability ≠ OPEN` (ở trang Tin đã lưu). Tin `OPEN` b
 | File | Vai trò |
 |---|---|
 | `frontend/src/features/savedJobs/api.ts` | Gọi E1–E4 |
-| `frontend/src/features/savedJobs/queries.ts` | `useSavedJobIdsQuery` (khoá `['saved-job-ids']`, `enabled` chỉ khi `user.role === 'CANDIDATE'`), `useSavedJobsQuery` (`['saved-jobs']`), `useSaveJobMutation`, `useUnsaveJobMutation` (cả hai làm mới **hai** khoá, R-B5) |
+| `frontend/src/features/savedJobs/queries.ts` | `useSavedJobIdsQuery` (khoá `['saved-job-ids']`, `enabled` chỉ khi `user.role === 'CANDIDATE'`), `useSavedJobsQuery` (`['saved-jobs']`), `useSaveJobMutation`, `useUnsaveJobMutation` (cập nhật lạc quan `['saved-job-ids']`, hoàn lại khi lỗi, không refetch ids; chỉ đánh dấu cũ `['saved-jobs']` — R-B5) |
 | `frontend/src/features/savedJobs/types.ts` | `SavedJob`, `SavedJobApplication` khớp DTO REQUIREMENT mục 4.3 |
 | `frontend/src/features/savedJobs/SaveJobButton.tsx` | Nút bật/tắt dùng chung cho thẻ (`variant="icon"`) và trang chi tiết (`variant="labeled"`); xử lý vai trò R-B2, lỗi R-B6 |
 | `frontend/src/features/savedJobs/SavedJobItem.tsx` | Một hàng của trang Tin đã lưu (mục 4c) + quy tắc nút R-V4 |
@@ -226,10 +226,10 @@ Chỉ hiện khi `availability ≠ OPEN` (ở trang Tin đã lưu). Tin `OPEN` b
 | Trạng thái | Ở đâu | Hiển thị |
 |---|---|---|
 | Khách | Nút Lưu (thẻ, `/jobs/:id`) | Trạng thái "chưa lưu"; bấm → `/login` với `state.from` (R-B2); không gọi API |
-| HR | Nút Lưu | Không render (R-B2) |
+| HR | Nút Lưu | Không render (R-B2); không gửi request `saved-jobs` nào (B5) |
 | Đang tải `GET /ids` | Nút Lưu | Nút khoá, icon viền; không skeleton riêng |
 | Lỗi tải `GET /ids` | Nút Lưu | Nút khoá; `title`/`aria-describedby` "Không tải được trạng thái lưu, vui lòng tải lại trang." — không chặn phần còn lại của thẻ |
-| Đang lưu / bỏ lưu | Nút Lưu | Nút khoá tới khi API trả (không optimistic, R-B5) |
+| Đang lưu / bỏ lưu | Nút Lưu | Trạng thái đổi **ngay** khi bấm (lạc quan, R-B5) ở mọi thẻ cùng tin; nút của chính tin đó khoá tới khi API trả; API lỗi → trở lại trạng thái cũ + câu lỗi |
 | 409 `JOB_NOT_SAVEABLE` / `SAVED_JOB_LIMIT_REACHED` | Dưới nút | Câu backend trả về, `role="status"`; nút giữ trạng thái cũ (R-B6) |
 | Lỗi mạng/5xx khi lưu | Dưới nút | "Không lưu được tin, vui lòng thử lại." |
 | Đang tải danh sách | Trang Tin đã lưu | Skeleton xám 3 hàng (logo + 3 dòng), không spinner toàn trang |
@@ -306,7 +306,9 @@ Chuỗi có sẵn của `ApplicationStatusBadge`, `formatDeadline` giữ nguyên
 - Không đổi vị trí hạn nộp, lương, tag, dòng điều kiện khớp của `JobCard` (mục 4a).
 - Không thêm cờ `saved` vào kiểu `JobSummary`/`JobDetail` hay API công khai; trạng thái lưu chỉ từ `GET /saved-jobs/ids`
   (R-B4).
-- Không cập nhật lạc quan trạng thái nút trước khi API trả (R-B5).
+- Không gọi API trạng thái lưu theo từng thẻ; không refetch `['saved-job-ids']` sau mỗi lần bấm; không quên hoàn lại
+  cache khi API lỗi (R-B4, R-B5).
+- Không gửi request `saved-jobs` khi khách hoặc HR xem trang (R-B2).
 - Không màu xanh/đỏ cho nhãn tình trạng tin, nút Bỏ lưu hay nút khoá; không icon ✓/✗ (R-A5, R-G5).
 - Không tạo bộ nhãn tình trạng thứ hai; dùng `JobAvailabilityBadge` (R-A5).
 - Không liên kết sang `/jobs/:id` khi tình trạng khác `OPEN` (R-V5).
