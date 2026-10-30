@@ -330,8 +330,8 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm), FR-U07 (bộ lọc) |
-| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành), FR-U07 (giữ điều hướng ứng viên, màu chữ lương) |
+| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm), FR-U07 (bộ lọc), FR-U16 (nút Lưu trên thẻ — khách bấm sang đăng nhập) |
+| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành), FR-U07 (giữ điều hướng ứng viên, màu chữ lương), FR-U16 (nút "Lưu tin") |
 | `/companies/:id` | Hồ sơ doanh nghiệp | Hiện có | FR-C02, FR-H01 |
 | `/login` | Đăng nhập | Hiện có | FR-C01 |
 | `/register` | Đăng ký (xong vẫn về `/login`; ★`/candidate/onboarding` chỉ xuất hiện ở lần đăng nhập đầu) | Hiện có | FR-C01, ★FR-U14 |
@@ -340,8 +340,9 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả — chế độ Tìm bằng mô tả, chỉ khi đăng nhập), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
-| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
+| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả — chế độ Tìm bằng mô tả, chỉ khi đăng nhập), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm), FR-U16 (nút Lưu trên mọi thẻ) |
+| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý), FR-U16 (nút Lưu trên thẻ gợi ý) |
+| ★`/candidate/saved-jobs` | "Tin đã lưu" — danh sách tin đã lưu, nhãn tình trạng tin, Ứng tuyển / Đã ứng tuyển / nút khoá kèm lý do, Bỏ lưu | ★Mới | FR-U16 |
 | `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV), FR-U12 (nút Tạo CV, Sửa CV) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |
