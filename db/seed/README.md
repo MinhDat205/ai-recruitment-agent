@@ -53,8 +53,8 @@ xem mục 9.
 
 ## 1. Thứ tự chạy BẮT BUỘC — không được đảo
 
-**Tiền đề (một lần): DB phải ở V20 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 31 bảng
-nghiệp vụ đến V20 (`saved_jobs`, FR-U16); DB còn ở V19 thì `TRUNCATE` báo
+**Tiền đề (một lần): DB phải ở V21 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 32 bảng
+nghiệp vụ đến V21 (`application_reconsideration_requests`, FR-C09); DB còn ở V20 thì `TRUNCATE` báo
 `relation ... does not exist` và dừng, không xoá gì. Tầng 1b chấp nhận V19 trở lên, tầng 3 cần V20 trở lên (chốt chặn
 đầu file; trước FR-U16 tầng 1b đòi **đúng** V19 nên chuỗi nạp từ DB trống dừng ở 1b sau khi có V20 — B11). DB trống (vd sau `docker compose down -v`) cũng
 cần bước này. Khởi động backend một lần với mọi scheduler gọi AI **tắt**, chờ dòng log

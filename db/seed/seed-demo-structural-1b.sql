@@ -97,6 +97,10 @@ DELETE FROM interview_invitations         WHERE id::text LIKE 'd1b00000-%';
 DELETE FROM application_screening_answers WHERE id::text LIKE 'd1b00000-%';
 DELETE FROM application_status_history    WHERE id::text LIKE 'd1b00000-%';
 DELETE FROM job_blind_review_changes      WHERE id::text LIKE 'd1b00000-%';
+-- FR-C09 (V21) - phong ho: tang 1b khong tao yeu cau xem xet lai, nhung application_id ON DELETE RESTRICT se chan cau
+-- xoa don ngay duoi neu sau nay co yeu cau gan vao don dai d1b.
+DELETE FROM application_reconsideration_requests
+WHERE application_id::text LIKE 'd1b00000-%' OR id::text LIKE 'd1b00000-%';
 DELETE FROM job_applications              WHERE id::text LIKE 'd1b00000-%';
 DELETE FROM job_screening_questions       WHERE id::text LIKE 'd1b00000-%';
 DELETE FROM rubric_criteria               WHERE id::text LIKE 'd1b00000-%';

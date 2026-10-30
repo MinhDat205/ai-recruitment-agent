@@ -120,6 +120,9 @@ WHERE application_id IN (SELECT id FROM t_apps) OR id::text LIKE 'f2000000-%';
 DELETE FROM interview_invitation_slots WHERE id::text LIKE 'f2000000-%';
 DELETE FROM application_status_history
 WHERE application_id IN (SELECT id FROM t_apps) OR id::text LIKE 'f2000000-%';
+-- FR-C09 (V21): yeu cau xem xet lai - application_id ON DELETE RESTRICT chan cau xoa don ngay duoi; phai xoa truoc.
+DELETE FROM application_reconsideration_requests
+WHERE application_id IN (SELECT id FROM t_apps) OR id::text LIKE 'f2000000-%';
 DELETE FROM job_applications           WHERE id IN (SELECT id FROM t_apps);
 
 -- 4. CV va du lieu phu thuoc CV
