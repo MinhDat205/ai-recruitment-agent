@@ -237,8 +237,10 @@ FR-U16 **không dùng AI, không xếp hạng, không tính điểm phù hợp**
   `['saved-job-ids']`; không gọi API theo từng thẻ. **Không** thêm cờ `saved` vào `JobSummaryResponse`,
   `JobDetailResponse` hay bất kỳ API `/api/public/**` nào (mục 4.4).
 - **R-B5. Cập nhật lạc quan** *(B6, thay câu "không cập nhật lạc quan" của bản duyệt f514a03)*. Bấm Lưu/Bỏ lưu: hủy
-  fetch đang chạy của `['saved-job-ids']`, ghi lại bản cũ, sửa cache ngay (thêm/bớt `jobId`) — mọi thẻ cùng tin đổi trạng
-  thái tức thì. API lỗi → hoàn lại đúng bản cũ và báo lỗi (R-B6). API thành công → **không** refetch `['saved-job-ids']`;
+  fetch đang chạy của `['saved-job-ids']`, ghi lại trạng thái trước khi bấm của tin đó (đã lưu hay chưa, vị trí trong
+  danh sách), sửa cache ngay (thêm/bớt `jobId`) — mọi thẻ cùng tin đổi trạng thái tức thì. *(B8)* API lỗi → lỗi thì đưa
+  riêng tin vừa bấm về trạng thái trước khi bấm (không trả lại ảnh chụp cả danh sách, để không xoá thay đổi đang chờ của
+  thẻ khác), rồi báo lỗi (R-B6). API thành công → **không** refetch `['saved-job-ids']`;
   chỉ đánh dấu cũ `['saved-jobs']` (danh sách của trang Tin đã lưu). Trong lúc request của **chính** tin đó đang chạy, nút
   của tin đó khoá để không gửi hai request ngược chiều; tin khác bấm được bình thường.
 - **R-B6. Lỗi.** 409 `JOB_NOT_SAVEABLE`/`SAVED_JOB_LIMIT_REACHED` hoặc lỗi mạng/5xx: hoàn lại cache (R-B5) rồi hiện câu
@@ -608,7 +610,8 @@ khác "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục 
 - *(B5)* Gọi `GET /saved-jobs/ids` cho khách hoặc HR (thiếu `enabled` theo role) → 401/403 rơi vào console, dư request.
 - *(B6)* Gọi API theo từng thẻ (mỗi `JobCard` một query/`GET` riêng) thay vì một query `['saved-job-ids']` dùng chung;
   refetch/`invalidateQueries(['saved-job-ids'])` sau mỗi lần bấm; cập nhật lạc quan mà quên hoàn lại khi API lỗi (thẻ
-  hiện "Đã lưu" cho tin không được lưu); hoặc hoàn lại bằng cách refetch thay vì trả bản cũ đã ghi.
+  hiện "Đã lưu" cho tin không được lưu); hoặc hoàn lại bằng cách refetch thay vì trả trạng thái đã ghi của tin đó;
+  hoặc *(B8)* hoàn lại bằng ảnh chụp cả danh sách ids (xoá mất thay đổi lạc quan đang chờ của thẻ khác).
 - *(B4)* Viết lệnh Maven có `-D` không bọc nháy kép trong PowerShell (`.\mvnw.cmd test -Dtest=A,B`) — PowerShell tách
   dấu phẩy/dấu chấm, Maven nhận sai tham số.
 
@@ -704,3 +707,4 @@ Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3
 | B5 | Query ids theo vai trò | Chỉ chạy khi `CANDIDATE` (R-B2); 7.4 có bước kiểm Network |
 | B6 | Một query cho cả trang, cập nhật lạc quan | R-B4, R-B5, R-B6 (thay câu "không cập nhật lạc quan" của bản `f514a03`); UI.md mục 6, 10; mục 8 |
 | B7 (30/10/2026) | `PUT` tin đang lưu nhưng không còn mở (gỡ/đóng/tạm dừng/hết hạn) | 409 `JOB_NOT_SAVEABLE` theo thứ tự kiểm R-L3/mục 4.2 (R-S2 trước khi đọc dòng hiện có); dòng lưu không đổi. Ghi rõ ở R-S4 và bảng E1 mục 4.2 |
+| B8 (30/10/2026) | Hoàn lại khi lưu/bỏ lưu lỗi | Lỗi thì đưa riêng tin vừa bấm về trạng thái trước khi bấm (không trả lại ảnh chụp cả danh sách, để không xoá thay đổi đang chờ của thẻ khác). Ghi ở R-B5, mục 8; UI.md mục 5a, 6, 10. Cùng đợt duyệt: giữ hiệu ứng tiêu đề đổi màu khi rê cả thẻ (hệ quả của liên kết phủ thẻ, R-B3) |
