@@ -297,9 +297,11 @@ trong. `TabsList` trang sửa tin cuộn ngang như hiện có (6 tab).
 | `frontend/src/features/applicationDetail/ApplicationActionBar.tsx` | Câu thay khi `REJECTED` + yêu cầu `OPEN` (4f); **không** đổi nút |
 | `frontend/src/features/applications/types.ts`, `features/candidateApplicationDetail/types.ts`, `features/applicationDetail/types.ts` | Trường `reconsiderationStatus` / `reconsideration` |
 | `frontend/src/features/applicationDetail/queries.ts` | `applicationDetailInvalidateKeys` thêm khoá H1 của tin |
+| `frontend/src/features/interviewinvitation/queries.ts` | (L1, Plan Mode 30/10) `useSendInterviewInvitationMutation.onError` (`:73-78`): ngoài làm mới I1 khi 409 như cũ, khi 409 (mọi mã) hoặc 400 `INVALID_APPLICATION_STATUS_TRANSITION` thì làm mới thêm `extraInvalidateKeys` — để đạt mục 6 dòng "Mời phỏng vấn" lỗi. FR-H12 chỉ thêm việc làm mới, không đổi giao diện |
 | `frontend/src/features/notifications/types.ts` | Thêm `'RECONSIDERATION_REQUESTED'`, `'RECONSIDERATION_DECLINED'` |
 
-Không sửa: `InterviewInvitationDialog.tsx` (dùng nguyên — REQUIREMENT a24), `ApplicationStatusBadge`,
+Không sửa: `InterviewInvitationDialog.tsx` (dùng nguyên — REQUIREMENT a24; việc làm mới khi lỗi đặt ở
+`interviewinvitation/queries.ts`, không ở hộp thoại), `ApplicationStatusBadge`,
 `NotificationDropdown.tsx`, `NotificationList.tsx`, timeline lịch sử, `components/ui`.
 
 ### 5c. Dùng lại có sẵn
@@ -340,7 +342,7 @@ Không sửa: `InterviewInvitationDialog.tsx` (dùng nguyên — REQUIREMENT a24
 | Lỗi 409 C1 (`ALREADY_REQUESTED`, `NOT_ELIGIBLE`, `JOB_REMOVED`, `DEADLINE_PASSED`) | Hộp thoại 4c | Câu backend ở cuối hộp thoại; làm mới E1 (khối đổi đúng trạng thái sau khi đóng) |
 | Lỗi 400 `RECONSIDERATION_TEXT_TOO_LONG` | Hộp thoại | Câu backend (frontend đã chặn trước, chỉ xảy ra khi lệch cách đếm) |
 | Lỗi 409 `RECONSIDERATION_NOT_OPEN` (H2) | Hộp thoại 4g | Câu backend; làm mới H1 + E1 hồ sơ đơn |
-| Lỗi 409 `RECONSIDERATION_NOT_OPEN` khi "Mời phỏng vấn" (thua tranh chấp — REQUIREMENT R-D3) hoặc 400 `INVALID_APPLICATION_STATUS_TRANSITION` (yêu cầu đã quyết xong ở tab khác trước khi bấm gửi) | Hộp giấy mời FR-H12 | Câu backend ở cuối hộp thoại như lỗi hiện có; làm mới H1 + E1 hồ sơ đơn |
+| Lỗi 409 `RECONSIDERATION_NOT_OPEN` khi "Mời phỏng vấn" (thua tranh chấp — REQUIREMENT R-D3) hoặc 400 `INVALID_APPLICATION_STATUS_TRANSITION` (yêu cầu đã quyết xong ở tab khác trước khi bấm gửi) | Hộp giấy mời FR-H12 | Câu backend ở cuối hộp thoại như lỗi hiện có; làm mới H1 + E1 hồ sơ đơn — qua `onError` của `useSendInterviewInvitationMutation` (`interviewinvitation/queries.ts`, mục 5b, L1): 409 (mọi mã) hoặc 400 `INVALID_APPLICATION_STATUS_TRANSITION` → làm mới thêm `extraInvalidateKeys` |
 | Thanh thao tác H09, đơn `REJECTED` + yêu cầu `OPEN` | Đầu trang hồ sơ đơn | "Ứng viên đã gửi yêu cầu xem xét lại. Xử lý ở khối bên dưới." — không có câu "Không còn thao tác nào", không nút (REQUIREMENT R-D7) |
 | Thanh thao tác H09, đơn `REJECTED` không có yêu cầu / yêu cầu `ACCEPTED`/`DECLINED` | Đầu trang hồ sơ đơn | Giữ câu cũ "Đơn đã có kết quả cuối. Không còn thao tác nào." |
 | Gửi giấy mời thành công từ tab/khối | Trang | Đóng hộp thoại; H1, E1 hồ sơ đơn, danh sách "Ứng viên" tải lại; thẻ rời bộ lọc "Đang chờ"; số trên tab giảm |

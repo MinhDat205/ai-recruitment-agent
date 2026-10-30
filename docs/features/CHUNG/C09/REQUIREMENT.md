@@ -385,9 +385,10 @@ record HrReconsiderationListResponse(UUID jobId, int openCount, List<HrReconside
 
 ### 4.5 Seed (đợt cuối)
 
-- Demo (đề xuất 30/10/2026, chờ chốt — mục 11 "Đồng bộ sau FR-U16", S1): thêm **Phần B** vào **tầng 3**
-  `db/seed/seed-demo-structural-3.sql` (không tạo tầng riêng): một đơn bị từ chối ở vòng hồ sơ cách lúc nạp 2 ngày
-  (`now() - interval '2 days'`) kèm yêu cầu `OPEN`, dải `d3a00000-`, mã bảng mới `0021`. Không sửa tầng 1/1b/2/2b.
+- Demo (S1 đã duyệt 30/10/2026; cụ thể ở mục 11 "Sau Plan Mode", L9): thêm **Phần B** vào **tầng 3**
+  `db/seed/seed-demo-structural-3.sql` (không tạo tầng riêng), dải `d3a00000-`, mã bảng mới `0021`, mốc tương đối theo
+  `now()`: B1 — đơn bị từ chối ở vòng hồ sơ `now() - 1 day`, chưa có yêu cầu (ứng viên tự gửi); B2 — đơn bị từ chối
+  `now() - 2 days` kèm yêu cầu `OPEN` (HR xử lý). Không sửa tầng 1/1b/2/2b.
 - `seed-test.sql`: đơn bị từ chối 6 ngày 23 giờ (còn hạn), 8 ngày (quá hạn), bị từ chối sau phỏng vấn; một yêu cầu
   `DECLINED` có phản hồi.
 - `reset-test-data.sql` xoá `application_reconsideration_requests` của đơn test **trước** câu xoá đơn (FK RESTRICT);
@@ -443,6 +444,7 @@ transaction đó — `now()` của câu kiểm bằng đúng `now()` lúc backda
 | T8 | Văn bản: `reason` 1000 ký tự → 201; 999 → 201; 1001 → 400 `RECONSIDERATION_TEXT_TOO_LONG`, không dòng; 999 ký tự + `\r\n` → 201, lưu 1000 ký tự kết thúc `\n`; `"  <b>x</b> & y\r\n"` lưu `"  <b>x</b> & y\n"`; `"   "` / `null` / thiếu khoá → 201, `reason` `NULL` | biên + dương |
 | T9 | Quyền C1: đơn của ứng viên khác → 404 `APPLICATION_NOT_FOUND` (cùng mã với id không tồn tại); HR gọi C1 → 403; khách → 401 | âm |
 | T10 | Chấp nhận: đơn `REJECTED` + yêu cầu `OPEN` → I2 201; trong DB: đơn `INTERVIEW_INVITED`, yêu cầu `ACCEPTED` với `decided_at`, `decided_by` = HR, 1 giấy mời hiệu lực, 1 dòng lịch sử `REJECTED → INTERVIEW_INVITED` có `changed_by` = HR | dương |
+| T10b | Rollback nhánh chấp nhận (B1): đơn `REJECTED` + yêu cầu `OPEN` + **một giấy mời hiệu lực ghi tay** cho đơn đó (`superseded_at IS NULL`) → I2 qua bước claim (R-S3 (1)) và R-S2, rồi `createInvitation` `saveAndFlush` (`InterviewInvitationService.java:260`) vi phạm `uq_invitation_active` (`V16:48`) → **409 `INTERVIEW_INVITATION_CONFLICT`** đúng câu như FR-H12 hiện nay (`GlobalExceptionHandler.java:628-632`). Trong DB: yêu cầu vẫn `OPEN`, `decided_at`/`decided_by` `NULL`; đơn vẫn `REJECTED`; số giấy mời của đơn vẫn 1 (dòng ghi tay); 0 dòng lịch sử mới; 0 thông báo | âm (rollback) |
 | T11 | Hồi quy FR-H12 (M6, Q9) — I2 → 400 `INVALID_APPLICATION_STATUS_TRANSITION`, đúng câu lỗi hiện nay, cho từng ca: (a) đơn `REJECTED` không có yêu cầu; (b) `REJECTED` có yêu cầu `ACCEPTED` (dữ liệu dựng: mời lại rồi từ chối lần nữa); (c) `REJECTED` có yêu cầu `DECLINED`; (d) đơn `HIRED`; (e) đơn `WITHDRAWN`. Mỗi ca: không giấy mời mới, không dòng lịch sử mới, trạng thái yêu cầu (nếu có) không đổi, 0 thông báo. `send_applicationAlreadyInterviewInvited_returns400` xanh, không sửa | âm (hồi quy) |
 | T12 | Bảng chuyển tiếp chung không đổi: `PATCH /status` `REJECTED → INTERVIEW_INVITED` → 400 (guard a4); `PATCH` `REJECTED → PENDING`/`HIRED` → 400 như cũ; test cũ của `ApplicationStatusService` và FR-H12 xanh không sửa khẳng định | âm (hồi quy) |
 | T13 | Test canh nguồn (đọc file `.java` như `AiOutputConvertersSourceGuardTest`): tên method R-S2 chỉ xuất hiện ở `ApplicationStatusService.java` và `InterviewInvitationService.java`; khối khai báo `ALLOWED_TRANSITIONS` không chứa chữ `REJECTED, Set.of`. `ApplicationStatus.values().length == 5` | kiểm tĩnh |
@@ -482,6 +484,22 @@ transaction đó — `now()` của câu kiểm bằng đúng `now()` lúc backda
    ở khối bên dưới.", **không** có câu "Không còn thao tác nào", không nút mới; sau "Giữ quyết định từ chối" → câu trở về
    "Đơn đã có kết quả cuối. Không còn thao tác nào." mà không tải lại trang; sau "Mời phỏng vấn" → hiện "Trúng tuyển",
    "Từ chối"; đơn `REJECTED` không có yêu cầu → câu cũ. Kiểm ở ≥ `lg` và 375px.
+
+### 7.4 Tự kiểm test bắt lỗi (đột biến tạm, Plan Mode 30/10)
+
+Lớp T5, T15 không `@Transactional`, mỗi ca có hai dạng: (a) tất định — luồng A giữ transaction (`TransactionTemplate`),
+luồng B bị chặn ở khoá, xác nhận bằng `pg_stat_activity` (`wait_event_type = 'Lock'`) chứ không chờ theo thời gian;
+(b) `CyclicBarrier(2)` lặp `ROUNDS = 20` vòng, dữ liệu mới mỗi vòng (khuôn `SavedJobConcurrencyIntegrationTest`, FR-U16
+T15/T16). T5 đi qua HTTP (MockMvc) vì "409 chứ không 500" chỉ kiểm được ở tầng web. Mỗi đột biến dưới đây sửa tạm, chạy,
+ghi kết quả đỏ vào báo cáo đợt, rồi hoàn nguyên (`git diff` sạch):
+
+| Đột biến tạm | Test phải đỏ |
+|---|---|
+| Bỏ `AND status = 'OPEN'` trong `declineIfOpen` | T15 (a), T14 "H2 lần hai" |
+| Bỏ `AND status = 'OPEN'` trong `acceptIfOpen` | T15 (b) — bên thua ra 409 `APPLICATION_STATUS_CONFLICT` thay vì `RECONSIDERATION_NOT_OPEN` |
+| Bỏ nhánh `uq_reconsideration_per_application` trong `GlobalExceptionHandler` | T5 (bên thua 500) |
+| `<=` → `<` trong biểu thức hạn | T2 |
+| Thêm khoá `REJECTED` vào `ALLOWED_TRANSITIONS` (chỉ cục bộ) | T13, T11 (a) |
 
 ## 8. AI hay làm sai (dành cho người code)
 
@@ -640,3 +658,25 @@ mục 9.1 (`reset-test-data.sql:123` không đổi), FR-U16 không thêm chỗ n
 - **Ràng buộc khi chọn đơn** (chốt ở đợt cuối): đơn mới nên thuộc tin `OPEN` của công ty Hoàn Mỹ không bật ẩn danh để HR
   demo chính thấy tab; không dùng Phạm Quốc Bảo trên 4 tin đã lưu (giữ kịch bản "Đã ứng tuyển" của FR-U16); kiểm
   `uq_application_per_cycle`. Một đơn `REJECTED` mới làm đổi số phễu công ty ở README seed mục 6c — cập nhật cùng đợt.
+
+### Sau Plan Mode 30/10/2026
+
+Plan Mode (đợt 1) đối chiếu lại toàn bộ điểm đặc tả dựa vào trên `0d6dbef`: backend lõi (máy trạng thái, `sendInvitation`,
+ẩn danh, quyền, `handleDataIntegrityViolation`, listener) khớp. Người dùng duyệt kế hoạch và **S1** (kèm hai yêu cầu: mốc
+tương đối theo `now()`; đủ hai kịch bản) cùng ngày. Trạng thái đặc tả giữ **ĐÃ DUYỆT**. Các điểm dưới đây chốt theo
+khuyến nghị:
+
+| # | Nội dung | Chốt | Ghi ở |
+|---|---|---|---|
+| L1 | UI.md mục 6 yêu cầu làm mới H1 + E1 hồ sơ đơn khi "Mời phỏng vấn" lỗi, nhưng `interviewinvitation/queries.ts:73-78` chỉ làm mới I1 khi 409, không làm gì khi 400, và `extraInvalidateKeys` chỉ chạy `onSuccess` (`:68-72`) | Thêm `interviewinvitation/queries.ts` vào UI.md 5b: `onError` khi 409 (mọi mã) hoặc 400 `INVALID_APPLICATION_STATUS_TRANSITION` làm mới thêm `extraInvalidateKeys`. Vẫn không sửa `InterviewInvitationDialog.tsx` | UI.md 5b, mục 6; đợt 6 |
+| L2 | `ApplicationCandidateDetailControllerIntegrationTest.java:337` khẳng định đúng tập khoá của E1 ứng viên — sẽ đỏ khi thêm khoá `reconsideration` (M2) | Sửa đúng khẳng định này (thêm `"reconsideration"`); không sửa khẳng định test cũ nào khác | Đợt 3 |
+| L3 | `MessageService.normalizeLineBreaks` (`:385`) là package-private trong `messaging/` | Bản riêng 3 dòng `reconsideration/ReconsiderationText.normalize`, comment trỏ C06 R-M2; không đổi `messaging/`, không chuyển ra `common/` | R-V1; đợt 3 |
+| L4 | Cách tránh vòng gói (mục 4.2) | `reconsideration/ReconsiderationReader` (`@Component`, chỉ đọc; phụ thuộc repository + `BlindReviewResolver` + `IdentityMaskSource`) dựng khối ứng viên/HR; `ApplicationService`, `ApplicationHrDetailService` inject reader. Vòng **import** giữa gói chấp nhận (tiền lệ `jobapplication ↔ notification`, repo không có ArchUnit), **không** vòng bean. Logic hạn 168 giờ chỉ ở `reconsideration/` | Mục 4.2 |
+| L5 | Tên | Method R-S2 `ApplicationStatusService.reinviteAfterReconsideration(ownerId, applicationId)` (nạp đơn bằng `findById` **trước** `updateStatusIfCurrent` vì `clearAutomatically`); I2 gọi `ReconsiderationHrService.claimForAcceptance(applicationId, ownerId)`; endpoint đúng mục 4.3 | R-S2, R-S3 |
+| L6 | T13 chỉ kiểm văn bản | Thêm: `ReflectionTestUtils` đọc `ALLOWED_TRANSITIONS`, tập khoá đúng `{PENDING, INTERVIEW_INVITED}`; câu SQL hạn chứa `'168 hours'`, không `'7 days'` (bổ sung, không thay khẳng định cũ) | T13 |
+| L7 | `IdentityMasker.mask` (`:65`) trả chuỗi chuẩn hoá NFC khi đơn có ít nhất một giá trị danh tính | T18 so `reason`/`hrResponse` đã che sau NFC; hành vi không đổi | T18 |
+| L8 | Kiểm script seed chạy trên DB docker local | Hỏi người dùng trước mỗi lần chạy. Đợt 2 chỉ chạy `reset-test-data.sql` + nạp lại 1b hai lần (backend lên V21 với scheduler tắt, key giả; không đọc `.env`); `reset-demo-db.sql` để đợt cuối | Mục 9.1 |
+| L9 | Seed demo S1 cụ thể | HR `hr@demo.local`. **B1 — ứng viên tự gửi:** `bui.ngoc.mai@demo.local` → "Kế toán tổng hợp" (`d2000000-…-04`), nộp `now() - 3 days`, bị từ chối ở vòng hồ sơ lúc `now() - 1 day` (hạn ≈ `now() + 6 days` lúc nạp), **không** có yêu cầu (`AVAILABLE`). **B2 — HR xử lý:** `nguyen.hai.son@demo.local` → "Chuyên viên Marketing" (`d2000000-…-05`), nộp `now() - 5 days`, bị từ chối `now() - 2 days`, yêu cầu `OPEN` `requested_at = now() - 1 day`, lý do hai dòng, thông báo `RECONSIDERATION_REQUESTED` cho HR. Hai tin không bật ẩn danh, không có câu hỏi sàng lọc; Mai/Sơn chưa có đơn ở hai tin này. `resume_id` chọn bằng `SELECT` CV chính đã trích xuất (CV tầng 2 có UUID ngẫu nhiên); chốt chặn tầng 3 nâng lên V21 và kiểm đủ CV/tin/không trùng chu kỳ. Không dùng Phạm Quốc Bảo; không seed ẩn danh (T18 đã phủ). Phễu công ty 1: tổng +2, `REJECTED` 1 → 3 | Mục 4.5; đợt cuối |
+| B1 | Rollback ở nhánh chấp nhận | `sendInvitation` là `@Transactional` (`InterviewInvitationService.java:138`) bao trọn claim (R-S3 (1)) → R-S2 → `createInvitation` (`:252-276`). Lỗi xảy ra **sau** claim có thật: `saveAndFlush` giấy mời (`:260`) vi phạm `uq_invitation_active` (`V16__interview_invitation_slots.sql:48`) khi đơn đã có giấy mời hiệu lực → 409 `INTERVIEW_INVITATION_CONFLICT` (`GlobalExceptionHandler.java:628-632`), cả transaction rollback. Gửi lần đầu không phát sự kiện riêng của giấy mời (`:163`); thông báo duy nhất là `ApplicationStatusChangedEvent`, xử lý `AFTER_COMMIT` (`NotificationEventListener.java:64-66`); email chỉ gửi từ dòng `notifications` `PENDING` (`NotificationMailScheduler.java:37-40`) ⇒ rollback thì 0 thông báo, 0 email | T10b (mục 7.1) |
+
+Bảng đột biến tạm và cách lặp T5/T15: mục 7.4.
