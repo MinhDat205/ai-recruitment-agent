@@ -9,10 +9,10 @@ import com.recruitment.common.exception.TalentPoolConsentNotActiveException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
 import com.recruitment.job.Job;
+import com.recruitment.job.JobAvailabilityResolver;
 import com.recruitment.job.JobCatalogFields;
 import com.recruitment.job.JobRepository;
 import com.recruitment.jobapplication.dto.ApplicationCandidateDetailResponse;
-import com.recruitment.jobapplication.dto.ApplicationCandidateDetailResponse.JobAvailability;
 import com.recruitment.jobapplication.dto.ApplicationCreateRequest;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationResponse;
@@ -38,6 +38,7 @@ public class ApplicationService {
     private final JobApplicationRepository applicationRepository;
     private final ApplicationStatusHistoryRepository statusHistoryRepository;
     private final JobRepository jobRepository;
+    private final JobAvailabilityResolver jobAvailabilityResolver;
     private final ResumeRepository resumeRepository;
     private final ApplicationStatusRecorder applicationStatusRecorder;
     private final ApplicationEventPublisher eventPublisher;
@@ -50,6 +51,7 @@ public class ApplicationService {
             JobApplicationRepository applicationRepository,
             ApplicationStatusHistoryRepository statusHistoryRepository,
             JobRepository jobRepository,
+            JobAvailabilityResolver jobAvailabilityResolver,
             ResumeRepository resumeRepository,
             ApplicationStatusRecorder applicationStatusRecorder,
             ApplicationEventPublisher eventPublisher,
@@ -60,6 +62,7 @@ public class ApplicationService {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
+        this.jobAvailabilityResolver = jobAvailabilityResolver;
         this.resumeRepository = resumeRepository;
         this.applicationStatusRecorder = applicationStatusRecorder;
         this.eventPublisher = eventPublisher;
@@ -199,7 +202,7 @@ public class ApplicationService {
                 job.getTitle(),
                 company.getId(),
                 company.getName(),
-                availabilityOf(job),
+                jobAvailabilityResolver.of(job), // R-D4 - FR-U16 R-A1 tach ra job/JobAvailabilityResolver
                 catalog.categoryCode(),
                 catalog.categoryLabel(),
                 catalog.locationCode(),
@@ -257,24 +260,6 @@ public class ApplicationService {
                 TalentPoolConsentState.of(application),
                 application.getTalentPoolConsentAt(),
                 application.getTalentPoolConsentRevokedAt());
-    }
-
-    // R-D4 - xet theo thu tu, dung o dong dau tien khop. OPEN dung CHINH findOpenJobById (cung dieu kien voi
-    // trang tin cong khai, ke ca han nop theo CURRENT_DATE cua DB) - KHONG tu viet dieu kien ngay o Java.
-    private JobAvailability availabilityOf(Job job) {
-        if (job.getDeletedAt() != null) {
-            return JobAvailability.UNAVAILABLE;
-        }
-        if (jobRepository.findOpenJobById(job.getId()).isPresent()) {
-            return JobAvailability.OPEN;
-        }
-        return switch (job.getStatus()) {
-            // status OPEN, chua xoa nhung findOpenJobById rong -> chi con ly do qua han nop.
-            case OPEN -> JobAvailability.EXPIRED;
-            case PAUSED -> JobAvailability.PAUSED;
-            case CLOSED -> JobAvailability.CLOSED;
-            case DRAFT -> JobAvailability.UNAVAILABLE;
-        };
     }
 
     private static ApplicationResponse toResponse(JobApplication a) {

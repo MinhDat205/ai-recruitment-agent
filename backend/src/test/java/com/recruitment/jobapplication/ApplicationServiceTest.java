@@ -72,6 +72,7 @@ class ApplicationServiceTest {
                 applicationRepository,
                 statusHistoryRepository,
                 jobRepository,
+                new com.recruitment.job.JobAvailabilityResolver(jobRepository),
                 resumeRepository,
                 applicationStatusRecorder,
                 eventPublisher,
