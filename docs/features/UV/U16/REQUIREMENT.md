@@ -141,7 +141,8 @@ FR-U16 **không dùng AI, không xếp hạng, không tính điểm phù hợp**
   `PAUSED`, `CLOSED`, nháp, xoá mềm, **và UUID không tồn tại**. Một mã, một câu, không phân biệt — để không lộ tin nháp
   có tồn tại hay không (UI_GUIDE mục 5). Câu cố định "Tin tuyển dụng này hiện không nhận lưu vì không còn mở.".
   Câu hỏi Q2 (mục 11) nếu muốn 404 cho UUID không tồn tại.
-- **R-S4. Lưu lặp là idempotent (R3).** `PUT` tin đang lưu → 204, không tạo dòng mới, **không** đổi `saved_at`.
+- **R-S4. Lưu lặp là idempotent (R3).** `PUT` tin đang lưu → 204, không tạo dòng mới, **không** đổi `saved_at`
+  (chỉ khi tin còn mở; tin không mở → R-S3, 409 JOB_NOT_SAVEABLE, kể cả khi đang lưu).
 - **R-S5. Bỏ lưu là soft delete (R4).** `DELETE` đặt `deleted_at = now()` cho dòng đang lưu. Không có `DELETE FROM`
   (CLAUDE.md §4). Gọi khi tin chưa lưu, đã bỏ lưu, hay `jobId` không tồn tại → vẫn 204 (idempotent, không lộ gì).
 - **R-S6. Lưu lại sau khi bỏ lưu (R4).** Dòng cũ được dùng lại: `deleted_at = NULL`, `saved_at = now()`. Mỗi cặp
@@ -291,7 +292,7 @@ Mọi endpoint ở `savedjob/SavedJobCandidateController`, `@RequestMapping("/ap
 
 | # | Endpoint | Thành công | Lỗi riêng |
 |---|---|---|---|
-| E1 | `PUT /api/candidates/saved-jobs/{jobId}` | 204, không body (tạo mới, lưu lại, hoặc đã lưu sẵn) | 409 `JOB_NOT_SAVEABLE` (R-S3); 409 `SAVED_JOB_LIMIT_REACHED` (R-L2) |
+| E1 | `PUT /api/candidates/saved-jobs/{jobId}` | 204, không body (tạo mới, lưu lại, hoặc đã lưu sẵn (chỉ khi tin còn mở; tin không mở → R-S3, 409 JOB_NOT_SAVEABLE, kể cả khi đang lưu)) | 409 `JOB_NOT_SAVEABLE` (R-S3); 409 `SAVED_JOB_LIMIT_REACHED` (R-L2) |
 | E2 | `DELETE /api/candidates/saved-jobs/{jobId}` | 204, không body, mọi trường hợp (R-S5) | — |
 | E3 | `GET /api/candidates/saved-jobs` | 200, `List<SavedJobResponse>` (R-V1, R-V2) | — |
 | E4 | `GET /api/candidates/saved-jobs/ids` | 200, `List<UUID>` — `job_id` các dòng đang lưu, cùng thứ tự E3 | — |
@@ -702,3 +703,4 @@ Bảng "Tài liệu chung phải sửa" của kế hoạch **không có dòng D3
 | B4 | Lệnh Maven trong PowerShell | Bọc nháy kép cả cụm `-D` (mục 9) |
 | B5 | Query ids theo vai trò | Chỉ chạy khi `CANDIDATE` (R-B2); 7.4 có bước kiểm Network |
 | B6 | Một query cho cả trang, cập nhật lạc quan | R-B4, R-B5, R-B6 (thay câu "không cập nhật lạc quan" của bản `f514a03`); UI.md mục 6, 10; mục 8 |
+| B7 (30/10/2026) | `PUT` tin đang lưu nhưng không còn mở (gỡ/đóng/tạm dừng/hết hạn) | 409 `JOB_NOT_SAVEABLE` theo thứ tự kiểm R-L3/mục 4.2 (R-S2 trước khi đọc dòng hiện có); dòng lưu không đổi. Ghi rõ ở R-S4 và bảng E1 mục 4.2 |
