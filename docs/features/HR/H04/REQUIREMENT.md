@@ -1,7 +1,7 @@
 # FR-H04 (mở rộng) — Chấm tất cả CV trong tin
 
 > Trạng thái: ĐÃ DUYỆT (30/10/2026). Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q13; Q13 đổi sang đếm theo lý do).
-> L1–L14 chốt sau Plan Mode đợt 1 (31/10/2026), cuối mục 11.
+> L1–L15 chốt sau Plan Mode đợt 1 (31/10/2026), cuối mục 11.
 >
 > Viết theo kế hoạch `docs/plans/2026-10-28-tang-toc-cham-diem.md` (mục "Nút chấm tất cả CV trong tin") và mục "Sửa
 > đổi kế hoạch tăng tốc chấm điểm (28/10)" điểm 5 của `docs/plans/2026-11-dot-bo-sung.md` (điểm 5 **thắng** kế hoạch
@@ -339,7 +339,7 @@ chính test (L6). `applied_at` và `scoring_runs.created_at` ghi tường minh k
 | # | Test | Loại |
 |---|---|---|
 | T1 | 3 đơn đủ điều kiện → 200 `{created: 3, remaining: 0, skipped: []}`; DB có đúng 3 lượt `PENDING`, mỗi đơn một lượt, cả 3 cùng `rubric_snapshot` (so bằng nhau) và đúng thứ tự `display_order`; rubric `is_locked = true` | dương |
-| T2 | Mỗi lý do một đơn, cùng tin với 1 đơn đủ điều kiện: `INTERVIEW_INVITED`, `REJECTED`, `HIRED`, `WITHDRAWN` → `NOT_PENDING`; CV `PENDING` parse → `RESUME_NOT_PARSED`; CV `DONE` nhưng không có `resume_parsed_data` → `RESUME_NOT_PARSED`; lượt mới nhất `PENDING` → `RUN_IN_PROGRESS`; `RUNNING` + `finished_at NULL` → `RUN_IN_PROGRESS`; `RUNNING` + `finished_at` khác `NULL` (chờ D3) → `RUN_IN_PROGRESS` (R-E4); có lượt `DONE` → `ALREADY_SCORED`; lượt `DONE` cũ + lượt mới nhất `FAILED` → `ALREADY_SCORED` → `created = 1`, `skipped` đúng 10 dòng đúng mã; không đơn bị loại nào có lượt mới | âm |
+| T2 | Mỗi lý do một đơn, cùng tin với 1 đơn đủ điều kiện: `INTERVIEW_INVITED`, `REJECTED`, `HIRED`, `WITHDRAWN` → `NOT_PENDING`; CV `PENDING` parse → `RESUME_NOT_PARSED`; CV `DONE` nhưng không có `resume_parsed_data` → `RESUME_NOT_PARSED`; lượt mới nhất `PENDING` → `RUN_IN_PROGRESS`; `RUNNING` + `finished_at NULL` → `RUN_IN_PROGRESS`; `RUNNING` + `finished_at` khác `NULL` (chờ D3) → `RUN_IN_PROGRESS` (R-E4); có lượt `DONE` → `ALREADY_SCORED`; lượt `DONE` cũ + lượt mới nhất `FAILED` → `ALREADY_SCORED` → `created = 1`, `skipped` đúng 11 dòng đúng mã; không đơn bị loại nào có lượt mới | âm |
 | T3 | Chỉ lượt `FAILED` (một hoặc hai lượt, chưa từng `DONE`) → được tạo lượt mới | dương |
 | T4 | Ưu tiên lý do (R-E3): đơn `REJECTED` + CV chưa parse → `NOT_PENDING`; đơn `PENDING` + CV chưa parse + có lượt `DONE` → `RESUME_NOT_PARSED`; đơn `PENDING` có lượt `DONE` cũ + lượt `PENDING` mới nhất → `RUN_IN_PROGRESS` | biên |
 | T5 | Rubric 99,99 → 409 `RUBRIC_INCOMPLETE`, câu **bằng** câu của nút đơn lẻ cùng tổng; rubric 0 tiêu chí → 409; 0 lượt mới; `is_locked` không đổi. Rubric 100,00 (scale khác) → 200 | âm + biên |
@@ -604,3 +604,4 @@ Q1–Q11 chốt **theo đề xuất mặc định** ghi ở cột Quyết địn
 | L12 | Đầu file ghi `main` chưa có `perf/scoring-latency`, nhánh tạo tại `0d6dbef` — lỗi thời | Sửa: nhánh nằm trên `abaf31b` (đã có perf), không cần rebase. Sửa đầu file, mục 9 |
 | L13 | Dòng "Bỏ qua theo lý do" của 7.4 đòi "bấm lại ngay" qua giao diện, nhưng sau khi xếp hàng thành công N = 0 nên nút khoá (R-F2) | Phần `RUN_IN_PROGRESS` kiểm bằng JSON nhóm 2 của 7.2 (bước 4 của 7.4); không đổi R-F2. Sửa 7.2, 7.4 |
 | L14 | Ba lượt `FAILED` của Hà trên seed (`seed-demo-ai-output.sql:551, 553, 564`) đều là `EVIDENCE_NOT_VERIFIED` — lỗi lặp lại do nội dung CV/K2, không phải khoá AI; lượt mới ở bước 2 của 7.4 có thể `DONE` hoặc `FAILED` | Cả hai hợp lệ. 7.4 bước 2: chờ lượt kết thúc; `DONE` → nút "(0)", `FAILED` → nút "(1)" (R-E2.4), thêm vào dòng "Dòng FAILED cũ". 7.2: mong đợi nhóm 1, 2 theo hai nhánh. Chỉ dừng khi lượt `FAILED` với mã nhà cung cấp/mạng (`LLM_RETRY_EXHAUSTED`, `LLM_ERROR`), không dừng với `EVIDENCE_NOT_VERIFIED` |
+| L15 | T2 cộng sai (4 + 2 + 3 + 2 = 11) | Sửa thành 11 dòng, test giữ nguyên; duyệt 31/10/2026 |
