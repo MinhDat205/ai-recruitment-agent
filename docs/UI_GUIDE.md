@@ -172,8 +172,9 @@ Giữ container 1200px, lưới 12 cột, gutter 24px, breakpoint Tailwind hiệ
 `sm–lg` = medium, `≥ lg` = expanded.
 
 - **HR**: navigation drawer 240px khi `≥ lg`; navigation rail (icon + nhãn ngắn) khi `< lg`.
-- **Ứng viên**: thanh tab ngang khi `≥ md`; khi `< md` dùng nút menu mở sheet (khu vực ứng viên có
-  quá 5 đích nên không dùng thanh điều hướng dưới đáy).
+- **Ứng viên**: thanh tab ngang khi `≥ lg`; khi `< lg` dùng nút menu mở sheet (khu vực ứng viên có
+  quá 5 đích nên không dùng thanh điều hướng dưới đáy; từ `md` tới dưới `lg` thanh ngang không đủ chỗ — đo
+  30/10/2026 ở 768px: tràn ngang cả khi chỉ có 5 mục, FR-U16 B9).
 - Không dùng hero ở trang HR; không dùng sidebar ở trang ứng viên.
 
 ---
@@ -330,8 +331,8 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm), FR-U07 (bộ lọc) |
-| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành), FR-U07 (giữ điều hướng ứng viên, màu chữ lương) |
+| `/` | Việc làm | Hiện có | FR-C02, FR-C05 (nhãn ngành nghề, tỉnh/thành trên thẻ việc làm), FR-U07 (bộ lọc), FR-U16 (nút Lưu trên thẻ — khách bấm sang đăng nhập) |
+| `/jobs/:id` | Chi tiết tin tuyển dụng | Hiện có | FR-C02, FR-C05 (nhãn tỉnh/thành), FR-U07 (giữ điều hướng ứng viên, màu chữ lương), FR-U16 (nút "Lưu tin") |
 | `/companies/:id` | Hồ sơ doanh nghiệp | Hiện có | FR-C02, FR-H01 |
 | `/login` | Đăng nhập | Hiện có | FR-C01 |
 | `/register` | Đăng ký (xong vẫn về `/login`; ★`/candidate/onboarding` chỉ xuất hiện ở lần đăng nhập đầu) | Hiện có | FR-C01, ★FR-U14 |
@@ -340,8 +341,9 @@ thêm lúc code.
 
 | Route | Màn hình | Hiện có / ★Mới | FR |
 |---|---|---|---|
-| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả — chế độ Tìm bằng mô tả, chỉ khi đăng nhập), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm) |
-| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý) |
+| `/candidate` | "Việc làm" | Hiện có | FR-U07 (bộ lọc), FR-U13 (ô tìm bằng mô tả — chế độ Tìm bằng mô tả, chỉ khi đăng nhập), FR-U15 (khối Gợi ý cho bạn), FR-C05 (nhãn trên thẻ việc làm), FR-U16 (nút Lưu trên mọi thẻ) |
+| `/candidate/dashboard` | "Bảng tin" | Hiện có | FR-U15 (gợi ý), FR-C05 (nhãn trên thẻ gợi ý), FR-U16 (nút Lưu trên thẻ gợi ý) |
+| ★`/candidate/saved-jobs` | "Tin đã lưu" — danh sách tin đã lưu, nhãn tình trạng tin, Ứng tuyển / Đã ứng tuyển / nút khoá kèm lý do, Bỏ lưu | ★Mới | FR-U16 |
 | `/candidate/profile` | "Hồ sơ và CV" | Hiện có | FR-U01, FR-U14 (mục mong muốn công việc), FR-C05 (cập nhật dữ liệu trích xuất, Tổng quan nghề nghiệp), FR-C08 (nút Hỏi đáp CV), FR-U12 (nút Tạo CV, Sửa CV) |
 | ★`/candidate/resumes/new`, ★`/candidate/resumes/:id/edit` | CV builder | ★Mới | FR-U12 |
 | `/candidate/resumes/:id/improvement-suggestions` | Gợi ý cải thiện CV | Hiện có | FR-U05 |

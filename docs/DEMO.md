@@ -34,8 +34,8 @@ Bảo** (`pham.quoc.bao@demo.local`). Không đăng xuất lần nào trong bu�
 ### Sáng ngày demo
 
 - [ ] Dừng backend nếu đang chạy, rồi **nạp lại toàn chuỗi mục 1** của [db/seed/README.md](../db/seed/README.md)
-  (reset → tầng 1 → 2 → 1b → 2b → `install-demo-files.ps1`). Nạp sáng ngày demo để hạn nộp và ngày đăng tin (tính
-  theo lúc nạp) còn ở tương lai/gần đây.
+  (reset → tầng 1 → 2 → 1b → 2b → 3 → `install-demo-files.ps1`). Nạp sáng ngày demo để hạn nộp và ngày đăng tin (tính
+  theo lúc nạp) còn ở tương lai/gần đây — tin "đã hết hạn nộp" của tầng 3 có hạn là **hôm qua** tính theo lúc nạp.
 - [ ] **KHÔNG** nạp bộ test (`seed-test.sql`, mục 8 của README seed): tin của công ty test sẽ hiện trên bảng việc làm
   và trong kết quả tìm việc.
 - [ ] Khởi động backend bằng **lệnh demo** (mục 2), chờ dòng `Started BackendApplication`. Khởi động frontend.
@@ -70,8 +70,9 @@ npm run dev
 | API | http://localhost:8080 |
 | MailHog | http://localhost:8025 |
 
-Trên dữ liệu demo vừa nạp, job nền **không** tự gọi AI: 12 tin, 4 hồ sơ và 8 CV chính đã có embedding sẵn (đo khi
-tập: số embedding trước và sau lượt tập giống nhau).
+Trên dữ liệu demo vừa nạp, job nền chỉ tự gọi AI **một lần**: 12 tin đang mở, 4 hồ sơ và 8 CV chính đã có embedding
+sẵn (đo khi tập 21/10/2026: số embedding trước và sau lượt tập giống nhau); riêng tin đã hết hạn nộp của tầng 3 (FR-U16)
+vẫn ở trạng thái `OPEN` và chưa có embedding, nên `JobEmbeddingScheduler` gọi OpenAI một lần cho tin này lúc khởi động.
 
 ## 3. Tài khoản dùng trong demo
 
@@ -80,14 +81,15 @@ Mật khẩu chung `Demo1234` (công khai có chủ đích, chỉ cho máy demo 
 | Tài khoản | Cửa sổ | Vai trò trong kịch bản |
 |---|---|---|
 | `hr@demo.local` | Thường | HR Công ty Cổ phần Công nghệ Hoàn Mỹ: chấm điểm, hỏi đáp CV, mời phỏng vấn, soạn nháp, tạo tin bằng AI |
-| `pham.quoc.bao@demo.local` | Ẩn danh | Ứng viên QA: tìm việc bằng mô tả, nộp lại tin QA ở chu kỳ 2, chọn khung giờ, đọc tin nhắn, gợi ý diễn đạt CV |
+| `pham.quoc.bao@demo.local` | Ẩn danh | Ứng viên QA: tìm việc bằng mô tả, lưu tin, nộp lại tin QA ở chu kỳ 2, chọn khung giờ, đọc tin nhắn, gợi ý diễn đạt CV |
 
 Các ứng viên khác (Nguyễn Hải Sơn, Lê Văn Đức, Trần Minh Hoàng, Võ Thanh Tùng, Đỗ Khánh Linh…) chỉ là dữ liệu cho xếp
 hạng, so sánh và ẩn danh; không đăng nhập trong buổi demo.
 
 Dữ liệu dựng sẵn cho mạch này: tin **Kỹ sư Kiểm thử phần mềm (QA Engineer)** đã được HR mở lại sang **chu kỳ 2** và có
 2 câu hỏi sàng lọc. Đơn đợt 1 của Bảo (bị từ chối, 83,50) và đơn đã rút của Lê Văn Đức nằm ở chu kỳ 1
-([db/seed/README.md](../db/seed/README.md) mục 6b).
+([db/seed/README.md](../db/seed/README.md) mục 6b). Tầng 3 (FR-U16) cho Bảo sẵn **4 tin đã lưu**: 3 tin đang mở của
+Công ty TNHH Dịch vụ Số Ngân Hà và tin "Nhân viên Hỗ trợ kỹ thuật (IT Helpdesk)" đã hết hạn nộp.
 
 ## 4. Kịch bản theo phút
 
@@ -96,7 +98,7 @@ Ký hiệu: **[AI]** = bước gọi AI thật; **CẮT ĐƯỢC** = bỏ khi l�
 ### 0–3' · Giới thiệu và nguyên tắc AI (không gọi AI)
 
 Nói:
-- "Hệ thống có hai vai trò, HR và ứng viên, 37 chức năng. Chúng em đặt bốn nguyên tắc cho AI, và kịch bản hôm nay
+- "Hệ thống có hai vai trò, HR và ứng viên, 38 chức năng. Chúng em đặt bốn nguyên tắc cho AI, và kịch bản hôm nay
   sẽ cho thấy từng nguyên tắc trên màn hình."
 - (1) AI chỉ chấm **từng tiêu chí** kèm trích dẫn nguyên văn từ CV; (2) **backend** tính tổng điểm và thứ hạng bằng
   công thức trọng số; (3) AI không gán nhãn Đạt/Không đạt, **HR quyết định**; (4) ứng viên phải **đồng ý** thì CV
@@ -119,6 +121,12 @@ Nói:
    thử` **[AI]** ~3 s → "Công nghệ thông tin - Phần mềm · Từ xa · Lương từ 25 triệu", 2 việc: #1 Kỹ sư DevOps, #2
    Chuyên viên Phân tích dữ liệu. Nói: "Câu này chỉ có **một mốc lương**; đây là lỗi chúng em đã sửa
    ([fix-u13-salary-parse](walkthrough/fix-u13-salary-parse.md))."
+   - **CẮT ĐƯỢC** — lưu tin (FR-U16, không gọi AI): ở kết quả bước 1, bấm biểu tượng **Lưu** trên thẻ **Kỹ sư Kiểm thử
+     phần mềm (QA Engineer)** (thẻ không mở trang tin) → menu **"Tin đã lưu"**: "Đang lưu 5/100 tin", tin QA ở trên
+     cùng; tin **IT Helpdesk** hiện nhãn "Đã hết hạn nộp", nút Ứng tuyển khoá kèm câu lý do, không có liên kết sang tin.
+     Nói: "Tin không còn mở vẫn nằm trong danh sách để ứng viên biết, nhưng không ứng tuyển được; tình trạng tin do
+     backend tính, cùng một chỗ với trang chi tiết đơn. HR không biết ai đã lưu tin nào." Bước 4 có thể bấm **Ứng
+     tuyển** ngay ở thẻ QA trong trang này.
 3. Mục **Đơn ứng tuyển** của Bảo: đơn đợt 1 vào tin QA ở trạng thái **"Bị từ chối"**.
 
    Nói: "Đợt 1 ứng viên bị từ chối. HR mở lại tin sang chu kỳ 2, nên ứng viên được nộp lại; ràng buộc 'một đơn mỗi

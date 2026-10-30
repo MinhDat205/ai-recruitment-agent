@@ -1,5 +1,6 @@
 package com.recruitment.jobapplication.dto;
 
+import com.recruitment.job.JobAvailability;
 import com.recruitment.jobapplication.ApplicationStatus;
 import com.recruitment.resume.ParseStatus;
 import java.math.BigDecimal;
@@ -47,13 +48,5 @@ public record ApplicationCandidateDetailResponse(
             ParseStatus parseStatus,
             String parseError) {} // "MA: mo ta" da chuan hoa hoac null (R-D8)
 
-    // R-D4 - dung 5 gia tri. Tin da xoa mem va tin dua ve nhap GOP chung UNAVAILABLE: ung vien khong can
-    // biet HR da xoa tin hay dua ve nhap.
-    public enum JobAvailability {
-        OPEN,
-        EXPIRED,
-        PAUSED,
-        CLOSED,
-        UNAVAILABLE
-    }
+    // R-D4 - enum JobAvailability (5 gia tri) chuyen ra job/JobAvailability o FR-U16 R-A1; ten khoa va chuoi JSON giu nguyen.
 }

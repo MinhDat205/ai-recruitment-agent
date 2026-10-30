@@ -1,6 +1,7 @@
 import { Building2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatDeadline } from '@/lib/date'
+import { SaveJobButton } from '../savedJobs/SaveJobButton'
 import { jobCategoryText, jobLocationText } from './catalogDisplay'
 import { formatSalary } from './formatSalary'
 import { UnnormalizedBadge } from './UnnormalizedBadge'
@@ -67,11 +68,12 @@ export function JobCard({
   const categoryText = jobCategoryText(job)
   const showForeignCurrencyNote = filterContext.isSalaryFilterActive && isForeignCurrency(job)
 
+  // FR-U16 R-B3 (L6) - the la <article>, KHONG con mot <Link> boc ca the: tieu de la lien ket phu ca the bang lop gia
+  // after:absolute after:inset-0 (ca the van bam duoc nhu cu), nut Luu la <button> anh em cua lien ket, nam tren lop
+  // phu (relative z-10) - khong long <button> trong <a>. Vong focus cua lien ket hien tren ca the bang
+  // has-[a:focus-visible] (khong dung focus-within: no khoanh ca the khi focus dang o nut Luu).
   return (
-    <Link
-      to={`/jobs/${job.id}`}
-      className="flex gap-4 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4 transition hover:border-m3-primary hover:shadow-sm"
-    >
+    <article className="relative flex gap-4 rounded-(--radius-card) border border-m3-outline-variant bg-m3-surface p-4 transition hover:border-m3-primary hover:shadow-sm has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-m3-primary">
       <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-badge) border border-m3-outline-variant bg-m3-surface-container">
         {job.company?.logoUrl ? (
           <img src={job.company.logoUrl} alt={job.company.name} className="h-full w-full object-cover" />
@@ -82,7 +84,11 @@ export function JobCard({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 min-w-0 text-base font-medium text-m3-on-surface hover:text-m3-primary">{job.title}</h3>
+          <h3 className="line-clamp-2 min-w-0 text-base font-medium text-m3-on-surface hover:text-m3-primary">
+            <Link to={`/jobs/${job.id}`} className="outline-none after:absolute after:inset-0">
+              {job.title}
+            </Link>
+          </h3>
           <span className="shrink-0 whitespace-nowrap text-xs text-m3-on-surface-variant">
             Hạn nộp: {formatDeadline(job.deadline)}
           </span>
@@ -136,8 +142,11 @@ export function JobCard({
             <span className="font-medium">{matchedConditionsLabel}</span> {matchedConditions.join(' · ')}
           </p>
         )}
+
+        {/* FR-U16 UI.md 4a - hang cuoi, can phai; HR khong render (khong de khoang trong cho). */}
+        <SaveJobButton jobId={job.id} jobTitle={job.title} variant="icon" className="relative z-10 mt-1 self-end" />
       </div>
-    </Link>
+    </article>
   )
 }
 

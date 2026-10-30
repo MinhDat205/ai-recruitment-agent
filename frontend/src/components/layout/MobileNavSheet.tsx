@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Sheet, SheetBody, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 
 // Menu dieu huong dang sheet cho man hinh hep (UI_GUIDE muc 2) - dung chung cho PublicHeader (< sm)
-// va CandidateLayout (< md). Lop an/hien theo breakpoint do noi goi truyen qua triggerClassName.
+// va CandidateLayout (< lg, FR-U16 B9). Lop an/hien theo breakpoint do noi goi truyen qua triggerClassName.
 export function MobileNavSheet({ triggerClassName, children }: { triggerClassName?: string; children: ReactNode }) {
   return (
     <Sheet>

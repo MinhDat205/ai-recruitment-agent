@@ -1216,8 +1216,20 @@ phải đổi số.
   `docs/features/README.md`, ROADMAP, `CLAUDE.md` §1; tạo khung đặc tả `CHƯA ĐẶC TẢ` (đợt D1 của kế hoạch).
 - [ ] `perf/scoring-latency` — tăng số luồng scheduler, rút chu kỳ quét chấm điểm 5 s → 1 s, chặn race embedding;
   không mã FR, không migration (kế hoạch 28/10 + mục sửa đổi trong kế hoạch 11/2026).
-- [ ] `feat/fr-u16-saved-jobs` — FR-U16 · Lưu tin tuyển dụng (V20): ứng viên lưu tin, xem ở "Tin đã lưu", bỏ lưu
-  bằng `deleted_at`.
+- [x] `feat/fr-u16-saved-jobs` — FR-U16 · Lưu tin tuyển dụng (V20): ứng viên lưu tin, xem ở "Tin đã lưu", bỏ lưu
+  bằng `deleted_at` (hoàn thành 30/10/2026, xem `docs/walkthrough/fr-u16-saved-jobs.md`). Package `savedjob/`, bảng
+  `saved_jobs` (một dòng mỗi cặp, FK `ON DELETE CASCADE`), trần 100 chốt bằng khoá hàng `users` `FOR NO KEY UPDATE`;
+  tình trạng tin tách thành `job/JobAvailabilityResolver` dùng chung với FR-U08 (JSON U08 không đổi); `JobCard` thành
+  `<article>`; menu ứng viên ngang từ `lg` (B9); seed demo tầng 3 (`seed-demo-structural-3.sql`, dải `d3a00000-`) và
+  chốt chặn tầng 1b nới thành "V19 trở lên" (B11). Full suite 2148/2148; khối HTTP 7.2 5/5 nhóm; kiểm tĩnh 7.3 đạt; soát
+  tay 7.4 đạt 13/13 bước (30/10/2026); `srs-guard` sạch. Làm rõ L1–L9, B4–B11. Nợ kỹ thuật:
+  - Layout HR tràn ngang ở 768px (1133/753) và 1023px (1133/1008) do nội dung Dashboard rộng cố định — đo 30/10/2026,
+    chưa sửa, ngoài phạm vi FR-U16.
+  - Tin quá hạn của seed tầng 3 vẫn `OPEN`, chưa có embedding: backend chạy với khoá OpenAI thật và bật `job-embedding`
+    thì gọi OpenAI một lần cho tin này.
+  - Khối 7.2 trên PowerShell 5.1 in `System.Byte[]` cho dòng 204 và vỡ dấu ở thân 200 (API trả `application/json` không
+    kèm charset, như mọi endpoint cũ) — mã HTTP vẫn đúng; chưa sửa khối lệnh.
+  - Frontend không có test tự động.
 - [ ] `feat/fr-c09-reconsideration` — FR-C09 · Yêu cầu xem xét lại đơn bị từ chối (V21): yêu cầu ở bảng riêng, đơn
   vẫn đúng 5 trạng thái; rebase lên `main` sau khi FR-U16 đã merge.
 - [ ] `feat/fr-h04-bulk-scoring` — FR-H04 mở rộng · Chấm tất cả CV trong tin: một lần bấm tạo lượt chấm `PENDING`

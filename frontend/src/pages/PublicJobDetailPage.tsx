@@ -8,6 +8,7 @@ import { jobLocationText } from '../features/jobs/catalogDisplay'
 import { formatSalary } from '../features/jobs/formatSalary'
 import { EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS } from '../features/jobs/jobLabels'
 import { useJobDetailQuery } from '../features/jobs/queries'
+import { SaveJobButton } from '../features/savedJobs/SaveJobButton'
 import { formatDeadline } from '../lib/date'
 
 export function PublicJobDetailPage() {
@@ -90,8 +91,10 @@ export function PublicJobDetailPage() {
             </div>
           )}
 
-          <div className="mt-8">
+          {/* FR-U16 UI.md 4b - "Luu tin" ngay sau "Ung tuyen", cung hang. */}
+          <div className="mt-8 flex flex-wrap items-start gap-3">
             <ApplyButton jobId={job.id} />
+            <SaveJobButton jobId={job.id} jobTitle={job.title} variant="labeled" />
           </div>
         </div>
 

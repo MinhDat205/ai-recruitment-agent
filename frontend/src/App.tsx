@@ -12,6 +12,7 @@ import { CandidateMessagesPage } from './pages/CandidateMessagesPage'
 import { CandidateNotificationsPage } from './pages/CandidateNotificationsPage'
 import { CandidateOnboardingPage } from './pages/CandidateOnboardingPage'
 import { CandidateProfilePage } from './pages/CandidateProfilePage'
+import { CandidateSavedJobsPage } from './pages/CandidateSavedJobsPage'
 import { CompanyProfilePage } from './pages/CompanyProfilePage'
 import { CvBuilderPage } from './pages/CvBuilderPage'
 import { CvImprovementSuggestionsPage } from './pages/CvImprovementSuggestionsPage'
@@ -78,6 +79,8 @@ function App() {
             <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/applications" element={<CandidateApplicationsPage />} />
             <Route path="/candidate/applications/:id" element={<CandidateApplicationDetailPage />} />
+            {/* FR-U16 - Tin da luu. */}
+            <Route path="/candidate/saved-jobs" element={<CandidateSavedJobsPage />} />
             <Route path="/candidate/messages" element={<CandidateMessagesPage />} />
             <Route path="/candidate/notifications" element={<CandidateNotificationsPage />} />
             {/* FR-U12 - tao CV; dat TRUOC cac route /candidate/resumes/:id/... (UI.md muc 2, 5b). */}

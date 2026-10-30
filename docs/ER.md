@@ -3,8 +3,11 @@
 > Xuất tự động từ catalog Postgres (`pg_catalog`) của database dev ở Flyway **V19**, ngày
 > 2026-10-20 13:32 (giờ Việt Nam). Không vẽ tay, không đọc file migration. Flyway là nguồn sự thật của schema
 > (`backend/src/main/resources/db/migration`); schema đổi thì xuất lại theo phụ lục.
+>
+> Bổ sung 30/10/2026 (FR-U16, **V20**): bảng `saved_jobs` ở sơ đồ 2, chép theo `\d saved_jobs` của DB dev ở V20 (các
+> bảng khác không đổi từ V19).
 
-Database có **35 bảng** trong schema `public` (không tính `flyway_schema_history`), chia thành
+Database có **36 bảng** trong schema `public` (không tính `flyway_schema_history`), chia thành
 6 sơ đồ theo package backend. Mỗi bảng được vẽ đầy đủ cột ở đúng một sơ đồ; ở sơ đồ khác nó chỉ
 hiện tên và khoá chính (ghi "chi tiết ở sơ đồ N"). Mỗi khoá ngoại được vẽ đúng một lần, ở sơ đồ của bảng chứa nó.
 
@@ -23,7 +26,7 @@ Cách đọc:
 ## Mục lục
 
 - [1. Tài khoản và công ty](#1-tài-khoản-và-công-ty) — 3 bảng
-- [2. Tin tuyển dụng, rubric, sàng lọc](#2-tin-tuyển-dụng-rubric-sàng-lọc) — 7 bảng
+- [2. Tin tuyển dụng, rubric, sàng lọc](#2-tin-tuyển-dụng-rubric-sàng-lọc) — 8 bảng
 - [3. CV, trích xuất, embedding, CV builder](#3-cv-trích-xuất-embedding-cv-builder) — 8 bảng
 - [4. Đơn ứng tuyển, chấm điểm, giải thích](#4-đơn-ứng-tuyển-chấm-điểm-giải-thích) — 7 bảng
 - [5. Giấy mời, tin nhắn, thông báo, kho ứng viên](#5-giấy-mời-tin-nhắn-thông-báo-kho-ứng-viên) — 6 bảng
@@ -101,7 +104,7 @@ erDiagram
 
 ## 2. Tin tuyển dụng, rubric, sàng lọc
 
-Package: `job/`, `rubric/`, `interviewtemplate/`, `screening/`, `jobdraft/`, `blindreview/`. Bảng: `jobs`, `rubrics`, `rubric_criteria`, `interview_templates`, `job_screening_questions`, `job_ai_generations`, `job_blind_review_changes`.
+Package: `job/`, `rubric/`, `interviewtemplate/`, `screening/`, `jobdraft/`, `blindreview/`, `savedjob/`. Bảng: `jobs`, `rubrics`, `rubric_criteria`, `interview_templates`, `job_screening_questions`, `job_ai_generations`, `job_blind_review_changes`, `saved_jobs`.
 
 ```mermaid
 erDiagram
@@ -191,6 +194,13 @@ erDiagram
         uuid changed_by FK "not null"
         timestamptz changed_at "not null"
     }
+    saved_jobs {
+        uuid id PK "not null"
+        uuid candidate_id FK "not null"
+        uuid job_id FK "not null"
+        timestamptz saved_at "not null"
+        timestamptz deleted_at
+    }
     catalog_industries {
         varchar code PK "chi tiết ở sơ đồ 6"
     }
@@ -214,6 +224,8 @@ erDiagram
     jobs ||--o{ job_ai_generations : "job_id"
     users ||--o{ job_blind_review_changes : "changed_by"
     jobs ||--o{ job_blind_review_changes : "job_id"
+    users ||--o{ saved_jobs : "candidate_id"
+    jobs ||--o{ saved_jobs : "job_id"
 ```
 
 **Ràng buộc quan trọng**
@@ -225,6 +237,7 @@ erDiagram
 | `rubric_criteria` | `uq_criterion_name_per_rubric` | UNIQUE | (rubric_id, name) |
 | `job_screening_questions` | `chk_screening_question_options` | CHECK | `((((question_type) = 'SINGLE_CHOICE') AND (options IS NOT NULL) AND (jsonb_typeof(options) = 'array') AND ((jsonb_array_length(options) >= 2) AND (jsonb_array_length(options) <= 10))) OR (((question_type) <> 'SINGLE_CHOICE') AND (options IS NULL)))` |
 | `job_ai_generations` | `uq_job_ai_generation_part` | UNIQUE | (job_id, part) |
+| `saved_jobs` | `uq_saved_job_per_candidate` | UNIQUE | (candidate_id, job_id) — một dòng mỗi cặp, lưu lại dùng lại dòng cũ (FR-U16 R-S6); hai FK `ON DELETE CASCADE` (Q8) |
 
 ## 3. CV, trích xuất, embedding, CV builder
 

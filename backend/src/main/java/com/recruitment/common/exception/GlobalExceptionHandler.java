@@ -137,6 +137,19 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("TALENT_POOL_CONSENT_NOT_ACTIVE", ex.getMessage()));
     }
 
+    // FR-U16 R-S3 - 409: tin khong con mo (ke ca UUID khong ton tai, ke ca tin dang luu - B7).
+    @ExceptionHandler(JobNotSaveableException.class)
+    public ResponseEntity<ErrorResponse> handleJobNotSaveable(JobNotSaveableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("JOB_NOT_SAVEABLE", ex.getMessage()));
+    }
+
+    // FR-U16 R-L2 - 409: da du tran tin dang luu.
+    @ExceptionHandler(SavedJobLimitReachedException.class)
+    public ResponseEntity<ErrorResponse> handleSavedJobLimitReached(SavedJobLimitReachedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("SAVED_JOB_LIMIT_REACHED", ex.getMessage()));
+    }
+
     // FR-U09 R-R1, R-R2 - 409: request hop le nhung bo cau hoi da doi giua luc ung vien dang dien.
     @ExceptionHandler(ScreeningQuestionsChangedException.class)
     public ResponseEntity<ErrorResponse> handleScreeningQuestionsChanged(ScreeningQuestionsChangedException ex) {

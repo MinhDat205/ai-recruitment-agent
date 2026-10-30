@@ -7,7 +7,6 @@ import com.recruitment.common.exception.InvalidJobFilterException;
 import com.recruitment.common.exception.JobNotFoundException;
 import com.recruitment.company.Company;
 import com.recruitment.company.CompanyRepository;
-import com.recruitment.job.dto.CompanyRef;
 import com.recruitment.job.dto.JobDetailResponse;
 import com.recruitment.job.dto.JobSummaryResponse;
 import java.math.BigDecimal;
@@ -167,7 +166,8 @@ public class JobPublicService {
 
         Map<UUID, Company> companiesById = loadCompanies(jobPage.getContent());
 
-        return PageResponse.from(jobPage, job -> toSummary(job, companiesById.get(job.getCompanyId())));
+        return PageResponse.from(
+                jobPage, job -> JobSummaryMapper.toSummary(job, companiesById.get(job.getCompanyId()), catalogRegistry));
     }
 
     // FR-U07 R-Q1 - diem noi dung chung cho FR-U15 sau nay (chua goi toi, chi chuan bi san): nhan
@@ -270,7 +270,7 @@ public class JobPublicService {
         return jobIds.stream()
                 .map(jobsById::get)
                 .filter(Objects::nonNull)
-                .map(job -> toSummary(job, companiesById.get(job.getCompanyId())))
+                .map(job -> JobSummaryMapper.toSummary(job, companiesById.get(job.getCompanyId()), catalogRegistry))
                 .toList();
     }
 
@@ -304,31 +304,6 @@ public class JobPublicService {
         return "%" + escaped + "%";
     }
 
-    private CompanyRef toRef(Company c) {
-        return c == null ? null : new CompanyRef(c.getId(), c.getName(), c.logoUrlWithCacheBust());
-    }
-
-    private JobSummaryResponse toSummary(Job j, Company c) {
-        JobCatalogFields catalog = JobCatalogFields.of(j, catalogRegistry);
-        return new JobSummaryResponse(
-                j.getId(),
-                j.getTitle(),
-                catalog.categoryCode(),
-                catalog.categoryLabel(),
-                catalog.locationCode(),
-                catalog.locationLabel(),
-                catalog.legacyCategory(),
-                catalog.legacyLocation(),
-                j.getEmploymentType(),
-                j.getWorkMode(),
-                j.getSalaryMin(),
-                j.getSalaryMax(),
-                j.getSalaryCurrency(),
-                j.getDeadline(),
-                j.getPublishedAt(),
-                toRef(c));
-    }
-
     private JobDetailResponse toDetail(Job j, Company c) {
         JobCatalogFields catalog = JobCatalogFields.of(j, catalogRegistry);
         return new JobDetailResponse(
@@ -350,6 +325,6 @@ public class JobPublicService {
                 j.getDeadline(),
                 j.getPublishedAt(),
                 j.getCreatedAt(),
-                toRef(c));
+                JobSummaryMapper.toCompanyRef(c));
     }
 }

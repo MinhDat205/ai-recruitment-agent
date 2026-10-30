@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { formatDeadline } from '../../lib/date'
 import { jobCategoryText, jobLocationText } from '../jobs/catalogDisplay'
 import { formatSalary } from '../jobs/formatSalary'
+import { JobAvailabilityBadge } from '../jobs/JobAvailabilityBadge'
 import { EMPLOYMENT_TYPE_LABELS, WORK_MODE_LABELS } from '../jobs/jobLabels'
-import { JOB_AVAILABILITY_LABELS } from './jobAvailabilityLabels'
 import type { ApplicationCandidateDetail } from './types'
 
 const MISSING_TEXT = 'Chưa có dữ liệu'
@@ -33,10 +33,8 @@ export function JobSummarySection({ job }: { job: ApplicationCandidateDetail['jo
         <h2 id={headingId} className="text-m3-title-md text-m3-on-surface">
           Tin tuyển dụng
         </h2>
-        {/* R-G1 - MOT kieu trung tinh cho ca 5 gia tri, khong xanh/do. */}
-        <span className="rounded-(--radius-badge) border border-m3-outline bg-m3-surface px-2 py-1 text-xs font-medium text-m3-on-surface">
-          {JOB_AVAILABILITY_LABELS[job.availability]}
-        </span>
+        {/* R-G1 - MOT kieu trung tinh cho ca 5 gia tri, khong xanh/do (component chung tu FR-U16 R-A5). */}
+        <JobAvailabilityBadge availability={job.availability} />
       </div>
       <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto_1fr]">
         {rows.map(([label, value]) => (

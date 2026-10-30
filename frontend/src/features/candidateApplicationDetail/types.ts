@@ -1,9 +1,8 @@
 import type { ApplicationStatus } from '../applications/types'
+import type { JobAvailability } from '../jobs/jobAvailability'
 import type { ParseStatus } from '../resumes/types'
 
-// FR-U08 R-D4 - dung 5 gia tri, backend tinh (frontend KHONG tu suy tu deadline). Tin da xoa mem va tin
-// dua ve nhap gop chung UNAVAILABLE.
-export type JobAvailability = 'OPEN' | 'EXPIRED' | 'PAUSED' | 'CLOSED' | 'UNAVAILABLE'
+// FR-U08 R-D4 - kieu JobAvailability (5 gia tri) chuyen ra features/jobs/jobAvailability.ts o FR-U16 R-A5.
 
 // FR-U09 R-K5 - trang thai dong y luu ho so do backend tinh (frontend khong tu suy tu hai moc thoi gian).
 export type TalentPoolConsentState = 'NOT_GIVEN' | 'ACTIVE' | 'REVOKED'

@@ -24,6 +24,12 @@ const NAV_ITEMS: NavItem[] = [
     to: '/candidate',
     isActive: (path) => path === '/candidate' || path.startsWith('/jobs/'),
   },
+  // FR-U16 UI.md muc 3 - "Tin da luu" ngay sau "Viec lam".
+  {
+    label: 'Tin đã lưu',
+    to: '/candidate/saved-jobs',
+    isActive: (path) => path.startsWith('/candidate/saved-jobs'),
+  },
   { label: 'Bảng tin', to: '/candidate/dashboard', isActive: (path) => path === '/candidate/dashboard' },
   {
     label: 'Hồ sơ và CV',
@@ -46,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
 // Thong bao (E2/FR-C03) khong co muc nav rieng - chuong NotificationBell da la loi vao
 // (NotificationDropdown.notificationsPagePath tro dung /candidate/notifications cho role
 // CANDIDATE, ca o link "Xem tat ca" lan tung thong bao khong co item.link rieng).
-// UI_GUIDE muc 2: thanh tab ngang khi >= md; < md dung nut menu mo sheet (qua 5 dich nen khong
+// UI_GUIDE muc 2 (FR-U16 B9): thanh tab ngang khi >= lg; < lg dung nut menu mo sheet (qua 5 dich nen khong
 // dung thanh dieu huong duoi day).
 export function CandidateLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
@@ -67,7 +73,7 @@ export function CandidateLayout({ children }: { children: ReactNode }) {
             AI Recruitment Agent
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-6 lg:flex">
             {NAV_ITEMS.map((item) => {
               const active = item.isActive(location.pathname)
               return (
@@ -85,7 +91,7 @@ export function CandidateLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="hidden items-center gap-3 md:flex">
+            <div className="hidden items-center gap-3 lg:flex">
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.fullName} className="h-8 w-8 rounded-full object-cover" />
               ) : (
@@ -103,7 +109,7 @@ export function CandidateLayout({ children }: { children: ReactNode }) {
               </button>
             </div>
 
-            <MobileNavSheet triggerClassName="md:hidden">
+            <MobileNavSheet triggerClassName="lg:hidden">
               {user?.fullName && (
                 <p className="px-4 pb-2 text-sm font-medium text-m3-on-surface">{user.fullName}</p>
               )}
