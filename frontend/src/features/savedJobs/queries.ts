@@ -1,6 +1,7 @@
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/useAuth'
 import { getSavedJobIdsRequest, getSavedJobsRequest, saveJobRequest, unsaveJobRequest } from './api'
+import type { SavedJob } from './types'
 
 export const SAVED_JOB_IDS_KEY = ['saved-job-ids'] as const
 export const SAVED_JOBS_KEY = ['saved-jobs'] as const
@@ -74,6 +75,11 @@ function useToggleSavedJobMutation(jobId: string, mutationFn: (jobId: string) =>
       })
     },
     onSuccess: () => {
+      // Bo luu: go dong khoi danh sach "Tin da luu" dang co trong cache (trang dang mo doi ngay, khong refetch). Luu moi:
+      // danh sach chua co du lieu cua dong moi -> chi danh dau cu, lan mo trang sau tu tai lai.
+      if (!nextSaved) {
+        queryClient.setQueryData<SavedJob[]>(SAVED_JOBS_KEY, (old) => old?.filter((item) => item.jobId !== jobId))
+      }
       void queryClient.invalidateQueries({ queryKey: SAVED_JOBS_KEY, refetchType: 'none' })
     },
   })
