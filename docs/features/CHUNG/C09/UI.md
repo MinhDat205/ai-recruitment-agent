@@ -284,6 +284,8 @@ trong. `TabsList` trang sửa tin cuộn ngang như hiện có (6 tab).
 | `frontend/src/features/reconsideration/DeclineReconsiderationDialog.tsx` | Hộp thoại 4g |
 | `frontend/src/features/reconsideration/ReconsiderationTab.tsx` | Tab 4e: bộ lọc, danh sách, rỗng/tải/lỗi |
 | `frontend/src/features/reconsideration/PendingReconsiderationText.tsx` | Chữ " · Đang chờ xem xét lại" cạnh badge (4a) |
+| `frontend/src/features/reconsideration/keys.ts` | (Đợt 6, 30/10) Khoá query H1, file không import gì — `applicationDetail/queries.ts` dùng được mà không vòng import với `reconsideration/queries.ts` |
+| `frontend/src/features/reconsideration/useReconsiderationDialogs.tsx` | (Đợt 6, 30/10) Hai hộp thoại của thẻ (`InterviewInvitationDialog`, 4g) đặt ở nơi gọi (tab 4e, khối 4f) chứ không trong thẻ: bộ lọc "Đang chờ" làm thẻ biến mất ngay khi yêu cầu vừa quyết; file riêng vì `react-refresh/only-export-components` |
 
 ### 5b. File có sẵn bị sửa
 

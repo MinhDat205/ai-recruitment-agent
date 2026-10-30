@@ -6,6 +6,8 @@ import {
 } from '../applications/ApplicationStatusConfirmDialog'
 import type { ApplicationStatus } from '../applications/types'
 import { InterviewInvitationDialog } from '../interviewinvitation/InterviewInvitationDialog'
+import { HR_RECONSIDERATION_TEXT } from '../reconsideration/reconsiderationLabels'
+import type { ReconsiderationStatus } from '../reconsideration/types'
 import { applicationDetailInvalidateKeys } from './queries'
 import type { ApplicationHrDetail } from './types'
 
@@ -21,6 +23,22 @@ function nextActionsFor(status: ApplicationStatus): { canInvite: boolean; canRej
     return { canInvite: false, canReject: true, canHire: true }
   }
   return { canInvite: false, canReject: false, canHire: false }
+}
+
+// Cau thay cho ba nut khi don khong con thao tac FR-H07 nao. Ham thuan (REQUIREMENT FR-C09 muc 7.2): chi phu thuoc
+// status + trang thai yeu cau xem xet lai. FR-C09 R-D7 (M3, Q8): don REJECTED co yeu cau OPEN -> tro xuong khoi yeu cau,
+// KHONG noi "Không còn thao tác nào" va KHONG them nut; moi truong hop khac giu cau cu.
+function finalStatusMessage(
+  status: ApplicationStatus,
+  reconsiderationStatus: ReconsiderationStatus | null | undefined,
+): string {
+  if (status === 'WITHDRAWN') {
+    return 'Ứng viên đã rút đơn. Không còn thao tác nào.'
+  }
+  if (status === 'REJECTED' && reconsiderationStatus === 'OPEN') {
+    return HR_RECONSIDERATION_TEXT.actionBarPending
+  }
+  return 'Đơn đã có kết quả cuối. Không còn thao tác nào.'
 }
 
 // Thanh thao tac FR-H07 o dau trang - nam TRONG luong trang (khong fixed/sticky, UI.md muc 8). Ba nut
@@ -65,11 +83,9 @@ export function ApplicationActionBar({ detail }: { detail: ApplicationHrDetail }
           )}
         </div>
       ) : (
-        // Trang thai cuoi: mot dong chu trung tinh thay cho ba nut (R-A1, UI.md muc 7).
+        // Trang thai cuoi: mot dong chu trung tinh thay cho ba nut (R-A1, UI.md muc 7; FR-C09 R-D7).
         <p className="text-sm text-m3-on-surface-variant">
-          {detail.status === 'WITHDRAWN'
-            ? 'Ứng viên đã rút đơn. Không còn thao tác nào.'
-            : 'Đơn đã có kết quả cuối. Không còn thao tác nào.'}
+          {finalStatusMessage(detail.status, detail.reconsideration?.status)}
         </p>
       )}
 
