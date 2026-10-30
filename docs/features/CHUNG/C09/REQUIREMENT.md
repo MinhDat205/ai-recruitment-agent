@@ -501,7 +501,11 @@ ghi kết quả đỏ vào báo cáo đợt, rồi hoàn nguyên (`git diff` s�
 | Bỏ `AND status = 'OPEN'` trong `acceptIfOpen` | T15 (b) — bên thua ra 409 `APPLICATION_STATUS_CONFLICT` thay vì `RECONSIDERATION_NOT_OPEN` |
 | Bỏ nhánh `uq_reconsideration_per_application` trong `GlobalExceptionHandler` | T5 (bên thua 500) |
 | `<=` → `<` trong biểu thức hạn | T2 |
-| Thêm khoá `REJECTED` vào `ALLOWED_TRANSITIONS` (chỉ cục bộ) | T13, T11 (a) |
+| Thêm khoá `REJECTED` vào `ALLOWED_TRANSITIONS` (chỉ cục bộ) | T13, T12 (ca gọi thẳng `changeStatus`) — sửa sau đợt 4 (L2, mục 11): T11 (a) **không** đỏ vì nhánh `REJECTED` của I2 không tra `ALLOWED_TRANSITIONS` |
+
+Dạng lặp của T15 (sau đợt 4, L1 mục 11): hai luồng không phải lúc nào cũng chồng nhau thật. Bên I2 thua được nhận 409
+`RECONSIDERATION_NOT_OPEN` (thua tranh chấp) **hoặc** 400 `INVALID_APPLICATION_STATUS_TRANSITION` (chạy sau khi bên kia đã
+commit — đúng R-S3 (0)); bên H2 thua luôn 409. Dạng tất định bắt buộc 409 cho mọi cặp.
 
 ## 8. AI hay làm sai (dành cho người code)
 
@@ -684,3 +688,11 @@ khuyến nghị:
 | B2 | Nguồn của hạn (30/10/2026, duyệt SQL đợt 2) | Hạn và `rejectedAt` luôn lấy từ dòng lịch sử `PENDING → REJECTED` (duy nhất mỗi đơn: `PENDING` chỉ vào lúc tạo đơn); điều kiện đủ (R-E1 c) xét theo dòng vào `REJECTED` mới nhất. Đơn đủ điều kiện thì hai dòng là một. Đơn có yêu cầu `ACCEPTED` rồi bị từ chối lần nữa sau phỏng vấn vẫn hiện hạn của lần từ chối ở vòng hồ sơ. SQL: `PENDING_REJECTED_LATERAL` / `LAST_REJECTED_LATERAL` trong `ReconsiderationRequestRepository` | R-T1 |
 
 Bảng đột biến tạm và cách lặp T5/T15: mục 7.4.
+
+### Sau đợt 4 (30/10/2026)
+
+| # | Nội dung | Chốt | Ghi ở |
+|---|---|---|---|
+| L1 | Dạng lặp T15 (`CyclicBarrier`, 20 vòng): khi hai luồng không chồng nhau thật, I2 chạy sau đọc thấy yêu cầu đã quyết hoặc đơn đã đổi trạng thái → 400 theo R-S3 (0), không phải 409. Đo được: (b) 20/20 vòng bên thua 409; (c) H2 thắng 20/20 vòng (I2 nhiều bước hơn trước khi chạm khoá) | Dạng lặp chấp nhận 409 hoặc 400 cho bên **I2** thua; bên H2 thua luôn 409. Dạng tất định (bên thua qua MockMvc) bắt buộc 409 cho cả bốn cặp, gồm nhánh "I2 thắng, H2 thua" | Mục 7.4; `ReconsiderationDecisionConcurrencyIntegrationTest` |
+| L2 | Đột biến "thêm khoá `REJECTED` vào `ALLOWED_TRANSITIONS`" chỉ làm T13 đỏ: nhánh `REJECTED` của I2 không tra bảng, T11 (a) vẫn xanh; T12 qua HTTP cũng không bắt được vì guard PATCH chặn trước | Thêm vào T12 ca gọi thẳng `ApplicationStatusService.changeStatus(HR, đơn REJECTED, INTERVIEW_INVITED)` → `InvalidApplicationStatusTransitionException`, DB không đổi. Đã chạy lại đột biến: ca mới đỏ cùng T13 | Mục 7.4 bảng đột biến; `ReconsiderationAcceptIntegrationTest` |
+
