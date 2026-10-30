@@ -117,6 +117,13 @@ transaction ngắn để ghi kết quả.
 **Claim bản ghi bằng `UPDATE` có điều kiện**, không dùng `SELECT FOR UPDATE SKIP LOCKED` (giữ
 transaction mở trong lúc chờ LLM). `@Modifying(clearAutomatically = true)` là bắt buộc.
 
+**Scheduler có 8 luồng** (`spring.task.scheduling.pool.size`, từ `perf/scoring-latency`): các job nền
+khác nhau — kể cả reaper và worker của cùng một bảng — chạy song song; mỗi phương thức
+`@Scheduled(fixedDelay)` vẫn không chạy chồng chính nó. Job không claim mà ghi vào hàng job khác
+cũng ghi phải dùng UPDATE có điều kiện theo giá trị đã đọc (tiền lệ `updateEmbeddingIfUnchanged` ở
+`candidate_profiles` theo `updated_at`, ở `resume_parsed_data` theo `parsed_at`). Không bật
+`spring.threads.virtual.enabled` — Boot đổi sang `SimpleAsyncTaskScheduler`, `pool.size` mất tác dụng.
+
 **`now()`/`CURRENT_TIMESTAMP` của Postgres là transaction-scoped, không phải statement-scoped.**
 Trong test có `@Transactional` ở cấp class, mọi bản ghi tạo trong cùng một test nhận cùng giá trị
 `created_at`/`applied_at` — mọi khẳng định về thứ tự thời gian giữa các bản ghi đó sẽ không xác

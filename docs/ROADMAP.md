@@ -586,9 +586,10 @@ tương ứng ở đây.
     (đồng hồ có thể lệch, đo được container chậm ~34s so với máy) — test nay cố định mốc +10 phút trước lần
     gọi no-op.
   - `toPattern` của tìm kiếm C02 không thoát `%`/`_` (giữ cách hiện có).
-  - Race embedding CV khi trích xuất lại: `ResumeEmbeddingScheduler` không claim, có thể ghi embedding của
-    văn bản v1 đè lên sau khi trích xuất lại đặt NULL → lệch vĩnh viễn. Chữa: ghi có điều kiện theo
-    `parsed_at` đã đọc.
+  - ~~Race embedding CV khi trích xuất lại: `ResumeEmbeddingScheduler` không claim, có thể ghi embedding của
+    văn bản v1 đè lên sau khi trích xuất lại đặt NULL → lệch vĩnh viễn.~~ — **đã xử lý ở `perf/scoring-latency`**:
+    `ResumeParsedDataRepository.updateEmbeddingIfUnchanged` ghi có điều kiện theo `parsed_at` đã đọc (bỏ
+    `updateEmbedding` không điều kiện).
   - Combobox danh mục chỉ lọc theo nhãn, không theo bí danh ("HCM", tên tỉnh cũ không ra) — để FR-U07 cân nhắc.
   - `V9__normalize_job_catalog_codes` là Java migration không checksum → bất biến, không sửa sau khi áp.
   - Prompt v2 có thể vẫn trả `locationText` kèm quận/huyện với CV ngoài bộ demo → mã khu vực null, hiện
@@ -1214,8 +1215,30 @@ FR-C09** vì số migration đã chốt trước (V20, V21): Flyway không nhậ
 phải đổi số.
 - [x] `docs/plan-2026-11` — thêm kế hoạch đợt 11/2026, đăng ký FR-U16, FR-C09 và phần mở rộng FR-H04 vào SRS,
   `docs/features/README.md`, ROADMAP, `CLAUDE.md` §1; tạo khung đặc tả `CHƯA ĐẶC TẢ` (đợt D1 của kế hoạch).
-- [ ] `perf/scoring-latency` — tăng số luồng scheduler, rút chu kỳ quét chấm điểm 5 s → 1 s, chặn race embedding;
-  không mã FR, không migration (kế hoạch 28/10 + mục sửa đổi trong kế hoạch 11/2026).
+- [x] `perf/scoring-latency` — tăng số luồng scheduler, rút chu kỳ quét chấm điểm 5 s → 1 s, chặn race embedding;
+  không mã FR, không migration (kế hoạch 28/10 + mục sửa đổi trong kế hoạch 11/2026; hoàn thành 30/10/2026, xem
+  `docs/walkthrough/perf-scoring-latency.md`). `spring.task.scheduling.pool.size: 8`; `app.scoring`/`aggregation`/
+  `explanation.poll-interval-ms` 5000 → 1000; `org.hibernate.SQL` về INFO; `updateEmbeddingIfUnchanged` theo `parsed_at`.
+  Đo AI thật (trung vị 3 lượt, giây, trước → sau): đơn lẻ tổng 69,2 → 58,4 (chờ nhận việc 1,2 → 0,2; tổng hợp + giải
+  thích 17,6 → 17,9 — chênh tổng chủ yếu do LLM chấm tiêu chí); dồn 3 đơn trong 1 s: tổng hợp + giải thích 75,8 → 18,2,
+  tổng 178,6 → 111,5, lượt cuối 193,2 → 139,1. Soát tay 30/10: đủ luồng `scheduling-1`…`scheduling-8`, 0 dòng ERROR,
+  6/6 lượt DONE. Full suite 2153/2153 sau rebase lên FR-U16 (2148 + 5 test mới). Nợ kỹ thuật:
+  - Timeout Anthropic thực tế có vẻ là 60 s mỗi lần thử, không phải `app.hardening.anthropic-timeout-ms` 30 s:
+    `AnthropicChatOptions` không đặt timeout nên `AnthropicSetup.DEFAULT_TIMEOUT` (60 s) vào `ClientOptions`, rồi
+    `SpringAiAnthropicHttpClient.newCall` ghi đè timeout OkHttp đã đặt qua `httpClientBuilderCustomizer` — suy từ bytecode,
+    CHƯA đo. Đề xuất nhánh chore riêng đặt timeout ở `AnthropicChatOptions` (đổi hành vi D1/D2/D4/F2).
+  - Reaper chạy song song với worker cùng bảng (trước đây chung 1 luồng) — đã chấp nhận. Bản ghi bị reap chỉ được claim
+    lại bởi chính phương thức poll đó, mà `fixedDelay` không chạy chồng, nên không có worker thứ hai trong một JVM: không
+    mất/sai điểm. Tệ nhất: mất một kết quả chấm khi reap rơi vào lượt thử cuối (`FAILED`, HR chấm lại);
+    `error_message`/`parse_error` sót chữ `STALE_CLAIM_TIMEOUT`/`LLM_RETRY_EXHAUSTED` trên hàng đã `DONE`; cửa sổ ngắn
+    (`PENDING` + `finished_at` khác NULL) HR tạo được lượt chấm thứ hai. Trần một lượt chấm từ lúc claim ≈ 363 s × số
+    tiêu chí (2 lời gọi × (3 request × 60 s + nghỉ ≤ 1,5 s)), vượt `stale-timeout` 15 phút từ 3 tiêu chí trong trường hợp
+    bệnh lý; trích xuất/trích xuất lại ≈ 363 s < 15 phút (trừ header `Retry-After` dài). Lượt thực tế ~45 s.
+  - Số tiêu chí rubric không có trần tường minh (chỉ `weight ≥ 0.01`, tổng 100 ⇒ tối đa 10 000) — chi phối trần thời
+    gian của reaper ở trên.
+  - Vòng chấm xử lý tuần tự trong một nhịp (`ScoringRunScheduler.pollPendingScoringRuns`): khi dồn đơn, chờ nhận việc
+    của lượt sau cộng dồn thời gian chấm các lượt trước (47,8 / 90,0 s ở lượt 2/3). Liên quan nút chấm tất cả.
+  - Job giải thích thử lại theo nhịp, không backoff: lỗi tức thì (vd thiếu khoá API) hết 3 lần trong ~3 s.
 - [x] `feat/fr-u16-saved-jobs` — FR-U16 · Lưu tin tuyển dụng (V20): ứng viên lưu tin, xem ở "Tin đã lưu", bỏ lưu
   bằng `deleted_at` (hoàn thành 30/10/2026, xem `docs/walkthrough/fr-u16-saved-jobs.md`). Package `savedjob/`, bảng
   `saved_jobs` (một dòng mỗi cặp, FK `ON DELETE CASCADE`), trần 100 chốt bằng khoá hàng `users` `FOR NO KEY UPDATE`;
