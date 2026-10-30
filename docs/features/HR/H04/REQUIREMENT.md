@@ -1,6 +1,7 @@
 # FR-H04 (mở rộng) — Chấm tất cả CV trong tin
 
 > Trạng thái: ĐÃ DUYỆT (30/10/2026). Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q13; Q13 đổi sang đếm theo lý do).
+> L1–L14 chốt sau Plan Mode đợt 1 (31/10/2026), cuối mục 11.
 >
 > Viết theo kế hoạch `docs/plans/2026-10-28-tang-toc-cham-diem.md` (mục "Nút chấm tất cả CV trong tin") và mục "Sửa
 > đổi kế hoạch tăng tốc chấm điểm (28/10)" điểm 5 của `docs/plans/2026-11-dot-bo-sung.md` (điểm 5 **thắng** kế hoạch
@@ -11,9 +12,10 @@
   kiện của chu kỳ hiện tại. Request **chỉ tạo bản ghi, không gọi AI**; AI chạy qua job nền như nút đơn lẻ. Phần mở rộng
   của FR-H04, **không phải mã mới**. Không migration. Code trong package `scoring/`.
 - Phụ thuộc: FR-H03, FR-H04 (cả hai **Đã hoàn thành**, `docs/SRS.md` mục 0); làm sau khi nhánh `perf/scoring-latency`
-  đã merge (`docs/features/README.md` mục 22). **Rủi ro:** tại `0d6dbef`, `main` **chưa** có `perf/scoring-latency`
-  (chỉ có trên `origin/perf/scoring-latency`) — không bắt đầu đợt code trước khi perf merge và nhánh này rebase (mục 9).
-- Nhánh: `feat/fr-h04-bulk-scoring` (tạo từ `main` tại `0d6dbef`, **chưa** có `perf/scoring-latency`).
+  đã merge (`docs/features/README.md` mục 22). Điều kiện này **đã thoả**: `perf/scoring-latency` merge vào `main` ở
+  `abaf31b` (L12).
+- Nhánh: `feat/fr-h04-bulk-scoring`, nằm trên `main` tại `abaf31b` (đã có `perf/scoring-latency`; Plan Mode kiểm bằng
+  `git merge-base --is-ancestor abaf31b HEAD`, L12).
 - Mở rộng: FR-H04 (tạo lượt chấm hàng loạt). FR-H05, FR-H06, FR-H07 **không đổi**.
 
 ## 0. Đã đối chiếu code trước khi viết (CLAUDE.md §6)
@@ -41,7 +43,7 @@
 |---|---|---|---|
 | b1 | Quyền theo tin | `ApplicationOwnerService.loadOwnedJob` (public): 404 `COMPANY_NOT_FOUND` → 404 `JOB_NOT_FOUND` → 403. `JobOwnerService.loadOwned` (public): 404 `JOB_NOT_FOUND` → 404 `COMPANY_NOT_FOUND` → 403 | `ApplicationOwnerService.java:394-400`; `JobOwnerService.java:200-211` |
 | b2 | Danh sách lấy **mọi** chu kỳ | `findByJobIdOrderByAppliedAtDesc(jobId)`, không lọc chu kỳ | `JobApplicationRepository.java:81`; `ApplicationOwnerService.java:158` |
-| b3 | Câu theo lô có sẵn (không N+1) | `resumeRepository.findAllById`, `resumeParsedDataRepository.findByResumeIdIn`, `scoringRunRepository.findLatestByApplicationIdIn` (lượt mới nhất: `status`, `finished_at`), `findLatestDoneByApplicationIdIn` (lượt `DONE` mới nhất) | `ApplicationOwnerService.java:166-205`; `ResumeParsedDataRepository.java:20`; `ScoringRunRepository.java:56, 219` |
+| b3 | Câu theo lô có sẵn (không N+1) | Danh sách dùng `resumeRepository.findAllById`, `scoringRunRepository.findLatestByApplicationIdIn` (lượt mới nhất: `status`, `finished_at`), `findLatestDoneByApplicationIdIn` (lượt `DONE` mới nhất). Danh sách **không** đọc `resume_parsed_data` (L1, sửa sau Plan Mode — bản duyệt ghi nhầm `findByResumeIdIn`, câu đó chỉ dùng ở FR-H14). Câu theo lô có sẵn cho bảng này: `findPromptVersionsByResumeIds` (projection `resumeId`, `promptVersion`, FR-C05) | `ApplicationOwnerService.java:158-205`; `ApplicationComparisonService.java:114`; `ResumeParsedDataRepository.java` (`findPromptVersionsByResumeIds`); `ScoringRunRepository.java:56, 219` |
 | b4 | `totalScore = null` ⇔ không có lượt `DONE` nào | Đúng — đọc từ `findLatestDoneByApplicationIdIn` | `ApplicationOwnerService.java:259`; comment `ApplicationHrListItemResponse.java` |
 | b5 | Trường DTO frontend dùng được | `status`, `resumeParseStatus`, `latestScoringRunStatus`, `latestScoringRunFinishedAt`, `totalScore`, `recruitmentCycle`, `identityMasked` | `ApplicationHrListItemResponse.java` |
 | b6 | Thiếu ở DTO | Không có cờ "có `resume_parsed_data`" — frontend chỉ thấy `resumeParseStatus` | như trên |
@@ -136,13 +138,18 @@ công thức trọng số (FR-H05); không nhãn, không phán quyết (FR-H07).
   `finished_at`. Rộng hơn nút đơn lẻ đúng một trường hợp: `RUNNING` + `finished_at` khác `NULL` (chờ D3) — để bulk không
   tạo lượt thứ hai cho đơn sắp có điểm (F1). Nút đơn lẻ **giữ nguyên** định nghĩa cũ (a5). Khớp điều kiện polling của
   frontend (`PENDING` hoặc `RUNNING` + `totalScore === null`, e4).
-- **R-E5. Một nguồn dữ liệu với danh sách** (Q4): bulk đọc trạng thái bằng **đúng** các câu theo lô danh sách tab Ứng viên
-  đang dùng (b2, b3): `findByJobIdOrderByAppliedAtDesc`, `resumeRepository.findAllById`,
-  `resumeParsedDataRepository.findByResumeIdIn`, `findLatestByApplicationIdIn`, `findLatestDoneByApplicationIdIn`. Số câu
-  đọc cố định (≤ 5 + 1 tin + 2 rubric), không N+1. Không viết câu SQL mới, không viết lại điều kiện "đang chạy"/"đã
-  chấm" bằng SQL thứ hai.
+- **R-E5. Một nguồn dữ liệu với danh sách** (Q4, L1): bulk đọc trạng thái bằng **đúng** bốn câu theo lô danh sách tab
+  Ứng viên đang dùng (b2, b3): `findByJobIdOrderByAppliedAtDesc`, `resumeRepository.findAllById`,
+  `findLatestByApplicationIdIn`, `findLatestDoneByApplicationIdIn`; cộng **một** câu có sẵn mà danh sách không dùng,
+  `resumeParsedDataRepository.findPromptVersionsByResumeIds`, chỉ để biết CV nào có dòng `resume_parsed_data` (điều kiện
+  thứ hai của `requireResumeParsed`, R-E2.2) — không nạp `raw_text`/`data`. Ba câu sau chỉ chạy trên đơn của tập xét R-E1
+  (không phải mọi chu kỳ). Số câu đọc cố định (L2): 2 (`loadOwned`: tin, công ty) + 2 (`requireRubricComplete`: rubric,
+  tổng trọng số) + 1 snapshot (chỉ khi có đơn để thử, R-R2) + 5 câu theo lô; không N+1. Không viết câu SQL mới, không
+  viết lại điều kiện "đang chạy"/"đã chấm" bằng SQL thứ hai.
 - **R-E6. Lọc chu kỳ và sắp ở Java** trên kết quả `findByJobIdOrderByAppliedAtDesc`: giữ `recruitmentCycle ==
-  job.recruitmentCycle`, sắp `applied_at ASC, id ASC`. Thứ tự này quyết định ai vào 50 đơn đầu (R-C1) và thứ tự `skipped`.
+  job.recruitmentCycle`, sắp `applied_at ASC`, hoà thì `id ASC` **so bằng `id.toString()`** (L3) — `UUID.compareTo`
+  của Java so hai `long` có dấu nên lệch thứ tự `uuid` của Postgres; chuỗi hex chữ thường thì khớp. Thứ tự này quyết
+  định ai vào 50 đơn đầu (R-C1) và thứ tự `skipped`.
 
 ### 3.2 Rubric (R-R)
 
@@ -150,7 +157,8 @@ công thức trọng số (FR-H05); không nhãn, không phán quyết (FR-H07).
   `RUBRIC_NOT_FOUND`; tổng ≠ 100 (kể cả 0 tiêu chí) → 409 `RUBRIC_INCOMPLETE`, **cùng mã và câu** với nút đơn lẻ
   (`forScoring`). Không tạo lượt nào, không khoá rubric.
 - **R-R2.** Chụp `RubricSnapshot` **một lần** (`findByRubricIdOrderByDisplayOrderAsc` + `RubricSnapshotMapper.toSnapshot`,
-  như a1) và truyền **cùng một** đối tượng cho mọi `create`. Không đọc lại `rubric_criteria` trong vòng lặp.
+  như a1) và truyền **cùng một** đối tượng cho mọi `create`. Không đọc lại `rubric_criteria` trong vòng lặp. Chỉ chụp
+  khi có ít nhất một đơn để thử (L2); không có thì bỏ qua câu này.
 - **R-R3.** Rubric đủ 100 mà **không** có đơn nào đủ điều kiện → 200, `created = 0`, không khoá rubric (chỉ `create` khoá).
 
 ### 3.3 Trần (R-C)
@@ -271,9 +279,11 @@ Không trả id lượt đã tạo, tên ứng viên, điểm, hay trường dan
 
 Không câu mới. Dùng đúng: `JobRepository.findById` (qua `loadOwned`), `RubricRepository.findByJobId` +
 `RubricCriterionRepository.sumWeightByRubricId` (qua `requireRubricComplete`),
-`RubricCriterionRepository.findByRubricIdOrderByDisplayOrderAsc`, năm câu theo lô ở R-E5. Mỗi đơn được thử: các câu của
-`ScoringRunStateService.create` (INSERT + đọc/khoá rubric). Danh sách rỗng → không gọi các câu `IN (...)` (guard như
-`ApplicationOwnerService.java:201-205`).
+`RubricCriterionRepository.findByRubricIdOrderByDisplayOrderAsc` (chỉ khi có đơn để thử), năm câu theo lô ở R-E5
+(`findByJobIdOrderByAppliedAtDesc`, `ResumeRepository.findAllById`, `ResumeParsedDataRepository.findPromptVersionsByResumeIds`,
+`ScoringRunRepository.findLatestByApplicationIdIn`, `findLatestDoneByApplicationIdIn` — L1). Mỗi đơn được thử: các câu của
+`ScoringRunStateService.create` (INSERT + đọc/khoá rubric). Tập xét rỗng → không gọi các câu `IN (...)` (guard như
+`ApplicationOwnerService.java:158-161, 203`).
 
 ### 4.5 Bảng chạm tới
 
@@ -298,6 +308,9 @@ hợp (FR-H05); job giải thích chạy sau (FR-H06). AI không tính tổng, k
 - Chấm lại đơn đã có lượt `DONE` hàng loạt (nút đơn lẻ vẫn làm được từng đơn).
 - Chọn tay một nhóm đơn để chấm; chấm đơn chu kỳ cũ; chấm nhiều tin một lần.
 - Huỷ lượt đã xếp hàng; thanh tiến độ tổng của cả lô; tự kéo dài polling quá 10 phút.
+- Giảm tải polling khi lô lớn (L11). **Rủi ro đã biết:** sau một lô 50 đơn, mỗi dòng có lượt đang chạy tự poll
+  `GET /api/hr/applications/{id}/scoring-runs` 5 s một lần (`useScoringRunsQuery`, `queries.ts:173-191`), cộng vòng poll
+  danh sách — khoảng 10 GET/s tới mốc 10 phút. Hành vi sẵn có nhân theo số dòng; không đổi code ở phần mở rộng này.
 - Kiểm trạng thái tin `OPEN` (R-P4).
 - Đổi định nghĩa "đang chạy" của nút đơn lẻ (R-E4, R-G4).
 - Xây component Snackbar dùng chung (Q7).
@@ -307,12 +320,21 @@ hợp (FR-H05); job giải thích chạy sau (FR-H06). AI không tính tổng, k
 
 ### 7.1 Test backend (Testcontainers, Postgres thật)
 
-Lớp `JobScoringRunBulkIntegrationTest` tự tạo dữ liệu (HR, công ty, tin, rubric, ứng viên, CV, đơn; email duy nhất), không
-đọc seed. **Không** bọc `@Transactional` cấp lớp: B1 gọi `create` nhiều lần, mỗi lần một transaction; ở lớp
-`@Transactional` các lần gọi gộp vào transaction của test và một vi phạm index sẽ làm hỏng cả transaction (T10 không chạy
-được), và `created_at`/`applied_at` trùng nhau (CLAUDE.md §3c). Dọn dữ liệu theo khuôn lớp đồng thời hiện có. Đơn cần
-`applied_at` khác nhau thì backdate bằng native update. Mock `ChatModel`/`EmbeddingModel` mặc định throw — test xanh
-chứng minh B1 không gọi AI.
+Hai lớp (L7): `JobScoringRunBulkIntegrationTest` (T1–T9, T12–T16, T19; không spy, dùng lại context đã cache của lớp cùng
+cấu hình) và `JobScoringRunBulkRaceIntegrationTest` (T10, T11; `@MockitoSpyBean ScoringRunStateService` ⇒ context riêng,
+`reset` spy sau mỗi test). Cả hai: `@Import({TestcontainersConfiguration.class, LlmTestConfiguration.class})
+@SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")` — phải import tường minh `LlmTestConfiguration` mới có mock
+`ChatModel`/`EmbeddingModel` mặc định throw (`ScoringRunHrControllerIntegrationTest` không import), kèm `verify(…,
+never())` — test xanh chứng minh B1 không gọi AI.
+
+Tự tạo dữ liệu (HR, công ty, tin, rubric, ứng viên, CV, đơn; email duy nhất), không đọc seed: HR/công ty/tin/tiêu chí qua
+API; ứng viên, `resumes`, `resume_parsed_data`, `job_applications`, `scoring_runs` chèn bằng `JdbcTemplate` (51 ứng viên
+khác nhau vì `uq_application_per_cycle`). **Không** bọc `@Transactional` cấp lớp: B1 gọi `create` nhiều lần, mỗi lần một
+transaction; ở lớp `@Transactional` các lần gọi gộp vào transaction của test và một vi phạm index sẽ làm hỏng cả
+transaction (T10 không chạy được), và `created_at`/`applied_at` trùng nhau (CLAUDE.md §3c). **Không dọn** dữ liệu sau test
+— khuôn hiện có của lớp không bọc transaction (`SavedJobIntegrationTestSupport.java:31-33`), mọi khẳng định lọc theo id của
+chính test (L6). `applied_at` và `scoring_runs.created_at` ghi tường minh khi chèn (backdate) để định thứ tự nộp và lượt
+"mới nhất".
 
 | # | Test | Loại |
 |---|---|---|
@@ -322,11 +344,11 @@ chứng minh B1 không gọi AI.
 | T4 | Ưu tiên lý do (R-E3): đơn `REJECTED` + CV chưa parse → `NOT_PENDING`; đơn `PENDING` + CV chưa parse + có lượt `DONE` → `RESUME_NOT_PARSED`; đơn `PENDING` có lượt `DONE` cũ + lượt `PENDING` mới nhất → `RUN_IN_PROGRESS` | biên |
 | T5 | Rubric 99,99 → 409 `RUBRIC_INCOMPLETE`, câu **bằng** câu của nút đơn lẻ cùng tổng; rubric 0 tiêu chí → 409; 0 lượt mới; `is_locked` không đổi. Rubric 100,00 (scale khác) → 200 | âm + biên |
 | T6 | Quyền: không token → 401 `UNAUTHENTICATED`; ứng viên → 403; HR công ty khác → 403; UUID không tồn tại → 404 `JOB_NOT_FOUND`; tin đã xoá mềm → 404 `JOB_NOT_FOUND`; HR chưa có công ty → 404 `COMPANY_NOT_FOUND`; mỗi ca 0 lượt mới | âm |
-| T7 | Trần (biên): 49 đơn đủ điều kiện → `created 49, remaining 0`; 50 → `50, 0`; 51 → `50, 1`, đơn nộp **muộn nhất** (theo `applied_at`, hoà thì `id` lớn hơn) không có lượt và **không** có trong `skipped` | biên |
+| T7 | Trần (biên): 49 đơn đủ điều kiện → `created 49, remaining 0`; 50 → `50, 0`; 51 → `50, 1`, đơn nộp **muộn nhất** (`applied_at` khác nhau, ghi tường minh; ca hoà ở T19) không có lượt và **không** có trong `skipped` | biên |
 | T8 | Gọi hai lần liên tiếp (3 đơn đủ điều kiện): lần hai `created 0`, `skipped` = 3 đơn đều `RUN_IN_PROGRESS`; tổng 3 lượt | âm |
 | T9 | 51 đơn: gọi lần một → 50; lần hai → `created 1, remaining 0`, 50 dòng `RUN_IN_PROGRESS` (R-C3) | dương |
-| T10 | Race (R-T3): `@MockitoSpyBean ScoringRunStateService`; `doAnswer` ở lần `create` cho đơn A: chèn một lượt `PENDING` cho A bằng `JdbcTemplate` (tự commit) rồi `callRealMethod()` → index ném thật. Kết quả: A trong `skipped` `RUN_IN_PROGRESS`, B và C (thử sau A) vẫn được tạo, `created = 2`; DB: A đúng 1 lượt (lượt chèn tay) | âm |
-| T11 | Lỗi ngoài dự kiến không bị nuốt: spy `create` ném `DataIntegrityViolationException` với thông điệp không chứa `uq_scoring_run_in_progress` ở đơn thứ hai → 500; lượt của đơn thứ nhất **vẫn còn** (R-T4) | âm |
+| T10 | Race (R-T3), lớp Race: `doAnswer` ở lần `create` cho đơn A: chèn một lượt `PENDING` cho A bằng `JdbcTemplate` bên trong `TransactionTemplate` `PROPAGATION_REQUIRES_NEW` (commit độc lập, đúng dù spy nằm trong hay ngoài proxy giao dịch — L4) rồi `callRealMethod()` → index ném thật. Kết quả: A trong `skipped` `RUN_IN_PROGRESS`, B và C (thử sau A) vẫn được tạo, `created = 2`; DB: A đúng 1 lượt (lượt chèn tay) | âm |
+| T11 | Lỗi ngoài dự kiến không bị nuốt, lớp Race: spy `create` ném `DataIntegrityViolationException` với thông điệp không chứa `uq_scoring_run_in_progress` ở đơn thứ hai → request lỗi, kiểm bằng `assertThatThrownBy(() -> mockMvc.perform(…)).hasRootCauseInstanceOf(DataIntegrityViolationException.class)` (MockMvc không có trang lỗi nên không thấy mã 500; khuôn `JobAiDraftSaveRollbackIntegrationTest.java:52` — L5); lượt của đơn thứ nhất **vẫn còn** (R-T4) | âm |
 | T12 | Chu kỳ (R-E1): đơn chu kỳ 1 (đủ mọi điều kiện khác) + tăng `jobs.recruitment_cycle` lên 2 + đơn chu kỳ 2 → chỉ đơn chu kỳ 2 được tạo; đơn chu kỳ 1 **không** có trong `skipped` và không có lượt mới | âm |
 | T13 | Ẩn danh (R-G3): bật `blind_review_enabled` → vẫn tạo đủ lượt; JSON B1 (duyệt đệ quy) chỉ gồm khoá `created`, `remaining`, `skipped`, `applicationId`, `reason`; chuỗi JSON không chứa tên hay email ứng viên | âm |
 | T14 | Trạng thái tin (R-P4): tin `PAUSED` và `CLOSED` có đơn đủ điều kiện → 200, tạo lượt | dương |
@@ -334,12 +356,25 @@ chứng minh B1 không gọi AI.
 | T16 | Số câu đọc cố định (R-E5): 3 đơn và 20 đơn (đều đã `DONE`, `created 0`) → số câu SQL **bằng nhau** — đếm bằng `org.hibernate.stat.Statistics` (`generate_statistics: true` đã bật ở `application-test.yml:96`; tiền lệ `ApplicationComparisonControllerIntegrationTest.java:1206`) | đơn vị |
 | T17 | Rate limit (`RateLimitFilterTest`, không Spring context): `POST /api/hr/jobs/{uuid}/scoring-runs/bulk` có xác thực → nhóm `llm:`; `GET` cùng đường → không giới hạn; `POST /api/hr/jobs/{uuid}/scoring-runs` (thiếu `/bulk`) → không thuộc nhóm nào; chưa xác thực → không giới hạn | dương + âm |
 | T18 | Hồi quy nút đơn lẻ: `ScoringRunHrControllerIntegrationTest` xanh **không sửa dòng nào** (R-G4) | hồi quy |
+| T19 | Hoà `applied_at` (R-E6, L3): 51 đơn đủ điều kiện **cùng** `applied_at`, id chọn sao cho thứ tự `UUID.compareTo` khác thứ tự chuỗi (vd một id bắt đầu `8…`/`f…`, một id bắt đầu `0…`/`7…`) → đơn bị để lại (`remaining = 1`) là đơn có `id.toString()` lớn nhất, và trùng đơn đứng cuối của `SELECT id … ORDER BY applied_at, id` trên Postgres | biên |
 
 ### 7.2 Kiểm bằng HTTP — Windows PowerShell 5.1
 
-Nạp seed test (`db/seed/README.md`). Backend ở `localhost:8080`, scheduler **bật** (để thấy lượt chạy). Dán cả khối vào
-một cửa sổ PowerShell. Đợt cuối điền `$jobId` bằng một tin của `minhdathr@gmail.com` có đơn chưa chấm và rubric đủ 100
-(Plan Mode tra seed và ghi id cố định vào đây trước khi duyệt đợt cuối).
+Dữ liệu: bộ **demo** nạp đủ chuỗi `db/seed/README.md` mục 1 (L8). Backend ở `localhost:8080`, scheduler **bật**, khoá AI
+thật hoạt động. Chạy **trong buổi soát tay 7.4, đúng thời điểm ghi ở bước 4 của 7.4** (sau khi lượt của Hà ở bước 2 đã
+kết thúc — `DONE` hoặc `FAILED` — và `nguyen.hai.son@demo.local` đã nộp đơn mới vào tin Java). Dán cả khối vào một cửa sổ
+PowerShell.
+
+`$jobId` = tin "Senior Java Backend Developer" `d2000000-0000-0000-0000-000000000001` (công ty Hoàn Mỹ, chủ
+`hr@demo.local` — `seed-demo-structural.sql:228-233, 258-263`; rubric 4 tiêu chí đủ 100, bật ẩn danh). Đơn chu kỳ hiện
+tại (chu kỳ 1) lúc chạy khối:
+
+| Đơn | Ứng viên | Nộp | Trạng thái | Lượt chấm | Mong đợi lần 1 |
+|---|---|---|---|---|---|
+| `3ec35ae2-c8ae-4100-a819-3b59f6948707` | Trần Minh Hoàng | 28/08/2026 | `PENDING` | 1 `DONE` (seed) | `ALREADY_SCORED` |
+| `967d5c84-1519-4a70-8bed-6252781ac052` | Nguyễn Thị Thu Hà | 28/08/2026 | `PENDING` | 3 `FAILED` `EVIDENCE_NOT_VERIFIED` (seed) + lượt bước 2 của 7.4 (`DONE` hoặc `FAILED`, L14) | nhánh `DONE`: `ALREADY_SCORED`; nhánh `FAILED`: **được tạo** |
+| `d1b00000-0009-0000-0000-000000000002` | Võ Thanh Tùng | 03/10/2026 | `INTERVIEW_INVITED` | 0 | `NOT_PENDING` |
+| (id mới) | Nguyễn Hải Sơn | lúc soát tay | `PENDING`, CV chính `bee1bbe8…` đã trích xuất | 0 | **được tạo** |
 
 ```powershell
 $base = 'http://localhost:8080'
@@ -368,17 +403,17 @@ function Test-Call([string]$Method, [string]$Path, [string]$Token) {
     }
 }
 
-$tokenHr = Get-Token 'minhdathr@gmail.com' '12345678'
-$tokenUv = Get-Token 'quochuyuv@gmail.com' '12345678'
+$tokenHr = Get-Token 'hr@demo.local' 'Demo1234'
+$tokenUv = Get-Token 'pham.quoc.bao@demo.local' 'Demo1234'
 
-$jobId = '<DIEN O PLAN MODE>'
+$jobId = 'd2000000-0000-0000-0000-000000000001'
 $bulk  = "/api/hr/jobs/$jobId/scoring-runs/bulk"
 $none  = '/api/hr/jobs/00000000-0000-0000-0000-000000000000/scoring-runs/bulk'
 
-'--- 1. Duong: lan mot (mong doi 200, created > 0)'
+'--- 1. Duong: lan mot (mong doi 200, created 1 neu luot cua Ha DONE, created 2 neu FAILED)'
 Test-Call POST $bulk $tokenHr
 
-'--- 2. Am: bam lai ngay (mong doi 200, created 0, moi dong RUN_IN_PROGRESS hoac ALREADY_SCORED)'
+'--- 2. Am: bam lai ngay (mong doi 200, created 0, don cua Son RUN_IN_PROGRESS)'
 Test-Call POST $bulk $tokenHr
 
 '--- 3. Am: tin khong ton tai (404 JOB_NOT_FOUND), ung vien (403), khong token (401)'
@@ -387,12 +422,24 @@ Test-Call POST $bulk $tokenUv
 Test-Call POST $bulk $null
 ```
 
-Mong đợi: nhóm 1 `200 … "created":k,…` với k > 0; nhóm 2 `200 … "created":0` và mọi `reason` thuộc
-`RUN_IN_PROGRESS`/`ALREADY_SCORED`/`NOT_PENDING`/`RESUME_NOT_PARSED`; nhóm 3 `404 … JOB_NOT_FOUND`, `403`, `401 …
-UNAUTHENTICATED`.
+Mong đợi — hai nhánh theo kết quả lượt của Hà ở bước 2 của 7.4 (L14; `skipped` luôn theo thứ tự nộp):
 
-**Bắt buộc ở đợt code cuối:** chạy thật khối trên, dán **nguyên văn** output vào báo cáo. Kết quả khác "Mong đợi" vì lệnh
-viết sai thì dừng, đề xuất sửa mục này, chờ duyệt lại.
+| Nhóm | Hà `DONE` | Hà `FAILED` (`EVIDENCE_NOT_VERIFIED`) |
+|---|---|---|
+| 1 | `200 … "created":1,"remaining":0` (Sơn); `skipped` 3 dòng: Hoàng `ALREADY_SCORED`, Hà `ALREADY_SCORED`, Tùng `NOT_PENDING` | `200 … "created":2,"remaining":0` (Hà, Sơn); `skipped` 2 dòng: Hoàng `ALREADY_SCORED`, Tùng `NOT_PENDING` |
+| 2 | `200 … "created":0,"remaining":0`; `skipped` 4 dòng: Hoàng `ALREADY_SCORED`, Hà `ALREADY_SCORED`, Tùng `NOT_PENDING`, Sơn `RUN_IN_PROGRESS` | `200 … "created":0,"remaining":0`; `skipped` 4 dòng: Hoàng `ALREADY_SCORED`, Hà `RUN_IN_PROGRESS`, Tùng `NOT_PENDING`, Sơn `RUN_IN_PROGRESS` |
+| 3 | `404 … JOB_NOT_FOUND`, `403`, `401 … UNAUTHENTICATED` | như cột trái |
+
+Nhóm 2 là phần "bấm lại ngay" của dòng "Bỏ qua theo lý do" ở 7.4 (L13). Đơn của Sơn không bao giờ có trong `skipped` của
+nhóm 1.
+
+Chỉ dừng và báo lại khi lượt của Hà ở bước 2 `FAILED` với mã lỗi nhà cung cấp/mạng — `LLM_RETRY_EXHAUSTED`
+(`ScoringRunErrorCode`), `LLM_ERROR` (`CriterionScoringErrorCode`, gồm lỗi xác thực khoá AI) — vì khi đó khoá AI hoặc
+mạng không dùng được cho cả buổi soát tay. `EVIDENCE_NOT_VERIFIED` là nhánh `FAILED` hợp lệ ở trên, không dừng.
+
+**Bắt buộc trong buổi soát tay (mục 9):** người dùng chạy thật khối trên ở bước 4 của 7.4, dán **nguyên văn** output vào
+báo cáo; walkthrough đợt cuối chép lại. Kết quả khác "Mong đợi" vì lệnh viết sai thì dừng, đề xuất sửa mục này, chờ duyệt
+lại.
 
 ### 7.3 Frontend
 
@@ -405,26 +452,60 @@ viết sai thì dừng, đề xuất sửa mục này, chờ duyệt lại.
 - *(Q13)* `bulkScoringTexts.ts` có đúng 4 nhãn lý do của UI.md mục 7, khai theo thứ tự R-E3; câu bỏ qua dựng bằng một
   hàm duyệt mảng thứ tự đó và bỏ lý do có số 0 — không có chuỗi nào ghép cứng "0 …".
 
-### 7.4 Soát tay (desktop ≥ `lg`, 768px, 375px) — `minhdathr@gmail.com` / `12345678`, AI thật
+### 7.4 Soát tay (desktop ≥ `lg`, 768px, 375px) — bộ demo, mật khẩu `Demo1234`, AI thật
 
-Dữ liệu: Plan Mode (đợt 1) ghi vào đây **id tin seed cụ thể** và bảng đơn của tin đó (trạng thái đơn, `parse_status`,
-có/không lượt `DONE`, chu kỳ) cùng **N mong đợi bằng số**; seed không có đủ năm loại đơn thì Plan Mode ghi các bước
-dựng tay (rút một đơn, tăng chu kỳ tin…). Không soát tay khi chưa có con số N mong đợi.
+Dữ liệu (L8): bộ **demo** nạp đủ chuỗi `db/seed/README.md` mục 1 (reset → 1 → 2 → 1b → 2b → 3 →
+`install-demo-files.ps1`, DB ở V20), backend bật mọi scheduler, khoá AI thật. Tra từ `seed-demo-ai-output.sql:458-466`
+(đơn), `:551-…` (lượt chấm), `seed-demo-structural-1b.sql:248-256` (đổi trạng thái), `:357-366`, `:444-452` (đơn mới),
+`:633` (QA sang chu kỳ 2), `seed-demo-ai-output-2b.sql:253` (lượt DevOps của Hoàng). Mọi CV liên quan `parse_status =
+DONE` và có `resume_parsed_data`.
+
+| Tin (id) · HR | Chu kỳ hiện tại | Đơn chu kỳ hiện tại | N mong đợi trên seed |
+|---|---|---|---|
+| Senior Java Backend Developer `d2000000-0000-0000-0000-000000000001` · `hr@demo.local` · ẩn danh **bật**, rubric 4 tiêu chí | 1 | Hoàng `PENDING` + 1 `DONE` → `ALREADY_SCORED`; Hà `PENDING`, 3 `FAILED`, chưa `DONE` → **đủ điều kiện**; Tùng `INTERVIEW_INVITED` → `NOT_PENDING` | **1** |
+| Kỹ sư DevOps `d2000000-0000-0000-0000-000000000003` · `hr@demo.local` | 1 | Sơn, Đức, Hoàng đều `PENDING` + `DONE` → 3 `ALREADY_SCORED` | **0** |
+| Kỹ sư Kiểm thử phần mềm (QA) `d2000000-0000-0000-0000-000000000002` · `hr@demo.local` · rubric 4 tiêu chí, 2 câu sàng lọc | 2 | Không có (đơn chu kỳ 1: Bảo `REJECTED`, Đức `WITHDRAWN` — vẫn hiện trong bảng, không xét) | **0** |
+| Lập trình viên Frontend (React) `d1b00000-0004-0000-0000-000000000001` · `hr.nganha@demo.local` · rubric 3 tiêu chí 40/35/25 chưa khoá, không câu sàng lọc | 1 | Không có | **0** |
+
+Làm **đúng thứ tự** — bước 2 dùng hết đơn đủ điều kiện duy nhất của tin Java, bước 3 tạo đơn mới cho 7.2:
+
+1. **N = 0** — `hr@demo.local`, tin DevOps: nút "Chấm tất cả (0)" khoá, câu lý do đọc được bằng trình đọc màn hình. Tin
+   QA: bảng hiện 2 đơn chu kỳ 1 nhưng nút vẫn "(0)".
+2. **Tin Java** — nút "Chấm tất cả (1)". Hộp: "Số đơn sẽ xếp vào hàng chấm: 1", "khoảng 5" lượt gọi AI ("1 đơn × (4 tiêu
+   chí + 1 lượt viết giải thích)"), "khoảng 1 phút", câu 10 phút / "Tải lại". Xác nhận → câu "Đã xếp 1 đơn vào hàng chấm.
+   Bỏ qua 2 đơn: 1 không ở trạng thái chờ duyệt, 1 đã có điểm."; DevTools `created 1` + `skipped.length 2` = 3 = số đơn
+   chu kỳ 1. Chờ lượt của Hà kết thúc (`DONE` hoặc `FAILED`) — ba lượt `FAILED` trên seed
+   (`seed-demo-ai-output.sql:551, 553, 564`) đều là `EVIDENCE_NOT_VERIFIED`, lỗi lặp lại do nội dung CV/K2, nên cả hai kết
+   quả đều hợp lệ (L14):
+   - `DONE` → dòng Hà có điểm, nút về "(0)", khoá.
+   - `FAILED` (`EVIDENCE_NOT_VERIFIED`) → nút về "(1)": Hà vẫn chưa có lượt `DONE` nào (R-E2.4). Đây là hành vi đúng —
+     dòng kiểm thêm của "Dòng FAILED cũ".
+3. `nguyen.hai.son@demo.local` (chưa có đơn ở tin Java) nộp đơn vào tin Java bằng CV chính. HR tải lại tab: nút "(1)"
+   (Hà `DONE`) hoặc "(2)" (Hà `FAILED`).
+4. Chạy khối **7.2** (`$jobId` = tin Java), dán nguyên văn output.
+5. **Chu kỳ cũ** — `pham.quoc.bao@demo.local` (chưa có đơn ở chu kỳ 2 của tin QA) nộp đơn vào tin QA, trả lời 2 câu sàng
+   lọc. HR: nút "(1)"; xác nhận → "Đã xếp 1 đơn vào hàng chấm.", không có câu bỏ qua; DevTools `created 1`, `skipped []`.
+6. **Tin Frontend (Ngân Hà)** — `pham.quoc.bao@demo.local`, `nguyen.hai.son@demo.local`, `do.khanh.linh@demo.local` (cả ba
+   chưa có đơn ở tin này) nộp đơn. `hr.nganha@demo.local`, tab Rubric: sửa "Kỹ năng phối hợp nhóm" 25 → 24; tab Ứng viên:
+   "(3)" → bấm → 409. Sửa lại 25 → bấm: hộp "3", "khoảng 12", "khoảng 3 phút"; bấm "Chấm tất cả" hai lần liền → xác nhận.
 
 | Cần thấy | Thao tác | Mong đợi |
 |---|---|---|
-| N đúng | Tin seed đã ghi ở trên (có đơn đã chấm, chưa chấm, đã rút, CV chưa trích xuất xong, đơn chu kỳ cũ) | Nhãn nút = N mong đợi đã ghi; sau khi bấm, `created + skipped.length` (DevTools) = số đơn chu kỳ hiện tại |
-| N = 0 | Tin mà mọi đơn đã có điểm | Nút khoá; câu lý do đọc được bằng trình đọc màn hình (`aria-describedby`) |
-| Hộp xác nhận | Bấm nút | Đủ 4 ý: số đơn, số lượt gọi AI ước tính = k × (tiêu chí + 1), thời gian ≈ k phút, lưu ý 10 phút / "Tải lại" |
-| Rubric thiếu | Sửa rubric về 99% ở tab Rubric (trước khi rubric bị khoá — tin mới), bấm | Hộp giữ mở, câu 409 của backend, không dòng nào đổi tiến độ |
-| Bỏ qua theo lý do (Q13) | Tin có 1 đơn đã rút, 2 đơn đã có điểm, còn lại đủ điều kiện; bấm và xác nhận | Câu đúng "Bỏ qua 3 đơn: 1 không ở trạng thái chờ duyệt, 2 đã có điểm." — không có phần "0 …", thứ tự R-E3, không tên đơn; bấm lại ngay → thêm phần "{k} đang có lượt chấm chạy" |
-| Thành công | Xác nhận | Hộp đóng; câu "Đã xếp k đơn vào hàng chấm." + câu bỏ qua theo lý do; các dòng hiện "Đang chờ xử lý" rồi tiến độ; DevTools: đúng **một** `POST …/bulk` |
-| Dòng `FAILED` cũ | Một đơn có lượt `FAILED`, chấm tất cả | Dòng đó chuyển sang tiến độ của lượt mới (R-F4), không kẹt badge `FAILED` |
-| Lần lượt | 3 đơn | Các dòng xong lần lượt, không cùng lúc; mỗi lượt xong một thông báo ở chuông |
-| Ẩn danh | Tin bật ẩn danh | Nút hoạt động như thường; câu kết quả không có tên ứng viên |
-| Bấm nhanh hai lần | Bấm "Chấm tất cả" trong hộp hai lần liền | Chỉ một request (nút khoá khi đang chạy) |
-| Không màu phán quyết | Sau khi chấm xong | Không màu đỏ/vàng/xanh, không nhãn Đạt/Không đạt; điểm vẫn mở được evidence |
+| N đúng | Bước 1, 2, 5 | Nhãn nút đúng N ở bảng trên; `created + skipped.length` = số đơn chu kỳ hiện tại |
+| N = 0 | Bước 1 | Nút khoá; câu lý do đọc được bằng trình đọc màn hình (`aria-describedby`) |
+| Hộp xác nhận | Bước 2, 6 | Đủ 4 ý: số đơn, số lượt gọi AI ước tính = k × (tiêu chí + 1), thời gian ≈ k phút, lưu ý 10 phút / "Tải lại" |
+| Rubric thiếu | Bước 6 (rubric 99%) | Hộp giữ mở, câu 409 của backend ("…tổng trọng số rubric hiện là 99.00%…"), không dòng nào đổi tiến độ |
+| Bỏ qua theo lý do (Q13) | Bước 2; phần "bấm lại ngay" ở nhóm 2 của 7.2 (bước 4) | Câu đúng "Bỏ qua 2 đơn: 1 không ở trạng thái chờ duyệt, 1 đã có điểm." — không có phần "0 …", thứ tự R-E3, không tên đơn. Sau khi xếp hàng thành công N = 0 nên nút khoá, không bấm lại qua giao diện được (L13): phần `RUN_IN_PROGRESS` kiểm bằng JSON nhóm 2 của 7.2 |
+| Thành công | Bước 2, 5, 6 | Hộp đóng; câu "Đã xếp k đơn vào hàng chấm." (+ câu bỏ qua khi có); các dòng hiện "Đang chờ xử lý" rồi tiến độ; DevTools: đúng **một** `POST …/bulk` mỗi lần xác nhận |
+| Dòng `FAILED` cũ | Bước 2 (đơn của Hà) | Dòng đó chuyển sang tiến độ của lượt mới (R-F4), không kẹt badge `FAILED`. Nếu lượt mới cũng `FAILED` (`EVIDENCE_NOT_VERIFIED`): dòng hiện `FAILED` của lượt mới và nút về "(1)" — Hà vẫn đủ điều kiện vì chưa có lượt `DONE` (R-E2.4, L14) |
+| Lần lượt | Bước 6 (3 đơn) | Các dòng xong lần lượt, không cùng lúc; chuông của `hr.nganha@demo.local` nhận 3 thông báo |
+| Ẩn danh | Bước 2 (tin Java bật ẩn danh) | Nút hoạt động như thường; câu kết quả không có tên ứng viên |
+| Bấm nhanh hai lần | Bước 6 | Chỉ một request (nút khoá khi đang chạy) |
+| Không màu phán quyết | Sau bước 6 | Không màu đỏ/vàng/xanh, không nhãn Đạt/Không đạt; điểm vẫn mở được evidence |
 | Bề rộng | 375px, 768px, 1024px | Không cuộn ngang trang; nút xuống dòng dưới "Sắp xếp theo" ở 375px (UI.md mục 8) |
+
+Đơn "CV chưa trích xuất xong" (`RESUME_NOT_PARSED`) không có trên bộ demo — **phủ bởi T2** (L10); frontend cũng không đếm
+loại đơn này vào N (R-F1).
 
 ## 8. AI hay làm sai (dành cho người code)
 
@@ -439,7 +520,10 @@ dựng tay (rút một đơn, tăng chu kỳ tin…). Không soát tay khi chưa
   (R-E4); hoặc ngược lại, sửa luôn nút đơn lẻ (R-G4).
 - Coi "lượt mới nhất `FAILED`" là "chưa chấm" mà không kiểm lượt `DONE` cũ hơn (R-E2.4).
 - Đưa đơn chu kỳ cũ vào `skipped`, hay đơn vượt trần vào `skipped` (R-E1, R-C1).
-- Sắp theo `applied_at DESC` (thứ tự của danh sách) thay vì `ASC` cho trần; quên khoá phụ `id` (R-E6).
+- Sắp theo `applied_at DESC` (thứ tự của danh sách) thay vì `ASC` cho trần; quên khoá phụ `id`; so khoá phụ bằng
+  `UUID.compareTo` thay vì `id.toString()` (R-E6, L3).
+- Đọc `resume_parsed_data` bằng `findByResumeIdIn` (nạp nguyên `raw_text` của mọi CV) thay vì
+  `findPromptVersionsByResumeIds` (R-E5, L1).
 - Bù chỗ đơn thứ 51 khi một đơn trong 50 bị race (R-C2).
 - Chụp snapshot mỗi đơn một lần, hay đọc lại `rubric_criteria` trong vòng lặp (R-R2).
 - Trả câu riêng cho rubric thiếu thay vì `forScoring` (R-R1).
@@ -457,18 +541,17 @@ dựng tay (rút một đơn, tăng chu kỳ tin…). Không soát tay khi chưa
 
 ## 9. Kế hoạch đợt code
 
-Mỗi đợt: dừng → báo cáo diff → chờ duyệt → một commit. Giữa các đợt chạy `.\mvnw.cmd test-compile` + lớp test liên quan;
-full suite ở đợt cuối. Frontend: `npm run build` + `npm run lint` sau mỗi đợt có sửa frontend. **Trước khi code:** rebase
-`feat/fr-h04-bulk-scoring` lên `main` đã có `perf/scoring-latency` (README mục 22 — "làm sau khi perf đã merge"). Lệnh
-Maven trong PowerShell bọc nháy kép cả cụm `-D`: `.\mvnw.cmd test "-Dtest=A,B"`.
+Mỗi đợt code: dừng → báo cáo diff → chờ duyệt → **một** commit. Nhánh đã nằm trên `main` có `perf/scoring-latency`
+(`abaf31b`, L12) — không cần rebase. Lệnh Maven trong PowerShell bọc nháy kép cả cụm `-D`: `.\mvnw.cmd test "-Dtest=A,B"`.
+Full suite chạy **đúng một lần** cho cả nhánh, sau commit đợt 3.
 
 | Đợt | Nội dung | Kiểm |
 |---|---|---|
-| 1 | Plan Mode: đối chiếu đặc tả đã duyệt với code sau rebase (mục 0, số dòng có thể lệch); tra id tin seed cho 7.2 | — |
-| 2 | Backend: `BulkScoringSkipReason`, `BulkScoringRunResponse`, method bulk trong `ScoringRunService` (R-E, R-R, R-C, R-T, R-P), `JobScoringRunBulkHrController`, mẫu rate limit (R-L1); T1–T18 | `.\mvnw.cmd test "-Dtest=JobScoringRunBulkIntegrationTest,RateLimitFilterTest,ScoringRunHrControllerIntegrationTest"` |
-| 3 | Frontend: `isBulkScorable` (`scoringRules.ts`), `bulkCreateScoringRunsRequest` (`api.ts`), `useBulkCreateScoringRunsMutation` (`queries.ts`), `BulkScoringButton` + `BulkScoringConfirmDialog`, gắn vào `ApplicationsTab` (UI.md) | build + lint; 7.3 |
-| 4 | Soát tay 7.4 (người dùng làm, AI thật) | 7.4 |
-| 5 | Đợt cuối: full `.\mvnw.cmd test`; khối 7.2 (dán output); `srs-guard`; `walkthrough`; tài liệu mục 10; trạng thái `ĐÃ HOÀN THÀNH` | full suite; 7.2; 7.3 |
+| 1 | Plan Mode: đối chiếu đặc tả với code (mục 0), tra seed cho 7.2/7.4; ghi L1–L14 (mục 11) bằng commit riêng `docs(h04): ghi L1–L14 sau Plan Mode` | — |
+| 2 | **Backend**: `BulkScoringSkipReason`, `BulkScoringRunResponse`, method bulk trong `ScoringRunService` (R-E, R-R, R-C, R-T, R-P), `JobScoringRunBulkHrController`, mẫu rate limit trong `RateLimitFilter` (R-L1); toàn bộ test 7.1 (T1–T19). Chỉ chạy các lớp test của đợt + `RateLimitFilterTest` cũ (đã thêm T17) + `ScoringRunHrControllerIntegrationTest` (T18). Một commit | `.\mvnw.cmd test "-Dtest=JobScoringRunBulkIntegrationTest,JobScoringRunBulkRaceIntegrationTest,RateLimitFilterTest,ScoringRunHrControllerIntegrationTest"` |
+| 3 | **Frontend**: `api.ts`, `types.ts`, `isBulkScorable` (`scoringRules.ts`), `bulkScoringTexts.ts`, `BulkScoringButton` + `BulkScoringConfirmDialog` + câu kết quả, gắn vào `ApplicationsTab`, invalidate cache (`useBulkCreateScoringRunsMutation`, R-F4). Một commit. **Sau commit**: full `.\mvnw.cmd test` đúng một lần cho cả nhánh, báo số test và thời gian | `npm run build` + `npm run lint`; full suite |
+| — | **Soát tay** 7.4 (người dùng làm, AI thật, backend đang bật); khối 7.2 chạy ở bước 4 của 7.4, dán nguyên văn output | 7.4; 7.2 |
+| 4 | **Đợt cuối — chỉ tài liệu**: kiểm tĩnh 7.3; `srs-guard`; `walkthrough` (**hỏi người dùng kết quả soát tay trước khi viết mục 6**); tài liệu chung mục 10; trạng thái `ĐÃ HOÀN THÀNH`; push. **Không** chạy lại full suite — trừ khi soát tay buộc sửa code backend: khi đó chạy lại các lớp bị ảnh hưởng và báo người dùng | 7.3; `srs-guard` |
 
 ## 10. Tài liệu dùng chung — checklist đợt cuối (chưa sửa ở đợt đặc tả)
 
@@ -502,3 +585,22 @@ Q1–Q11 chốt **theo đề xuất mặc định** ghi ở cột Quyết địn
 | Q11 | Mã HTTP thành công | **200** (đã chốt) — giữ, dù nút đơn lẻ trả 201: B1 trả bản tóm tắt, không trả tài nguyên vừa tạo (mục 4.2) |
 | Q12 | *(spec-review)* Khi nào sửa `docs/UI_GUIDE.md` mục 7 (dòng `/hr/jobs/:id/edit`)? Dòng FR-H04 ở `docs/SRS.md` mục 4 có khớp đặc tả không? | **UI_GUIDE sửa trong commit duyệt đặc tả**, như tiền lệ FR-U16 Q6: dòng `/hr/jobs/:id/edit` thêm nút "Chấm tất cả" ở tab Ứng viên và "FR-H04 (mở rộng)" ở cột FR. **SRS mục 4 đã có dòng FR-H04** (`SRS.md:201`, từ đợt D1) — **không** thêm dòng mới; đối chiếu thấy dòng đó thiếu hai điều kiện R-E2 (CV đã trích xuất xong, không có lượt đang chạy) nên sửa cho khớp trong cùng commit |
 | Q13 | *(spec-review)* Câu kết quả chỉ ghi tổng "Bỏ qua k đơn." — SRS "Nguyên tắc bổ sung": "Dữ liệu thiếu phải hiển thị rõ là thiếu, không âm thầm loại khỏi kết quả" | **Đếm theo lý do** (khác đề xuất ban đầu "giữ tổng"). Khi `skipped > 0`: "Bỏ qua {k} đơn: {a} không ở trạng thái chờ duyệt, {b} CV chưa trích xuất xong, {c} đang có lượt chấm chạy, {d} đã có điểm." — chỉ lý do có số > 0, đúng thứ tự R-E3, chữ trung tính, không tên đơn. Ghi ở R-F5; UI.md mục 4a, 4b, 7; mục 7.3, 7.4 |
+
+**Đã chốt sau Plan Mode đợt 1 (31/10/2026)**
+
+| # | Điểm | Quyết định |
+|---|---|---|
+| L1 | Bản duyệt ghi danh sách tab Ứng viên dùng `findByResumeIdIn` — sai: `ApplicationOwnerService.java:158-205` không đọc `resume_parsed_data`; `findByResumeIdIn` chỉ ở `ApplicationComparisonService.java:114` và nạp cả `raw_text`/`data` | Bulk dùng câu có sẵn `findPromptVersionsByResumeIds` (projection `resumeId`, `promptVersion`), chỉ để biết CV có dòng `resume_parsed_data` — khớp điều kiện thứ hai của `requireResumeParsed`. Sửa mục 0 b3, R-E5, mục 4.4, mục 8 |
+| L2 | Số câu đọc "≤ 5 + 1 tin + 2 rubric" không đúng code | Theo thực tế: `loadOwned` 2, `requireRubricComplete` 2, snapshot 1 (chỉ khi có đơn để thử), theo lô 5. Sửa R-E5, R-R2, mục 4.4. T16 không đổi |
+| L3 | Khoá phụ `id ASC` ở Java: `UUID.compareTo` so `long` có dấu, lệch thứ tự `uuid` của Postgres | Hoà `applied_at` thì so `id.toString()` (hex chữ thường, khớp Postgres). Sửa R-E6, T7, mục 8; thêm T19 (ca hoà) |
+| L4 | T10: tiền lệ `@MockitoSpyBean` chỉ spy repository, chưa spy bean `@Transactional`; nếu proxy giao dịch bọc ngoài spy, `JdbcTemplate` trong `doAnswer` dùng chung connection của `create` và hàng chèn tay rollback theo vi phạm | Chèn lượt `PENDING` trong `TransactionTemplate` `PROPAGATION_REQUIRES_NEW` (commit độc lập) rồi `callRealMethod()`; khẳng định A còn đúng 1 lượt (lượt chèn tay), `RUN_IN_PROGRESS`, các đơn khác vẫn được tạo. Thay câu "tự commit" của Q10; sửa T10. Đợt 2 báo vị trí spy quan sát được |
+| L5 | T11 "→ 500": không có handler `Exception` chung, `GlobalExceptionHandler` `throw ex` ⇒ MockMvc ném `ServletException`, không có mã 500 | Kiểm bằng `assertThatThrownBy(…).hasRootCauseInstanceOf(DataIntegrityViolationException.class)` (khuôn `JobAiDraftSaveRollbackIntegrationTest.java:52`). Sửa T11 |
+| L6 | "Dọn dữ liệu theo khuôn lớp đồng thời" — khuôn hiện có là không dọn | Không dọn sau test (`SavedJobIntegrationTestSupport.java:31-33`); khẳng định lọc theo id của test. Câu đọc toàn cục hiện có chịu được dữ liệu để lại (`ScoringRunStateServiceTest.java:599`, `ScoringRunRepositoryTest.java:430-445`). Sửa mục 7.1 |
+| L7 | Một lớp test có spy ⇒ cả 18 test chạy trên context mới | Hai lớp: `JobScoringRunBulkIntegrationTest` (không spy, dùng lại context) và `JobScoringRunBulkRaceIntegrationTest` (T10, T11, spy). Cả hai import tường minh `LlmTestConfiguration` (lớp đơn lẻ không import). Sửa mục 7.1, mục 9 |
+| L8 | 7.2/7.4 dùng `minhdathr@gmail.com`/`quochuyuv@gmail.com` — chỉ có ở `seed-test.sql`, trong khi dữ liệu chuẩn là bộ demo | Bộ demo, mật khẩu `Demo1234`. HR `hr@demo.local` — chủ công ty Hoàn Mỹ `d1000000-…-001` sở hữu tin `d2000000-0000-0000-0000-000000000001` (`seed-demo-structural.sql:228-233, 258-263`); `$jobId` = tin này. Ứng viên nộp đơn mới khi soát tay, đều chưa có đơn ở chu kỳ hiện tại của tin đó: `nguyen.hai.son@demo.local` (tin Java), `pham.quoc.bao@demo.local` (tin QA chu kỳ 2), Bảo + Sơn + `do.khanh.linh@demo.local` (tin Frontend Ngân Hà, HR `hr.nganha@demo.local`). Token ứng viên ở 7.2: `pham.quoc.bao@demo.local`. Sửa 7.2, 7.4 |
+| L9 | 7.2 và 7.4 cùng dùng đơn đủ điều kiện duy nhất của tin Java | 7.2 chạy trong buổi soát tay, ở bước 4 của 7.4, sau khi Sơn nộp đơn mới vào tin Java (bước 3) — không cần nạp lại seed. Sửa 7.2, 7.4, mục 9 |
+| L10 | Bộ demo không có đơn "CV chưa trích xuất xong" | Bỏ khỏi 7.4, ghi "phủ bởi T2" |
+| L11 | Sau lô 50 đơn, mỗi dòng tự poll 5 s ⇒ ~10 GET/s tới mốc 10 phút | Ghi rủi ro đã biết; "giảm tải polling khi lô lớn" vào mục 6. Không đổi code |
+| L12 | Đầu file ghi `main` chưa có `perf/scoring-latency`, nhánh tạo tại `0d6dbef` — lỗi thời | Sửa: nhánh nằm trên `abaf31b` (đã có perf), không cần rebase. Sửa đầu file, mục 9 |
+| L13 | Dòng "Bỏ qua theo lý do" của 7.4 đòi "bấm lại ngay" qua giao diện, nhưng sau khi xếp hàng thành công N = 0 nên nút khoá (R-F2) | Phần `RUN_IN_PROGRESS` kiểm bằng JSON nhóm 2 của 7.2 (bước 4 của 7.4); không đổi R-F2. Sửa 7.2, 7.4 |
+| L14 | Ba lượt `FAILED` của Hà trên seed (`seed-demo-ai-output.sql:551, 553, 564`) đều là `EVIDENCE_NOT_VERIFIED` — lỗi lặp lại do nội dung CV/K2, không phải khoá AI; lượt mới ở bước 2 của 7.4 có thể `DONE` hoặc `FAILED` | Cả hai hợp lệ. 7.4 bước 2: chờ lượt kết thúc; `DONE` → nút "(0)", `FAILED` → nút "(1)" (R-E2.4), thêm vào dòng "Dòng FAILED cũ". 7.2: mong đợi nhóm 1, 2 theo hai nhánh. Chỉ dừng khi lượt `FAILED` với mã nhà cung cấp/mạng (`LLM_RETRY_EXHAUSTED`, `LLM_ERROR`), không dừng với `EVIDENCE_NOT_VERIFIED` |
