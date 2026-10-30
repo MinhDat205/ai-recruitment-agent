@@ -130,7 +130,9 @@ R9 → R-C; R10 → R-N; R11 → mục 5.
 
 - **R-T1.** `deadline = changed_at + interval '168 hours'` của dòng lịch sử ở R-E1(c). Dùng `'168 hours'`, **không**
   `'7 days'`: phép cộng `'7 days'` vào `timestamptz` đi theo lịch của `TimeZone` phiên và lệch một giờ ở ngày đổi giờ
-  mùa hè; 168 giờ luôn đúng 7 × 24 giờ.
+  mùa hè; 168 giờ luôn đúng 7 × 24 giờ. Hạn và rejectedAt luôn lấy từ dòng lịch sử PENDING → REJECTED; điều kiện đủ
+  (R-E1 c) xét theo dòng vào REJECTED mới nhất. Đơn có yêu cầu ACCEPTED rồi bị từ chối lần nữa sau phỏng vấn vẫn hiện
+  hạn của lần từ chối ở vòng hồ sơ (B2, mục 11).
 - **R-T2. Còn hạn ⇔ `now() <= deadline`**, so bằng `now()` của Postgres **trong câu SQL**. Đúng mốc là còn hạn; sau mốc
   dù chỉ 1 micro giây là quá hạn (Q6). Java **không** so sánh thời gian để quyết định hạn (không `Instant.now()`,
   `LocalDate`, `Clock`).
@@ -678,5 +680,7 @@ khuyến nghị:
 | L8 | Kiểm script seed chạy trên DB docker local | Hỏi người dùng trước mỗi lần chạy. Đợt 2 chỉ chạy `reset-test-data.sql` + nạp lại 1b hai lần (backend lên V21 với scheduler tắt, key giả; không đọc `.env`); `reset-demo-db.sql` để đợt cuối | Mục 9.1 |
 | L9 | Seed demo S1 cụ thể | HR `hr@demo.local`. **B1 — ứng viên tự gửi:** `bui.ngoc.mai@demo.local` → "Kế toán tổng hợp" (`d2000000-…-04`), nộp `now() - 3 days`, bị từ chối ở vòng hồ sơ lúc `now() - 1 day` (hạn ≈ `now() + 6 days` lúc nạp), **không** có yêu cầu (`AVAILABLE`). **B2 — HR xử lý:** `nguyen.hai.son@demo.local` → "Chuyên viên Marketing" (`d2000000-…-05`), nộp `now() - 5 days`, bị từ chối `now() - 2 days`, yêu cầu `OPEN` `requested_at = now() - 1 day`, lý do hai dòng, thông báo `RECONSIDERATION_REQUESTED` cho HR. Hai tin không bật ẩn danh, không có câu hỏi sàng lọc; Mai/Sơn chưa có đơn ở hai tin này. `resume_id` chọn bằng `SELECT` CV chính đã trích xuất (CV tầng 2 có UUID ngẫu nhiên); chốt chặn tầng 3 nâng lên V21 và kiểm đủ CV/tin/không trùng chu kỳ. Không dùng Phạm Quốc Bảo; không seed ẩn danh (T18 đã phủ). Phễu công ty 1: tổng +2, `REJECTED` 1 → 3 | Mục 4.5; đợt cuối |
 | B1 | Rollback ở nhánh chấp nhận | `sendInvitation` là `@Transactional` (`InterviewInvitationService.java:138`) bao trọn claim (R-S3 (1)) → R-S2 → `createInvitation` (`:252-276`). Lỗi xảy ra **sau** claim có thật: `saveAndFlush` giấy mời (`:260`) vi phạm `uq_invitation_active` (`V16__interview_invitation_slots.sql:48`) khi đơn đã có giấy mời hiệu lực → 409 `INTERVIEW_INVITATION_CONFLICT` (`GlobalExceptionHandler.java:628-632`), cả transaction rollback. Gửi lần đầu không phát sự kiện riêng của giấy mời (`:163`); thông báo duy nhất là `ApplicationStatusChangedEvent`, xử lý `AFTER_COMMIT` (`NotificationEventListener.java:64-66`); email chỉ gửi từ dòng `notifications` `PENDING` (`NotificationMailScheduler.java:37-40`) ⇒ rollback thì 0 thông báo, 0 email | T10b (mục 7.1) |
+
+| B2 | Nguồn của hạn (30/10/2026, duyệt SQL đợt 2) | Hạn và `rejectedAt` luôn lấy từ dòng lịch sử `PENDING → REJECTED` (duy nhất mỗi đơn: `PENDING` chỉ vào lúc tạo đơn); điều kiện đủ (R-E1 c) xét theo dòng vào `REJECTED` mới nhất. Đơn đủ điều kiện thì hai dòng là một. Đơn có yêu cầu `ACCEPTED` rồi bị từ chối lần nữa sau phỏng vấn vẫn hiện hạn của lần từ chối ở vòng hồ sơ. SQL: `PENDING_REJECTED_LATERAL` / `LAST_REJECTED_LATERAL` trong `ReconsiderationRequestRepository` | R-T1 |
 
 Bảng đột biến tạm và cách lặp T5/T15: mục 7.4.
