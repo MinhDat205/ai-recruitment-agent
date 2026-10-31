@@ -17,6 +17,9 @@ import { useCatalogsQuery } from '../features/catalog/queries'
 import { CATEGORY_HELPER_TEXT, LOCATION_HELPER_TEXT, isCatalogComplete } from '../features/jobs/catalogDisplay'
 import { CatalogField } from '../features/jobs/CatalogField'
 import { JobStatusBadge } from '../features/jobs/JobStatusBadge'
+import { useHrReconsiderationsQuery } from '../features/reconsideration/queries'
+import { HR_RECONSIDERATION_TEXT } from '../features/reconsideration/reconsiderationLabels'
+import { ReconsiderationTab } from '../features/reconsideration/ReconsiderationTab'
 import { RubricTab } from '../features/rubric/RubricTab'
 import { ApplicationsTab } from '../features/scoring/ApplicationsTab'
 import { ScreeningQuestionsTab } from '../features/screening/ScreeningQuestionsTab'
@@ -477,7 +480,16 @@ function InterviewTemplateTab({ jobId }: { jobId: string }) {
   )
 }
 
-const VALID_TABS = ['job', 'template', 'rubric', 'screening', 'applications'] as const
+// FR-C09 UI.md muc 2 - them 'reconsideration' o CUOI, khong doi thu tu nam tab cu; ?tab= la van ve 'job'.
+const VALID_TABS = ['job', 'template', 'rubric', 'screening', 'applications', 'reconsideration'] as const
+
+// FR-C09 UI.md 4e - nhan tab kem so yeu cau OPEN khi > 0. Cung khoa query (jobId, 'OPEN') voi bo loc mac dinh cua tab ->
+// mot request. Dang tai hoac loi: nhan khong so (tab van bam duoc, loi hien trong tab).
+function ReconsiderationTabLabel({ jobId }: { jobId: string }) {
+  const { data } = useHrReconsiderationsQuery(jobId, 'OPEN')
+  const openCount = data?.openCount ?? 0
+  return <>{openCount > 0 ? HR_RECONSIDERATION_TEXT.tabLabelWithCount(openCount) : HR_RECONSIDERATION_TEXT.tabLabel}</>
+}
 
 export function HrJobEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -504,14 +516,17 @@ export function HrJobEditPage() {
                 dụng.
               </p>
             )}
-            {/* FR-H10: 5 tab - cung chuoi class voi HrApplicationDetailPage de chi TabsList cuon ngang o 375px,
-                khong cuon ca trang (UI.md muc 5b, 8). */}
+            {/* FR-H10: 5 tab (FR-C09: 6 tab) - cung chuoi class voi HrApplicationDetailPage de chi TabsList cuon ngang
+                o 375px, khong cuon ca trang (UI.md muc 5b, 8). */}
             <TabsList className="mt-2 w-fit max-w-full justify-start overflow-x-auto overflow-y-hidden">
               <TabsTrigger value="job">Thông tin tin tuyển dụng</TabsTrigger>
               <TabsTrigger value="template">Mẫu giấy mời phỏng vấn</TabsTrigger>
               <TabsTrigger value="rubric">Rubric chấm điểm</TabsTrigger>
               <TabsTrigger value="screening">Câu hỏi sàng lọc</TabsTrigger>
               <TabsTrigger value="applications">Ứng viên</TabsTrigger>
+              <TabsTrigger value="reconsideration">
+                <ReconsiderationTabLabel jobId={id} />
+              </TabsTrigger>
             </TabsList>
           </CardHeader>
 
@@ -542,6 +557,9 @@ export function HrJobEditPage() {
           </TabsContent>
           <TabsContent value="applications">
             <ApplicationsTab jobId={id} />
+          </TabsContent>
+          <TabsContent value="reconsideration">
+            <ReconsiderationTab jobId={id} />
           </TabsContent>
         </Tabs>
       </Card>

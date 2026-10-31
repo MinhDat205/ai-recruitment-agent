@@ -29,8 +29,10 @@ Bộ demo chia **năm tầng**, nạp đúng thứ tự:
 - **Tầng 3** (`seed-demo-structural-3.sql`, FR-U16) — dữ liệu cấu trúc viết tay, không phụ thuộc AI: một tin của công
   ty Hoàn Mỹ đã **hết hạn nộp** ("Nhân viên Hỗ trợ kỹ thuật (IT Helpdesk)", `OPEN`, hạn `CURRENT_DATE - 1` lúc nạp) và
   **4 tin đã lưu** của Phạm Quốc Bảo (tin quá hạn + 3 tin đang mở của công ty Ngân Hà). Idempotent: đầu file xoá dải
-  của mình rồi chèn lại, chạy lại bao nhiêu lần cũng được (đã thử hai lần liên tiếp, 30/10/2026). FR-C09 thêm phần của
-  mình vào cùng file.
+  của mình rồi chèn lại, chạy lại bao nhiêu lần cũng được (đã thử hai lần liên tiếp, 30/10/2026). **Phần B (FR-C09)**
+  cùng file: hai đơn bị từ chối ở vòng hồ sơ, mốc tương đối theo lúc nạp — Bùi Ngọc Mai → "Kế toán tổng hợp" (bị từ
+  chối 1 ngày trước, chưa gửi yêu cầu, còn hạn khoảng 6 ngày) và Nguyễn Hải Sơn → "Chuyên viên Marketing" (bị từ chối 2
+  ngày trước, đã gửi yêu cầu xem xét lại đang chờ HR xử lý). Nạp lại trước buổi demo thì hạn 7 ngày luôn còn.
 
 Lý do tách tầng và vì sao tầng 2/2b không viết tay: `docs/walkthrough/chore-seed-demo.md` mục "Quyết
 định thiết kế" và `docs/walkthrough/chore-seed-final.md` (K1, K5).
@@ -42,9 +44,10 @@ Lý do tách tầng và vì sao tầng 2/2b không viết tay: `docs/walkthrough
 | `d0`–`d6` (`d0000000-…`, nhóm 4 = `0000`) | Demo · tầng 1 | Người dùng, công ty, tin, rubric, hồ sơ… |
 | UUID ngẫu nhiên | Demo · tầng 2 và 2b | Do app sinh trong lượt chạy thật |
 | `d1b00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 1b | `TTTT` = mã bảng, bảng mã ở `chore-seed-final.md` mục K2 |
-| `d3a00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 3 | Cùng bảng mã `TTTT`, thêm `0020` = `saved_jobs`. **Không** dùng `d3000000-`: đó là tiền tố 6 rubric của tầng 1 (FR-U16 B10) |
+| `d3a00000-TTTT-0000-0000-NNNNNNNNNNNN` | Demo · tầng 3 | Cùng bảng mã `TTTT`, thêm `0020` = `saved_jobs`, `0021` = `application_reconsideration_requests` (FR-C09). **Không** dùng `d3000000-`: đó là tiền tố 6 rubric của tầng 1 (FR-U16 B10) |
 | `e0`–`ef` (`e0000000-…`), `f0000000-…`, `f1000000-…` | Test | Bộ test gốc |
 | `f2000000-TTTT-0000-0000-NNNNNNNNNNNN` | Test · mục 17 | Công ty test thứ hai + HR + 2 ứng viên; cùng bảng mã `TTTT` |
+| `f3000000-TTTT-0000-0000-NNNNNNNNNNNN` | Test · mục 18 (FR-C09) | 4 đơn bị từ chối của ứng viên test vào tin của công ty test chính (còn hạn, quá hạn, sau phỏng vấn, yêu cầu DECLINED); cùng bảng mã `TTTT`. Mốc **tương đối** theo lúc nạp (ngoại lệ có chủ đích) |
 
 Đếm hay dọn theo dải phải dùng tiền tố đủ 8 ký tự (vd `LIKE 'd1b00000-%'`, `LIKE 'd3a00000-%'`, `~ '^e[0-9a-f]000000-0000-0000-0000-'`),
 xem mục 9.
@@ -53,9 +56,9 @@ xem mục 9.
 
 ## 1. Thứ tự chạy BẮT BUỘC — không được đảo
 
-**Tiền đề (một lần): DB phải ở V20 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 31 bảng
-nghiệp vụ đến V20 (`saved_jobs`, FR-U16); DB còn ở V19 thì `TRUNCATE` báo
-`relation ... does not exist` và dừng, không xoá gì. Tầng 1b chấp nhận V19 trở lên, tầng 3 cần V20 trở lên (chốt chặn
+**Tiền đề (một lần): DB phải ở V21 trở lên.** `reset-demo-db.sql` liệt kê tường minh cả 32 bảng
+nghiệp vụ đến V21 (`application_reconsideration_requests`, FR-C09); DB còn ở V20 thì `TRUNCATE` báo
+`relation ... does not exist` và dừng, không xoá gì. Tầng 1b chấp nhận V19 trở lên, tầng 3 cần V21 trở lên (chốt chặn
 đầu file; trước FR-U16 tầng 1b đòi **đúng** V19 nên chuỗi nạp từ DB trống dừng ở 1b sau khi có V20 — B11). DB trống (vd sau `docker compose down -v`) cũng
 cần bước này. Khởi động backend một lần với mọi scheduler gọi AI **tắt**, chờ dòng log
 `Started BackendApplication` (Flyway đã chạy xong), rồi dừng backend (Ctrl+C):
@@ -89,7 +92,8 @@ docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_S
 docker compose cp db\seed\seed-demo-ai-output-2b.sql postgres:/tmp/seed-demo-ai-output-2b.sql
 docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-ai-output-2b.sql
 
-# 5b. Tầng 3 — tin đã lưu (FR-U16): một tin hết hạn nộp + 4 tin đã lưu của Phạm Quốc Bảo
+# 5b. Tầng 3 — tin đã lưu (FR-U16): một tin hết hạn nộp + 4 tin đã lưu của Phạm Quốc Bảo;
+#     xem xét lại (FR-C09): đơn bị từ chối của Bùi Ngọc Mai (chưa gửi yêu cầu) + Nguyễn Hải Sơn (yêu cầu đang chờ)
 docker compose cp db\seed\seed-demo-structural-3.sql postgres:/tmp/seed-demo-structural-3.sql
 docker compose exec -T postgres psql -U recruitment -d recruitment -v ON_ERROR_STOP=1 -f /tmp/seed-demo-structural-3.sql
 
@@ -335,11 +339,28 @@ Số dòng sau khi nạp đủ mục 1 (đo hai lần trên DB trống, 19/10/20
 | `application_status_history` | 18 | `job_screening_questions` / `application_screening_answers` | 4 / 2 |
 | `job_blind_review_changes` | 3 | `interview_templates` | 12 |
 
-### 6c. Sau tầng 3 (FR-U16)
+### 6c. Sau tầng 3 (FR-U16, FR-C09)
 
-Tầng 3 chỉ thêm 2 bảng so với bảng 6b: `jobs` **13** (12 tin OPEN còn hạn + 1 tin OPEN hết hạn nộp, không hiện trên bảng
-việc làm công khai), `saved_jobs` **4**. Mọi bảng khác giữ nguyên số ở 6b (đo hai lần nạp đủ chuỗi mục 1 từ DB trống,
-30/10/2026, số dòng mọi bảng giống nhau giữa hai lần).
+So với bảng 6b, tầng 3 đổi đúng 6 bảng: `jobs` **13** (12 tin OPEN còn hạn + 1 tin OPEN hết hạn nộp, không hiện trên
+bảng việc làm công khai), `saved_jobs` **4**, `job_applications` **13** (+2, Phần B), `application_status_history` **22**
+(+4), `notifications` **40** (+5), `application_reconsideration_requests` **1**. Mọi bảng khác giữ nguyên số ở 6b (đo
+31/10/2026: nạp đủ chuỗi reset → 1 → 2 → 1b → 1b → 2b → 3 → 3 từ DB trống, số dòng 32 bảng giống nhau giữa hai lần nạp
+tầng 3). Phễu công ty Hoàn Mỹ sau tầng 3: PENDING 5, INTERVIEW_INVITED 3, HIRED 1, **REJECTED 3**, WITHDRAWN 1 (tổng 13).
+
+**Kịch bản thử xem xét lại** (FR-C09, mật khẩu `Demo1234`):
+
+1. `bui.ngoc.mai@demo.local` → "Đơn ứng tuyển" → đơn "Kế toán tổng hợp" (Bị từ chối) → tab "Thông tin đơn": khối "Xem xét
+   lại" có hạn chót (khoảng 6 ngày sau lúc nạp) và nút "Yêu cầu xem xét lại". Gửi kèm lý do → khối "Đang chờ…", đầu trang
+   và danh sách có chữ "· Đang chờ xem xét lại".
+2. `hr@demo.local` → chuông có "Ứng viên yêu cầu xem xét lại" (Nguyễn Hải Sơn, từ seed). Tin "Chuyên viên Marketing" →
+   tab "Yêu cầu xem xét lại (1)": lý do hai dòng của Sơn, hai nút. Hồ sơ đơn của Sơn: thanh thao tác ghi "Ứng viên đã gửi
+   yêu cầu xem xét lại. Xử lý ở khối bên dưới."
+3. HR "Giữ quyết định từ chối" kèm phản hồi (đơn Sơn) và "Mời phỏng vấn" (đơn Mai, sau bước 1) → Sơn thấy phản hồi
+   nguyên văn; Mai thấy "đã gửi giấy mời phỏng vấn" và khối giấy mời.
+
+Muốn soát lại từ đầu: chạy lại `seed-demo-structural-3.sql` (xoá cả dòng tạo qua UI trên hai đơn dải `d3a`).
+Kiểm bằng SQL: `SELECT status FROM application_reconsideration_requests WHERE application_id =
+'d3a00000-0009-0000-0000-000000000002';` → **OPEN**.
 
 **Kịch bản thử lưu tin** (đăng nhập `pham.quoc.bao@demo.local`):
 
@@ -403,7 +424,9 @@ Sau khi chạy đủ các bước ở mục 1, nên thấy đúng những điề
 > khai và có thể xuất hiện trong gợi ý việc làm của ứng viên demo.
 
 Bộ test độc lập với hai tầng demo: nạp được trên DB chỉ có schema, hoặc nạp chung với
-demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, `f0…`, `f1…` và `f2000000-…`, email và tên công ty riêng).
+demo mà không va chạm (UUID tiền tố `e0…`–`ef…`, `f0…`, `f1…`, `f2000000-…` và `f3000000-…`, email và tên công ty riêng).
+Dải `f3` (mục 18, FR-C09) là 4 đơn bị từ chối của ứng viên test vào tin của công ty test chính, với mốc **tương đối**
+theo lúc nạp (hạn yêu cầu xem xét lại tính bằng `now()` của DB nên không thể dùng mốc tuyệt đối như phần còn lại).
 Dải `f2` (mục 17 của `seed-test.sql`, chore/seed-final) là **công ty test thứ hai** — HR riêng, 2 ứng viên riêng,
 3 tin (PAUSED, CLOSED, OPEN đã xoá mềm nên không hiện trên bảng việc làm công khai) — giữ các trạng thái "sau"
 (kho có mục, mục đã gỡ, ẩn danh, khung đã chọn, đính kèm, `NEW_MESSAGE`) mà không làm sai các bảng soát tay 7.4
@@ -456,7 +479,8 @@ docker compose exec -T postgres psql -U recruitment -d recruitment `
 # rồi nạp lại như mục 8.1
 ```
 
-Script này chỉ xoá dữ liệu của 8 user test (5 dải `e`, 3 dải `f2`), hai công ty test và mọi dòng dải `f2`,
+Script này chỉ xoá dữ liệu của 8 user test (5 dải `e`, 3 dải `f2`), hai công ty test và mọi dòng dải `f2` (dải `f3`
+mất theo đơn của ứng viên test, kể cả yêu cầu xem xét lại — xoá trước đơn vì khoá `RESTRICT`),
 **kể cả dòng phát sinh qua UI**
 (đơn, lượt chấm, embedding tin, thông báo…), theo thứ tự khoá ngoại. Một ngoại lệ có chủ
 đích: đơn mà ứng viên **demo** tự nộp vào tin test qua UI cũng bị xoá, cùng thông báo gắn
@@ -469,7 +493,7 @@ không xoá file trên đĩa. `reset-demo-db.sql` (mục 1) `TRUNCATE` toàn b�
 |---|---|---|
 | `minhdathr@gmail.com` | HR | Minh Đạt, chủ "Công ty TNHH Thử Nghiệm Ánh Dương" (hồ sơ công ty đầy đủ) |
 | `quochuyuv@gmail.com` | Ứng viên | Quốc Huy: hồ sơ nghề nghiệp khai đủ, có đơn ở cả 5 trạng thái, 3 CV |
-| `le.thi.lan@test.local` | Ứng viên phụ | Lê Thị Lan: đã bỏ qua onboarding (hồ sơ rỗng); có đơn A10 đã mời phỏng vấn, giấy mời 3 khung chưa chốt (1 khung đã qua); 1 thông báo chưa đọc |
+| `le.thi.lan@test.local` | Ứng viên phụ | Lê Thị Lan: đã bỏ qua onboarding (hồ sơ rỗng); có đơn A10 đã mời phỏng vấn, giấy mời 3 khung chưa chốt (1 khung đã qua); 2 thông báo chưa đọc (1 của mục 18) |
 | `pham.van.khoa@test.local` | Ứng viên phụ | Phạm Văn Khoa: đã bỏ qua onboarding, CV hỏng |
 | `tran.bao.ngoc@test.local` | Ứng viên phụ | Trần Bảo Ngọc: chưa có hồ sơ, đăng nhập sẽ bị đưa sang màn onboarding |
 | `dang.minh.thu.hr@test.local` | HR | Đặng Minh Thư (dải `f2`), chủ "Công ty TNHH Thử Nghiệm Bình Minh": tin bật ẩn danh, kho có mục ACTIVE và mục đã gỡ, tin nhắn có đính kèm |
@@ -494,7 +518,8 @@ hồ sơ rỗng (`loadOrCreate`) với `onboarding_completed_at = NULL`. Màn on
 | Lượt chấm đang chờ (đóng băng) / thất bại có thông báo lỗi | HR test | Đơn của Quốc Huy ở tin CSKH / tin Hành chính |
 | Bấm "Chấm điểm" khi CV chưa trích xuất (bị từ chối) | HR test | Đơn của Lan / Khoa / Ngọc |
 | Xem CV gốc (PDF, DOCX) | HR test | Mọi đơn |
-| Thông báo đã đọc / chưa đọc (7 / 4) | HR test | Chuông thông báo |
+| Thông báo đã đọc / chưa đọc (7 / 5) | HR test | Chuông thông báo (1 chưa đọc là "Ứng viên yêu cầu xem xét lại" của mục 18) |
+| Xem xét lại đơn bị từ chối (FR-C09): còn hạn (khoảng 1 giờ sau lúc nạp) / quá hạn / bị từ chối sau phỏng vấn (không có khối) / đã giữ từ chối có phản hồi | Lê Thị Lan, Phạm Văn Khoa, Trần Bảo Ngọc, HR test | Đơn `f3000000-0009-…-01` (Lan → "Chuyên viên Pháp chế"), `-02` (Khoa → "Chuyên viên Tuyển dụng"), `-03` (Ngọc → "Nhân viên Hành chính văn phòng"), `-04` (Khoa → "Chuyên viên Pháp chế"); phía HR tab "Yêu cầu xem xét lại" của "Chuyên viên Pháp chế" (bộ lọc "Tất cả") |
 | Tin nhắn: hộp thư hai phía (HR 3 dòng A9, A2, A3; Quốc Huy 2 dòng A2, A3, mỗi bên 1 tin chưa đọc), cuộc trao đổi chỉ còn xem, trạng thái rỗng | HR test, Quốc Huy | "Tin nhắn"; tab "Trao đổi" của đơn "Chuyên viên Pháp chế" (đã rút, chỉ còn xem) và đơn "Chuyên viên Chăm sóc khách hàng" của Quốc Huy (chưa có tin) |
 | Đơn đủ 5 trạng thái, lịch sử, giấy mời phỏng vấn | Quốc Huy | Đơn ứng tuyển |
 | Giấy mời nhiều khung giờ chưa chốt (3 khung, có khung là link), giấy mời đã gửi lại kèm giấy mời cũ, giấy mời một khung đã chốt, thông báo gửi lại (FR-H12) | HR test, Quốc Huy, Trần Bảo Ngọc | Đơn A9 của Trần Bảo Ngọc (chưa chốt), A2 của Quốc Huy (đã gửi lại, có 1 giấy mời trước đó), A4 của Quốc Huy (đã chốt, đơn `HIRED`); chuông thông báo của Quốc Huy |

@@ -30,6 +30,9 @@ public class ApplicationStatusService {
     // -> tu dong bi tu choi khi la trang thai hien tai (bao gom ca REJECTED - trang thai cuoi,
     // khong quay lai duoc INTERVIEW_INVITED). WITHDRAWN khong nam trong bat ky tap dich nao - HR
     // khong the tu dat don ve WITHDRAWN qua endpoint nay (chi ung vien lam duoc, xem ApplicationService.withdraw).
+    // Ngoai le duy nhat (FR-C09 R-S1, R-S2): REJECTED -> INTERVIEW_INVITED CHI qua reinviteAfterReconsideration ben duoi,
+    // goi tu InterviewInvitationService.sendInvitation sau khi yeu cau xem xet lai OPEN da chuyen ACCEPTED. KHONG them
+    // khoa REJECTED vao bang nay (se mo canh do cho MOI don qua changeStatus).
     private static final Map<ApplicationStatus, Set<ApplicationStatus>> ALLOWED_TRANSITIONS = Map.of(
             ApplicationStatus.PENDING, Set.of(ApplicationStatus.INTERVIEW_INVITED, ApplicationStatus.REJECTED),
             ApplicationStatus.INTERVIEW_INVITED, Set.of(ApplicationStatus.HIRED, ApplicationStatus.REJECTED));
@@ -90,6 +93,35 @@ public class ApplicationStatusService {
 
         JobApplication refreshed = jobApplicationRepository.findById(applicationId).orElseThrow();
         return toResponse(refreshed);
+    }
+
+    // FR-C09 R-S2 - canh rieng REJECTED -> INTERVIEW_INVITED, nguon va dich CO DINH (khong tra ALLOWED_TRANSITIONS). CHI
+    // InterviewInvitationService.sendInvitation goi (ReconsiderationSourceGuardTest canh nguon), trong CUNG transaction, SAU
+    // khi da kiem quyen va da chuyen yeu cau OPEN cua chinh don sang ACCEPTED (R-S3) - nen khong kiem quyen lai o day.
+    // Cung ba buoc voi changeStatus: UPDATE co dieu kien (0 dong -> 409) -> ghi lich su -> su kien doi trang thai (thong
+    // bao DUY NHAT cua viec chap nhan, R-S4).
+    @Transactional
+    public void reinviteAfterReconsideration(UUID ownerId, UUID applicationId) {
+        // Doc jobId/candidateId TRUOC cau UPDATE: clearAutomatically lam entity thanh STALE (xem changeStatus).
+        JobApplication application = jobApplicationRepository
+                .findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(applicationId));
+
+        int updated = jobApplicationRepository.updateStatusIfCurrent(
+                applicationId, ApplicationStatus.REJECTED, ApplicationStatus.INTERVIEW_INVITED);
+        if (updated == 0) {
+            throw new ApplicationStatusConflictException();
+        }
+
+        applicationStatusRecorder.record(
+                applicationId, ApplicationStatus.REJECTED, ApplicationStatus.INTERVIEW_INVITED, ownerId, null);
+
+        eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
+                applicationId,
+                application.getJobId(),
+                application.getCandidateId(),
+                ApplicationStatus.REJECTED,
+                ApplicationStatus.INTERVIEW_INVITED));
     }
 
     // Mau y het ScoringRunService.loadOwnedApplication/ResumeHrService.loadOwnedApplication, NHUNG

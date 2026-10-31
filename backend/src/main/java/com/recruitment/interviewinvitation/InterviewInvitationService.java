@@ -33,6 +33,7 @@ import com.recruitment.jobapplication.JobApplicationRepository;
 import com.recruitment.notification.InterviewInvitationResentEvent;
 import com.recruitment.notification.InterviewInvitationResentEvent.SlotInfo;
 import com.recruitment.notification.InterviewSlotConfirmedEvent;
+import com.recruitment.reconsideration.ReconsiderationHrService;
 import com.recruitment.user.User;
 import com.recruitment.user.UserRepository;
 import java.time.Instant;
@@ -77,6 +78,7 @@ public class InterviewInvitationService {
     private final HrApplicationAccess hrApplicationAccess;
     private final ApplicationEventPublisher eventPublisher;
     private final BlindReviewResolver blindReviewResolver;
+    private final ReconsiderationHrService reconsiderationHrService;
 
     public InterviewInvitationService(
             JobApplicationRepository jobApplicationRepository,
@@ -89,7 +91,8 @@ public class InterviewInvitationService {
             ApplicationStatusService applicationStatusService,
             HrApplicationAccess hrApplicationAccess,
             ApplicationEventPublisher eventPublisher,
-            BlindReviewResolver blindReviewResolver) {
+            BlindReviewResolver blindReviewResolver,
+            ReconsiderationHrService reconsiderationHrService) {
         this.jobApplicationRepository = jobApplicationRepository;
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
@@ -101,6 +104,7 @@ public class InterviewInvitationService {
         this.hrApplicationAccess = hrApplicationAccess;
         this.eventPublisher = eventPublisher;
         this.blindReviewResolver = blindReviewResolver;
+        this.reconsiderationHrService = reconsiderationHrService;
     }
 
     // Chi doc, khong @Transactional - mau ApplicationOwnerService/ScoringRunService.listScoringRuns.
@@ -154,11 +158,20 @@ public class InterviewInvitationService {
                 ? withCandidateName(request, application)
                 : request;
 
-        // Tai dung nguyen ven logic doi trang thai Dot 1: tu kiem don dang PENDING (khong thi 400
-        // InvalidApplicationStatusTransitionException), tu ghi 1 dong application_status_history.
-        // Method nay KHONG render/kiem tra gi ve noi dung loi moi - subject/content la nguyen van
-        // HR gui, xem comment tren InterviewInvitationSendRequest.
-        applicationStatusService.changeStatus(ownerId, applicationId, ApplicationStatus.INTERVIEW_INVITED);
+        if (application.getStatus() == ApplicationStatus.REJECTED) {
+            // FR-C09 R-S3 - nhanh DUY NHAT moi lai don bi tu choi, SAU buoc kiem an danh (don con an thi {{candidateName}}
+            // da thay o tren). (0)-(1): yeu cau OPEN cua chinh don -> ACCEPTED (khong co yeu cau / da quyet -> 400 nhu
+            // FR-H12 hien nay; thua tranh chap -> 409); (2) canh rieng REJECTED -> INTERVIEW_INVITED; (3) tao giay moi
+            // nhu cu ben duoi. Ca ba trong CUNG transaction nay: buoc sau loi thi yeu cau van OPEN.
+            reconsiderationHrService.claimForAcceptance(applicationId, ownerId);
+            applicationStatusService.reinviteAfterReconsideration(ownerId, applicationId);
+        } else {
+            // Tai dung nguyen ven logic doi trang thai Dot 1: tu kiem don dang PENDING (khong thi 400
+            // InvalidApplicationStatusTransitionException), tu ghi 1 dong application_status_history.
+            // Method nay KHONG render/kiem tra gi ve noi dung loi moi - subject/content la nguyen van
+            // HR gui, xem comment tren InterviewInvitationSendRequest.
+            applicationStatusService.changeStatus(ownerId, applicationId, ApplicationStatus.INTERVIEW_INVITED);
+        }
 
         // FR-H12 R-F2 - gui lan dau KHONG phat them thong bao nao (thong bao doi trang thai do buoc doi trang thai ngay tren phat).
         Instant sentAt = Instant.now();

@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button'
 import { formatDateTimeVi } from '../../lib/date'
 import { ApplicationStatusBadge } from '../applications/ApplicationStatusBadge'
 import { BLIND_REVIEW_TEXT } from '../blindReview/blindReviewLabels'
+import { ReconsiderationCard } from '../reconsideration/ReconsiderationCard'
+import { useReconsiderationDialogs } from '../reconsideration/useReconsiderationDialogs'
+import { HR_RECONSIDERATION_TEXT } from '../reconsideration/reconsiderationLabels'
 import { SaveToTalentPoolDialog } from '../talentPools/SaveToTalentPoolDialog'
 import { TALENT_POOL_TEXT } from '../talentPools/talentPoolLabels'
 import { ApplicationActionBar } from './ApplicationActionBar'
@@ -37,6 +40,14 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
   const [saveOpen, setSaveOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const saveButtonRef = useRef<HTMLButtonElement>(null)
+
+  // FR-C09 UI.md 4f - khoi yeu cau xem xet lai: giu tu choi xong, the van con (doi sang DECLINED) -> focus ve tieu de khoi.
+  const reconsiderationHeadingRef = useRef<HTMLHeadingElement>(null)
+  const [reconsiderationDeclined, setReconsiderationDeclined] = useState(false)
+  const reconsiderationDialogs = useReconsiderationDialogs(detail.jobId, () => {
+    setReconsiderationDeclined(true)
+    reconsiderationHeadingRef.current?.focus()
+  })
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,6 +104,20 @@ export function ApplicationDetailHeader({ detail }: { detail: ApplicationHrDetai
           </div>
         </div>
       </div>
+      {/* FR-C09 UI.md 4f - ngay duoi thanh thao tac, tren TabsList; chi khi don co yeu cau (moi trang thai). */}
+      {detail.reconsideration && (
+        <ReconsiderationCard
+          item={detail.reconsideration}
+          variant="detail"
+          onInvite={reconsiderationDialogs.openInvite}
+          onDecline={reconsiderationDialogs.openDecline}
+          headingRef={reconsiderationHeadingRef}
+        />
+      )}
+      <p aria-live="polite" className="sr-only">
+        {reconsiderationDeclined ? HR_RECONSIDERATION_TEXT.declinedAnnouncement : ''}
+      </p>
+      {reconsiderationDialogs.dialogs}
       <SaveToTalentPoolDialog
         applicationId={detail.id}
         candidateName={detail.candidateName}

@@ -34,6 +34,8 @@ Gặp mâu thuẫn thì báo ra, không tự chọn bên nào.
 - Rút đơn = đổi trạng thái (soft state), KHÔNG hard delete (FR-U06).
 - Vòng đời đơn ứng tuyển đúng 5 trạng thái: `PENDING` → `INTERVIEW_INVITED` → `HIRED` | `REJECTED`;
   và `WITHDRAWN` có thể xảy ra bất kỳ lúc nào trước kết quả cuối.
+  Ngoại lệ duy nhất (FR-C09): cạnh `REJECTED` → `INTERVIEW_INVITED`, chỉ khi HR gửi giấy mời cho đơn có
+  yêu cầu xem xét lại `OPEN`. Không thêm cạnh này vào bảng chuyển tiếp chung, không thêm trạng thái thứ 6.
 - Chức năng bổ sung còn phải tuân thủ mục "Nguyên tắc bổ sung cho các chức năng mới" trong
   `docs/SRS.md`.
 
@@ -75,7 +77,7 @@ Chia package theo TÍNH NĂNG, không theo tầng: `auth/`, `user/`, `company/`,
 `screening/` (FR-H10), `aigeneration/` (K4), `ai/jobdraft/`, `jobdraft/` (FR-H11),
 `ai/citation/` (K2), `ai/cvqa/`, `cvqa/` (FR-C08),
 `comparison/` (FR-H14), `talentpool/` (FR-H15), `cvbuilder/`, `ai/cvrephrase/` (FR-U12),
-`jobsearch/`, `ai/jobsearch/` (FR-U13), `blindreview/` (FR-H16), `savedjob/` (FR-U16).
+`jobsearch/`, `ai/jobsearch/` (FR-U13), `blindreview/` (FR-H16), `savedjob/` (FR-U16), `reconsideration/` (FR-C09).
 Mỗi mã FR nằm gọn trong một package; package mới chỉ tạo khi FR thật sự cần.
 
 ## 3b. Bẫy đã trả giá — đọc trước khi động vào Spring AI

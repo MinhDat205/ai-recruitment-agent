@@ -1,4 +1,5 @@
 import type { ScreeningAnswerInput } from '../candidateScreening/types'
+import type { ReconsiderationStatus } from '../reconsideration/types'
 
 export type ApplicationStatus = 'PENDING' | 'INTERVIEW_INVITED' | 'HIRED' | 'REJECTED' | 'WITHDRAWN'
 
@@ -35,6 +36,8 @@ export interface ApplicationSummary {
   status: ApplicationStatus
   appliedAt: string
   updatedAt: string
+  // FR-C09 R-C2 - trang thai yeu cau xem xet lai cua don; null khi chua co yeu cau.
+  reconsiderationStatus: ReconsiderationStatus | null
 }
 
 export interface ApplicationHistoryEntry {

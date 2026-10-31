@@ -1181,6 +1181,130 @@ JOIN jobs j ON j.id = a.job_id
 CROSS JOIN LATERAL (SELECT btrim(regexp_replace(m.body, '\s+', ' ', 'g')) AS c) AS e
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- 18. FR-C09 (REQUIREMENT muc 4.5) - dai f3000000-TTTT-0000-0000-NNNNNNNNNNNN (cung bang ma TTTT voi dai f2; 0021 =
+--     application_reconsideration_requests). NGOAI LE CO CHU DICH voi moc tuyet doi cua bo test (dau file): han yeu
+--     cau xem xet lai = changed_at cua dong PENDING -> REJECTED + 168 gio, so bang now() cua DB, nen moc phai TUONG DOI
+--     theo luc nap. Cong ty test chinh (e1..01), HR e0..01; moi cap (ung vien, tin) chua co don o chu ky 1 (Quoc Huy da
+--     co don o ca J1-J5 nen khong dung o day):
+--       -01 Le Thi Lan -> J3 (PAUSED)     : bi tu choi o vong ho so now() - 6 ngay 23 gio -> AVAILABLE (con ~1 gio luc nap)
+--       -02 Pham Van Khoa -> J4 (CLOSED)  : bi tu choi o vong ho so now() - 8 ngay        -> EXPIRED
+--       -03 Tran Bao Ngoc -> J2           : moi phong van (giay moi 1 khung da qua, chot luc gui) roi bi tu choi -> null
+--       -04 Pham Van Khoa -> J3 (PAUSED)  : bi tu choi now() - 5 ngay, yeu cau DECLINED co phan hoi -> DECLINED
+--     Tin PAUSED/CLOSED van gui duoc yeu cau (R-E4). reset-test-data.sql xoa ca dai nay theo ung vien test (t_apps).
+-- ---------------------------------------------------------------------------
+
+INSERT INTO job_applications (
+    id, job_id, candidate_id, resume_id, recruitment_cycle, status,
+    ai_consent, ai_consent_at, cover_letter, applied_at, updated_at, screening_captured_at,
+    talent_pool_consent, talent_pool_consent_at
+)
+SELECT v.id::uuid, v.job_id::uuid, v.candidate_id::uuid, v.resume_id::uuid, 1, 'REJECTED', TRUE, now() - v.applied_ago,
+       NULL, now() - v.applied_ago, now() - v.updated_ago, NULL, FALSE, NULL
+FROM (VALUES
+    ('f3000000-0009-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000003',
+     'e7000000-0000-0000-0000-000000000004', INTERVAL '10 days', INTERVAL '6 days 23 hours'),
+    ('f3000000-0009-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000004',
+     'e7000000-0000-0000-0000-000000000005', INTERVAL '12 days', INTERVAL '8 days'),
+    ('f3000000-0009-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000005',
+     'e7000000-0000-0000-0000-000000000006', INTERVAL '20 days', INTERVAL '2 days'),
+    ('f3000000-0009-0000-0000-000000000004', 'e2000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000004',
+     'e7000000-0000-0000-0000-000000000005', INTERVAL '9 days', INTERVAL '5 days')
+) AS v(id, job_id, candidate_id, resume_id, applied_ago, updated_ago)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO application_status_history (id, application_id, from_status, to_status, changed_by, note, changed_at)
+SELECT v.id::uuid, v.app_id::uuid, v.from_status, v.to_status, v.changed_by::uuid, NULL, now() - v.ago
+FROM (VALUES
+    ('f3000000-0010-0000-0000-000000000001', 'f3000000-0009-0000-0000-000000000001', NULL, 'PENDING',
+     'e0000000-0000-0000-0000-000000000003', INTERVAL '10 days'),
+    ('f3000000-0010-0000-0000-000000000002', 'f3000000-0009-0000-0000-000000000001', 'PENDING', 'REJECTED',
+     'e0000000-0000-0000-0000-000000000001', INTERVAL '6 days 23 hours'),
+    ('f3000000-0010-0000-0000-000000000003', 'f3000000-0009-0000-0000-000000000002', NULL, 'PENDING',
+     'e0000000-0000-0000-0000-000000000004', INTERVAL '12 days'),
+    ('f3000000-0010-0000-0000-000000000004', 'f3000000-0009-0000-0000-000000000002', 'PENDING', 'REJECTED',
+     'e0000000-0000-0000-0000-000000000001', INTERVAL '8 days'),
+    ('f3000000-0010-0000-0000-000000000005', 'f3000000-0009-0000-0000-000000000003', NULL, 'PENDING',
+     'e0000000-0000-0000-0000-000000000005', INTERVAL '20 days'),
+    ('f3000000-0010-0000-0000-000000000006', 'f3000000-0009-0000-0000-000000000003', 'PENDING', 'INTERVIEW_INVITED',
+     'e0000000-0000-0000-0000-000000000001', INTERVAL '15 days'),
+    ('f3000000-0010-0000-0000-000000000007', 'f3000000-0009-0000-0000-000000000003', 'INTERVIEW_INVITED', 'REJECTED',
+     'e0000000-0000-0000-0000-000000000001', INTERVAL '2 days'),
+    ('f3000000-0010-0000-0000-000000000008', 'f3000000-0009-0000-0000-000000000004', NULL, 'PENDING',
+     'e0000000-0000-0000-0000-000000000004', INTERVAL '9 days'),
+    ('f3000000-0010-0000-0000-000000000009', 'f3000000-0009-0000-0000-000000000004', 'PENDING', 'REJECTED',
+     'e0000000-0000-0000-0000-000000000001', INTERVAL '5 days')
+) AS v(id, app_id, from_status, to_status, changed_by, ago)
+ON CONFLICT (id) DO NOTHING;
+
+-- Giay moi cua -03 (don INTERVIEW_INVITED phai co giay moi - chore-seed-final L10). Ghi theo ba buoc nhu muc 11: giay moi
+-- chua chot -> khung (da qua) -> UPDATE chot luc gui (giay moi mot khung, R-K1).
+INSERT INTO interview_invitations (id, application_id, subject, rendered_content, sent_at, sent_by, superseded_at, created_at)
+VALUES ('f3000000-0012-0000-0000-000000000001', 'f3000000-0009-0000-0000-000000000003',
+        'Thư mời phỏng vấn vị trí Nhân viên Hành chính văn phòng',
+        'Kính gửi Trần Bảo Ngọc,' || E'\n' || 'Công ty TNHH Thử Nghiệm Ánh Dương trân trọng mời bạn tham gia phỏng vấn.',
+        now() - INTERVAL '15 days', 'e0000000-0000-0000-0000-000000000001', NULL, now() - INTERVAL '15 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO interview_invitation_slots (id, invitation_id, display_order, scheduled_at, location, created_at)
+VALUES ('f3000000-0013-0000-0000-000000000001', 'f3000000-0012-0000-0000-000000000001', 1,
+        date_trunc('minute', now() - INTERVAL '10 days'), 'Phòng họp tầng 3, văn phòng Hà Nội', now() - INTERVAL '15 days')
+ON CONFLICT (id) DO NOTHING;
+
+UPDATE interview_invitations
+SET confirmed_slot_id = 'f3000000-0013-0000-0000-000000000001', confirmed_at = sent_at
+WHERE id = 'f3000000-0012-0000-0000-000000000001' AND confirmed_slot_id IS NULL;
+
+-- Yeu cau DECLINED co phan hoi cua -04 (gui now() - 4 ngay, HR giu tu choi now() - 3 ngay).
+INSERT INTO application_reconsideration_requests
+    (id, application_id, reason, status, hr_response, requested_at, decided_at, decided_by)
+VALUES ('f3000000-0021-0000-0000-000000000001', 'f3000000-0009-0000-0000-000000000004',
+        'Tôi có chứng chỉ hành nghề luật sư, mong được xem xét lại hồ sơ.',
+        'DECLINED',
+        'Cảm ơn bạn đã phản hồi.' || E'\n' || 'Vị trí này cần tối thiểu 3 năm pháp chế doanh nghiệp, hồ sơ chưa đáp ứng.',
+        now() - INTERVAL '4 days', now() - INTERVAL '3 days', 'e0000000-0000-0000-0000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
+-- Thong bao khop 1-1 su kien (bo qua thong bao nop don cua bon don - giu muc nay gon, cung cach muc 13 khong co du moi
+-- su kien cu): bi tu choi -> ung vien; moi phong van -> ung vien (-03); gui yeu cau -> HR (-04); giu tu choi -> ung
+-- vien (-04, khong chua phan hoi - Q5). Noi dung theo NotificationContentBuilder; SKIPPED.
+INSERT INTO notifications (id, user_id, type, title, body, link, email_body, entity_type, entity_id, is_read, read_at, email_status, created_at)
+SELECT v.id::uuid, v.user_id::uuid, v.type, v.title, replace(v.body, '{title}', j.title), v.link, NULL, 'APPLICATION',
+       a.id, FALSE, NULL, 'SKIPPED', now() - v.ago
+FROM (VALUES
+    ('f3000000-0015-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000003', 'f3000000-0009-0000-0000-000000000001',
+     'APPLICATION_STATUS_CHANGED', 'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "{title}" của bạn đã chuyển sang trạng thái: Bị từ chối',
+     '/candidate/applications/f3000000-0009-0000-0000-000000000001', INTERVAL '6 days 23 hours'),
+    ('f3000000-0015-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000004', 'f3000000-0009-0000-0000-000000000002',
+     'APPLICATION_STATUS_CHANGED', 'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "{title}" của bạn đã chuyển sang trạng thái: Bị từ chối',
+     '/candidate/applications/f3000000-0009-0000-0000-000000000002', INTERVAL '8 days'),
+    ('f3000000-0015-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000005', 'f3000000-0009-0000-0000-000000000003',
+     'APPLICATION_STATUS_CHANGED', 'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "{title}" của bạn đã chuyển sang trạng thái: Đã mời phỏng vấn',
+     '/candidate/applications/f3000000-0009-0000-0000-000000000003', INTERVAL '15 days'),
+    ('f3000000-0015-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000005', 'f3000000-0009-0000-0000-000000000003',
+     'APPLICATION_STATUS_CHANGED', 'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "{title}" của bạn đã chuyển sang trạng thái: Bị từ chối',
+     '/candidate/applications/f3000000-0009-0000-0000-000000000003', INTERVAL '2 days'),
+    ('f3000000-0015-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000004', 'f3000000-0009-0000-0000-000000000004',
+     'APPLICATION_STATUS_CHANGED', 'Cập nhật đơn ứng tuyển',
+     'Đơn ứng tuyển vị trí "{title}" của bạn đã chuyển sang trạng thái: Bị từ chối',
+     '/candidate/applications/f3000000-0009-0000-0000-000000000004', INTERVAL '5 days'),
+    ('f3000000-0015-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000001', 'f3000000-0009-0000-0000-000000000004',
+     'RECONSIDERATION_REQUESTED', 'Ứng viên yêu cầu xem xét lại',
+     'Ứng viên Phạm Văn Khoa đã gửi yêu cầu xem xét lại đơn ứng tuyển vị trí "{title}".',
+     '/hr/applications/f3000000-0009-0000-0000-000000000004', INTERVAL '4 days'),
+    ('f3000000-0015-0000-0000-000000000007', 'e0000000-0000-0000-0000-000000000004', 'f3000000-0009-0000-0000-000000000004',
+     'RECONSIDERATION_DECLINED', 'Kết quả yêu cầu xem xét lại',
+     'Nhà tuyển dụng đã xem xét lại và giữ quyết định từ chối đơn ứng tuyển vị trí "{title}". Xem chi tiết trong đơn ứng tuyển.',
+     '/candidate/applications/f3000000-0009-0000-0000-000000000004', INTERVAL '3 days')
+) AS v(id, user_id, app_id, type, title, body, link, ago)
+JOIN job_applications a ON a.id = v.app_id::uuid
+JOIN jobs j ON j.id = a.job_id
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;
 
 -- ---------------------------------------------------------------------------
@@ -1196,6 +1320,8 @@ COMMIT;
 -- interview_templates 3, job_screening_questions 3, job_blind_review_changes 1, resumes 2, job_applications 3,
 -- application_status_history 5, application_screening_answers 5, interview_invitations 1,
 -- interview_invitation_slots 2, talent_pools 1, talent_pool_entries 2, application_messages 3, notifications 9.
+-- Va dai f3 (muc 18, FR-C09): job_applications 4, application_status_history 9, interview_invitations 1,
+-- interview_invitation_slots 1, application_reconsideration_requests 1, notifications 7.
 -- ---------------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) FROM users WHERE id::text LIKE 'e0000000-%'
 UNION ALL SELECT 'candidate_profiles', count(*) FROM candidate_profiles WHERE id::text LIKE 'e6000000-%'
@@ -1238,4 +1364,11 @@ UNION ALL SELECT 'f2 interview_invitation_slots', count(*) FROM interview_invita
 UNION ALL SELECT 'f2 talent_pools', count(*) FROM talent_pools WHERE id::text LIKE 'f2000000-%'
 UNION ALL SELECT 'f2 talent_pool_entries', count(*) FROM talent_pool_entries WHERE id::text LIKE 'f2000000-%'
 UNION ALL SELECT 'f2 application_messages', count(*) FROM application_messages WHERE id::text LIKE 'f2000000-%'
-UNION ALL SELECT 'f2 notifications', count(*) FROM notifications WHERE id::text LIKE 'f2000000-%';
+UNION ALL SELECT 'f2 notifications', count(*) FROM notifications WHERE id::text LIKE 'f2000000-%'
+UNION ALL SELECT 'f3 job_applications', count(*) FROM job_applications WHERE id::text LIKE 'f3000000-%'
+UNION ALL SELECT 'f3 application_status_history', count(*) FROM application_status_history WHERE id::text LIKE 'f3000000-%'
+UNION ALL SELECT 'f3 interview_invitations', count(*) FROM interview_invitations WHERE id::text LIKE 'f3000000-%'
+UNION ALL SELECT 'f3 interview_invitation_slots', count(*) FROM interview_invitation_slots WHERE id::text LIKE 'f3000000-%'
+UNION ALL SELECT 'f3 application_reconsideration_requests', count(*) FROM application_reconsideration_requests
+          WHERE id::text LIKE 'f3000000-%'
+UNION ALL SELECT 'f3 notifications', count(*) FROM notifications WHERE id::text LIKE 'f3000000-%';

@@ -932,7 +932,8 @@ Lưu và bỏ lưu tin của chính ứng viên; HR không xem được ai đã 
 - **Đặc tả chi tiết:** `docs/features/CHUNG/C09/REQUIREMENT.md`, `UI.md`
 - **Phụ thuộc:** FR-H07, FR-H12, FR-U08, FR-H09, FR-C03, FR-H16
 - **Mở rộng chức năng hiện có:** FR-H07 (cạnh `REJECTED → INTERVIEW_INVITED` chỉ qua yêu cầu), FR-U03, FR-U08, FR-H09, FR-H12, FR-C03 (hai loại thông báo mới)
-- **Màn hình (UI_GUIDE mục 7):** Nút và hộp thoại ở ★`/candidate/applications/:id`; nhãn trạng thái ở `/candidate/applications`; ★tab "Yêu cầu xem xét lại" ở `/hr/jobs/:id/edit`; khối yêu cầu đang chờ ở ★`/hr/applications/:id`.
+- **Màn hình (UI_GUIDE mục 7):** Nút và hộp thoại ở `/candidate/applications/:id`; nhãn trạng thái ở `/candidate/applications`; ★tab "Yêu cầu xem xét lại" ở `/hr/jobs/:id/edit`; khối yêu cầu đang chờ ở `/hr/applications/:id`.
+- **Trạng thái:** Đã hoàn thành 31/10/2026 (`docs/walkthrough/fr-c09-reconsideration.md`).
 
 **Mục đích**
 

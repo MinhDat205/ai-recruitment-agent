@@ -2,6 +2,7 @@ package com.recruitment.jobapplication.dto;
 
 import com.recruitment.job.JobAvailability;
 import com.recruitment.jobapplication.ApplicationStatus;
+import com.recruitment.reconsideration.dto.CandidateReconsiderationResponse;
 import com.recruitment.resume.ParseStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -10,8 +11,9 @@ import java.util.UUID;
 
 // FR-U08 E1 - GET /api/candidates/applications/{id}. DTO RIENG cho ung vien, dung tung field cua
 // REQUIREMENT.md muc 4 cua FR-U08 + DUNG mot khoa talentPoolConsent do FR-U09 them (ngoai le da duyet, R-C2 cua
-// FR-U09) - KHONG them field nao khac. TUYET DOI khong tai dung DTO phia HR va khong co diem, hang, tieu chi, giai
-// thich AI, luot cham, sentBy/changedBy (SRS "Nguyen tac bo sung", CLAUDE.md muc 2/7).
+// FR-U09) + DUNG mot khoa reconsideration do FR-C09 them (ngoai le da duyet, M2/R-C1 cua FR-C09) - KHONG them field
+// nao khac. TUYET DOI khong tai dung DTO phia HR va khong co diem, hang, tieu chi, giai thich AI, luot cham,
+// sentBy/changedBy/decidedBy (SRS "Nguyen tac bo sung", CLAUDE.md muc 2/7).
 public record ApplicationCandidateDetailResponse(
         UUID id,
         ApplicationStatus status,
@@ -20,7 +22,8 @@ public record ApplicationCandidateDetailResponse(
         String coverLetter, // nguyen van, null khi khong nhap (R-D7)
         JobInfo job,
         ResumeInfo resume,
-        TalentPoolConsentResponse talentPoolConsent) { // FR-U09 R-D1
+        TalentPoolConsentResponse talentPoolConsent, // FR-U09 R-D1
+        CandidateReconsiderationResponse reconsideration) { // FR-C09 R-C1 - null khi khong co khoi
 
     // Thong tin tin la ban HIEN TAI cua dong jobs, khong phai ban luc nop (R-D3).
     public record JobInfo(

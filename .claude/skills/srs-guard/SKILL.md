@@ -1,12 +1,12 @@
 ---
 name: srs-guard
-description: Soát codebase tìm vi phạm các nguyên tắc thiết kế bắt buộc trong SRS của dự án AI Recruitment Agent (AI không được gán nhãn đậu/rớt, backend tính tổng điểm, không hard delete, consent bắt buộc, và các nguyên tắc bổ sung cho 19 FR mới). Dùng khi người dùng yêu cầu "kiểm tra vi phạm SRS", "soát ranh giới AI", "review trước khi merge", hoặc trước khi merge BẤT KỲ nhánh FR nào (cũ hay bổ sung).
+description: Soát codebase tìm vi phạm các nguyên tắc thiết kế bắt buộc trong SRS của dự án AI Recruitment Agent (AI không được gán nhãn đậu/rớt, backend tính tổng điểm, không hard delete, consent bắt buộc, vòng đời đơn đúng 5 trạng thái, và các nguyên tắc bổ sung cho 21 FR mới). Dùng khi người dùng yêu cầu "kiểm tra vi phạm SRS", "soát ranh giới AI", "review trước khi merge", hoặc trước khi merge BẤT KỲ nhánh FR nào (cũ hay bổ sung).
 ---
 
 # Soát vi phạm nguyên tắc SRS
 
-15 nguyên tắc dưới đây là ràng buộc cứng của dự án. Vi phạm là lỗi nghiêm trọng, không phải góp ý
-phong cách. Nguyên tắc 1-9 LUÔN soát, bất kể nhánh nào. Nguyên tắc 10-15 chỉ soát khi nhánh đang
+16 nguyên tắc dưới đây là ràng buộc cứng của dự án. Vi phạm là lỗi nghiêm trọng, không phải góp ý
+phong cách. Nguyên tắc 1-9 LUÔN soát, bất kể nhánh nào. Nguyên tắc 10-16 chỉ soát khi nhánh đang
 review chạm FR liên quan; nếu không chạm, đánh dấu **"chưa có gì để soát"** (khác "đã soát, sạch").
 
 Với mỗi mục: chạy lệnh tìm kiếm, đọc kết quả, đánh giá **có vi phạm thật không** (có thể là dương
@@ -172,7 +172,7 @@ request, cho `DataIntegrityViolationException` nổi lên và `GlobalExceptionHa
 
 ---
 
-## Nguyên tắc bổ sung cho 19 FR mới (10-15)
+## Nguyên tắc bổ sung cho 21 FR mới (10-16)
 
 ## 10. Phía ứng viên không nhận dữ liệu nội bộ
 
@@ -272,6 +272,30 @@ hiểu yêu cầu của bạn" có nhãn "Do AI tạo" + `Sparkles`; chip điề
 %/màu/dấu ✓; không ẩn việc chưa phân tích nội dung (phải có câu ngăn cách). FR nào chưa có code frontend → đánh dấu "chưa
 có gì để soát".
 
+## 16. Vòng đời đơn đúng 5 trạng thái — cạnh REJECTED → INTERVIEW_INVITED chỉ qua yêu cầu OPEN (FR-H07, FR-C09)
+
+```bash
+rg "ALLOWED_TRANSITIONS|reinviteAfterReconsideration" --type java
+rg "enum ApplicationStatus" -A 8 --type java
+rg "'REJECTED'.*'INTERVIEW_INVITED'|REJECTED.*INTERVIEW_INVITED" --type java --type sql
+```
+
+Vi phạm nếu:
+- `ApplicationStatus` có khác **đúng 5** giá trị (`PENDING`, `INTERVIEW_INVITED`, `HIRED`, `REJECTED`, `WITHDRAWN`) — vd
+  thêm `RECONSIDERING`. Trạng thái của yêu cầu xem xét lại nằm ở bảng riêng `application_reconsideration_requests`
+  (`ReconsiderationStatus`), không phải trạng thái đơn.
+- `ALLOWED_TRANSITIONS` (`ApplicationStatusService`) có khoá `REJECTED` — mở cạnh `REJECTED → INTERVIEW_INVITED` cho MỌI
+  đơn qua `changeStatus` và qua giấy mời.
+- Cạnh `REJECTED → INTERVIEW_INVITED` chạy ở đâu khác ngoài `ApplicationStatusService.reinviteAfterReconsideration`, hoặc
+  method đó được gọi từ đâu khác ngoài `InterviewInvitationService.sendInvitation` (nhánh đơn `REJECTED`), hoặc gọi mà
+  **chưa** chuyển yêu cầu `OPEN` của chính đơn sang `ACCEPTED` bằng `UPDATE … WHERE status = 'OPEN'` trong cùng transaction
+  (`ReconsiderationHrService.claimForAcceptance`).
+- Guard PATCH `/status` (`ApplicationStatusController`) bị nới để đặt thẳng `INTERVIEW_INVITED`.
+
+Bằng chứng đã có (FR-C09): `ReconsiderationSourceGuardTest` (tên method chỉ ở hai file, tập khoá `ALLOWED_TRANSITIONS`
+bằng reflection, `ApplicationStatus.values()` đúng 5) và `ReconsiderationAcceptIntegrationTest` (T11, T12 gồm ca gọi
+thẳng `changeStatus`). Test đỏ hoặc bị sửa khẳng định = vi phạm.
+
 ---
 
 ## Mẫu báo cáo
@@ -293,6 +317,6 @@ có gì để soát".
 - Nguyên tắc 14, 15 (FR-U09/H15/U13/U15/H14 chưa có code)
 ```
 
-Nếu không tìm thấy vi phạm nào, nói rõ đã kiểm tra hết **15 mục** và liệt kê từng mục — đừng chỉ
+Nếu không tìm thấy vi phạm nào, nói rõ đã kiểm tra hết **16 mục** và liệt kê từng mục — đừng chỉ
 nói "không có vấn đề gì". Với báo cáo gửi người dùng (khác với nội dung skill này), trích bằng
 chứng cụ thể theo `file:dòng` khi tìm thấy vi phạm hoặc cần xem lại.

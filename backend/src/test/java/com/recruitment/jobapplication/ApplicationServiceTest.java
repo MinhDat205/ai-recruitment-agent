@@ -67,6 +67,10 @@ class ApplicationServiceTest {
     @Mock
     private TalentPoolEntryRepository talentPoolEntryRepository;
 
+    // FR-C09 R-C1: dependency moi cua getMyApplicationDetail - cac test o day khong cham toi, mock chi de dung constructor.
+    @Mock
+    private com.recruitment.reconsideration.ReconsiderationReader reconsiderationReader;
+
     private ApplicationService newService() {
         return new ApplicationService(
                 applicationRepository,
@@ -79,7 +83,8 @@ class ApplicationServiceTest {
                 companyRepository,
                 catalogRegistry,
                 screeningCaptureService,
-                talentPoolEntryRepository);
+                talentPoolEntryRepository,
+                reconsiderationReader);
     }
 
     @Test

@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from '../applications/types'
+import type { HrReconsideration } from '../reconsideration/types'
 import type { ParseStatus } from '../resumes/types'
 import type { CriterionScoreItem, Explanation, ExplanationStatus } from '../scoring/types'
 
@@ -18,6 +19,8 @@ export interface ApplicationHrDetail {
   // FR-H16 R-V2, R-V3 - null khi don dang an danh (backend an); candidateName khi do la nhan tu API.
   resumeFileName: string | null
   identityMasked: boolean
+  // FR-C09 (muc 4.4, R-D7) - yeu cau xem xet lai cua don o moi trang thai; null khi don khong co yeu cau.
+  reconsideration: HrReconsideration | null
 }
 
 // Khop ApplicationScoresResponse (backend, E3). Moi field null, criterionScores rong khi don chua co

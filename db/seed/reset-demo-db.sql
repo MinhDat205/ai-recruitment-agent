@@ -78,13 +78,13 @@ $guard3$;
 
 \echo 'Ca ba chot chan da qua - bat dau TRUNCATE...'
 
--- Liet ke tuong minh toan bo 31 bang nghiep vu, lay dung tu danh sach
--- CREATE TABLE trong V1..V20 (khong doan so bang). KHONG truncate: 4 bang
+-- Liet ke tuong minh toan bo 32 bang nghiep vu, lay dung tu danh sach
+-- CREATE TABLE trong V1..V21 (khong doan so bang). KHONG truncate: 4 bang
 -- catalog_* (V8, danh muc nap san trong migration), flyway_schema_history,
 -- vector_store (Spring AI tu tao do initialize-schema, du an khong ghi vao);
 -- job_recommendations da DROP o V11.
--- Can DB o V20 tro len: thieu bang nao (vd DB con o V19, chua co
--- saved_jobs) thi TRUNCATE bao "relation does not exist" va
+-- Can DB o V21 tro len: thieu bang nao (vd DB con o V20, chua co
+-- application_reconsideration_requests) thi TRUNCATE bao "relation does not exist" va
 -- dung lai, khong xoa gi (mot cau lenh duy nhat).
 -- TRUNCATE CASCADE quet theo MOI FK tro toi bang bi truncate, bat ke FK khai
 -- ON DELETE RESTRICT/CASCADE/SET NULL - liet ke day du de nguoi doc script
@@ -102,6 +102,9 @@ TRUNCATE TABLE
     cv_builder_documents,
     -- Don ung tuyen & pipeline HR
     job_applications, application_status_history, interview_invitations,
+    -- Yeu cau xem xet lai don bi tu choi (FR-C09, V21) - FK RESTRICT nhung TRUNCATE CASCADE van xoa theo neu thieu
+    -- ten; liet ke cho tuong minh
+    application_reconsideration_requests,
     -- Cau tra loi sang loc chup luc nop don (FR-U09, V13)
     application_screening_answers,
     -- Khung gio giay moi (FR-H12, V16) - CASCADE van xoa theo neu thieu ten; liet ke cho tuong minh

@@ -71,9 +71,20 @@ export function useSendInterviewInvitationMutation(jobId: string, extraInvalidat
       extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
     },
     onError: (error, { applicationId }) => {
+      if (!isAxiosError(error)) {
+        return
+      }
+      const status = error.response?.status
+      const code = (error.response?.data as { error?: unknown } | undefined)?.error
       // 409 INTERVIEW_INVITATION_CONFLICT (UI.md muc 6) - giay moi da doi o noi khac: lam moi I1.
-      if (isAxiosError(error) && error.response?.status === 409) {
+      if (status === 409) {
         queryClient.invalidateQueries({ queryKey: interviewInvitationsKey(applicationId) })
+      }
+      // FR-C09 L1 (UI.md 5b, muc 6) - 409 moi ma (vd RECONSIDERATION_NOT_OPEN: thua tranh chap) hoac 400
+      // INVALID_APPLICATION_STATUS_TRANSITION (yeu cau da quyet o tab khac): lam moi them khoa cua noi goi (H1 + E1 ho so
+      // don) de trang hien dung trang thai moi. Giao dien hop thoai FR-H12 khong doi.
+      if (status === 409 || (status === 400 && code === 'INVALID_APPLICATION_STATUS_TRANSITION')) {
+        extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
       }
     },
   })

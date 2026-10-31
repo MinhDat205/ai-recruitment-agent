@@ -8,6 +8,10 @@ export type NotificationType =
   | 'INTERVIEW_INVITATION_RESENT'
   // FR-U10 R-N2 - ung vien da chon khung gio (chi chu cong ty nhan); mot dong nhu cac loai cu.
   | 'INTERVIEW_SLOT_CONFIRMED'
+  // FR-C09 R-N2, R-N3 - HR nhan khi ung vien gui yeu cau xem xet lai; ung vien nhan khi HR giu quyet dinh tu choi. Mot dong
+  // nhu cac loai cu, khong chua ly do/phan hoi.
+  | 'RECONSIDERATION_REQUESTED'
+  | 'RECONSIDERATION_DECLINED'
 
 export interface NotificationItem {
   id: string

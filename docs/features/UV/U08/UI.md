@@ -39,6 +39,11 @@ Khung trang giống `/candidate/applications` (`CandidateApplicationsPage.tsx:14
 py-8 md:px-6` trên nền `m3-surface-container`; toàn bộ nội dung trong **một** `Card` trắng (`bg-m3-surface`)
 `mx-auto max-w-5xl` để dùng được `m3-primary`/`m3-on-surface-variant` (UI_GUIDE mục 6).
 
+*Sửa bởi FR-C09 (31/10/2026, C09 UI.md 4a–4c): tab "Thông tin đơn" có thêm khối "Xem xét lại" ở **đầu** tab (trên khối
+giấy mời; không render khi `reconsideration` là `null`) kèm nút + hộp thoại "Yêu cầu xem xét lại"; đầu trang và danh
+sách `/candidate/applications` thêm chữ " · Đang chờ xem xét lại" cạnh badge "Bị từ chối" khi yêu cầu đang chờ. Khung
+ASCII dưới đây giữ nguyên bản FR-U08.*
+
 ### 4a. Desktop (≥ `lg`) — tab "Thông tin đơn", đơn đã mời phỏng vấn (R-T6)
 
 ```

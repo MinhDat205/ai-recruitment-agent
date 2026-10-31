@@ -6,8 +6,11 @@
 >
 > Bổ sung 30/10/2026 (FR-U16, **V20**): bảng `saved_jobs` ở sơ đồ 2, chép theo `\d saved_jobs` của DB dev ở V20 (các
 > bảng khác không đổi từ V19).
+>
+> Bổ sung 31/10/2026 (FR-C09, **V21**): bảng `application_reconsideration_requests` ở sơ đồ 4, chép theo
+> `pg_constraint`/`\d` của DB dev ở V21 (các bảng khác không đổi từ V20).
 
-Database có **36 bảng** trong schema `public` (không tính `flyway_schema_history`), chia thành
+Database có **37 bảng** trong schema `public` (không tính `flyway_schema_history`), chia thành
 6 sơ đồ theo package backend. Mỗi bảng được vẽ đầy đủ cột ở đúng một sơ đồ; ở sơ đồ khác nó chỉ
 hiện tên và khoá chính (ghi "chi tiết ở sơ đồ N"). Mỗi khoá ngoại được vẽ đúng một lần, ở sơ đồ của bảng chứa nó.
 
@@ -28,7 +31,7 @@ Cách đọc:
 - [1. Tài khoản và công ty](#1-tài-khoản-và-công-ty) — 3 bảng
 - [2. Tin tuyển dụng, rubric, sàng lọc](#2-tin-tuyển-dụng-rubric-sàng-lọc) — 8 bảng
 - [3. CV, trích xuất, embedding, CV builder](#3-cv-trích-xuất-embedding-cv-builder) — 8 bảng
-- [4. Đơn ứng tuyển, chấm điểm, giải thích](#4-đơn-ứng-tuyển-chấm-điểm-giải-thích) — 7 bảng
+- [4. Đơn ứng tuyển, chấm điểm, giải thích](#4-đơn-ứng-tuyển-chấm-điểm-giải-thích) — 8 bảng
 - [5. Giấy mời, tin nhắn, thông báo, kho ứng viên](#5-giấy-mời-tin-nhắn-thông-báo-kho-ứng-viên) — 6 bảng
 - [6. Danh mục dùng chung](#6-danh-mục-dùng-chung) — 4 bảng
 - [Phụ lục: cách xuất lại](#phụ-lục-cách-xuất-lại)
@@ -364,7 +367,7 @@ erDiagram
 
 ## 4. Đơn ứng tuyển, chấm điểm, giải thích
 
-Package: `jobapplication/`, `scoring/`, `ai/criterion/`, `ai/explanation/`. Bảng: `job_applications`, `application_status_history`, `application_screening_answers`, `scoring_runs`, `criterion_scores`, `score_explanations`, `score_explanation_attempts`.
+Package: `jobapplication/`, `scoring/`, `ai/criterion/`, `ai/explanation/`, `reconsideration/`. Bảng: `job_applications`, `application_status_history`, `application_screening_answers`, `scoring_runs`, `criterion_scores`, `score_explanations`, `score_explanation_attempts`, `application_reconsideration_requests`.
 
 ```mermaid
 erDiagram
@@ -454,6 +457,16 @@ erDiagram
         varchar last_error "not null"
         timestamptz last_attempted_at "not null"
     }
+    application_reconsideration_requests {
+        uuid id PK "not null"
+        uuid application_id FK, UK "not null"
+        text reason
+        varchar status "not null"
+        text hr_response
+        timestamptz requested_at "not null"
+        timestamptz decided_at
+        uuid decided_by FK
+    }
     job_screening_questions {
         uuid id PK "chi tiết ở sơ đồ 2"
     }
@@ -481,6 +494,8 @@ erDiagram
     scoring_runs ||--o{ criterion_scores : "scoring_run_id"
     scoring_runs ||--o| score_explanations : "scoring_run_id"
     scoring_runs ||--o| score_explanation_attempts : "scoring_run_id"
+    job_applications ||--o| application_reconsideration_requests : "application_id"
+    users |o--o{ application_reconsideration_requests : "decided_by"
 ```
 
 **Ràng buộc quan trọng**
@@ -498,6 +513,10 @@ erDiagram
 | `scoring_runs` | `uq_scoring_run_in_progress` | UNIQUE INDEX một phần | (application_id) WHERE `(((status) = ANY ((ARRAY['PENDING', 'RUNNING']))) AND (finished_at IS NULL))` |
 | `scoring_runs` | `scoring_runs_status_check` | CHECK | `status` ∈ {PENDING, RUNNING, DONE, FAILED} |
 | `criterion_scores` | `uq_score_per_criterion` | UNIQUE | (scoring_run_id, criterion_name_snapshot) |
+| `application_reconsideration_requests` | `uq_reconsideration_per_application` | UNIQUE | (application_id) — một yêu cầu mỗi đơn (FR-C09 R-E2); hai FK `ON DELETE RESTRICT` (đơn, người quyết) |
+| `application_reconsideration_requests` | `application_reconsideration_requests_status_check` | CHECK | `status` ∈ {OPEN, ACCEPTED, DECLINED} — trạng thái của **yêu cầu**, đơn vẫn đúng 5 trạng thái |
+| `application_reconsideration_requests` | `chk_reconsideration_decision` | CHECK | `(((status = 'OPEN') = (decided_at IS NULL)) AND ((decided_at IS NULL) = (decided_by IS NULL)))` |
+| `application_reconsideration_requests` | `chk_reconsideration_response_declined` | CHECK | `((hr_response IS NULL) OR (status = 'DECLINED'))` |
 
 ## 5. Giấy mời, tin nhắn, thông báo, kho ứng viên
 

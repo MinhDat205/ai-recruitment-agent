@@ -10,6 +10,7 @@ import com.recruitment.jobapplication.dto.ApplicationExplanationResponse;
 import com.recruitment.jobapplication.dto.ApplicationHistoryEntryResponse;
 import com.recruitment.jobapplication.dto.ApplicationHrDetailResponse;
 import com.recruitment.jobapplication.dto.ApplicationScoresResponse;
+import com.recruitment.reconsideration.ReconsiderationReader;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.user.User;
@@ -32,6 +33,7 @@ public class ApplicationHrDetailService {
     private final ApplicationOwnerService applicationOwnerService;
     private final BlindReviewResolver blindReviewResolver;
     private final IdentityMaskSource identityMaskSource;
+    private final ReconsiderationReader reconsiderationReader;
 
     public ApplicationHrDetailService(
             HrApplicationAccess hrApplicationAccess,
@@ -40,7 +42,8 @@ public class ApplicationHrDetailService {
             ApplicationStatusHistoryRepository statusHistoryRepository,
             ApplicationOwnerService applicationOwnerService,
             BlindReviewResolver blindReviewResolver,
-            IdentityMaskSource identityMaskSource) {
+            IdentityMaskSource identityMaskSource,
+            ReconsiderationReader reconsiderationReader) {
         this.hrApplicationAccess = hrApplicationAccess;
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
@@ -48,6 +51,7 @@ public class ApplicationHrDetailService {
         this.applicationOwnerService = applicationOwnerService;
         this.blindReviewResolver = blindReviewResolver;
         this.identityMaskSource = identityMaskSource;
+        this.reconsiderationReader = reconsiderationReader;
     }
 
     // E1 (R-D1). resumeId luon suy ra o server tu don (khong nhan tu client) - CV cua DUNG don nay,
@@ -79,7 +83,9 @@ public class ApplicationHrDetailService {
                 resume.getParseStatus(),
                 resume.getParseError(),
                 masked ? null : resume.getFileName(),
-                masked);
+                masked,
+                // FR-C09 - khoi yeu cau xem xet lai (R-D7, T25); reader tu xet an danh bang chinh BlindReviewResolver.
+                reconsiderationReader.hrBlock(applicationId));
     }
 
     // E3 (R-D3..R-D5) - diem cua lot DONE moi nhat + hang, tinh bang dung code FR-H05 cua danh sach

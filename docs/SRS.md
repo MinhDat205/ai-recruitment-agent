@@ -1,8 +1,8 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này cập nhật lần gần nhất ngày 30/10/2026 (FR-U16 hoàn thành; 29/10/2026: đăng ký FR-C09, FR-U16 và phần
-> mở rộng FR-H04). Các quyết
+> Đặc tả này cập nhật lần gần nhất ngày 31/10/2026 (FR-C09 hoàn thành; 30/10/2026: FR-U16 hoàn thành; 29/10/2026:
+> đăng ký FR-C09, FR-U16 và phần mở rộng FR-H04). Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
@@ -12,8 +12,7 @@ Tài liệu này tổ chức lại toàn bộ yêu cầu chức năng theo 3 nh�
 # 0. Tổng quan hệ thống
 
 Nền tảng có hai vai trò sử dụng: **Nhà tuyển dụng (HR)** và **Ứng viên (Candidate)**. Tính đến thời
-điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **38 đã hoàn thành và 1 chưa
-hoàn thành** (FR-C09): 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
+điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **cả 39 đã hoàn thành**: 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
 ở Mục 1/2/3 bên dưới) và 21 chức năng bổ sung (FR-C05–C09, FR-H09–H12, FR-H14–H16, FR-U07–U10,
 FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng tại
 `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
@@ -28,7 +27,7 @@ FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng t�
 | FR-C06 | Nhắn tin theo đơn ứng tuyển | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C06/REQUIREMENT.md](features/CHUNG/C06/REQUIREMENT.md) |
 | FR-C07 | AI soạn nháp tin nhắn | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C07/REQUIREMENT.md](features/CHUNG/C07/REQUIREMENT.md) |
 | FR-C08 | Hỏi đáp CV có trích dẫn | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C08/REQUIREMENT.md](features/CHUNG/C08/REQUIREMENT.md) |
-| FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | HR, Ứng viên | Chưa hoàn thành | [features/CHUNG/C09/REQUIREMENT.md](features/CHUNG/C09/REQUIREMENT.md) |
+| FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C09/REQUIREMENT.md](features/CHUNG/C09/REQUIREMENT.md) |
 | FR-H01 | Quản lý Hồ sơ Doanh nghiệp | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H02 | Quản lý Tin Tuyển dụng (Job Posting) | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H03 | Thiết lập Rubric Tuyển dụng | HR | Đã hoàn thành | Mục 2 bên dưới |
@@ -99,7 +98,7 @@ FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng t�
 | **FR-H04** | **AI Rubric Scoring (Chấm điểm từng tiêu chí)** | Dựa trên dữ liệu CV đã trích xuất (FR-C04) và bộ cấu hình Rubric (FR-H03), AI (LLM) đối chiếu, phân tích ngữ nghĩa và chấm điểm cho từng tiêu chí riêng lẻ, kèm minh chứng (evidence) trích từ CV. Mỗi minh chứng AI trả về phải là trích dẫn nguyên văn khớp với nội dung CV gốc; hệ thống đối chiếu tự động và từ chối minh chứng không khớp. Nếu một tiêu chí có minh chứng không đạt kiểm tra này, toàn bộ lượt chấm của hồ sơ dừng lại và không tính điểm — hệ thống không lưu kết quả mà nó không kiểm chứng được. HR có thể tạo lượt chấm mới để thử lại. **Nguyên tắc: ***AI chỉ đánh giá và trả về điểm số của từng tiêu chí đơn lẻ. AI không tính tổng điểm và không xếp hạng ứng viên — việc này thuộc về FR-H05.* | HR (xem kết quả) — AI thực hiện |
 | **FR-H05** | **Tổng hợp Điểm ****&**** Xếp hạng Ứng viên** | Backend tổng hợp điểm từng tiêu chí (FR-H04) theo đúng trọng số HR đã cấu hình (FR-H03) để tính tổng điểm, sau đó sắp xếp danh sách ứng viên của cùng một chiến dịch theo thứ tự tổng điểm từ cao xuống thấp. **Nguyên tắc: ***Đây là phép tính xác định (cộng theo trọng số + sắp xếp) do Backend thực hiện, không do AI. Hệ thống chỉ xếp hạng theo điểm, không phân loại hay gán nhãn Đạt/Cần xem xét/Không đạt — HR tự mở từng hồ sơ theo thứ tự và ra quyết định.* | HR (xem kết quả) — Backend thực hiện |
 | **FR-H06** | **AI Explainable Scoring (Giải thích Điểm số)** | Với mỗi hồ sơ đã chấm điểm, AI tạo báo cáo giải thích bằng ngôn ngữ tự nhiên: lý do ứng viên đạt điểm cao/thấp ở từng tiêu chí, các tiêu chí đã đáp ứng, các tiêu chí còn thiếu hụt, tổng kết điểm mạnh và điểm yếu cốt lõi. HR có thể tải về CV gốc của ứng viên để đối chiếu trực tiếp với các minh chứng trong báo cáo. **Nguyên tắc: ***Mọi giải thích phải có thể kiểm chứng dựa trên nội dung CV (trích dẫn evidence cụ thể), phục vụ yêu cầu minh bạch (Explainable AI) và tuân thủ nguyên tắc Human-in-the-loop.* | HR (xem kết quả) — AI thực hiện |
-| **FR-H07** | **Quản lý Pipeline ****&**** Quyết định Tuyển dụng** | HR xem danh sách ứng viên đã được xếp hạng theo điểm (FR-H05), mở từng hồ sơ để xem điểm số và giải thích (FR-H06), rồi tự tay quyết định: (1) Mời phỏng vấn — hệ thống tự render Mẫu Giấy mời đã tạo ở FR-H02 kèm tên ứng viên, HR điền ngày giờ cụ thể (FR-H12: 1–5 khung giờ, mỗi khung gồm thời điểm và địa điểm/link) và có thể chỉnh sửa nội dung trước khi gửi qua FR-C03; hoặc (2) Từ chối ngay từ vòng hồ sơ. Nội dung giấy mời được lưu lại nguyên văn tại thời điểm gửi; các thay đổi sau đó với mẫu giấy mời không ảnh hưởng tới giấy mời đã gửi cho ứng viên. Sau buổi phỏng vấn, HR quay lại xác nhận kết quả cuối: Trúng tuyển hoặc Bị từ chối. Trạng thái ứng tuyển gồm 5 giá trị: Chờ duyệt → Đã mời phỏng vấn (đã gửi giấy mời có 1–5 khung giờ — FR-H12) → Trúng tuyển / Bị từ chối; Chờ duyệt → Bị từ chối; và Đã rút đơn (do ứng viên chủ động — xem FR-U06) có thể xảy ra ở bất kỳ giai đoạn nào trước khi có kết quả cuối. **Nguyên tắc: ***Không sử dụng AI để tự quyết định ứng viên đậu hay rớt, kể cả dưới hình thức gán nhãn phân loại. Hệ thống chỉ cung cấp điểm số, xếp hạng và giải thích; quyết định Mời phỏng vấn / Từ chối / Trúng tuyển luôn do HR trực tiếp thực hiện trên từng hồ sơ.* | HR |
+| **FR-H07** | **Quản lý Pipeline ****&**** Quyết định Tuyển dụng** | HR xem danh sách ứng viên đã được xếp hạng theo điểm (FR-H05), mở từng hồ sơ để xem điểm số và giải thích (FR-H06), rồi tự tay quyết định: (1) Mời phỏng vấn — hệ thống tự render Mẫu Giấy mời đã tạo ở FR-H02 kèm tên ứng viên, HR điền ngày giờ cụ thể (FR-H12: 1–5 khung giờ, mỗi khung gồm thời điểm và địa điểm/link) và có thể chỉnh sửa nội dung trước khi gửi qua FR-C03; hoặc (2) Từ chối ngay từ vòng hồ sơ. Nội dung giấy mời được lưu lại nguyên văn tại thời điểm gửi; các thay đổi sau đó với mẫu giấy mời không ảnh hưởng tới giấy mời đã gửi cho ứng viên. Sau buổi phỏng vấn, HR quay lại xác nhận kết quả cuối: Trúng tuyển hoặc Bị từ chối. Trạng thái ứng tuyển gồm 5 giá trị: Chờ duyệt → Đã mời phỏng vấn (đã gửi giấy mời có 1–5 khung giờ — FR-H12) → Trúng tuyển / Bị từ chối; Chờ duyệt → Bị từ chối; và Đã rút đơn (do ứng viên chủ động — xem FR-U06) có thể xảy ra ở bất kỳ giai đoạn nào trước khi có kết quả cuối. Ngoại lệ duy nhất (FR-C09): đơn bị từ chối ở vòng hồ sơ có yêu cầu xem xét lại đang chờ được chuyển Bị từ chối → Đã mời phỏng vấn khi HR gửi giấy mời; vẫn 5 trạng thái, cạnh này không áp cho đơn khác. **Nguyên tắc: ***Không sử dụng AI để tự quyết định ứng viên đậu hay rớt, kể cả dưới hình thức gán nhãn phân loại. Hệ thống chỉ cung cấp điểm số, xếp hạng và giải thích; quyết định Mời phỏng vấn / Từ chối / Trúng tuyển luôn do HR trực tiếp thực hiện trên từng hồ sơ.* | HR |
 | **FR-H08** | **Dashboard, Thống kê ****&**** Lịch sử Đánh giá** | Bảng điều khiển trực quan tổng hợp: tổng số hồ sơ, tỷ lệ chuyển đổi giữa các vòng, hiệu suất từng chiến dịch tuyển dụng. Tỷ lệ chuyển đổi được tính dựa trên việc đơn ứng tuyển đã từng đạt tới một trạng thái nhất định trong lịch sử, không phụ thuộc trạng thái hiện tại của đơn (ví dụ đơn được mời phỏng vấn rồi rút vẫn được tính là đã từng mời). HR có thể lọc/sắp xếp danh sách ứng viên theo khoảng tổng điểm hoặc theo điểm của một tiêu chí cụ thể (VD: chỉ xem ứng viên có điểm Docker ≥ 8/10), để thu hẹp danh sách khi có nhiều hồ sơ. HR có thể truy xuất toàn bộ lịch sử đánh giá của AI đối với từng ứng viên để phục vụ đối chiếu, kiểm tra và tuân thủ (audit). | HR |
 
 ### Chức năng bổ sung
@@ -153,7 +152,7 @@ FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng t�
 
 - Không sử dụng AI để tự quyết định ứng viên đậu hay rớt, kể cả dưới hình thức gán nhãn phân loại; HR tự mở từng hồ sơ theo thứ tự xếp hạng và trực tiếp quyết định Mời phỏng vấn / Từ chối / Trúng tuyển (FR-H07).
 
-- Vòng đời ứng tuyển gồm 5 trạng thái: Chờ duyệt, Đã mời phỏng vấn (đã gửi giấy mời có 1–5 khung giờ — FR-H12), Trúng tuyển, Bị từ chối, Đã rút đơn (FR-H07, FR-U03, FR-U06).
+- Vòng đời ứng tuyển gồm 5 trạng thái: Chờ duyệt, Đã mời phỏng vấn (đã gửi giấy mời có 1–5 khung giờ — FR-H12), Trúng tuyển, Bị từ chối, Đã rút đơn (FR-H07, FR-U03, FR-U06). Ngoại lệ duy nhất về chuyển trạng thái: Bị từ chối → Đã mời phỏng vấn, chỉ khi HR gửi giấy mời cho đơn có yêu cầu xem xét lại đang chờ (FR-C09); yêu cầu nằm ở bảng riêng, không thành trạng thái thứ 6.
 
 - Ứng viên phải đồng ý (consent) cho CV được AI phân tích trước khi ứng tuyển (FR-U02).
 

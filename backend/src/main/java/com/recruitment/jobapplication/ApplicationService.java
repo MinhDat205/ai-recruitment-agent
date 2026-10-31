@@ -20,6 +20,8 @@ import com.recruitment.jobapplication.dto.ApplicationSummaryResponse;
 import com.recruitment.jobapplication.dto.TalentPoolConsentResponse;
 import com.recruitment.notification.ApplicationSubmittedEvent;
 import com.recruitment.notification.ApplicationWithdrawnEvent;
+import com.recruitment.reconsideration.ReconsiderationReader;
+import com.recruitment.reconsideration.ReconsiderationStatus;
 import com.recruitment.resume.Resume;
 import com.recruitment.resume.ResumeRepository;
 import com.recruitment.screening.ScreeningAnswerDraft;
@@ -46,6 +48,7 @@ public class ApplicationService {
     private final CatalogRegistry catalogRegistry;
     private final ScreeningCaptureService screeningCaptureService;
     private final TalentPoolEntryRepository talentPoolEntryRepository;
+    private final ReconsiderationReader reconsiderationReader;
 
     public ApplicationService(
             JobApplicationRepository applicationRepository,
@@ -58,7 +61,8 @@ public class ApplicationService {
             CompanyRepository companyRepository,
             CatalogRegistry catalogRegistry,
             ScreeningCaptureService screeningCaptureService,
-            TalentPoolEntryRepository talentPoolEntryRepository) {
+            TalentPoolEntryRepository talentPoolEntryRepository,
+            ReconsiderationReader reconsiderationReader) {
         this.applicationRepository = applicationRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.jobRepository = jobRepository;
@@ -70,6 +74,7 @@ public class ApplicationService {
         this.catalogRegistry = catalogRegistry;
         this.screeningCaptureService = screeningCaptureService;
         this.talentPoolEntryRepository = talentPoolEntryRepository;
+        this.reconsiderationReader = reconsiderationReader;
     }
 
     @Transactional
@@ -173,7 +178,9 @@ public class ApplicationService {
     }
 
     // FR-U08 E1 - chi tiet MOT don cua chinh ung vien. Chi doc job_applications, jobs, companies, resumes
-    // (R-D1): KHONG doc scoring_runs/criterion_scores/score_explanations/interview_invitations/lich su.
+    // (R-D1): KHONG doc scoring_runs/criterion_scores/score_explanations/interview_invitations. Ngoai le da duyet
+    // (FR-C09 M1): doc them application_status_history va application_reconsideration_requests CUA CHINH DON, qua
+    // ReconsiderationReader, chi de dung khoi reconsideration (R-C1) - khong tra lich su hay du lieu noi bo nao khac.
     @Transactional(readOnly = true)
     public ApplicationCandidateDetailResponse getMyApplicationDetail(UUID candidateId, UUID applicationId) {
         // R-Q2: don khong ton tai HOAC cua nguoi khac deu cung 404 APPLICATION_NOT_FOUND - cung pattern
@@ -226,7 +233,8 @@ public class ApplicationService {
                 application.getCoverLetter(),
                 jobInfo,
                 resumeInfo,
-                toTalentPoolConsentResponse(application));
+                toTalentPoolConsentResponse(application),
+                reconsiderationReader.candidateBlock(application.getId(), candidateId));
     }
 
     // FR-U09 F4 (R-K7, R-K8) - rut dong y luu ho so cua MOT don cua chinh ung vien, o MOI trang thai don.
@@ -283,7 +291,8 @@ public class ApplicationService {
                 v.getCompanyName(),
                 ApplicationStatus.valueOf(v.getStatus()),
                 v.getAppliedAt(),
-                v.getUpdatedAt());
+                v.getUpdatedAt(),
+                v.getReconsiderationStatus() == null ? null : ReconsiderationStatus.valueOf(v.getReconsiderationStatus()));
     }
 
     // Package-private (khong private): ApplicationHrDetailService (FR-H09 E5) dung lai dung cach map

@@ -67,6 +67,24 @@ final class NotificationContentBuilder {
                 hrApplicationLink(applicationId));
     }
 
+    // FR-C09 R-N2 - candidateLabel nhu forApplicationWithdrawn (FR-H16 L1). KHONG dua ly do vao noi dung (R-A3); email =
+    // noi dung (emailBody null).
+    static Content forReconsiderationRequested(Job job, String candidateLabel, UUID applicationId) {
+        return new Content(
+                "Ứng viên yêu cầu xem xét lại",
+                candidateLabel + " đã gửi yêu cầu xem xét lại đơn ứng tuyển vị trí \"" + job.getTitle() + "\".",
+                hrApplicationLink(applicationId));
+    }
+
+    // FR-C09 R-N3 - gui ung vien. KHONG chua phan hoi cua HR (Q5): ung vien doc phan hoi o trang chi tiet don.
+    static Content forReconsiderationDeclined(Job job, UUID applicationId) {
+        return new Content(
+                "Kết quả yêu cầu xem xét lại",
+                "Nhà tuyển dụng đã xem xét lại và giữ quyết định từ chối đơn ứng tuyển vị trí \"" + job.getTitle()
+                        + "\". Xem chi tiết trong đơn ứng tuyển.",
+                candidateApplicationLink(applicationId));
+    }
+
     static Content forAggregationFinished(Job job, UUID applicationId) {
         return new Content(
                 "Đã chấm điểm xong một đợt hồ sơ",
