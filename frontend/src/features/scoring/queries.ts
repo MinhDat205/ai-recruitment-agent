@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient, type Query, type QueryKey } from '@tanstack/react-query'
 import type { ApplicationStatus } from '../applications/types'
-import { changeApplicationStatusRequest, createScoringRunRequest, listHrApplicationsRequest, listScoringRunsRequest } from './api'
+import {
+  bulkCreateScoringRunsRequest,
+  changeApplicationStatusRequest,
+  createScoringRunRequest,
+  listHrApplicationsRequest,
+  listScoringRunsRequest,
+} from './api'
 import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
 
 const HR_APPLICATIONS_KEY_PREFIX = 'hr-applications'
+const SCORING_RUNS_KEY_PREFIX = 'scoring-runs'
 
 // Key DAY DU (dung cho queryFn/getQueryData) - sort la MOT PHAN cua key vi doi sort phai fetch lai
 // (thu tu tra ve tu backend khac nhau, khong the tai su dung cache cua sort kia).
@@ -22,7 +29,7 @@ export function hrApplicationsKeyPrefix(jobId: string) {
 
 // Export (FR-H09 R-A5) - trang ho so don truyen key nay vao danh sach query can lam moi sau thao tac.
 export function scoringRunsKey(applicationId: string) {
-  return ['scoring-runs', applicationId]
+  return [SCORING_RUNS_KEY_PREFIX, applicationId]
 }
 
 // Poller backend chay moi 5s (app.scoring.poll-interval-ms / app.aggregation.poll-interval-ms) -
@@ -186,6 +193,20 @@ export function useCreateScoringRunMutation(jobId: string, extraInvalidateKeys: 
       queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
       queryClient.invalidateQueries({ queryKey: scoringRunsKey(applicationId) })
       extraInvalidateKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }))
+    },
+  })
+}
+
+// FR-H04 mo rong R-F4 - cham tat ca CV trong tin. Response khong tra id cac luot vua tao, nen invalidate MOI khoa
+// ['scoring-runs', ...] theo tien to: dong FAILED cu dang giu cache da dung poll se tai lai va chuyen sang luot moi.
+// Polling danh sach tu bat lai theo dieu kien san co (hasApplicationWithRunInProgress); khong doi MAX_POLL_DURATION_MS.
+export function useBulkCreateScoringRunsMutation(jobId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => bulkCreateScoringRunsRequest(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: hrApplicationsKeyPrefix(jobId) })
+      queryClient.invalidateQueries({ queryKey: [SCORING_RUNS_KEY_PREFIX] })
     },
   })
 }

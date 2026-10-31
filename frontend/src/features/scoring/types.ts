@@ -97,3 +97,18 @@ export interface ApplicationHrListItem {
 // Khop ApplicationSortOption (backend) - gia tri gui qua tham so ?sort= cua GET .../applications.
 // 'total_score,desc' la mac dinh (thu tu hien thi = thu tu xep hang).
 export type ApplicationSortOption = 'total_score,desc' | 'applied_at,desc'
+
+// FR-H04 mo rong (REQUIREMENT muc 4.3) - ket qua cua bulkCreateScoringRunsRequest (api.ts). Thu tu 4 ma = thu tu uu tien
+// R-E3. Khong co id luot da tao, ten hay truong danh tinh (R-G3).
+export type BulkScoringSkipReason = 'NOT_PENDING' | 'RESUME_NOT_PARSED' | 'RUN_IN_PROGRESS' | 'ALREADY_SCORED'
+
+export interface BulkScoringSkippedApplication {
+  applicationId: string
+  reason: BulkScoringSkipReason
+}
+
+export interface BulkScoringRunResult {
+  created: number
+  remaining: number
+  skipped: BulkScoringSkippedApplication[]
+}

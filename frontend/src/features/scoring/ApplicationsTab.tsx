@@ -14,6 +14,7 @@ import { COMPARE_SELECTION_TEXT } from '../comparison/comparisonLabels'
 import { extractErrorMessage } from '../../lib/httpError'
 import { EMPTY_VALUE_PLACEHOLDER, formatTotalScore } from '../../lib/score'
 import { ParseStatusBadge } from '../resumes/ParseStatusBadge'
+import { BulkScoringButton } from './BulkScoringButton'
 import { downloadApplicationResume } from './downloadApplicationResume'
 import { useCreateScoringRunMutation, useHrApplicationsQuery, useScoringRunsQuery } from './queries'
 import { scoringDisabledReason } from './scoringRules'
@@ -411,19 +412,24 @@ export function ApplicationsTab({ jobId }: { jobId: string }) {
           <p className="min-w-0 break-words">{BLIND_REVIEW_TEXT.applicationsTabNotice}</p>
         </div>
       )}
-      <div className="flex items-center gap-2">
-        <Label htmlFor="applications-sort" className="text-sm text-m3-on-surface-variant">
-          Sắp xếp theo
-        </Label>
-        <Select value={sort} onValueChange={(value) => setSort(value as ApplicationSortOption)}>
-          <SelectTrigger id="applications-sort" className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="total_score,desc">Tổng điểm</SelectItem>
-            <SelectItem value="applied_at,desc">Ngày nộp</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* FR-H04 mo rong (UI.md 4a, 4b, 5b) - < sm xep doc; >= sm "Sap xep theo" trai, nut phai; cau ket qua cua
+          BulkScoringButton (basis-full) xuong dong ngay duoi hang. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="applications-sort" className="text-sm text-m3-on-surface-variant">
+            Sắp xếp theo
+          </Label>
+          <Select value={sort} onValueChange={(value) => setSort(value as ApplicationSortOption)}>
+            <SelectTrigger id="applications-sort" className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="total_score,desc">Tổng điểm</SelectItem>
+              <SelectItem value="applied_at,desc">Ngày nộp</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <BulkScoringButton jobId={jobId} job={job} applications={applications} />
       </div>
 
       {/* timedOut: danh sach dung tu dong cap nhat sau 10 phut co don van dang "dang cham" khong
