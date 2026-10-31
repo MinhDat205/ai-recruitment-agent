@@ -1,6 +1,7 @@
 # FR-C09 — Yêu cầu xem xét lại đơn bị từ chối
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026). Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q10; cách chia 400/409 ở R-S3
+> Trạng thái: ĐÃ HOÀN THÀNH (31/10/2026). Duyệt: 30/10/2026. Walkthrough: `docs/walkthrough/fr-c09-reconsideration.md`.
+> Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q10; cách chia 400/409 ở R-S3
 > bước (0) và R-D3 xác nhận khi duyệt; bổ sung khoá `ON DELETE RESTRICT` ở mục 9 và mục 8).
 >
 > Viết theo kế hoạch `docs/plans/2026-11-dot-bo-sung.md` (mục "FR-C09", quyết định 29/10).

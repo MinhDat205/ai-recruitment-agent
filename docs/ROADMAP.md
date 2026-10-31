@@ -1230,8 +1230,23 @@ phải đổi số.
   - Khối 7.2 trên PowerShell 5.1 in `System.Byte[]` cho dòng 204 và vỡ dấu ở thân 200 (API trả `application/json` không
     kèm charset, như mọi endpoint cũ) — mã HTTP vẫn đúng; chưa sửa khối lệnh.
   - Frontend không có test tự động.
-- [ ] `feat/fr-c09-reconsideration` — FR-C09 · Yêu cầu xem xét lại đơn bị từ chối (V21): yêu cầu ở bảng riêng, đơn
-  vẫn đúng 5 trạng thái; rebase lên `main` sau khi FR-U16 đã merge.
+- [x] `feat/fr-c09-reconsideration` — FR-C09 · Yêu cầu xem xét lại đơn bị từ chối (V21): yêu cầu ở bảng riêng
+  `application_reconsideration_requests`, đơn vẫn đúng 5 trạng thái (hoàn thành 31/10/2026, xem
+  `docs/walkthrough/fr-c09-reconsideration.md`). Package `reconsideration/`; một yêu cầu mỗi đơn chốt bằng UNIQUE ở DB;
+  hạn 168 giờ so bằng `now()` của Postgres; chấp nhận = gửi giấy mời FR-H12 qua cạnh riêng
+  `reinviteAfterReconsideration` (không đổi `ALLOWED_TRANSITIONS`), mọi quyết định là `UPDATE … WHERE status = 'OPEN'`;
+  tab "Yêu cầu xem xét lại" ở trang sửa tin, khối ở hồ sơ đơn và chi tiết đơn ứng viên; seed tầng 3 Phần B (Mai, Sơn) và
+  seed test mục 18 (dải `f3000000-`). Full suite 2226/2226 (lần đầu 1 Error môi trường, chạy lại một lần xanh); khối
+  HTTP đợt 7 22/22; đột biến 7.4 đỏ đúng chỗ; soát tay rút gọn 8 bước đạt (31/10/2026); `srs-guard` 16/16 sạch, thêm
+  nguyên tắc 16. Giới hạn đã biết và nợ kỹ thuật:
+  - Yêu cầu `OPEN` của tin bị gỡ sau đó chỉ còn lối vào bằng link thông báo `RECONSIDERATION_REQUESTED`; không tự
+    `DECLINED`, nếu HR không mở thì ở `OPEN` vô thời hạn (Q2).
+  - Đồng hồ VM Docker lệch/bị chỉnh lùi (đo 17,3 s) làm `ApplicationTalentPoolControllerIntegrationTest.t14` (FR-H15)
+    vỡ CHECK `removed_at >= added_at` một lần; lỗi môi trường, chưa xử lý.
+  - Nhánh "I2 thắng, H2 thua" của T15(c) chỉ phủ bằng ca tất định (dạng lặp: H2 thắng 20/20 vòng).
+  - Nhãn tab kèm số gọi H1 ngay khi mở trang sửa tin.
+  - Seed tầng 3 Phần B dùng mốc tương đối: nạp lại trong ngày demo để hạn 7 ngày còn.
+  - Frontend không có test tự động.
 - [ ] `feat/fr-h04-bulk-scoring` — FR-H04 mở rộng · Chấm tất cả CV trong tin: một lần bấm tạo lượt chấm `PENDING`
   cho các đơn đủ điều kiện, trần 50; không migration, làm nếu còn thời gian.
 

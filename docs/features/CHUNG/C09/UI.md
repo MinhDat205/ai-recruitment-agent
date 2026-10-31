@@ -1,6 +1,6 @@
 # FR-C09 — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (31/10/2026). Duyệt: 30/10/2026.
 
 - Nhóm: Chung
 - Tóm tắt: Ứng viên có đơn bị từ chối ở vòng hồ sơ được gửi một yêu cầu xem xét lại trong 7 ngày; HR mời phỏng vấn hoặc giữ quyết định từ chối
@@ -12,7 +12,7 @@ phán quyết; ẩn danh; dữ liệu thiếu), 5 (rỗng/tải/lỗi), 6 (tươ
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (31/10/2026). Duyệt: 30/10/2026.
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

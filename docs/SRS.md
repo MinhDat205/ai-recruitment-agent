@@ -1,8 +1,8 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này cập nhật lần gần nhất ngày 30/10/2026 (FR-U16 hoàn thành; 29/10/2026: đăng ký FR-C09, FR-U16 và phần
-> mở rộng FR-H04). Các quyết
+> Đặc tả này cập nhật lần gần nhất ngày 31/10/2026 (FR-C09 hoàn thành; 30/10/2026: FR-U16 hoàn thành; 29/10/2026:
+> đăng ký FR-C09, FR-U16 và phần mở rộng FR-H04). Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
@@ -12,8 +12,7 @@ Tài liệu này tổ chức lại toàn bộ yêu cầu chức năng theo 3 nh�
 # 0. Tổng quan hệ thống
 
 Nền tảng có hai vai trò sử dụng: **Nhà tuyển dụng (HR)** và **Ứng viên (Candidate)**. Tính đến thời
-điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **38 đã hoàn thành và 1 chưa
-hoàn thành** (FR-C09): 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
+điểm cập nhật này, hệ thống có tổng cộng 39 mã yêu cầu chức năng, **cả 39 đã hoàn thành**: 18 chức năng gốc (FR-C01–C04, FR-H01–H08, FR-U01–U06 — đặc tả đầy đủ
 ở Mục 1/2/3 bên dưới) và 21 chức năng bổ sung (FR-C05–C09, FR-H09–H12, FR-H14–H16, FR-U07–U10,
 FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng tại
 `docs/features/<nhóm>/<mã>/REQUIREMENT.md` và `UI.md`.
@@ -28,7 +27,7 @@ FR-U12–U16), mỗi chức năng bổ sung có tài liệu chi tiết riêng t�
 | FR-C06 | Nhắn tin theo đơn ứng tuyển | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C06/REQUIREMENT.md](features/CHUNG/C06/REQUIREMENT.md) |
 | FR-C07 | AI soạn nháp tin nhắn | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C07/REQUIREMENT.md](features/CHUNG/C07/REQUIREMENT.md) |
 | FR-C08 | Hỏi đáp CV có trích dẫn | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C08/REQUIREMENT.md](features/CHUNG/C08/REQUIREMENT.md) |
-| FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | HR, Ứng viên | Chưa hoàn thành | [features/CHUNG/C09/REQUIREMENT.md](features/CHUNG/C09/REQUIREMENT.md) |
+| FR-C09 | Yêu cầu xem xét lại đơn bị từ chối | HR, Ứng viên | Đã hoàn thành | [features/CHUNG/C09/REQUIREMENT.md](features/CHUNG/C09/REQUIREMENT.md) |
 | FR-H01 | Quản lý Hồ sơ Doanh nghiệp | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H02 | Quản lý Tin Tuyển dụng (Job Posting) | HR | Đã hoàn thành | Mục 2 bên dưới |
 | FR-H03 | Thiết lập Rubric Tuyển dụng | HR | Đã hoàn thành | Mục 2 bên dưới |

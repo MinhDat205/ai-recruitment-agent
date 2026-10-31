@@ -175,6 +175,11 @@ không đổi trạng thái, không ghi lịch sử trạng thái, một thông 
 - **R-F3.** Đơn không `PENDING` → giữ hành vi hiện có: `400 INVALID_APPLICATION_STATUS_TRANSITION`, không tạo dòng
   nào (test `send_applicationAlreadyInterviewInvited_returns400` giữ nguyên khẳng định, chỉ đổi thân request sang dạng
   khung giờ).
+  *Sửa bởi FR-C09 (31/10/2026, C09 REQUIREMENT M6, R-S3): đơn `REJECTED` có yêu cầu xem xét lại `OPEN` gửi giấy mời
+  được — trong cùng transaction yêu cầu chuyển `ACCEPTED` rồi đơn đi cạnh riêng `REJECTED → INTERVIEW_INVITED`
+  (`ApplicationStatusService.reinviteAfterReconsideration`, không qua `ALLOWED_TRANSITIONS`); thua tranh chấp → 409
+  `RECONSIDERATION_NOT_OPEN`. Mọi ca khác của R-F3 giữ nguyên 400 (đơn `REJECTED` không có yêu cầu hoặc yêu cầu đã
+  `ACCEPTED`/`DECLINED`, đơn `HIRED`, `WITHDRAWN` — C09 T11).*
 - **R-F4.** Chốt cuối chống hai giấy mời hiệu lực là partial unique index `uq_invitation_active` (mục 4.1); vi phạm →
   `409 INTERVIEW_INVITATION_CONFLICT` (R-G6).
 

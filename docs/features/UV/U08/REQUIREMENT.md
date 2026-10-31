@@ -144,6 +144,8 @@ của mình.
 ### 3.1 Phạm vi (R-P)
 
 - **R-P1.** Đúng 2 tab: "Thông tin đơn" và "Lịch sử". Một nút thao tác duy nhất: "Rút đơn".
+  *Sửa bởi FR-C09 (31/10/2026, C09 REQUIREMENT M5): thêm nút "Yêu cầu xem xét lại" nằm trong khối "Xem xét lại" ở đầu tab
+  "Thông tin đơn" (không ở đầu trang), chỉ khi khối ở trạng thái `AVAILABLE` (theo R-P2: FR sau tự thêm phần của mình).*
 - **R-P2.** Không dựng tab rỗng, tab bị khoá, nút bị khoá hay khoảng trống chờ cho: câu trả lời sàng lọc và
   Rút đồng ý lưu hồ sơ (FR-U09), chọn khung giờ (FR-U10), Trao đổi (FR-C06). FR nào tự thêm phần FR đó.
 - **R-P3.** Trang danh sách `/candidate/applications` bỏ hẳn hộp thoại "Lịch sử ứng tuyển", hộp thoại
@@ -171,6 +173,11 @@ của mình.
 - **R-D1. Đầu trang + thông tin đơn** đọc `job_applications` (gồm `cover_letter`), `jobs`, `companies.name`,
   `resumes` (`file_name`, `parse_status`, `parse_error`). Không đọc `scoring_runs`, `criterion_scores`,
   `score_explanations`, `score_explanation_attempts`, `interview_invitations`, `application_status_history`.
+  *Sửa bởi FR-C09 (31/10/2026, C09 REQUIREMENT M1, M2, R-C1): E1 đọc thêm `application_status_history` và
+  `application_reconsideration_requests` **của chính đơn** (qua `ReconsiderationReader`), chỉ để dựng khoá mới
+  `reconsideration` (`null` hoặc khối 6 `state`: hạn chót, lý do, kết quả, phản hồi HR) — ngoại lệ có duyệt như FR-U09
+  thêm `talentPoolConsent`. Không thêm dữ liệu nội bộ nào (không `decidedBy`, điểm, rubric, ghi chú HR). Danh sách đơn
+  (FR-U03) thêm `reconsiderationStatus`.*
 - **R-D2. CV của đơn** là `job_applications.resume_id` — **không** phải CV chính hiện tại của ứng viên.
 - **R-D3. Thông tin tin là bản hiện tại** của dòng `jobs`, không phải bản lúc nộp (hệ thống không chụp
   lại tin). Giao diện ghi rõ điều này (UI.md mục 7).

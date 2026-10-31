@@ -82,14 +82,18 @@ Mật khẩu chung `Demo1234` (công khai có chủ đích, chỉ cho máy demo 
 |---|---|---|
 | `hr@demo.local` | Thường | HR Công ty Cổ phần Công nghệ Hoàn Mỹ: chấm điểm, hỏi đáp CV, mời phỏng vấn, soạn nháp, tạo tin bằng AI |
 | `pham.quoc.bao@demo.local` | Ẩn danh | Ứng viên QA: tìm việc bằng mô tả, lưu tin, nộp lại tin QA ở chu kỳ 2, chọn khung giờ, đọc tin nhắn, gợi ý diễn đạt CV |
+| `bui.ngoc.mai@demo.local` | Ẩn danh (bước xem xét lại, cắt được) | Gửi yêu cầu xem xét lại đơn "Kế toán tổng hợp" vừa bị từ chối (FR-C09) |
+| `nguyen.hai.son@demo.local` | Ẩn danh (bước xem xét lại, cắt được) | Xem phản hồi của HR cho yêu cầu xem xét lại đơn "Chuyên viên Marketing" (FR-C09) |
 
-Các ứng viên khác (Nguyễn Hải Sơn, Lê Văn Đức, Trần Minh Hoàng, Võ Thanh Tùng, Đỗ Khánh Linh…) chỉ là dữ liệu cho xếp
-hạng, so sánh và ẩn danh; không đăng nhập trong buổi demo.
+Các ứng viên khác (Lê Văn Đức, Trần Minh Hoàng, Võ Thanh Tùng, Đỗ Khánh Linh…) chỉ là dữ liệu cho xếp hạng, so sánh và
+ẩn danh; không đăng nhập trong buổi demo. Nguyễn Hải Sơn ngoài ra là dữ liệu xếp hạng tin DevOps.
 
 Dữ liệu dựng sẵn cho mạch này: tin **Kỹ sư Kiểm thử phần mềm (QA Engineer)** đã được HR mở lại sang **chu kỳ 2** và có
 2 câu hỏi sàng lọc. Đơn đợt 1 của Bảo (bị từ chối, 83,50) và đơn đã rút của Lê Văn Đức nằm ở chu kỳ 1
 ([db/seed/README.md](../db/seed/README.md) mục 6b). Tầng 3 (FR-U16) cho Bảo sẵn **4 tin đã lưu**: 3 tin đang mở của
-Công ty TNHH Dịch vụ Số Ngân Hà và tin "Nhân viên Hỗ trợ kỹ thuật (IT Helpdesk)" đã hết hạn nộp.
+Công ty TNHH Dịch vụ Số Ngân Hà và tin "Nhân viên Hỗ trợ kỹ thuật (IT Helpdesk)" đã hết hạn nộp. Tầng 3 Phần B
+(FR-C09) có hai đơn bị từ chối ở vòng hồ sơ, mốc theo lúc nạp: Mai → "Kế toán tổng hợp" (chưa gửi yêu cầu, còn hạn) và
+Sơn → "Chuyên viên Marketing" (yêu cầu xem xét lại đang chờ). **Nạp lại tầng 3 trong ngày demo** để hạn 7 ngày còn.
 
 ## 4. Kịch bản theo phút
 
@@ -242,6 +246,18 @@ Chỉ cho hội đồng: **ô trọng số của tiêu chí để trống**, HR 
 2. Muốn khoe hộp thoại thì mở công tắc ẩn danh của một tin khác rồi bấm **Huỷ**. **Không xác nhận**, để dữ liệu không
    đổi.
 3. Trang tổng quan `/hr`: phễu trạng thái.
+
+### Chèn khi còn giờ · Xem xét lại đơn bị từ chối (Mai, HR, Sơn) (không gọi AI) — CẮT ĐƯỢC
+
+1. Cửa sổ ẩn danh `bui.ngoc.mai@demo.local` → đơn **Kế toán tổng hợp** (Bị từ chối) → khối "Xem xét lại" có hạn chót →
+   **"Yêu cầu xem xét lại"**, gõ lý do ngắn → gửi. Khối thành "Đang chờ…", đầu trang có "· Đang chờ xem xét lại".
+2. HR → tin **Chuyên viên Marketing** → tab **"Yêu cầu xem xét lại (1)"**: yêu cầu của Sơn (từ seed) → **"Giữ quyết
+   định từ chối"**, gõ phản hồi → xác nhận. Tin **Kế toán tổng hợp** → cùng tab → yêu cầu của Mai → **"Mời phỏng vấn"**
+   (đúng hộp giấy mời FR-H12) → gửi.
+3. (Tuỳ chọn) Sơn thấy phản hồi nguyên văn trong đơn; Mai thấy "đã gửi giấy mời phỏng vấn" và khối giấy mời.
+
+Nói: "Ứng viên chỉ được đề nghị một lần, trong 7 ngày, và chỉ khi bị từ chối ở vòng hồ sơ. Quyết định vẫn là của HR:
+mời phỏng vấn hoặc giữ nguyên. Đơn vẫn đúng 5 trạng thái — yêu cầu nằm ở bảng riêng."
 
 ### 26–27' · CV builder và gợi ý diễn đạt (cửa sổ ẩn danh, Bảo) [AI] — CẮT ĐƯỢC
 
