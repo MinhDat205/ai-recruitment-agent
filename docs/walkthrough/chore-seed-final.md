@@ -75,6 +75,8 @@ Không va chạm với dải cũ (`d1b…` khác `d1000000`, `f2…` khác `f0`/
 | 0008 | job_screening_questions | 0017 | talent_pool_entries |
 | 0009 | job_applications | 0018 | job_blind_review_changes |
 | | | 0019 | resumes (L19, đợt 4) |
+| | | 0020 | saved_jobs (FR-U16, tầng 3 `d3a00000-`) |
+| | | 0021 | application_reconsideration_requests (FR-C09, tầng 3 `d3a00000-`, test mục 18 `f3000000-`) |
 
 Tầng 2b: UUID ngẫu nhiên do app sinh trong lượt chạy thật (như tầng 2). Logo: cột `companies.logo_url` lưu
 dạng URL công khai `'/uploads/logos/<id công ty>.png'` (`LocalStorageService.java:41`), file trên đĩa ở
