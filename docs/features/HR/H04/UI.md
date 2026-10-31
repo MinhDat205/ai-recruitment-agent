@@ -78,13 +78,8 @@ nên không có phần "0 …".
 │ Chấm tất cả hồ sơ chưa có điểm?                  │
 │                                                  │
 │ • Số đơn sẽ xếp vào hàng chấm: 4                 │
-│ • Số lượt gọi AI ước tính: khoảng 24             │
-│   (4 đơn × (5 tiêu chí + 1 lượt viết giải thích),│
-│   chưa gồm lần thử lại)                          │
 │ • Thời gian ước tính: khoảng 4 phút — các đơn    │
 │   được chấm lần lượt, mỗi đơn khoảng 1 phút.     │
-│ • Danh sách tự cập nhật tối đa 10 phút; sau đó   │
-│   bấm "Tải lại" để xem kết quả mới nhất.         │
 │                                                  │
 │ (câu lỗi 409/404/429/mạng, role="alert")         │
 │                                                  │
@@ -93,7 +88,8 @@ nên không có phần "0 …".
 ```
 
 N > 50: thêm một dòng ngay dưới dòng "Số đơn": "Mỗi lần chỉ xếp tối đa 50 đơn nộp sớm nhất; còn {N − 50} đơn, bấm lại
-sau để xếp tiếp." Mọi con số trong hộp tính với `k = min(N, 50)` (R-F3).
+sau để xếp tiếp." Mọi con số trong hộp tính với `k = min(N, 50)` (R-F3). Hộp chỉ có hai ý số đơn và thời gian (L17):
+không ước tính số lượt gọi AI, không câu nhắc polling.
 
 ## 5. Component
 
@@ -102,7 +98,7 @@ sau để xếp tiếp." Mọi con số trong hộp tính với `k = min(N, 50)`
 | File | Vai trò |
 |---|---|
 | `frontend/src/features/scoring/BulkScoringButton.tsx` | Nút "Chấm tất cả (N)" + câu lý do khoá (`sr-only`, `aria-describedby`) + câu kết quả (`role="status"`); mở `BulkScoringConfirmDialog`; nhận `applications`, `job` từ `ApplicationsTab` |
-| `frontend/src/features/scoring/BulkScoringConfirmDialog.tsx` | Hộp mục 4c; đọc `useRubricQuery(jobId)` cho số tiêu chí (R-F3); gọi mutation; hiện lỗi trong hộp |
+| `frontend/src/features/scoring/BulkScoringConfirmDialog.tsx` | Hộp mục 4c (số đơn, thời gian — L17); gọi mutation; hiện lỗi trong hộp |
 | `frontend/src/features/scoring/bulkScoringTexts.ts` | Chuỗi mục 7 |
 
 ### 5b. File sửa
@@ -121,7 +117,6 @@ sau để xếp tiếp." Mọi con số trong hộp tính với `k = min(N, 50)`
 |---|---|
 | `Button`, `Dialog` (`components/ui`) | Nút, hộp xác nhận — không sửa file trong `components/ui` |
 | `useHrJobQuery` (đã gọi trong `ApplicationsTab.tsx:378`) | `recruitmentCycle`, `deletedAt` cho R-F1, R-F2 — không gọi thêm query |
-| `useRubricQuery` (`features/rubric/ownerQueries.ts:14`) | `criteria.length` cho ước tính (Q8) — cùng khoá với tab Rubric |
 | `extractErrorMessage` (`lib/httpError`) | Câu lỗi backend trong hộp |
 | Khuôn `ApplicationStatusConfirmDialog.tsx` | Cấu trúc hộp xác nhận, nút đang chạy |
 | Khuôn khoá nút FR-H16 (`ApplicationsTab.tsx:291-305`) | `disabled` + `aria-describedby` → `<span className="sr-only">` |
@@ -151,7 +146,6 @@ Không có cặp màu mới cần đo.
 | Danh sách rỗng (0 đơn) | Tab | Câu rỗng có sẵn; nút **vẫn** hiện, khoá, N = 0, lý do mục 7 |
 | N = 0, có đơn | Nút | Khoá, lý do mục 7 |
 | N > 0 | Nút | Bật, "Chấm tất cả (N)" |
-| Rubric đang tải / lỗi tải | Hộp | Dòng số lượt gọi AI thay bằng câu "chưa tính được" (mục 7); nút "Chấm tất cả" **vẫn** bấm được (backend kiểm rubric) |
 | Đang gửi | Hộp | Nút "Chấm tất cả" khoá, chữ "Đang xếp hàng..."; nút "Huỷ" khoá; không đóng bằng Esc/bấm nền |
 | 409 `RUBRIC_INCOMPLETE` / 404 / 403 / 429 | Hộp | Câu backend trả về (`extractErrorMessage`), `role="alert"`; hộp giữ mở |
 | Lỗi mạng/5xx | Hộp | Câu cố định mục 7 |
@@ -173,10 +167,7 @@ Không có cặp màu mới cần đo.
 | Tiêu đề hộp | "Chấm tất cả hồ sơ chưa có điểm?" |
 | Dòng số đơn | "Số đơn sẽ xếp vào hàng chấm: {k}" |
 | Dòng vượt trần (N > 50) | "Mỗi lần chỉ xếp tối đa 50 đơn nộp sớm nhất; còn {N − 50} đơn, bấm lại sau để xếp tiếp." |
-| Dòng số lượt gọi AI | "Số lượt gọi AI ước tính: khoảng {k × (c + 1)}" · chú thích "({k} đơn × ({c} tiêu chí + 1 lượt viết giải thích), chưa gồm lần thử lại)" |
-| Dòng số lượt — rubric chưa tải được | "Số lượt gọi AI ước tính: chưa tính được vì chưa tải được rubric." |
 | Dòng thời gian | "Thời gian ước tính: khoảng {k} phút — các đơn được chấm lần lượt, mỗi đơn khoảng 1 phút." |
-| Dòng polling | "Danh sách tự cập nhật tối đa 10 phút; sau đó bấm \"Tải lại\" để xem kết quả mới nhất." |
 | Nút hộp | "Huỷ" · "Chấm tất cả" · đang chạy "Đang xếp hàng..." |
 | Kết quả, `created > 0` | "Đã xếp {created} đơn vào hàng chấm." |
 | Kết quả, `created = 0` | "Không có đơn nào được xếp vào hàng chấm." |

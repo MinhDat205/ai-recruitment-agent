@@ -33,13 +33,8 @@ export const BULK_SCORING_TEXT = {
   applicationCount: (count: number) => `Số đơn sẽ xếp vào hàng chấm: ${count}`,
   overLimit: (rest: number) =>
     `Mỗi lần chỉ xếp tối đa ${BULK_SCORING_LIMIT} đơn nộp sớm nhất; còn ${rest} đơn, bấm lại sau để xếp tiếp.`,
-  aiCalls: (total: number) => `Số lượt gọi AI ước tính: khoảng ${total}`,
-  aiCallsNote: (count: number, criteria: number) =>
-    `(${count} đơn × (${criteria} tiêu chí + 1 lượt viết giải thích), chưa gồm lần thử lại)`,
-  aiCallsUnknown: 'Số lượt gọi AI ước tính: chưa tính được vì chưa tải được rubric.',
   duration: (count: number) =>
     `Thời gian ước tính: khoảng ${count} phút — các đơn được chấm lần lượt, mỗi đơn khoảng 1 phút.`,
-  polling: 'Danh sách tự cập nhật tối đa 10 phút; sau đó bấm "Tải lại" để xem kết quả mới nhất.',
   cancel: 'Huỷ',
   confirm: 'Chấm tất cả',
   confirming: 'Đang xếp hàng...',

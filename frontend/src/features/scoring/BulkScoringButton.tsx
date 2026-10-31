@@ -97,7 +97,6 @@ export function BulkScoringButton({
       <BulkScoringConfirmDialog
         open={dialogOpen}
         onOpenChange={handleOpenChange}
-        jobId={jobId}
         scorableCount={scorableCount}
         isPending={bulkMutation.isPending}
         error={bulkMutation.error}

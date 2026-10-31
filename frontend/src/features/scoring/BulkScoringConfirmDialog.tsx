@@ -3,13 +3,11 @@ import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { extractErrorMessage } from '../../lib/httpError'
-import { useRubricQuery } from '../rubric/ownerQueries'
 import { BULK_SCORING_LIMIT, BULK_SCORING_TEXT } from './bulkScoringTexts'
 
 interface BulkScoringConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  jobId: string
   scorableCount: number
   isPending: boolean
   error: unknown
@@ -25,20 +23,16 @@ function errorMessage(error: unknown): string {
 }
 
 // FR-H04 mo rong - hop xac nhan (UI.md muc 4c, 6). Mutation nam o BulkScoringButton (nut ngoai cung can trang thai dang
-// gui, R-F2); hop chi hien uoc tinh va goi onConfirm. Moi con so tinh voi k = min(N, 50) (R-F3).
+// gui, R-F2); hop chi hien so don, thoi gian uoc tinh (L17) va goi onConfirm. Moi con so tinh voi k = min(N, 50) (R-F3).
 export function BulkScoringConfirmDialog({
   open,
   onOpenChange,
-  jobId,
   scorableCount,
   isPending,
   error,
   onConfirm,
 }: BulkScoringConfirmDialogProps) {
-  // Q8 - cung khoa ['hr-rubric', jobId] voi tab Rubric; khong them endpoint, khong them truong vao response.
-  const { data: rubric } = useRubricQuery(jobId)
   const count = Math.min(scorableCount, BULK_SCORING_LIMIT)
-  const criteriaCount = rubric?.criteria.length
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,17 +49,7 @@ export function BulkScoringConfirmDialog({
               </p>
             )}
           </li>
-          {/* Rubric dang tai/loi: van cho bam xac nhan - backend kiem rubric (R-F6). */}
-          {criteriaCount === undefined ? (
-            <li>{BULK_SCORING_TEXT.aiCallsUnknown}</li>
-          ) : (
-            <li>
-              {BULK_SCORING_TEXT.aiCalls(count * (criteriaCount + 1))}
-              <p className="mt-1 text-m3-on-surface-variant">{BULK_SCORING_TEXT.aiCallsNote(count, criteriaCount)}</p>
-            </li>
-          )}
           <li>{BULK_SCORING_TEXT.duration(count)}</li>
-          <li>{BULK_SCORING_TEXT.polling}</li>
         </ul>
         {error !== null && error !== undefined && (
           <div role="alert" className="flex items-start gap-1.5 text-sm text-m3-error">

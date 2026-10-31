@@ -1,7 +1,7 @@
 # FR-H04 (mở rộng) — Chấm tất cả CV trong tin
 
 > Trạng thái: ĐÃ DUYỆT (30/10/2026). Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q13; Q13 đổi sang đếm theo lý do).
-> L1–L15 chốt sau Plan Mode đợt 1 (31/10/2026), cuối mục 11.
+> L1–L17 chốt sau Plan Mode đợt 1 và khi soát tay (31/10/2026), cuối mục 11; L16 ghi ở đợt cuối.
 >
 > Viết theo kế hoạch `docs/plans/2026-10-28-tang-toc-cham-diem.md` (mục "Nút chấm tất cả CV trong tin") và mục "Sửa
 > đổi kế hoạch tăng tốc chấm điểm (28/10)" điểm 5 của `docs/plans/2026-11-dot-bo-sung.md` (điểm 5 **thắng** kế hoạch
@@ -73,7 +73,7 @@
 |---|---|---|---|
 | e1 | Vị trí ô "Sắp xếp theo" | Một hàng `flex items-center gap-2` ngay sau banner ẩn danh | `ApplicationsTab.tsx:414-428` |
 | e2 | Query tin | `useHrJobQuery(jobId)` có sẵn trong tab (khoá chung với trang) — có `recruitmentCycle`, `deletedAt`, `status` | `ApplicationsTab.tsx:378`; `ownerTypes.ts:3-30` |
-| e3 | Số tiêu chí | `useRubricQuery(jobId)` (khoá `['hr-rubric', jobId]`, tab Rubric đã dùng) trả `criteria[]` | `features/rubric/ownerQueries.ts:10-20`; `ownerTypes.ts:27` |
+| e3 | Số tiêu chí | `useRubricQuery(jobId)` (khoá `['hr-rubric', jobId]`, tab Rubric đã dùng) trả `criteria[]` — không còn dùng sau L17 | `features/rubric/ownerQueries.ts:10-20`; `ownerTypes.ts:27` |
 | e4 | Polling danh sách | Bật khi có đơn `PENDING` hoặc `RUNNING` + `totalScore === null`; chu kỳ 5 s; dừng sau `MAX_POLL_DURATION_MS` = 10 phút, hiện "Tải lại" | `queries.ts:30, 43, 62-66, 117-140`; `ApplicationsTab.tsx:432-441` |
 | e5 | Vòng poll từng hàng | `useScoringRunsQuery(application.id, hasRun)` khoá `['scoring-runs', id]`; nút đơn lẻ invalidate khoá của **đúng** đơn đó | `queries.ts:150-191`; `ApplicationsTab.tsx:201-206` |
 | e6 | Mẫu khoá nút có lý do | `disabled` + `aria-describedby` trỏ `<span className="sr-only">` (FR-H16) | `ApplicationsTab.tsx:291-305` |
@@ -93,7 +93,7 @@
 ## 1. Mục đích
 
 Cho HR xếp mọi đơn **chưa từng có điểm** của chu kỳ hiện tại vào hàng chấm bằng một lần bấm, thay vì bấm "Chấm điểm hồ
-sơ" từng dòng. Hộp xác nhận nói rõ chi phí (số lượt gọi AI ước tính) và thời gian chờ trước khi HR đồng ý.
+sơ" từng dòng. Hộp xác nhận nói rõ số đơn sẽ xếp hàng và thời gian chờ trước khi HR đồng ý (L17).
 
 Chức năng **không** thay đổi cách AI chấm: vẫn mỗi tiêu chí một lần gọi, evidence qua K2 (FR-H04); backend tổng hợp bằng
 công thức trọng số (FR-H05); không nhãn, không phán quyết (FR-H07). Request bulk **không gọi AI** (CLAUDE.md §7).
@@ -104,8 +104,7 @@ công thức trọng số (FR-H05); không nhãn, không phán quyết (FR-H07).
 1. Mở `/hr/jobs/:id/edit`, tab "Ứng viên". Cạnh ô "Sắp xếp theo" có nút **"Chấm tất cả (N)"**, N đếm từ danh sách đang
    hiện theo R-F1.
 2. N = 0: nút khoá, kèm câu lý do (UI.md mục 7).
-3. N > 0: bấm → hộp xác nhận: số đơn sẽ xếp hàng (tối đa 50, R-C1), số lượt gọi AI ước tính, thời gian ước tính, và lưu ý
-   danh sách tự cập nhật tối đa 10 phút.
+3. N > 0: bấm → hộp xác nhận: số đơn sẽ xếp hàng (tối đa 50, R-C1) và thời gian ước tính (L17).
 4. Bấm "Chấm tất cả" trong hộp → `POST /api/hr/jobs/{jobId}/scoring-runs/bulk`.
 5. Thành công: hộp đóng; dưới hàng nút hiện câu kết quả "Đã xếp {created} đơn vào hàng chấm." + số đơn bỏ qua đếm theo lý
    do (R-F5) (+ số còn lại nếu vượt trần). Danh sách làm mới; polling sẵn có tự bật; các dòng hiện tiến độ như khi bấm từng đơn.
@@ -210,11 +209,9 @@ công thức trọng số (FR-H05); không nhãn, không phán quyết (FR-H07).
   chốt, `skipped` nói rõ.
 - **R-F2. Khoá nút** khi N = 0, khi `job` chưa tải, khi `job.deletedAt !== null` (R-P3), hoặc khi request đang chạy;
   `disabled` + `aria-describedby` trỏ câu lý do (khuôn e6).
-- **R-F3. Ước tính trong hộp xác nhận.** `k = min(N, 50)`. Số lượt gọi AI ≈ `k × (số tiêu chí + 1)` — mỗi tiêu chí một
-  lần chấm, cộng một lần viết giải thích (FR-H06); chưa tính lần thử lại. Số tiêu chí = `useRubricQuery(jobId).data
-  .criteria.length` (e3, Q8) — không thêm endpoint, không thêm trường vào response bulk. Rubric chưa tải/lỗi → thay dòng
-  số lượt bằng câu "chưa tính được" (UI.md mục 7). Thời gian ≈ `k` phút ("khoảng 1 phút mỗi đơn vì các đơn được chấm lần
-  lượt"). Có câu: danh sách tự cập nhật tối đa 10 phút, sau đó bấm "Tải lại".
+- **R-F3. Ước tính trong hộp xác nhận** (L17). `k = min(N, 50)`; hộp chỉ hiện số đơn `k` (kèm dòng vượt trần khi N > 50)
+  và thời gian ≈ `k` phút ("khoảng 1 phút mỗi đơn vì các đơn được chấm lần lượt"). Không ước tính số lượt gọi AI, không
+  câu nhắc polling (tab đã có khối "Tải lại" khi dừng tự cập nhật).
 - **R-F4. Sau khi thành công**: invalidate `hrApplicationsKeyPrefix(jobId)` **và** mọi khoá `['scoring-runs']` (theo tiền
   tố) — response không trả id các lượt đã tạo, mà dòng `FAILED` cũ đang giữ cache `['scoring-runs', id]` đã dừng poll
   (e5). Polling danh sách tự bật theo điều kiện có sẵn (e4); không sửa `MAX_POLL_DURATION_MS`.
@@ -314,6 +311,7 @@ hợp (FR-H05); job giải thích chạy sau (FR-H06). AI không tính tổng, k
 - Kiểm trạng thái tin `OPEN` (R-P4).
 - Đổi định nghĩa "đang chạy" của nút đơn lẻ (R-E4, R-G4).
 - Xây component Snackbar dùng chung (Q7).
+- Ước tính số lượt gọi AI trong hộp xác nhận (bỏ theo L17).
 - Trả id các lượt đã tạo trong response.
 
 ## 7. Xong khi
@@ -471,10 +469,9 @@ Làm **đúng thứ tự** — bước 2 dùng hết đơn đủ điều kiện 
 
 1. **N = 0** — `hr@demo.local`, tin DevOps: nút "Chấm tất cả (0)" khoá, câu lý do đọc được bằng trình đọc màn hình. Tin
    QA: bảng hiện 2 đơn chu kỳ 1 nhưng nút vẫn "(0)".
-2. **Tin Java** — nút "Chấm tất cả (1)". Hộp: "Số đơn sẽ xếp vào hàng chấm: 1", "khoảng 5" lượt gọi AI ("1 đơn × (4 tiêu
-   chí + 1 lượt viết giải thích)"), "khoảng 1 phút", câu 10 phút / "Tải lại". Xác nhận → câu "Đã xếp 1 đơn vào hàng chấm.
-   Bỏ qua 2 đơn: 1 không ở trạng thái chờ duyệt, 1 đã có điểm."; DevTools `created 1` + `skipped.length 2` = 3 = số đơn
-   chu kỳ 1. Chờ lượt của Hà kết thúc (`DONE` hoặc `FAILED`) — ba lượt `FAILED` trên seed
+2. **Tin Java** — nút "Chấm tất cả (1)". Hộp (L17): "Số đơn sẽ xếp vào hàng chấm: 1", "khoảng 1 phút". Xác nhận →
+   câu "Đã xếp 1 đơn vào hàng chấm. Bỏ qua 2 đơn: 1 không ở trạng thái chờ duyệt, 1 đã có điểm."; DevTools `created 1` +
+   `skipped.length 2` = 3 = số đơn chu kỳ 1. Chờ lượt của Hà kết thúc (`DONE` hoặc `FAILED`) — ba lượt `FAILED` trên seed
    (`seed-demo-ai-output.sql:551, 553, 564`) đều là `EVIDENCE_NOT_VERIFIED`, lỗi lặp lại do nội dung CV/K2, nên cả hai kết
    quả đều hợp lệ (L14):
    - `DONE` → dòng Hà có điểm, nút về "(0)", khoá.
@@ -487,13 +484,13 @@ Làm **đúng thứ tự** — bước 2 dùng hết đơn đủ điều kiện 
    lọc. HR: nút "(1)"; xác nhận → "Đã xếp 1 đơn vào hàng chấm.", không có câu bỏ qua; DevTools `created 1`, `skipped []`.
 6. **Tin Frontend (Ngân Hà)** — `pham.quoc.bao@demo.local`, `nguyen.hai.son@demo.local`, `do.khanh.linh@demo.local` (cả ba
    chưa có đơn ở tin này) nộp đơn. `hr.nganha@demo.local`, tab Rubric: sửa "Kỹ năng phối hợp nhóm" 25 → 24; tab Ứng viên:
-   "(3)" → bấm → 409. Sửa lại 25 → bấm: hộp "3", "khoảng 12", "khoảng 3 phút"; bấm "Chấm tất cả" hai lần liền → xác nhận.
+   "(3)" → bấm → 409. Sửa lại 25 → bấm: hộp "3", "khoảng 3 phút"; bấm "Chấm tất cả" hai lần liền → xác nhận.
 
 | Cần thấy | Thao tác | Mong đợi |
 |---|---|---|
 | N đúng | Bước 1, 2, 5 | Nhãn nút đúng N ở bảng trên; `created + skipped.length` = số đơn chu kỳ hiện tại |
 | N = 0 | Bước 1 | Nút khoá; câu lý do đọc được bằng trình đọc màn hình (`aria-describedby`) |
-| Hộp xác nhận | Bước 2, 6 | Đủ 4 ý: số đơn, số lượt gọi AI ước tính = k × (tiêu chí + 1), thời gian ≈ k phút, lưu ý 10 phút / "Tải lại" |
+| Hộp xác nhận | Bước 2, 6 | Đủ 2 ý (L17): số đơn k, thời gian ≈ k phút; không có dòng số lượt gọi AI, không có câu 10 phút / "Tải lại" |
 | Rubric thiếu | Bước 6 (rubric 99%) | Hộp giữ mở, câu 409 của backend ("…tổng trọng số rubric hiện là 99.00%…"), không dòng nào đổi tiến độ |
 | Bỏ qua theo lý do (Q13) | Bước 2; phần "bấm lại ngay" ở nhóm 2 của 7.2 (bước 4) | Câu đúng "Bỏ qua 2 đơn: 1 không ở trạng thái chờ duyệt, 1 đã có điểm." — không có phần "0 …", thứ tự R-E3, không tên đơn. Sau khi xếp hàng thành công N = 0 nên nút khoá, không bấm lại qua giao diện được (L13): phần `RUN_IN_PROGRESS` kiểm bằng JSON nhóm 2 của 7.2 |
 | Thành công | Bước 2, 5, 6 | Hộp đóng; câu "Đã xếp k đơn vào hàng chấm." (+ câu bỏ qua khi có); các dòng hiện "Đang chờ xử lý" rồi tiến độ; DevTools: đúng **một** `POST …/bulk` mỗi lần xác nhận |
@@ -529,7 +526,7 @@ loại đơn này vào N (R-F1).
 - Trả câu riêng cho rubric thiếu thay vì `forScoring` (R-R1).
 - Trả tên ứng viên / email / `candidateName` trong `skipped` (R-G3).
 - Thêm trường `verdict`, `label`, `passed`, `recommendation` hay đếm "đơn đạt" vào response (CLAUDE.md §7).
-- Thêm endpoint đếm N ở backend hoặc trường `criteriaCount` vào response chỉ để ước tính (R-F3, Q8).
+- Thêm endpoint đếm N ở backend (R-F1); thêm lại ước tính số lượt gọi AI vào hộp (L17).
 - Viết lại điều kiện đủ điều kiện nội tuyến trong `ApplicationsTab.tsx` thay vì `isBulkScorable` (R-F1).
 - Chỉ invalidate danh sách mà quên `['scoring-runs']` → dòng `FAILED` cũ kẹt (R-F4).
 - Cài thư viện toast (`sonner`…) hoặc sửa file trong `components/ui` (Q7, UI.md mục 10).
@@ -579,7 +576,7 @@ Q1–Q11 chốt **theo đề xuất mặc định** ghi ở cột Quyết địn
 | Q5 | Tin đã xoá mềm (lệch F4) | **404 `JOB_NOT_FOUND`** (R-P3), khuôn endpoint ghi FR-H16 (`BlindReviewService.java:39`); frontend khoá nút khi `job.deletedAt !== null`. Phương án khác: không kiểm, như nút đơn lẻ và các endpoint đọc |
 | Q6 | Tin `PAUSED`/`CLOSED`/`DRAFT` có cho chấm tất cả không? | **Có, không kiểm trạng thái tin** (R-P4) — đồng nhất nút đơn lẻ (a9); HR vẫn cần chấm đơn đã nhận khi tạm dừng/đóng tin |
 | Q7 | "Toast" khi dự án chưa có Snackbar (lệch F3) | **Câu tại chỗ `role="status"`** dưới hàng nút (R-F5), tiền lệ FR-C05/U12/U16; nội dung y như toast đã chốt. Phương án khác: thêm component Snackbar dùng chung (thư viện mới, sửa `components/ui`, UI_GUIDE mục 3) — đề xuất để FR riêng |
-| Q8 | Số tiêu chí cho ước tính lấy từ đâu | **`useRubricQuery(jobId)` sẵn có** (khoá `['hr-rubric', jobId]`, tab Rubric đã dùng) — không thêm endpoint, không thêm trường vào response (R-F3) |
+| Q8 | Số tiêu chí cho ước tính lấy từ đâu | **Không còn dùng — L17** (bản duyệt: `useRubricQuery(jobId)` sẵn có, khoá `['hr-rubric', jobId]`; hộp không còn ước tính số lượt gọi AI) |
 | Q9 | N lượt xong = N `SCORING_FINISHED` + N email | **Giữ nguyên**; "gộp thông báo" ở mục 6 |
 | Q10 | Cách test nhánh bắt vi phạm `uq_scoring_run_in_progress` | **`@MockitoSpyBean ScoringRunStateService` + `doAnswer`** chèn lượt `PENDING` cho đơn đó bằng `JdbcTemplate` (tự commit) rồi `callRealMethod()` — index ném thật, xác định, không cần hai luồng (T10). Tiền lệ `@MockitoSpyBean`: `CvBuilderCreateIntegrationTest`. Kèm T11 cho nhánh "không nuốt lỗi khác" |
 | Q11 | Mã HTTP thành công | **200** (đã chốt) — giữ, dù nút đơn lẻ trả 201: B1 trả bản tóm tắt, không trả tài nguyên vừa tạo (mục 4.2) |
@@ -605,3 +602,4 @@ Q1–Q11 chốt **theo đề xuất mặc định** ghi ở cột Quyết địn
 | L13 | Dòng "Bỏ qua theo lý do" của 7.4 đòi "bấm lại ngay" qua giao diện, nhưng sau khi xếp hàng thành công N = 0 nên nút khoá (R-F2) | Phần `RUN_IN_PROGRESS` kiểm bằng JSON nhóm 2 của 7.2 (bước 4 của 7.4); không đổi R-F2. Sửa 7.2, 7.4 |
 | L14 | Ba lượt `FAILED` của Hà trên seed (`seed-demo-ai-output.sql:551, 553, 564`) đều là `EVIDENCE_NOT_VERIFIED` — lỗi lặp lại do nội dung CV/K2, không phải khoá AI; lượt mới ở bước 2 của 7.4 có thể `DONE` hoặc `FAILED` | Cả hai hợp lệ. 7.4 bước 2: chờ lượt kết thúc; `DONE` → nút "(0)", `FAILED` → nút "(1)" (R-E2.4), thêm vào dòng "Dòng FAILED cũ". 7.2: mong đợi nhóm 1, 2 theo hai nhánh. Chỉ dừng khi lượt `FAILED` với mã nhà cung cấp/mạng (`LLM_RETRY_EXHAUSTED`, `LLM_ERROR`), không dừng với `EVIDENCE_NOT_VERIFIED` |
 | L15 | T2 cộng sai (4 + 2 + 3 + 2 = 11) | Sửa thành 11 dòng, test giữ nguyên; duyệt 31/10/2026 |
+| L17 | Người dùng yêu cầu khi soát tay: hộp chỉ hiện số đơn và thời gian ước tính | Bỏ ước tính lượt gọi AI và câu nhắc polling (tab đã có thanh 'Tải lại' khi dừng cập nhật). Chốt chặn chi phí còn lại: trần 50 đơn + số đơn hiện trong hộp. Duyệt 31/10/2026. Sửa mục 1, 2, R-F3, mục 6, 7.4, mục 8, Q8; UI.md 4c, 5a, 5c, 6, 7 |
