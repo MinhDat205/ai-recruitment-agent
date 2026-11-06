@@ -1270,8 +1270,18 @@ phải đổi số.
   - Nhãn tab kèm số gọi H1 ngay khi mở trang sửa tin.
   - Seed tầng 3 Phần B dùng mốc tương đối: nạp lại trong ngày demo để hạn 7 ngày còn.
   - Frontend không có test tự động.
-- [ ] `feat/fr-h04-bulk-scoring` — FR-H04 mở rộng · Chấm tất cả CV trong tin: một lần bấm tạo lượt chấm `PENDING`
-  cho các đơn đủ điều kiện, trần 50; không migration, làm nếu còn thời gian.
+- [x] `feat/fr-h04-bulk-scoring` — FR-H04 mở rộng · Chấm tất cả CV trong tin: một lần bấm tạo lượt chấm `PENDING`
+  cho các đơn đủ điều kiện, trần 50; không migration (hoàn thành 06/11/2026, xem `docs/walkthrough/fr-h04-bulk-scoring.md`).
+  `POST /api/hr/jobs/{jobId}/scoring-runs/bulk` chỉ tạo bản ghi, không gọi AI; đọc trạng thái bằng 5 câu theo lô (9 câu
+  đọc cố định), mỗi đơn một transaction `create` riêng, race với nút đơn lẻ chốt bằng `uq_scoring_run_in_progress`. Full
+  suite 2252/2252 sau rebase lên FR-C09 (`90c9d2d`); soát tay 7.4 + khối HTTP 7.2 (hai lần) đạt 31/10/2026; hộp xác
+  nhận rút gọn theo yêu cầu khi soát tay (L17). Nợ kỹ thuật:
+  - CV của Nguyễn Thị Thu Hà (seed demo) bị K2 từ chối 7/7 lượt (`EVIDENCE_NOT_VERIFIED`, 3 lượt seed + 4 lượt soát tay)
+    — nghi `raw_text` có ký tự đặc biệt; cần điều tra, ngoài phạm vi nhánh.
+  - Đơn luôn `FAILED` được xếp lại mỗi lần bấm "Chấm tất cả" (đúng R-E2.4: chưa có lượt `DONE`), tốn ~5 lượt gọi AI mỗi
+    lần với rubric 4 tiêu chí.
+  - Tải polling khi lô lớn (L11): lô 50 đơn ⇒ mỗi dòng poll 5 s, ~10 GET/s tới mốc 10 phút.
+  - Vòng chấm vẫn tuần tự trong một nhịp: lô N đơn mất ~N phút.
 
 ---
 

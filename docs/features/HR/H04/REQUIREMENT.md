@@ -1,7 +1,7 @@
 # FR-H04 (mở rộng) — Chấm tất cả CV trong tin
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026). Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q13; Q13 đổi sang đếm theo lý do).
-> L1–L17 chốt sau Plan Mode đợt 1 và khi soát tay (31/10/2026), cuối mục 11; L16 ghi ở đợt cuối.
+> Trạng thái: ĐÃ HOÀN THÀNH (06/11/2026). Duyệt 30/10/2026. Mọi quyết định ở mục 11 đã chốt 30/10/2026 (Q1–Q13; Q13
+> đổi sang đếm theo lý do). L1–L17 chốt sau Plan Mode đợt 1, khi code và khi soát tay (31/10/2026), cuối mục 11.
 >
 > Viết theo kế hoạch `docs/plans/2026-10-28-tang-toc-cham-diem.md` (mục "Nút chấm tất cả CV trong tin") và mục "Sửa
 > đổi kế hoạch tăng tốc chấm điểm (28/10)" điểm 5 của `docs/plans/2026-11-dot-bo-sung.md` (điểm 5 **thắng** kế hoạch
@@ -14,8 +14,8 @@
 - Phụ thuộc: FR-H03, FR-H04 (cả hai **Đã hoàn thành**, `docs/SRS.md` mục 0); làm sau khi nhánh `perf/scoring-latency`
   đã merge (`docs/features/README.md` mục 22). Điều kiện này **đã thoả**: `perf/scoring-latency` merge vào `main` ở
   `abaf31b` (L12).
-- Nhánh: `feat/fr-h04-bulk-scoring`, nằm trên `main` tại `abaf31b` (đã có `perf/scoring-latency`; Plan Mode kiểm bằng
-  `git merge-base --is-ancestor abaf31b HEAD`, L12).
+- Nhánh: `feat/fr-h04-bulk-scoring`, rebase lên `main` tại `90c9d2d` (đã có `perf/scoring-latency` và FR-C09; kiểm bằng
+  `git merge-base --is-ancestor origin/main HEAD`, L12).
 - Mở rộng: FR-H04 (tạo lượt chấm hàng loạt). FR-H05, FR-H06, FR-H07 **không đổi**.
 
 ## 0. Đã đối chiếu code trước khi viết (CLAUDE.md §6)
@@ -442,8 +442,9 @@ lại.
 ### 7.3 Frontend
 
 - `npm run build` + `npm run lint` sạch.
-- `isBulkScorable` nằm trong `features/scoring/scoringRules.ts`; tìm `recruitmentCycle` trong `ApplicationsTab.tsx` chỉ
-  thấy ở chỗ chọn so sánh (có sẵn) và lời gọi `isBulkScorable` — không có bản điều kiện thứ hai nội tuyến.
+- `isBulkScorable` nằm trong `features/scoring/scoringRules.ts`, gọi ở `BulkScoringButton.tsx` (UI.md 5a: nút nhận
+  `applications`, `job` và tự đếm N — L16); tìm `recruitmentCycle` trong `ApplicationsTab.tsx` chỉ thấy ở chỗ chọn so
+  sánh (có sẵn) — không có bản điều kiện thứ hai nội tuyến.
 - Tìm `toast|sonner|Snackbar` trong `frontend/src` → 0 dòng (Q7, nếu giữ mặc định).
 - Tìm `bg-red|bg-green|text-red|text-green|verdict|passed` trong file mới/sửa của `features/scoring/` → 0 dòng.
 - Tìm `scoring-runs/bulk` trong `frontend/src` → chỉ ở `features/scoring/api.ts`.
@@ -539,7 +540,7 @@ loại đơn này vào N (R-F1).
 ## 9. Kế hoạch đợt code
 
 Mỗi đợt code: dừng → báo cáo diff → chờ duyệt → **một** commit. Nhánh đã nằm trên `main` có `perf/scoring-latency`
-(`abaf31b`, L12) — không cần rebase. Lệnh Maven trong PowerShell bọc nháy kép cả cụm `-D`: `.\mvnw.cmd test "-Dtest=A,B"`.
+(`90c9d2d`, L12) — rebase ở đợt cuối, không đổi code. Lệnh Maven trong PowerShell bọc nháy kép cả cụm `-D`: `.\mvnw.cmd test "-Dtest=A,B"`.
 Full suite chạy **đúng một lần** cho cả nhánh, sau commit đợt 3.
 
 | Đợt | Nội dung | Kiểm |
@@ -552,16 +553,16 @@ Full suite chạy **đúng một lần** cho cả nhánh, sau commit đợt 3.
 
 ## 10. Tài liệu dùng chung — checklist đợt cuối (chưa sửa ở đợt đặc tả)
 
-- [ ] `docs/features/HR/H04/REQUIREMENT.md`, `UI.md`: `ĐÃ HOÀN THÀNH <ngày>`.
-- [ ] `docs/SRS.md`: câu đầu file "cập nhật lần gần nhất". Dòng FR-H04 ở mục 4 (`SRS.md:201`, có từ đợt D1) đã đối chiếu
+- [x] `docs/features/HR/H04/REQUIREMENT.md`, `UI.md`: `ĐÃ HOÀN THÀNH (06/11/2026)`.
+- [x] `docs/SRS.md`: câu đầu file "cập nhật lần gần nhất". Dòng FR-H04 ở mục 4 (`SRS.md:201`, có từ đợt D1) đã đối chiếu
   và sửa cho khớp trong commit duyệt (Q12) — đợt cuối chỉ soát lại cho khớp code.
-- [ ] `docs/ROADMAP.md`: tick `feat/fr-h04-bulk-scoring`.
+- [x] `docs/ROADMAP.md`: tick `feat/fr-h04-bulk-scoring`.
 - [x] `docs/UI_GUIDE.md` mục 7, dòng `/hr/jobs/:id/edit`: **đã sửa trong commit duyệt đặc tả** (Q12). Đợt cuối chỉ soát
   lại cho khớp code.
-- [ ] `docs/features/README.md` mục 22: khối "Phạm vi thực tế" nếu có lệch so với mô tả định hướng (vd R-E4, Q7).
-- [ ] `docs/DEMO.md`: kịch bản chấm tất cả + số đo thời gian lô thật.
-- [ ] `CLAUDE.md` §3: không cần thêm package (code trong `scoring/`).
-- [ ] `docs/ER.md`: không đổi (không migration).
+- [x] `docs/features/README.md` mục 22: khối "Phạm vi thực tế" nếu có lệch so với mô tả định hướng (vd R-E4, Q7).
+- [x] `docs/DEMO.md`: kịch bản chấm tất cả. Số đo lô: buổi soát tay không bấm giờ, ghi ước tính ~1 phút/đơn.
+- [x] `CLAUDE.md` §3: không cần thêm package (code trong `scoring/`).
+- [x] `docs/ER.md`: không đổi (không migration).
 
 ## 11. Đã chốt 30/10/2026
 
@@ -598,8 +599,9 @@ Q1–Q11 chốt **theo đề xuất mặc định** ghi ở cột Quyết địn
 | L9 | 7.2 và 7.4 cùng dùng đơn đủ điều kiện duy nhất của tin Java | 7.2 chạy trong buổi soát tay, ở bước 4 của 7.4, sau khi Sơn nộp đơn mới vào tin Java (bước 3) — không cần nạp lại seed. Sửa 7.2, 7.4, mục 9 |
 | L10 | Bộ demo không có đơn "CV chưa trích xuất xong" | Bỏ khỏi 7.4, ghi "phủ bởi T2" |
 | L11 | Sau lô 50 đơn, mỗi dòng tự poll 5 s ⇒ ~10 GET/s tới mốc 10 phút | Ghi rủi ro đã biết; "giảm tải polling khi lô lớn" vào mục 6. Không đổi code |
-| L12 | Đầu file ghi `main` chưa có `perf/scoring-latency`, nhánh tạo tại `0d6dbef` — lỗi thời | Sửa: nhánh nằm trên `abaf31b` (đã có perf), không cần rebase. Sửa đầu file, mục 9 |
+| L12 | Đầu file ghi `main` chưa có `perf/scoring-latency`, nhánh tạo tại `0d6dbef` — lỗi thời | Sửa: nhánh nằm trên `abaf31b` (đã có perf), không cần rebase. Sửa đầu file, mục 9. Đợt cuối: rebase lên `origin/main` `90c9d2d` (thêm FR-C09); xung đột duy nhất `docs/UI_GUIDE.md` dòng `/hr/jobs/:id/edit`, giữ cả hai bên |
 | L13 | Dòng "Bỏ qua theo lý do" của 7.4 đòi "bấm lại ngay" qua giao diện, nhưng sau khi xếp hàng thành công N = 0 nên nút khoá (R-F2) | Phần `RUN_IN_PROGRESS` kiểm bằng JSON nhóm 2 của 7.2 (bước 4 của 7.4); không đổi R-F2. Sửa 7.2, 7.4 |
 | L14 | Ba lượt `FAILED` của Hà trên seed (`seed-demo-ai-output.sql:551, 553, 564`) đều là `EVIDENCE_NOT_VERIFIED` — lỗi lặp lại do nội dung CV/K2, không phải khoá AI; lượt mới ở bước 2 của 7.4 có thể `DONE` hoặc `FAILED` | Cả hai hợp lệ. 7.4 bước 2: chờ lượt kết thúc; `DONE` → nút "(0)", `FAILED` → nút "(1)" (R-E2.4), thêm vào dòng "Dòng FAILED cũ". 7.2: mong đợi nhóm 1, 2 theo hai nhánh. Chỉ dừng khi lượt `FAILED` với mã nhà cung cấp/mạng (`LLM_RETRY_EXHAUSTED`, `LLM_ERROR`), không dừng với `EVIDENCE_NOT_VERIFIED` |
 | L15 | T2 cộng sai (4 + 2 + 3 + 2 = 11) | Sửa thành 11 dòng, test giữ nguyên; duyệt 31/10/2026 |
+| L16 | Câu 7.3 ghi lời gọi `isBulkScorable` nằm trong `ApplicationsTab.tsx`, nhưng UI.md 5a giao việc đếm N cho `BulkScoringButton` | Giữ code: lời gọi ở `BulkScoringButton.tsx`; sửa câu 7.3. Duyệt 31/10/2026 (đợt 3) |
 | L17 | Người dùng yêu cầu khi soát tay: hộp chỉ hiện số đơn và thời gian ước tính | Bỏ ước tính lượt gọi AI và câu nhắc polling (tab đã có thanh 'Tải lại' khi dừng cập nhật). Chốt chặn chi phí còn lại: trần 50 đơn + số đơn hiện trong hộp. Duyệt 31/10/2026. Sửa mục 1, 2, R-F3, mục 6, 7.4, mục 8, Q8; UI.md 4c, 5a, 5c, 6, 7 |

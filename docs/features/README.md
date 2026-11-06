@@ -1008,6 +1008,15 @@ Các lượt chạy lần lượt, lô lớn mất nhiều phút; mỗi lượt 
 
 Chấm trong phạm vi một tin, chu kỳ hiện tại; không chấm song song tiêu chí, không đổi prompt.
 
+**Phạm vi thực tế (hoàn thành 06/11/2026, `docs/features/HR/H04/REQUIREMENT.md`)**
+
+- "Đang chạy" của bulk là lượt **mới nhất** `PENDING`/`RUNNING` bất kể `finished_at` (R-E4) — rộng hơn nút đơn lẻ đúng ca
+  `RUNNING` chờ tổng hợp, để không chấm lại đơn sắp có điểm; nút đơn lẻ giữ nguyên.
+- Không có toast (dự án chưa có Snackbar): kết quả là câu tại chỗ `role="status"` dưới hàng nút, số đơn bỏ qua đếm theo
+  từng lý do (Q7, Q13). Hộp xác nhận chỉ ghi số đơn và thời gian ước tính — bỏ ước tính số lượt gọi AI (L17).
+- Tin đã xoá mềm → 404; không kiểm trạng thái tin (tin tạm dừng/đóng vẫn chấm được, như nút đơn lẻ). Mỗi lần bấm tiêu một
+  lượt rate limit nhóm `llm-action`.
+
 ## 5. Ngoài phạm vi (đã chủ động loại, không làm lại)
 
 | Nội dung | Lý do / thay thế |

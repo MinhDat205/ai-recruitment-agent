@@ -1,6 +1,6 @@
 # FR-H04 (mở rộng) — Giao diện
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (06/11/2026). Duyệt 30/10/2026; sửa theo L17 (31/10/2026).
 >
 > Viết theo kế hoạch `docs/plans/2026-10-28-tang-toc-cham-diem.md` (mục "Nút chấm tất cả CV trong tin", phần "Giao
 > diện") và điểm 5 mục "Sửa đổi…" của `docs/plans/2026-11-dot-bo-sung.md`.
@@ -15,7 +15,7 @@ cách áp cho phần mở rộng.
 
 ## 1. Trạng thái
 
-> Trạng thái: ĐÃ DUYỆT (30/10/2026).
+> Trạng thái: ĐÃ HOÀN THÀNH (06/11/2026). Duyệt 30/10/2026; sửa theo L17 (31/10/2026).
 
 ## 2. Route (lấy từ mục 7 UI_GUIDE)
 

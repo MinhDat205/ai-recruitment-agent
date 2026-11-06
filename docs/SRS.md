@@ -1,8 +1,9 @@
 # Đặc tả yêu cầu chức năng — AI Recruitment Agent
 
 > Nguồn: `SRS_Chuc_Nang_AI_Recruitment_Agent.docx` (chuyển sang markdown).
-> Đặc tả này cập nhật lần gần nhất ngày 31/10/2026 (FR-C09 hoàn thành; 30/10/2026: FR-U16 hoàn thành; 29/10/2026:
-> đăng ký FR-C09, FR-U16 và phần mở rộng FR-H04). Các quyết
+> Đặc tả này cập nhật lần gần nhất ngày 06/11/2026 (phần mở rộng FR-H04 "Chấm tất cả CV trong tin" hoàn thành 06/11/2026;
+> 31/10/2026: FR-C09 hoàn thành; 30/10/2026: FR-U16 hoàn thành; 29/10/2026: đăng ký FR-C09, FR-U16 và phần mở rộng
+> FR-H04). Các quyết
 > định thiết kế chi tiết và nợ kỹ thuật liên quan được ghi ở `docs/ROADMAP.md` và
 > `docs/walkthrough/`.
 > Tham chiếu theo mã: FR-C (chung), FR-H (HR), FR-U (ứng viên).
