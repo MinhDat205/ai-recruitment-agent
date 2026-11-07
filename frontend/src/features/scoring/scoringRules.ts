@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from '../applications/types'
 import type { ParseStatus } from '../resumes/types'
 import type { ScoringRunStatus } from './types'
 
@@ -27,4 +28,33 @@ export function scoringDisabledReason(application: {
     return 'Đơn này đang có một lượt chấm điểm chưa hoàn tất, vui lòng chờ lượt trước kết thúc.'
   }
   return undefined
+}
+
+// FR-H04 mo rong R-F1 - dieu kien DUY NHAT de dem N cho nut "Cham tat ca (N)"; ApplicationsTab khong viet lai dieu kien
+// nay noi tuyen. Khop phia backend (ScoringRunService.createScoringRunsForJob):
+// - status PENDING (R-E2.1);
+// - CV trich xuat xong (R-E2.2) - frontend khong thay "co resume_parsed_data" nen N co the lon hon so luot backend tao,
+//   backend la chot va noi ro trong skipped;
+// - chua co luot DONE nao (R-E2.4): totalScore === null <=> khong co luot DONE (ApplicationOwnerService);
+// - luot moi nhat khong PENDING/RUNNING, bat ke finishedAt (R-E4) - KHAC scoringDisabledReason o tren (nut don le giu
+//   dinh nghia cu, R-G4);
+// - thuoc chu ky tuyen dung hien tai cua tin (R-E1).
+export function isBulkScorable(
+  application: {
+    status: ApplicationStatus
+    resumeParseStatus: ParseStatus
+    totalScore: number | null
+    latestScoringRunStatus: ScoringRunStatus | null
+    recruitmentCycle: number
+  },
+  jobRecruitmentCycle: number,
+): boolean {
+  return (
+    application.status === 'PENDING' &&
+    application.resumeParseStatus === 'DONE' &&
+    application.totalScore === null &&
+    application.latestScoringRunStatus !== 'PENDING' &&
+    application.latestScoringRunStatus !== 'RUNNING' &&
+    application.recruitmentCycle === jobRecruitmentCycle
+  )
 }

@@ -810,4 +810,81 @@ class RateLimitFilterTest {
             assertThat(response.getStatus()).isEqualTo(200);
         }
     }
+
+    // ---- FR-H04 mo rong T17 (R-L1, R-L2) - cham tat ca CV trong tin thuoc nhom llm-action theo userId ----
+
+    private static final String BULK_SCORING_PATH =
+            "/api/hr/jobs/99999999-9999-9999-9999-999999999999/scoring-runs/bulk";
+
+    // Mot lan bam = mot luot token, dung CHUNG bucket "llm:" voi nut cham don le: het luot o nut don le thi bulk 429,
+    // va nguoc lai.
+    @Test
+    void doFilter_bulkScoring_sharesLlmBucketWithSingleScoring() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20, 20, 20);
+        authenticateAs("aaaaaaaa-0000-0000-0000-000000000001");
+        doFilter(
+                filter,
+                new MockHttpServletRequest("POST", "/api/hr/applications/bbbbbbbb-0000-0000-0000-000000000001/scoring-runs"),
+                new MockHttpServletResponse());
+
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", BULK_SCORING_PATH), rejected);
+
+        assertThat(rejected.getStatus()).isEqualTo(429);
+        assertThat(rejected.getContentAsString()).contains("RATE_LIMIT_EXCEEDED");
+
+        RateLimitFilter reverse = newFilter(20, 20, 1, 1, 20, 20, 20, 20);
+        doFilter(reverse, new MockHttpServletRequest("POST", BULK_SCORING_PATH), new MockHttpServletResponse());
+        MockHttpServletResponse reverseRejected = new MockHttpServletResponse();
+        doFilter(
+                reverse,
+                new MockHttpServletRequest("POST", "/api/hr/applications/bbbbbbbb-0000-0000-0000-000000000001/scoring-runs"),
+                reverseRejected);
+        assertThat(reverseRejected.getStatus()).isEqualTo(429);
+    }
+
+    // Bien: capacity 2 -> request 1, 2 qua; request 3 bi 429.
+    @Test
+    void doFilter_bulkScoring_secondPasses_thirdRejected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 2, 2, 20, 20, 20, 20);
+        authenticateAs("aaaaaaaa-0000-0000-0000-000000000002");
+        for (int i = 0; i < 2; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", BULK_SCORING_PATH), response);
+            assertThat(response.getStatus()).as("request thu %d phai qua duoc", i + 1).isEqualTo(200);
+        }
+        MockHttpServletResponse rejected = new MockHttpServletResponse();
+        doFilter(filter, new MockHttpServletRequest("POST", BULK_SCORING_PATH), rejected);
+        assertThat(rejected.getStatus()).isEqualTo(429);
+    }
+
+    // GET cung duong dan va POST .../scoring-runs (thieu /bulk) khong thuoc nhom nao - capacity 1 van qua nhieu lan.
+    @Test
+    void doFilter_bulkScoringGetAndPathWithoutBulk_areNotLimited() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20, 20, 20);
+        authenticateAs("aaaaaaaa-0000-0000-0000-000000000003");
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletResponse get = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("GET", BULK_SCORING_PATH), get);
+            assertThat(get.getStatus()).isEqualTo(200);
+
+            MockHttpServletResponse withoutBulk = new MockHttpServletResponse();
+            doFilter(
+                    filter,
+                    new MockHttpServletRequest("POST", "/api/hr/jobs/99999999-9999-9999-9999-999999999999/scoring-runs"),
+                    withoutBulk);
+            assertThat(withoutBulk.getStatus()).isEqualTo(200);
+        }
+    }
+
+    // Chua xac thuc -> khong ap gioi han, de chain phia sau tra 401.
+    @Test
+    void doFilter_bulkScoringWithoutAuthentication_passesThroughUnaffected() throws Exception {
+        RateLimitFilter filter = newFilter(20, 20, 1, 1, 20, 20, 20, 20);
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            doFilter(filter, new MockHttpServletRequest("POST", BULK_SCORING_PATH), response);
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+    }
 }

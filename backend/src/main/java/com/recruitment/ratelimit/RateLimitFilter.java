@@ -45,6 +45,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String REGISTER_PATTERN = "/api/auth/register/**";
     private static final String RESUME_UPLOAD_PATH = "/api/candidates/resumes";
     private static final String SCORING_RUN_CREATE_PATTERN = "/api/hr/applications/*/scoring-runs";
+    // FR-H04 mo rong R-L1 - cham tat ca CV trong tin (@PostMapping("/bulk") tren
+    // @RequestMapping("/api/hr/jobs/{jobId}/scoring-runs") cua JobScoringRunBulkHrController): mot lan bam = mot luot
+    // token bat ke tao bao nhieu luot cham; tran 50 (ScoringRunService.MAX_BULK_SCORING_RUNS) moi la chot chi phi. Khac
+    // tien to voi mau don le o tren nen hai mau khong chong nhau (R-L2).
+    private static final String SCORING_RUN_BULK_PATTERN = "/api/hr/jobs/*/scoring-runs/bulk";
     private static final String CV_IMPROVEMENT_PATTERN = "/api/candidates/resumes/*/improvement-suggestions";
     // FR-C05 R-R3 - trich xuat lai CV (@PostMapping("/{id}/reparse") cua ResumeCandidateController): moi
     // yeu cau thanh cong = 1 luot goi LLM o job nen, cung nhom llm-action theo userId.
@@ -191,6 +196,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (RESUME_UPLOAD_PATH.equals(path)
                 || PATH_MATCHER.match(SCORING_RUN_CREATE_PATTERN, path)
+                || PATH_MATCHER.match(SCORING_RUN_BULK_PATTERN, path)
                 || PATH_MATCHER.match(CV_IMPROVEMENT_PATTERN, path)
                 || PATH_MATCHER.match(RESUME_REPARSE_PATTERN, path)) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

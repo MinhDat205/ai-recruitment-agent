@@ -157,6 +157,22 @@ Nói:
    giải thích ~21 s). Sau `perf/scoring-latency` (đo 30/10) vẫn **~60–70 s** một lượt: job nhận việc < 1 s, gần như toàn
    bộ thời gian là AI chấm từng tiêu chí và viết giải thích (mục 6). Trang tự cập nhật.
 
+### Thay cho bước 3 của 7–9' · Chấm tất cả CV trong tin (HR) [AI, job nền] — TUỲ CHỌN
+
+1. Tin **Kỹ sư Kiểm thử phần mềm (QA)** → tab "Ứng viên": nút **"Chấm tất cả (1)"** — chỉ đếm đơn chu kỳ 2 của Bảo mà
+   người trình bày vừa nộp ở bước 4 của mục 3–7' (seed **không** có sẵn đơn này: tầng 3 chỉ ghi Bảo có đơn chu kỳ 1).
+   Chưa làm bước 4 thì nút là "(0)" và bị khoá. Hai đơn chu kỳ 1 (Bảo bị từ chối, Đức đã rút) vẫn hiện trong bảng nhưng
+   không tính.
+2. Bấm → hộp ghi "Số đơn sẽ xếp vào hàng chấm: 1" và "khoảng 1 phút" → **"Chấm tất cả"** → câu "Đã xếp 1 đơn vào hàng
+   chấm." dưới hàng nút; dòng của Bảo chuyển sang tiến độ như khi bấm từng đơn.
+
+Nói: "Một lần bấm chỉ tạo bản ghi chờ chấm, không gọi AI trong request; tối đa 50 đơn mỗi lần, đơn đã có điểm không bị
+chấm lại. AI vẫn chấm từng tiêu chí như nút đơn lẻ."
+
+Thời gian: chưa bấm giờ lô thật ở buổi soát tay 31/10; các lượt chạy lần lượt, mỗi đơn ~1 phút (đo một lượt ở mục 6).
+**Không** dùng tin Senior Java Backend Developer để khoe nút này: đơn của Nguyễn Thị Thu Hà luôn `FAILED`
+(`EVIDENCE_NOT_VERIFIED`) nên mỗi lần bấm lại tốn lượt gọi AI mà không ra điểm.
+
 ### 9–13' · Trong lúc chờ: hỏi đáp CV, chu kỳ tuyển dụng, xếp hạng (HR)
 
 1. Cùng đơn của Bảo → tab **"Hỏi đáp CV"** **[AI]** (hỏi đáp chỉ cần văn bản CV, không phải chờ chấm xong):

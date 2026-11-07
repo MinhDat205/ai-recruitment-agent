@@ -1,6 +1,6 @@
 import { http } from '../../lib/http'
 import type { Application, ApplicationStatus } from '../applications/types'
-import type { ApplicationHrListItem, ApplicationSortOption, ScoringRun } from './types'
+import type { ApplicationHrListItem, ApplicationSortOption, BulkScoringRunResult, ScoringRun } from './types'
 
 export async function listHrApplicationsRequest(
   jobId: string,
@@ -14,6 +14,13 @@ export async function listHrApplicationsRequest(
 
 export async function createScoringRunRequest(applicationId: string): Promise<ScoringRun> {
   const response = await http.post<ScoringRun>(`/hr/applications/${applicationId}/scoring-runs`)
+  return response.data
+}
+
+// FR-H04 mo rong B1 - xep moi don du dieu kien cua chu ky hien tai vao hang cham (toi da 50 don/lan, R-C1). Chi tao
+// luot PENDING, khong goi AI trong request (R-T2). Duong dan nay chi xuat hien o file nay (REQUIREMENT muc 7.3).
+export async function bulkCreateScoringRunsRequest(jobId: string): Promise<BulkScoringRunResult> {
+  const response = await http.post<BulkScoringRunResult>(`/hr/jobs/${jobId}/scoring-runs/bulk`)
   return response.data
 }
 

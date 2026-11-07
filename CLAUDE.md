@@ -12,6 +12,8 @@ Mọi thay đổi hành vi phải bám theo mã yêu cầu (FR-C / FR-H / FR-U).
   diện): nguồn sự thật của 21 FR bổ sung.
 - `docs/features/README.md`: thứ tự thực hiện + mô tả định hướng 21 FR bổ sung — đọc đầu mỗi
   phiên làm FR bổ sung; không phải đặc tả để code.
+- Phần mở rộng của một FR gốc (vd FR-H04 mở rộng ở `docs/features/HR/H04/`) cũng có REQUIREMENT.md/UI.md tại
+  `docs/features/` và theo cùng quy trình duyệt như FR bổ sung (§6).
 
 Thứ tự ưu tiên khi mâu thuẫn: REQUIREMENT.md/UI.md đã duyệt > SRS.md > ROADMAP.md/walkthrough.
 Gặp mâu thuẫn thì báo ra, không tự chọn bên nào.
